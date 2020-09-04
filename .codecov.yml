@@ -1,5 +1,7 @@
 # Codecov configuration to make it a bit less noisy
 coverage:
+  ignore:
+    -bespoke-fit/test/.*
   status:
     patch: false
     project:

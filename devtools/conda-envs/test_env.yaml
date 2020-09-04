@@ -1,5 +1,9 @@
-name: test
+name: basic_bespokefit
 channels:
+  - conda-forge
+  - omnia
+  - defaults
+
 dependencies:
     # Base depends
   - python
@@ -9,8 +13,20 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
+  - openforcefield >= 0.7.0
+  - openforcefields
+  - smirnoff99Frost
+  - qcengine >=0.15.0
+  - pyyaml
+  - qcportal
+  - openeye-toolkits
+  - qcfractal
+  - torsiondrive
+  - fragmenter
+  - xtb-python
 
     # Pip-only installs
-  #- pip:
+  - pip:
+      - basis_set_exchange
   #  - codecov
 

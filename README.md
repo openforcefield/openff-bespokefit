@@ -4,7 +4,7 @@ BespokeFit
 [![Travis Build Status](https://travis-ci.com/REPLACE_WITH_OWNER_ACCOUNT/BespokeFit.svg?branch=master)](https://travis-ci.com/REPLACE_WITH_OWNER_ACCOUNT/BespokeFit)
 [![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/BespokeFit/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/BespokeFit/branch/master)
 
-Creating bespoke parameters for individual molecules.
+Creating bespoke SMIRNOFF format parameters for individual molecules.
 
 ### Copyright
 
