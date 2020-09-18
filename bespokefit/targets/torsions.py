@@ -5,7 +5,6 @@ import os
 from typing import Any, Dict, List, Tuple
 
 from openforcefield import topology as off
-from openforcefield.utils.toolkits import RDKitToolkitWrapper
 from simtk import unit
 
 from bespokefit.collection_workflows import (
@@ -81,16 +80,27 @@ class TorsionDrive1D(Target):
                         "canonical_isomeric_explicit_hydrogen_mapped_smiles"
                     ]
                 )
+
                 # get the fragment parent mapping
                 frag_dihedral = data["dihedral"][0][1:3]
-                mapping = self._get_fragment_parent_mapping(
-                    fragment=off_frag, parent=off_molecule
-                )
-                # get the parent torsion
-                parent_dihedral = tuple([mapping[i] for i in frag_dihedral])
+
+                # in some cases we get one fragment back which is th parent molecule
+                # we should not work out a mapping
+                if not off_molecule.is_isomorphic_with(off_frag):
+                    mapping = self._get_fragment_parent_mapping(
+                        fragment=off_frag, parent=off_molecule
+                    )
+                    # get the parent torsion
+                    parent_dihedral = tuple([mapping[i] for i in frag_dihedral])
+                    parent_molecule = off_molecule
+                else:
+                    # reuse the current fragment data as dummy parent data
+                    mapping = dict((i, i) for i in range(off_molecule.n_atoms))
+                    parent_dihedral = frag_dihedral
+                    parent_molecule = off_frag
                 # this is the data we need so make the fragmnetdata
                 frag_data = FragmentData(
-                    parent_molecule=off_molecule,
+                    parent_molecule=parent_molecule,
                     parent_torsion=parent_dihedral,
                     fragment_molecule=off_frag,
                     fragment_torsion=frag_dihedral,
@@ -146,7 +156,7 @@ class TorsionDrive1D(Target):
                 torsions = self.get_all_torsions(
                     fragment.fragment_torsion, fragment.fragment_molecule
                 )
-                fragment.fragment_molecule.generate_conformers(n_conformers=conformers, toolkit_registry=RDKitToolkitWrapper())
+                fragment.fragment_molecule.generate_conformers(n_conformers=conformers)
                 # make the fitting entry with metadata
                 fitting_entry = FittingEntry(
                     name=fragment.fragment_molecule.to_smiles(explicit_hydrogens=False),
@@ -196,7 +206,7 @@ class TorsionDrive1D(Target):
             # for each rotatable bond we should generate a torsiondrive
             attributes = get_molecule_cmiles(molecule)
             rotatable_bonds = self.select_rotatable_bonds(molecule)
-            molecule.generate_conformers(n_conformers=conformers, toolkit_registry=RDKitToolkitWrapper())
+            molecule.generate_conformers(n_conformers=conformers)
             while rotatable_bonds:
                 # get a bond
                 bond = rotatable_bonds.pop()

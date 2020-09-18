@@ -64,3 +64,12 @@ class OptimizerError(BespokeFitException):
 
     error_type = "optimizer_error"
     header = "BespokeFit Optimizer Error"
+
+
+class WorkflowUpdateError(BespokeFitException):
+    """
+    Raised when the optimization workflow can not be updated.
+    """
+
+    error_type = "workflow_update_error"
+    header = "Workflow Update Error"

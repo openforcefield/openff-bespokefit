@@ -1,6 +1,15 @@
+import abc
 from typing import Dict, Optional, Set, Tuple, Union
 
+from openforcefield.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ImproperTorsionHandler,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from pydantic import validator
+from simtk import unit
 
 from ..common_structures import SmirksType
 from ..utils import compare_smirks_graphs
@@ -19,7 +28,7 @@ def _to_degrees(angle: float) -> str:
 
 
 def _to_bond_force(force: float) -> str:
-    return f"{force} * angstroms**2 * mole**-1 * kilocalrie"
+    return f"{force} * angstroms**-2 * mole**-1 * kilocalrie"
 
 
 def _to_angle_force(force: float) -> str:
@@ -63,7 +72,7 @@ class SmirksSchema(SchemaBase):
         return data
 
 
-class ValidatedSmirks(SmirksSchema):
+class ValidatedSmirks(SmirksSchema, abc.ABC):
     @validator("parameterize", each_item=True)
     def validate_parameterize(cls, parameter: str) -> str:
         """
@@ -76,6 +85,19 @@ class ValidatedSmirks(SmirksSchema):
                 f"This smirks does not correspond to the parameter attribute  {parameter}"
             )
 
+    @abc.abstractmethod
+    def update_parameters(self, off_smirk) -> None:
+        """
+        Update the parameters of the current smirks pattern using the corresponding openforcefield toolkit smirks class.
+
+        Parameters
+        ----------
+        off_smirk: Union[BondHandler.BondType, AngleHandler.AngleType, ProperTorsionHandler.ProperTorsionType, ImproperTorsionHandler.ImproperTorsionType, vdWHandler.vdWType]
+            The openforcefield parameter type that should be used to extract the parameters from.
+
+        """
+        raise NotImplementedError()
+
 
 class AtomSmirks(ValidatedSmirks):
     """
@@ -85,10 +107,22 @@ class AtomSmirks(ValidatedSmirks):
     atoms: Set[Tuple[int]]
     type: SmirksType = SmirksType.Vdw
     epsilon: str
-    sigma: str
+    rmin_half: str
 
     _validate_epsilion = validator("epsilon", allow_reuse=True)(_to_kcals_mol)
-    _validate_sigma = validator("sigma", allow_reuse=True)(_to_angstrom)
+    _validate_sigma = validator("rmin_half", allow_reuse=True)(_to_angstrom)
+
+    def update_parameters(self, off_smirk: vdWHandler.vdWType) -> None:
+        """
+        Update the Atom smirks parameter handler using the corresponding openforcefield parameter handler.
+
+        Parameters
+        ----------
+        off_smirk: vdWHandler.vdWType
+            The vdW parameter type that the rmin_half and sigma parameters should extracted from.
+        """
+        self.epsilon = off_smirk.epsilon.value_in_unit(unit=unit.kilocalorie_per_mole)
+        self.rmin_half = off_smirk.rmin_half.value_in_unit(unit.angstroms)
 
 
 class BondSmirks(ValidatedSmirks):
@@ -100,6 +134,20 @@ class BondSmirks(ValidatedSmirks):
     _validate_force = validator("k", allow_reuse=True)(_to_bond_force)
     _validate_length = validator("length", allow_reuse=True)(_to_angstrom)
 
+    def update_parameters(self, off_smirk: BondHandler.BondType) -> None:
+        """
+        Update the Bond smirks parameter handler using the corresponding openforcefield parameter handler.
+
+        Parameters
+        ----------
+        off_smirk: BondHandler.BondType
+            The Bond parameter type that the force constant and equilibrium bond length will be extracted from.
+        """
+        self.k = off_smirk.k.value_in_unit(
+            unit=unit.kilocalories_per_mole / unit.angstrom ** 2
+        )
+        self.length = off_smirk.value_in_unit(unit=unit.angstrom)
+
 
 class AngleSmirks(ValidatedSmirks):
     atoms: Set[Tuple[int, int, int]]
@@ -109,6 +157,20 @@ class AngleSmirks(ValidatedSmirks):
 
     _validate_force = validator("k", allow_reuse=True)(_to_angle_force)
     _validate_angle = validator("angle", allow_reuse=True)(_to_degrees)
+
+    def update_parameters(self, off_smirk: AngleHandler.AngleType) -> None:
+        """
+        Update the Angle smirks parameter handler using the corresponding openforcefield parameter handler.
+
+        Parameters
+        ----------
+        off_smirk: AngleHandler.AngleType
+            The Angle parameter type that the force constant and equilibrium angle will be extracted from.
+        """
+        self.angle = off_smirk.angle.value_in_unit(unit=unit.degree)
+        self.k = off_smirk.k.value_in_unit(
+            unit=unit.kilocalorie_per_mole / unit.radian ** 2
+        )
 
 
 class TorsionTerm(SchemaBase):
@@ -128,7 +190,11 @@ class TorsionTerm(SchemaBase):
     _validate_force = validator("k", allow_reuse=True)(_to_kcals_mol)
 
     def __init__(
-        self, periodicity: str, phase: Optional[float] = None, force: float = 1e-5
+        self,
+        periodicity: str,
+        phase: Optional[float] = None,
+        force: float = 1e-5,
+        idivf: float = 1.0,
     ):
         """
         Here we can build a dummy term from the periodicity.
@@ -140,7 +206,7 @@ class TorsionTerm(SchemaBase):
             else:
                 phase = 180
 
-        data = {"periodicity": periodicity, "phase": phase, "k": force}
+        data = {"periodicity": periodicity, "phase": phase, "k": force, "idivf": idivf}
         super().__init__(**data)
 
 
@@ -148,6 +214,30 @@ class TorsionSmirks(SmirksSchema):
     atoms: Set[Tuple[int, int, int, int]]
     type: SmirksType = SmirksType.ProperTorsions
     terms: Dict[str, TorsionTerm] = {}
+
+    def update_parameters(
+        self,
+        off_smirk: Union[
+            ProperTorsionHandler.ProperTorsionType,
+            ImproperTorsionHandler.ImproperTorsionType,
+        ],
+    ) -> None:
+        """
+        Update the Torsion smirks parameter handler using the corresponding openforcefield parameter handler.
+
+        Parameters
+        ----------
+        off_smirk: Union[ProperTorsionHandler.ProperTorsionType, ImproperTorsionHandler.ImproperTorsionType]
+            The Torsion parameter type that the parameters should be extrated from.
+        """
+        for i, p in enumerate(off_smirk.periodicity):
+            new_term = TorsionTerm(
+                periodicity=p,
+                phase=off_smirk.phase[i].value_in_unit(unit=unit.degree),
+                idivf=off_smirk.idivf[i],
+                force=off_smirk.k[i].value_in_unit(unit=unit.kilocalorie_per_mole),
+            )
+            self.add_torsion_term(term=new_term)
 
     def add_torsion_term(self, term: Union[str, TorsionTerm]) -> None:
         if isinstance(term, str):

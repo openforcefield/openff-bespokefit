@@ -231,6 +231,8 @@ class Target(BaseModel, abc.ABC):
             [parent_rdkit, fragment_rdkit],
             atomCompare=rdFMCS.AtomCompare.CompareElements,
             bondCompare=rdFMCS.BondCompare.CompareAny,
+            ringMatchesRingOnly=True,
+            completeRingsOnly=True,
         )
         # make a new molecule from the mcs
         match_mol = Chem.MolFromSmarts(mcs.smartsString)

@@ -23,7 +23,7 @@ from qcsubmit.results import (
 from qcsubmit.validators import cmiles_validator
 
 from ..common_structures import Status, Task
-from ..exceptions import DihedralSelectionError, OptimizerError
+from ..exceptions import DihedralSelectionError, OptimizerError, WorkflowUpdateError
 from ..forcefield_tools import ForceFieldEditor
 from ..utils import schema_to_datasets
 from .schema import SchemaBase
@@ -238,17 +238,16 @@ class FittingEntry(SchemaBase):
                     )
                     if isomorphic:
                         # if the atom map is not the same remap the result
-                        print(atom_map)
                         if atom_map != dict(
                             (i, i) for i in range(self.initial_molecule.n_atoms)
                         ):
                             remap = True
                         # work out if the result and schema target the same dihedral
-                        dihedral = set(self.extras["dihedrals"][0])
-                        print(dihedral)
+                        dihedral = set(self.extras["dihedrals"][0][1:3])
                         # now map the result dihedral back
-                        target_dihedral = set([atom_map[i] for i in results.dihedrals[0]])
-                        print(target_dihedral)
+                        target_dihedral = set(
+                            [atom_map[i] for i in results.dihedrals[0][1:3]]
+                        )
                         if not target_dihedral.difference(dihedral):
                             # get the optimization results in order of the angle
                             # we need this data later
@@ -257,7 +256,6 @@ class FittingEntry(SchemaBase):
                                 optimization_result,
                             ) in results.get_ordered_results():
                                 if remap:
-                                    print("remapping result and updating ...")
                                     new_single_result = self._remap_single_result(
                                         mapping=atom_map,
                                         new_molecule=self.initial_molecule,
@@ -265,7 +263,6 @@ class FittingEntry(SchemaBase):
                                         extras={"dihedral_angle": angle},
                                     )
                                 else:
-                                    print("saving result ..")
                                     # get a new single result with the angle in it
                                     result_dict = optimization_result.dict(
                                         exclude={"wbo", "mbo"}
@@ -279,12 +276,10 @@ class FittingEntry(SchemaBase):
                             stage.status = Status.Complete
 
                         else:
-                            print("not the same dihedral")
                             RuntimeError(
                                 f"Molecules are the same but do not target the same dihedral."
                             )
                     else:
-                        print("not the same molecule")
                         raise RuntimeError(
                             f"Molecules are not isomorphic and the results can not be transferred."
                         )
@@ -447,6 +442,40 @@ class WorkflowSchema(SchemaBase):
                 return False
         return True
 
+    @property
+    def target_smirks(
+        self,
+    ) -> List[Union[BondSmirks, AngleSmirks, TorsionSmirks, AtomSmirks]]:
+        """
+        Get all of the smirks targeted by the optimization targets which are part of this workflow.
+        """
+        target_smirks = [
+            smirk for target in self.targets for smirk in target.get_target_smirks()
+        ]
+        return target_smirks
+
+    def update_target_smirks(
+        self, smirks: List[Union[BondSmirks, AngleSmirks, TorsionSmirks, AtomSmirks]]
+    ):
+        """
+        Given a list of smirks with current parameters insert them back into the correct fitting entry.
+
+        Parameters:
+            smirks: A list of the smirks types with parameters that should be inserted back into the fitting entry.
+        """
+        for target in self.targets:
+            for entry in target.entries:
+                new_smirks = []
+                for smirk in entry.target_smirks:
+                    if smirk in smirks:
+                        # the smirks match so transfer the parameters back to the entry
+                        location = smirks.index(smirk)
+                        new_smirks.append(smirks[location])
+                    else:
+                        new_smirks.append(smirk)
+                # now update the list
+                entry.target_smirks = new_smirks
+
     def get_fitting_forcefield(self, initial_forcefield: str) -> ForceField:
         """
         Take the initial forcefield and edit it to add the new terms and return the OpenFF FF object.
@@ -582,6 +611,25 @@ class MoleculeSchema(SchemaBase):
                 return stage
         return None
 
+    def update_optimization_stage(self, stage: WorkflowSchema) -> None:
+        """
+        Update an optimization stage with a completed optimization stage.
+
+        Parameters:
+            stage: The optimization stage which should be updated into the molecule schema
+
+        Raises:
+            WorkflowUpdateError: If no workflow stage in the schema matches the stage supplied.
+        """
+        for i, workflow in enumerate(self.workflow):
+            if workflow.job_id == stage.job_id:
+                self.workflow[i] = stage
+                break
+        else:
+            raise WorkflowUpdateError(
+                f"No workflow stage matches the job id {stage.job_id}."
+            )
+
     def get_task_map(self) -> Dict[str, List[Task]]:
         """
         Generate a hash map for all of the current tasks to be executed to fit this molecule.
@@ -642,7 +690,9 @@ class FittingSchema(SchemaBase):
         for opt in optimizers:
             if optimizer_name.lower() == opt.optimizer_name.lower():
                 return opt
-        raise OptimizerError(f"An optimizer with the name {optimizer_name} can not be found in the current list of optimizers {self.optimizer_names}")
+        raise OptimizerError(
+            f"An optimizer with the name {optimizer_name} can not be found in the current list of optimizers {self.optimizer_names}"
+        )
 
     @property
     def optimizer_names(self) -> List[str]:
@@ -733,6 +783,9 @@ class FittingSchema(SchemaBase):
             The task hash will also be embedded into the entry to make updating the results faster.
         """
 
-        return schema_to_datasets(self.molecules, singlepoint_name=self.singlepoint_dataset_name,
-                                  optimization_name=self.optimization_dataset_name,
-                                  torsiondrive_name=self.torsiondrive_dataset_name)
+        return schema_to_datasets(
+            self.molecules,
+            singlepoint_name=self.singlepoint_dataset_name,
+            optimization_name=self.optimization_dataset_name,
+            torsiondrive_name=self.torsiondrive_dataset_name,
+        )

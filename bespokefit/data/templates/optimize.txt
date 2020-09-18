@@ -70,7 +70,7 @@ name {{entry_name}}
 type {{target["name"]}}
 weight {{target["weight"]}}
 {%- for key, value in target["keywords"].items() %}
-{{key}} {{value}}
+{{key}} {{ value if value is not none else "" }}
 {%- endfor %}
 $end
 {%- endfor %}
