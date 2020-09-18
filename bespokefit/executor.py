@@ -1,18 +1,20 @@
-from .schema.fitting import FittingSchema, MoleculeSchema
-from .common_structures import Status
-from .utils import schema_to_datasets
-from multiprocessing import Queue, Process
-from queue import Empty
-from typing import List, Dict, Tuple, Union
+import time
+from multiprocessing import Process, Queue
+from typing import Dict, List, Tuple, Union
+
+from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
+from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import (
     BasicCollectionResult,
     OptimizationCollectionResult,
     TorsionDriveCollectionResult,
 )
-from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
-from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
-import time
+
+from .common_structures import Status
+from .schema.fitting import FittingSchema, MoleculeSchema
+from .utils import schema_to_datasets
 
 
 class Executor:
@@ -28,7 +30,7 @@ class Executor:
         self.client = None
         self.server = None
         # activate the client and server
-        self._activate_client(fitting_schema.client)
+        self.activate_client(fitting_schema.client)
         self.torsion_dataset: str = fitting_schema.torsiondrive_dataset_name
         self.optimization_dataset: str = fitting_schema.optimization_dataset_name
         self.energy_dataset: str = fitting_schema.singlepoint_dataset_name + " energy"
@@ -36,6 +38,8 @@ class Executor:
         self.hessian_dataset = fitting_schema.singlepoint_dataset_name + " hessain"
         self.optimizer_settings = fitting_schema.optimizer_settings
         self.fitting_schema = fitting_schema
+        # keep track of the total number of molecules to be fit
+        self.total_tasks = len(fitting_schema.molecules)
         # maybe let users set this for error cycling?
         self.max_retires: int = 3
         # this is the error cycling queue
@@ -48,17 +52,17 @@ class Executor:
         input_datasets = fitting_schema.generate_qcsubmit_datasets()
         # now generate a mapping between the hash and the dataset entry
         print("generating task map")
-        self._generate_dataset_task_map(datasets=input_datasets)
+        self.generate_dataset_task_map(datasets=input_datasets)
         print("generating collection task queue ...")
         # generate the initial task queue of collection tasks
-        self._create_input_task_queue(fitting_schema=fitting_schema)
+        self.create_input_task_queue(fitting_schema=fitting_schema)
         print(f"task queue now contains tasks.")
         print("starting job submission")
-        responses = self._submit_datasets(datasets=input_datasets)
+        responses = self.submit_datasets(datasets=input_datasets)
         print("client response")
         print(responses)
 
-    def _activate_client(self, client: str) -> None:
+    def activate_client(self, client: str) -> None:
         """
         Activate the connection to the chosen qcarchive instance.
 
@@ -76,13 +80,13 @@ class Executor:
             self.server = FractalSnowflakeHandler()
             self.client = self.server.client()
         elif client.lower() == "snowflake":
-            self.server = FractalSnowflake()
+            self.server = FractalSnowflake(max_workers=4)
             self.client = self.server.client()
         else:
             self.client = FractalClient.from_file(client)
             self.server = self.client.server_information()
 
-    def _generate_dataset_task_map(
+    def generate_dataset_task_map(
         self,
         datasets: List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]],
     ) -> None:
@@ -101,14 +105,14 @@ class Executor:
                     dataset.dataset_name,
                 )
 
-    def _create_input_task_queue(self, fitting_schema: FittingSchema) -> None:
+    def create_input_task_queue(self, fitting_schema: FittingSchema) -> None:
         """
         Create a task for each molecule in fitting schema and enter them into the collection queue.
         """
         for molecule in fitting_schema.molecules:
             self.collection_queue.put(molecule)
 
-    def _submit_datasets(
+    def submit_datasets(
         self,
         datasets: List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]],
     ) -> Dict[str, Dict[str, int]]:
@@ -140,16 +144,18 @@ class Executor:
 
         print("starting main executor ...")
         # start the error cycle process
-        error_p = Process(target=self._error_cycle)
+        error_p = Process(target=self.error_cycle)
         error_p.start()
-        optimizer_p = Process(target=self._optimizer)
+        optimizer_p = Process(target=self.optimizer)
         optimizer_p.start()
 
         # join them
         error_p.join()
         optimizer_p.join()
+        print("all tasks done ...")
+        self.fitting_schema.export_schema("final_results.json")
 
-    def _error_cycle(self) -> None:
+    def error_cycle(self) -> None:
         """
         For the given MoleculeSchema check that all collection tasks are running and error cycle jobs. Will also generate new collection tasks as needed
         for example hessian tasks are created when optimizations are finished.
@@ -158,14 +164,21 @@ class Executor:
 
         while True:
             print("pulling task from collection queue")
-            try:
-                task = self.collection_queue.get_nowait()
+            task = self.collection_queue.get()
+            if isinstance(task, str):
+                # this is the kill message so kill the worker
+                break
+            else:
                 print("task molecule name ", task.molecule)
 
                 # first we have to get all of the tasks for this molecule
                 task_map = task.get_task_map()
 
-                to_collect = {"dataset": {}, "optimizationdataset": {}, "torsiondrivedataset": {}}
+                to_collect = {
+                    "dataset": {},
+                    "optimizationdataset": {},
+                    "torsiondrivedataset": {},
+                }
                 # now for each one we want to query the archive and their status
                 for task_hash, collection_tasks in task_map.items():
                     spec_name = collection_tasks[0].entry.qc_spec.spec_name
@@ -174,14 +187,13 @@ class Executor:
                     dataset = self.client.get_collection(dataset_type, dataset_name)
                     print("found dataset ", dataset)
                     # only works for opts and torsiondrives
-                    # need to adapt to the given spec
                     record = dataset.get_record(entry_id, spec_name)
                     print("found record, ", record)
                     # error cycle
                     if record.status.value == "ERROR":
                         if collection_tasks[0].retires < self.max_retires:
                             # we should restart the task here
-                            self._restart_archive_record(record)
+                            self.restart_archive_record(record)
                             # now increment the restart counter
                             for collection_task in collection_tasks:
                                 collection_task.collection_stage.retires += 1
@@ -202,50 +214,43 @@ class Executor:
                         for td_id, td_entry in dataset.data.records.items():
                             if td_entry.name == entry_id:
                                 try:
-                                    to_collect[dataset_type][dataset_name].setdefault(spec_name, []).append(
-                                        td_id
-                                    )
+                                    to_collect[dataset_type][dataset_name].setdefault(
+                                        spec_name, []
+                                    ).append(td_id)
                                 except KeyError:
-                                    to_collect[dataset_type][dataset_name] = {spec_name: [td_id, ]}
+                                    to_collect[dataset_type][dataset_name] = {
+                                        spec_name: [td_id,]
+                                    }
                                 break
 
                 print("collecting results for ", to_collect)
                 for records in to_collect.values():
                     if records:
                         # if there are tasks to collect get the results and update
-                        results = self._collect_results(record_map=to_collect)
+                        results = self.collect_results(record_map=to_collect)
                         # now update all results in the schema
                         print("updating results for task ...", task)
                         task.update_with_results(results=results)
                         # now we should look for new tasks to submit
                         print("task updated,", task)
                         print("looking for new tasks ...")
-                        if task.get_task_map():
-                            response = self._submit_new_tasks(task)
-                            print("response of new tasks ... ", response)
-                        print("checking for optimizations to run ...")
-                        opt = task.get_next_optimization_stage()
-                        if opt is None:
-                            # the molecule is complete and we should update the schema
-                            self._update_fitting_schema(task)
-                        elif opt.ready_for_fitting:
-                            print(" found optimization submitting ", opt)
-                            self.opt_queue.put(task)
-                        else:
-                            # the molecule is not finished and not ready for opt error cycle again
-                            self.collection_queue.put(task)
-                        time.sleep(30)
-                        break
+                if task.get_task_map():
+                    response = self.submit_new_tasks(task)
+                    print("response of new tasks ... ", response)
+                print("checking for optimizations to run ...")
+                opt = task.get_next_optimization_stage()
+                if opt is None:
+                    # the molecule is complete and we should update the schema
+                    self.update_fitting_schema(task)
+                elif opt.ready_for_fitting:
+                    print(" found optimization submitting ", opt)
+                    self.opt_queue.put(task)
                 else:
-                    # no tasks to update so put the molecule back in the queue
+                    # the molecule is not finished and not ready for opt error cycle again
                     self.collection_queue.put(task)
-                    time.sleep(30)
-            except Empty:
-                # there are no tasks left to monitor so kill the watcher
-                print("killing the watcher process")
-                break
+                time.sleep(30)
 
-    def _update_fitting_schema(self, task: MoleculeSchema) -> None:
+    def update_fitting_schema(self, task: MoleculeSchema) -> None:
         """
         Update the given task back into the fitting schema so we can keep track of progress.
         Call this after any result or optimization update.
@@ -256,12 +261,12 @@ class Executor:
                 self.fitting_schema.molecules[i] = task
                 break
 
-    def _submit_new_tasks(self, task: MoleculeSchema) -> Dict[str, Dict[str, int]]:
+    def submit_new_tasks(self, task: MoleculeSchema) -> Dict[str, Dict[str, int]]:
         """
         For the given molecule schema query it for new tasks to submit and either add them to qcarchive or put them in the
         local task queue.
         """
-        datasets = schema_to_datasets([task, ])
+        datasets = schema_to_datasets([task,])
         # now all tasks have been put into the dataset even those running
         # remove a hash that has been seen before
         # add new tasks to the hash record
@@ -284,9 +289,9 @@ class Executor:
                     del dataset.dataset[entry_id]
 
         # now submit the datasets
-        return self._submit_datasets(datasets)
+        return self.submit_datasets(datasets)
 
-    def _collect_results(
+    def collect_results(
         self, record_map: Dict[str, Dict[str, Dict[str, List[str]]]]
     ) -> List[
         Union[
@@ -310,13 +315,16 @@ class Executor:
             for dataset_name, spec_data in collection.items():
                 for spec, records in spec_data.items():
                     result = result_type.from_server(
-                        client=self.client, dataset_name=dataset_name, subset=records, spec_name=spec,
+                        client=self.client,
+                        dataset_name=dataset_name,
+                        subset=records,
+                        spec_name=spec,
                     )
                     results.append(result)
 
         return results
 
-    def _restart_archive_record(
+    def restart_archive_record(
         self, task: Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
     ) -> None:
         """
@@ -324,13 +332,13 @@ class Executor:
         """
         if isinstance(task, ResultRecord):
             print("restarting basic ...")
-            self._restart_basic(
-                [task.id, ]
+            self.restart_basic(
+                [task.id,]
             )
         elif isinstance(task, OptimizationRecord):
             print("restarting optimizations ...")
-            self._restart_optimizations(
-                [task.id, ]
+            self.restart_optimizations(
+                [task.id,]
             )
         else:
             print("restarting torsiondrives and optimizations ...")
@@ -342,32 +350,32 @@ class Executor:
             opt_records = self.client.query_procedures(td_opts)
             restart_opts = [opt.id for opt in opt_records if opt.status == "ERROR"]
             # restart opts then torsiondrives
-            self._restart_optimizations(restart_opts)
-            self._restart_torsiondrives(
-                [task.id, ]
+            self.restart_optimizations(restart_opts)
+            self.restart_torsiondrives(
+                [task.id,]
             )
 
-    def _restart_torsiondrives(self, torsiondrive_ids: List[int]) -> None:
+    def restart_torsiondrives(self, torsiondrive_ids: List[int]) -> None:
         """
         Restart all torsiondrive records.
         """
         for td in torsiondrive_ids:
             self.client.modify_services("restart", procedure_id=td)
 
-    def _restart_optimizations(self, optimization_ids: List[int]) -> None:
+    def restart_optimizations(self, optimization_ids: List[int]) -> None:
         """
         Restart all optimizations.
         """
         for opt in optimization_ids:
             self.client.modify_tasks(operation="restart", base_result=opt)
 
-    def _restart_basic(self, basic_ids: List[int]) -> None:
+    def restart_basic(self, basic_ids: List[int]) -> None:
         """
         Restart all basic single point tasks.
         """
         pass
 
-    def _optimizer(self) -> None:
+    def optimizer(self) -> None:
         """
         Monitors the optimizer queue and runs any tasks that arrive in the list.
         """
@@ -380,6 +388,29 @@ class Executor:
             opt = task.get_next_optimization_stage()
             # now we need to set up the optimizer
             optimizer = self.fitting_schema.get_optimizer(opt.optimizer_name)
-            print("running optimizer task")
-            optimizer.optimize(workflow=opt, initial_forcefield=task.initial_forcefield)
-            break
+            # remove any tasks
+            optimizer.clear_optimization_targets()
+            result = optimizer.optimize(
+                workflow=opt, initial_forcefield=task.initial_forcefield
+            )
+            # now we need to update the workflow stage with the result
+            print("applying results ...")
+            print("current task workflow ...")
+            task.update_optimization_stage(result)
+            # now lets update the fitting schema
+            print("updating the main fitting schema ...")
+            self.update_fitting_schema(task)
+            # check for running QM tasks
+            if task.get_task_map():
+                # submit to the collection queue again
+                self.collection_queue.put(task)
+            elif task.get_next_optimization_stage() is not None:
+                # we have another task to optimize so put back into the queue for collection
+                self.opt_queue.put(task)
+            else:
+                # the molecule is complete so take 1 from the number of molecules to fit
+                self.total_tasks -= 1
+                if self.total_tasks == 0:
+                    # we need to send the kill signal
+                    self.collection_queue.put("END")
+                    break

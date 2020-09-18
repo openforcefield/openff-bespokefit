@@ -3,13 +3,12 @@ Some utility structures shared through the project.
 """
 
 import abc
+from collections import namedtuple
 from enum import Enum
 from typing import Dict, List, Tuple
 
 from openforcefield import topology as off
 from pydantic import BaseModel, PositiveFloat, constr
-from collections import namedtuple
-
 
 Task = namedtuple("Task", ["entry", "collection_stage"])
 

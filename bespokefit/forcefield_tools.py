@@ -2,7 +2,7 @@
 Tools for dealing with forcefield manipulation.
 """
 
-from typing import Dict, List, Union
+from typing import Dict, Iterable, List, Union
 
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import (
@@ -59,15 +59,36 @@ class ForceFieldEditor:
     def label_molecule(self, molecule: off.Molecule) -> Dict[str, str]:
         """
         Type the molecule with the forcefield and return a molecule parameter dictionary.
+
+        Parameters
+        ----------
+        molecule: off.Molecule
+            The openforcefield.topology.Molecule that should be labeled by the forcefield.
+
+        Returns
+        -------
+        Dict[str, str]
+            A dictionary of each parameter assigned to molecule organised by parameter handler type.
         """
         return self.forcefield.label_molecules(molecule.to_topology())[0]
 
     def update_smirks_parameters(
-        self, smirks: List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]
-    ) -> List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]:
+        self,
+        smirks: Iterable[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]],
+    ) -> None:
         """
-        Take a list of input smirks parameters and update the values of the parameters using the forcefield.
+        Take a list of input smirks parameters and update the values of the parameters using the given forcefield in place.
+
+        Parameters
+        ----------
+        smirks : Iterable[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]
+            An iterable containing smirks schemas that are to be updated.
+
         """
-        # first group them then extract the parameters and transfer back.
-        # should work for all parameters we may need a special method for torsions.
-        pass
+
+        for smirk in smirks:
+            new_parameter = self.forcefield.get_parameter_handler(
+                smirk.type.value
+            ).parameters[smirk.smirks]
+            # now we just need to update the smirks with the new values
+            smirk.update_parameters(off_smirk=new_parameter)

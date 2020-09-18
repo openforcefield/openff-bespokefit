@@ -2,7 +2,7 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke workflows.
 """
 
-from typing import List, Optional, Union
+from typing import List, Union
 
 from openforcefield import topology as off
 from pydantic import BaseModel

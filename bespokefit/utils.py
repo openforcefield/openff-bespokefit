@@ -5,11 +5,18 @@ from typing import Dict, List, Tuple, Union
 
 import networkx as nx
 from openforcefield import topology as off
+from pkg_resources import resource_filename
+
+from chemper.graphs.environment import ChemicalEnvironment
+from qcsubmit.datasets import (
+    BasicDataset,
+    ComponentResult,
+    OptimizationDataset,
+    TorsiondriveDataset,
+)
+from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
 
 from .collection_workflows import CollectionMethod
-from chemper.graphs.environment import ChemicalEnvironment
-from qcsubmit.datasets import ComponentResult, BasicDataset, OptimizationDataset, TorsiondriveDataset
-from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
 
 
 def compare_smirks_graphs(smirks1: str, smirks2: str):
@@ -164,9 +171,6 @@ def get_data(relative_path):
         relative_path: The relative path to the data
     """
 
-    from pkg_resources import resource_filename
-    import os
-
     fn = resource_filename("bespokefit", os.path.join("data", relative_path))
 
     if not os.path.exists(fn):
@@ -210,7 +214,12 @@ def tuple_to_string(data: Tuple) -> str:
     return "-".join(str_data)
 
 
-def schema_to_datasets(schema: List["MoleculeSchema"], singlepoint_name: str = "Bespokefit single points", optimization_name: str = "Bespokefit optimizations", torsiondrive_name: str = "Bespokefit torsiondrives") -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
+def schema_to_datasets(
+    schema: List["MoleculeSchema"],
+    singlepoint_name: str = "Bespokefit single points",
+    optimization_name: str = "Bespokefit optimizations",
+    torsiondrive_name: str = "Bespokefit torsiondrives",
+) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
     """
     Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
 
@@ -247,14 +256,10 @@ def schema_to_datasets(schema: List["MoleculeSchema"], singlepoint_name: str = "
         description=description,
     )
     opt_dataset = OptimizationDataset(
-        qc_specifications={},
-        dataset_name=optimization_name,
-        description=description,
+        qc_specifications={}, dataset_name=optimization_name, description=description,
     )
     torsion_dataset = TorsiondriveDataset(
-        qc_specifications={},
-        dataset_name=torsiondrive_name,
-        description=description,
+        qc_specifications={}, dataset_name=torsiondrive_name, description=description,
     )
 
     method_to_dataset = {
@@ -275,35 +280,31 @@ def schema_to_datasets(schema: List["MoleculeSchema"], singlepoint_name: str = "
             task = task_entries[0]
             if job_hash not in hashes:
                 if (
-                        task.collection_stage.method == CollectionMethod.TorsionDrive1D
-                        or task.collection_stage.method == CollectionMethod.TorsionDrive2D
+                    task.collection_stage.method == CollectionMethod.TorsionDrive1D
+                    or task.collection_stage.method == CollectionMethod.TorsionDrive2D
                 ):
                     # we just need to make the index now
                     molecule = task.entry.current_molecule
                     dihedrals = task.entry.extras["dihedrals"][0]
                     attributes = task.entry.attributes
                     attributes["task_hash"] = job_hash
-                    atom_map = dict(
-                        (atom, i) for i, atom in enumerate(dihedrals)
-                    )
+                    atom_map = dict((atom, i) for i, atom in enumerate(dihedrals))
                     molecule.properties["atom_map"] = atom_map
                     index = get_torsiondrive_index(molecule)
                     torsion_dataset.add_molecule(
                         index=index,
                         molecule=molecule,
                         attributes=attributes,
-                        dihedrals=[dihedrals, ],
+                        dihedrals=[dihedrals,],
                     )
                     hashes.add(job_hash)
                     # is this how we want to handle different specs for different jobs
                     # this will run every job at all specs which is not wanted
                     if (
-                            task.entry.qc_spec
-                            not in torsion_dataset.qc_specifications.values()
+                        task.entry.qc_spec
+                        not in torsion_dataset.qc_specifications.values()
                     ):
-                        torsion_dataset.add_qc_spec(
-                            **task.entry.qc_spec.dict()
-                        )
+                        torsion_dataset.add_qc_spec(**task.entry.qc_spec.dict())
 
                 elif task.collection_stage.method in method_to_dataset.keys():
                     # get the entry metadata
@@ -311,22 +312,15 @@ def schema_to_datasets(schema: List["MoleculeSchema"], singlepoint_name: str = "
                     attributes = task.entry.attributes
                     attributes["task_hash"] = job_hash
                     index = molecule.to_smiles(
-                        isomeric=True,
-                        mapped=False,
-                        explicit_hydrogens=False,
+                        isomeric=True, mapped=False, explicit_hydrogens=False,
                     )
                     # get the specific dataset type
                     dataset = method_to_dataset[task.collection_stage.method]
                     dataset.add_molecule(
-                        index=index,
-                        molecule=molecule,
-                        attributes=attributes,
+                        index=index, molecule=molecule, attributes=attributes,
                     )
                     hashes.add(job_hash)
-                    if (
-                            task.entry.qc_spec
-                            not in dataset.qc_specifications.values()
-                    ):
+                    if task.entry.qc_spec not in dataset.qc_specifications.values():
                         dataset.add_qc_spec(**task.entry.qc_spec.dict())
 
                 else:

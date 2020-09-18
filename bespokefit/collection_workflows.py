@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 from simtk import unit
 
 from qcsubmit.results import SingleResult

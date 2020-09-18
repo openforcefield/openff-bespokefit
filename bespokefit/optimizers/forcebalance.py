@@ -1,10 +1,13 @@
 import os
+import re
 import subprocess
 from typing import Any, Dict, List
 
 from jinja2 import Template
 from pydantic import PositiveFloat, PositiveInt
 
+from ..common_structures import Status
+from ..forcefield_tools import ForceFieldEditor
 from ..schema.fitting import WorkflowSchema
 from ..targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
 from ..utils import forcebalance_setup, get_data
@@ -65,7 +68,7 @@ class ForceBalanceOptimizer(Optimizer):
 
         Parameters:
             workflow: The workflow schema that should be executed, which contains the targets ready for fitting.
-            initial_forcefield:
+            initial_forcefield: The name of the initial force field to be used as the optimization starting point.
         """
         # check that the correct optimizer workflow has been supplied
         priors = {}
@@ -80,6 +83,7 @@ class ForceBalanceOptimizer(Optimizer):
                     target_class = self.get_optimization_target(
                         target_name=target.target_name, **target.provenance
                     )
+                    self.set_optimization_target(target_class)
                     for param_target in target_class.parameter_targets:
                         name, value = param_target.get_prior()
                         priors[name] = value
@@ -94,7 +98,7 @@ class ForceBalanceOptimizer(Optimizer):
                 ff = workflow.get_fitting_forcefield(initial_forcefield)
                 ff.to_file(os.path.join("forcefield", "bespoke.offxml"))
                 # now make the optimize in file
-                self._generate_optimize_in(
+                self.generate_optimize_in(
                     priors=priors, fitting_targets=fitting_targets
                 )
                 # now lets execute forcebalanace to fit the molecule
@@ -103,22 +107,85 @@ class ForceBalanceOptimizer(Optimizer):
                         "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
                     )
 
-    def _read_output(self) -> Dict[str, str]:
-        """
-        Here we want to read the output of the forcebalance job file and work out the parameters and the state of the job.
-        Did it finish correctly was there an error and find all of the parameters.
-        """
-        pass
+                return self.collect_results(workflow=workflow)
 
-    def _generate_optimize_in(
+    def collect_results(self, workflow: WorkflowSchema) -> WorkflowSchema:
+        """
+        Collect the results of a forcebalance optimization.
+
+        Check the exit state of the optimization before attempting to update the final smirks parameters.
+
+        Parameters
+        ----------
+        workflow: WorkflowSchema
+            The workflow schema that should be updated with the results of the current optimization.
+
+        Returns
+        -------
+        WorkflowSchema
+            The updated workflow schema.
+        """
+        # look for the result
+        result = self.read_output()
+        if result["status"] == Status.Complete:
+            workflow.status = Status.Complete
+            ff = ForceFieldEditor(result["forcefield"])
+            # update the smirks in place
+            ff.update_smirks_parameters(smirks=workflow.target_smirks)
+        else:
+            workflow.status = Status.Error
+
+        return workflow
+
+    def read_output(self) -> Dict[str, str]:
+        """
+        Read the output file of the forcebalance job to determine the exit state of the fitting and the name of the optimized forcefield.
+
+        Returns
+        -------
+        Dict[str, str]
+            A dictionary containing the exit status of the optimization and the file path to the optimized forcefield.
+        """
+        result = {}
+        with open("optimize.out") as log:
+            for line in log.readlines():
+                if "optimization converged" in line.lower():
+                    # optimization finished correctly
+                    result["status"] = Status.Complete
+                    break
+                elif "convergence failure" in line.lower():
+                    # did not converge
+                    result["status"] = Status.Error
+                    break
+            else:
+                # still running?
+                result["status"] = Status.Optimizing
+
+        # now we need the path to the last forcefield file
+        forcefield_dir = os.path.join("result", "optimize")
+        files = os.listdir(forcefield_dir)
+        files.remove("bespoke.offxml")
+        forcefields = [
+            (int(re.search("[0-9]+", file_name).group()), file_name)
+            for file_name in files
+        ]
+        # now sort them so the highest optimization is the last in the list
+        forcefields.sort(key=lambda x: x[0])
+        result["forcefield"] = os.path.join(forcefield_dir, forcefields[-1][-1])
+        return result
+
+    def generate_optimize_in(
         self, priors: Dict[str, float], fitting_targets: Dict[str, List[str]]
-    ):
+    ) -> None:
         """
         Using jinja generate an optimize.in control file for forcebalance at the given location.
 
-        Parameters:
-            priors:
-            optimization_targets:
+        Parameters
+        ----------
+        priors: Dict[str, float]
+            A dictionary containing the prior names and values.
+        fitting_targets: Dict[str, List[str]]
+            A dictionary containing the fitting target names sorted by forcebalance target.
 
         Note:
             This function can be used to generate many optimize in files so many force balance jobs can be ran simultaneously.
