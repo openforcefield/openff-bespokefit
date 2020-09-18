@@ -276,7 +276,7 @@ class FittingEntry(SchemaBase):
                             stage.status = Status.Complete
 
                         else:
-                            RuntimeError(
+                            raise RuntimeError(
                                 f"Molecules are the same but do not target the same dihedral."
                             )
                     else:

@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, Union
 
 import networkx as nx
 from openforcefield import topology as off
+from pkg_resources import resource_filename
 
 from chemper.graphs.environment import ChemicalEnvironment
 from qcsubmit.datasets import (
@@ -169,9 +170,6 @@ def get_data(relative_path):
     Parameters:
         relative_path: The relative path to the data
     """
-
-    from pkg_resources import resource_filename
-    import os
 
     fn = resource_filename("bespokefit", os.path.join("data", relative_path))
 
