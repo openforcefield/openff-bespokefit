@@ -25,6 +25,7 @@ dependencies:
   - openeye-toolkits
   - qcfractal
   - torsiondrive
+  - chemper
   - fragmenter
   - torchani
 

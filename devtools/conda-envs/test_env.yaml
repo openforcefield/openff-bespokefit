@@ -21,6 +21,7 @@ dependencies:
   - forcebalance
   - qcsubmit
   - pyyaml
+  - chemper
   - qcportal
   - openeye-toolkits
   - qcfractal
