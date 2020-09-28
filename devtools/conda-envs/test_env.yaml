@@ -2,6 +2,8 @@ name: basic_bespokefit
 channels:
   - conda-forge
   - omnia
+  - omnia/label/rc
+  - openeye
   - defaults
 
 dependencies:
@@ -15,7 +17,6 @@ dependencies:
   - codecov
   - openforcefield >= 0.7.0
   - openforcefields
-  - smirnoff99Frost
   - qcengine >=0.16.0
   - forcebalance
   - qcsubmit
