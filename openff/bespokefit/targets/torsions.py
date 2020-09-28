@@ -32,7 +32,9 @@ class TorsionDrive1D(Target):
     collection_workflow: List[WorkflowStage] = TorsiondriveWorkflow
     fragmentation: bool = True  # should we fragment the molecule
     weight: float = 1.0
-    torsion_selection: TorsionSelection = TorsionSelection.All  # which bonds should be fit
+    torsion_selection: TorsionSelection = (
+        TorsionSelection.All
+    )  # which bonds should be fit
     fit_gradient: bool = False
     # torsiondrive settings
     grid_spacings: List[int] = [15]
@@ -137,7 +139,9 @@ class TorsionDrive1D(Target):
             )
 
     def generate_fitting_schema(
-        self, molecule: off.Molecule, conformers: int = 5,
+        self,
+        molecule: off.Molecule,
+        conformers: int = 5,
     ) -> TargetSchema:
         """
         This method will consume a molecule and produce a fitting schema related to that molecule for this target.
@@ -168,7 +172,11 @@ class TorsionDrive1D(Target):
                     collection_workflow=self.collection_workflow,
                     qc_spec=self.qc_spec,
                     input_conformers=fragment.fragment_molecule.conformers,
-                    extras={"dihedrals": [torsions[0],]},
+                    extras={
+                        "dihedrals": [
+                            torsions[0],
+                        ]
+                    },
                     provenance=self.provenance(),
                 )
                 # for each torsion make a new smirks
@@ -222,7 +230,11 @@ class TorsionDrive1D(Target):
                     collection_workflow=self.collection_workflow,
                     qc_spec=self.qc_spec,
                     input_conformers=molecule.conformers,
-                    extras={"dihedrals": [torsions[0],]},
+                    extras={
+                        "dihedrals": [
+                            torsions[0],
+                        ]
+                    },
                     provenance=self.provenance(),
                 )
                 # make a new smirks pattern for each dihedral
@@ -230,7 +242,8 @@ class TorsionDrive1D(Target):
                     smirks = TorsionSmirks(
                         atoms={torsion},
                         smirks=self._get_new_single_graph_smirks(
-                            atoms=torsion, molecule=molecule,
+                            atoms=torsion,
+                            molecule=molecule,
                         ),
                     )
                     smirks.parameterize = self.parameter_targets[0].k_values

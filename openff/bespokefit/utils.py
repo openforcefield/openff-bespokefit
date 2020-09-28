@@ -265,10 +265,14 @@ def schema_to_datasets(
         description=description,
     )
     opt_dataset = OptimizationDataset(
-        qc_specifications={}, dataset_name=optimization_name, description=description,
+        qc_specifications={},
+        dataset_name=optimization_name,
+        description=description,
     )
     torsion_dataset = TorsiondriveDataset(
-        qc_specifications={}, dataset_name=torsiondrive_name, description=description,
+        qc_specifications={},
+        dataset_name=torsiondrive_name,
+        description=description,
     )
 
     method_to_dataset = {
@@ -304,7 +308,9 @@ def schema_to_datasets(
                         index=index,
                         molecule=molecule,
                         attributes=attributes,
-                        dihedrals=[dihedrals,],
+                        dihedrals=[
+                            dihedrals,
+                        ],
                     )
                     hashes.add(job_hash)
                     # is this how we want to handle different specs for different jobs
@@ -321,12 +327,16 @@ def schema_to_datasets(
                     attributes = task.entry.attributes
                     attributes["task_hash"] = job_hash
                     index = molecule.to_smiles(
-                        isomeric=True, mapped=False, explicit_hydrogens=False,
+                        isomeric=True,
+                        mapped=False,
+                        explicit_hydrogens=False,
                     )
                     # get the specific dataset type
                     dataset = method_to_dataset[task.collection_stage.method]
                     dataset.add_molecule(
-                        index=index, molecule=molecule, attributes=attributes,
+                        index=index,
+                        molecule=molecule,
+                        attributes=attributes,
                     )
                     hashes.add(job_hash)
                     if task.entry.qc_spec not in dataset.qc_specifications.values():

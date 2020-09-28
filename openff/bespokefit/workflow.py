@@ -26,7 +26,9 @@ class WorkflowFactory(BaseModel):
     client: str = "snowflake"  # the type of client that should be used
     torsiondrive_dataset_name: str = "Bespokefit torsiondrives"
     optimization_dataset_name: str = "Bespokefit optimizations"
-    singlepoint_dataset_name: str = "Bespokefit single points"  # the driver type will be appended to the name
+    singlepoint_dataset_name: str = (
+        "Bespokefit single points"  # the driver type will be appended to the name
+    )
     optimization_workflow: List[Optimizer] = []
 
     class Config:
@@ -131,7 +133,8 @@ class WorkflowFactory(BaseModel):
             # for each molecule make the fitting schema
             mol_name = molecule.to_smiles(mapped=True)
             molecule_schema = MoleculeSchema(
-                molecule=mol_name, initial_forcefield=self.initial_forcefield,
+                molecule=mol_name,
+                initial_forcefield=self.initial_forcefield,
             )
             # add each optimizer
             # TODO fix job id name for other optimizers
@@ -141,7 +144,9 @@ class WorkflowFactory(BaseModel):
                 )
                 # now add all the targets associated with the optimizer
                 for target in optimizer.optimization_targets:
-                    target_entry = target.generate_fitting_schema(molecule=molecule,)
+                    target_entry = target.generate_fitting_schema(
+                        molecule=molecule,
+                    )
                     workflow_stage.targets.append(target_entry)
                 molecule_schema.workflow.append(workflow_stage)
             fitting_schema.add_molecule_schema(molecule_schema)

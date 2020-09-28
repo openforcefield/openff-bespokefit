@@ -34,7 +34,9 @@ class Executor:
         self.torsion_dataset: str = fitting_schema.torsiondrive_dataset_name
         self.optimization_dataset: str = fitting_schema.optimization_dataset_name
         self.energy_dataset: str = fitting_schema.singlepoint_dataset_name + " energy"
-        self.gradient_dataset: str = fitting_schema.singlepoint_dataset_name + " gradient"
+        self.gradient_dataset: str = (
+            fitting_schema.singlepoint_dataset_name + " gradient"
+        )
         self.hessian_dataset = fitting_schema.singlepoint_dataset_name + " hessain"
         self.optimizer_settings = fitting_schema.optimizer_settings
         self.fitting_schema = fitting_schema
@@ -222,7 +224,9 @@ class Executor:
                                     ).append(td_id)
                                 except KeyError:
                                     to_collect[dataset_type][dataset_name] = {
-                                        spec_name: [td_id,]
+                                        spec_name: [
+                                            td_id,
+                                        ]
                                     }
                                 break
 
@@ -269,7 +273,11 @@ class Executor:
         For the given molecule schema query it for new tasks to submit and either add them to qcarchive or put them in the
         local task queue.
         """
-        datasets = schema_to_datasets([task,])
+        datasets = schema_to_datasets(
+            [
+                task,
+            ]
+        )
         # now all tasks have been put into the dataset even those running
         # remove a hash that has been seen before
         # add new tasks to the hash record
@@ -336,12 +344,16 @@ class Executor:
         if isinstance(task, ResultRecord):
             print("restarting basic ...")
             self.restart_basic(
-                [task.id,]
+                [
+                    task.id,
+                ]
             )
         elif isinstance(task, OptimizationRecord):
             print("restarting optimizations ...")
             self.restart_optimizations(
-                [task.id,]
+                [
+                    task.id,
+                ]
             )
         else:
             print("restarting torsiondrives and optimizations ...")
@@ -355,7 +367,9 @@ class Executor:
             # restart opts then torsiondrives
             self.restart_optimizations(restart_opts)
             self.restart_torsiondrives(
-                [task.id,]
+                [
+                    task.id,
+                ]
             )
 
     def restart_torsiondrives(self, torsiondrive_ids: List[int]) -> None:
