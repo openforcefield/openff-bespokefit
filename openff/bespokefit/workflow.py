@@ -5,10 +5,12 @@ This is the main bespokefit workflow factory which is executed and builds the be
 from typing import List, Union
 
 from openforcefield import topology as off
-from pydantic import BaseModel
+from openforcefield.typing.engines.smirnoff import get_available_force_fields
+from pydantic import BaseModel, validator
 
 from qcsubmit.serializers import deserialize, serialize
 
+from .exceptions import ForceFieldError
 from .optimizers import get_optimizer, list_optimizers
 from .optimizers.model import Optimizer
 from .schema.fitting import FittingSchema, MoleculeSchema, WorkflowSchema
@@ -31,6 +33,19 @@ class WorkflowFactory(BaseModel):
         validate_assignment = True
         allow_mutation = True
         arbitrary_types_allowed = True
+
+    @validator("initial_forcefield")
+    def check_forcefield(cls, forcefield: str) -> str:
+        """
+        Check that the forcefield is available via the toolkit.
+        """
+        openff_forcefields = get_available_force_fields()
+        if forcefield not in openff_forcefields:
+            raise ForceFieldError(
+                f"The forcefield {forcefield} is not installed please chose a forcefield from the following {openff_forcefields}"
+            )
+        else:
+            return forcefield
 
     @classmethod
     def parse_file(

@@ -191,7 +191,10 @@ class Executor:
                     print("found record, ", record)
                     # error cycle
                     if record.status.value == "ERROR":
-                        if collection_tasks[0].retires < self.max_retires:
+                        if (
+                            collection_tasks[0].collection_stage.retires
+                            < self.max_retires
+                        ):
                             # we should restart the task here
                             self.restart_archive_record(record)
                             # now increment the restart counter

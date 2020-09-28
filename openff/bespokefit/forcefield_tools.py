@@ -21,8 +21,23 @@ class ForceFieldEditor:
     def __init__(self, forcefield_name: str):
         """
         Gather the forcefield ready for manipulation.
+
+        Parameters
+        ----------
+        forcefield_name: str
+            The string of the target forcefield path.
+
+        Notes
+        ------
+            This will always try to strip the constraints parameter handler as the FF should be unconstrained for fitting.
         """
         self.forcefield = ForceField(forcefield_name, allow_cosmetic_attributes=True)
+
+        # try and strip a constraint handler
+        try:
+            del self.forcefield._parameter_handlers["Constraints"]
+        except KeyError:
+            pass
 
     def add_smirks(
         self,

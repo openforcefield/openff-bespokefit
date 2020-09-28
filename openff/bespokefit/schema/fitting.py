@@ -8,7 +8,6 @@ from pydantic import validator
 from qcelemental.models.types import Array
 from simtk import unit
 
-from bespokefit.collection_workflows import CollectionMethod, Precedence, WorkflowStage
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import (
@@ -22,9 +21,9 @@ from qcsubmit.results import (
 )
 from qcsubmit.validators import cmiles_validator
 
+from ..collection_workflows import CollectionMethod, Precedence, WorkflowStage
 from ..common_structures import Status, Task
 from ..exceptions import DihedralSelectionError, OptimizerError, WorkflowUpdateError
-from ..forcefield_tools import ForceFieldEditor
 from ..utils import schema_to_datasets
 from .schema import SchemaBase
 from .smirks import AngleSmirks, AtomSmirks, BondSmirks, SmirksSchema, TorsionSmirks
@@ -483,6 +482,7 @@ class WorkflowSchema(SchemaBase):
         Parameters:
             initial_forcefield: The name of the initial Forcefield we will be starting at.
         """
+        from ..forcefield_tools import ForceFieldEditor
 
         # get all of the new target smirks
         target_smirks = [

@@ -7,6 +7,7 @@ from jinja2 import Template
 from pydantic import PositiveFloat, PositiveInt
 
 from ..common_structures import Status
+from ..exceptions import TargetNotSetError
 from ..forcefield_tools import ForceFieldEditor
 from ..schema.fitting import WorkflowSchema
 from ..targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
@@ -66,14 +67,17 @@ class ForceBalanceOptimizer(Optimizer):
         This is the main optimization method, which will consume a Workflow stage composed of targets and molecules it will prep them all for fitting
         optimize collect the results and return the completed task.
 
-        Parameters:
-            workflow: The workflow schema that should be executed, which contains the targets ready for fitting.
-            initial_forcefield: The name of the initial force field to be used as the optimization starting point.
+        Parameters
+        ----------
+        workflow: WorkflowSchema
+            The workflow schema that should be executed, which contains the targets ready for fitting.
+        initial_forcefield: str
+            The name of the initial force field to be used as the optimization starting point.
         """
         # check that the correct optimizer workflow has been supplied
         priors = {}
         fitting_targets = {}
-        if workflow.optimizer_name == self.optimizer_name:
+        if workflow.optimizer_name.lower() == self.optimizer_name.lower():
             # this will set up the file structure and return use back to the current working dir after
             with forcebalance_setup(workflow.job_id):
                 # now for each target we need to prep the folders
@@ -164,7 +168,11 @@ class ForceBalanceOptimizer(Optimizer):
         # now we need the path to the last forcefield file
         forcefield_dir = os.path.join("result", "optimize")
         files = os.listdir(forcefield_dir)
-        files.remove("bespoke.offxml")
+        try:
+            files.remove("bespoke.offxml")
+        except ValueError:
+            pass
+
         forcefields = [
             (int(re.search("[0-9]+", file_name).group()), file_name)
             for file_name in files
@@ -187,9 +195,17 @@ class ForceBalanceOptimizer(Optimizer):
         fitting_targets: Dict[str, List[str]]
             A dictionary containing the fitting target names sorted by forcebalance target.
 
-        Note:
+        Notes
+        -----
             This function can be used to generate many optimize in files so many force balance jobs can be ran simultaneously.
         """
+        # check that all of the fitting targets have been set
+        target_names = [target.name.lower() for target in self.optimization_targets]
+        for target_name in fitting_targets.keys():
+            if target_name.lower() not in target_names:
+                raise TargetNotSetError(
+                    f"The target {target_name} is not setup for this optimizer and is required, please add it with runtime options using `set_optimization_target`."
+                )
 
         # grab the template file
         template_file = get_data(os.path.join("templates", "optimize.txt"))

@@ -52,7 +52,7 @@ class Optimizer(BaseModel, abc.ABC):
                 self.get_optimization_target(target, **kwargs)
             )
 
-        elif target.name in self._get_registered_targets().keys():
+        elif target.name.lower() in self._get_registered_targets().keys():
             self.optimization_targets.append(target)
 
         else:
@@ -78,29 +78,43 @@ class Optimizer(BaseModel, abc.ABC):
         targets = self._get_registered_targets()
         for name, target in targets.items():
             if name.lower() == target_name.lower():
-                return target.parse_obj(kwargs)
+                if kwargs:
+                    return target.parse_obj(kwargs)
+                else:
+                    return target
+        raise TargetRegisterError(
+            f"No target is registered to this optimizer under the name {target_name.lower()}"
+        )
 
     @classmethod
-    def register_target(cls, target: Target, overwrite: bool = False) -> None:
+    def register_target(cls, target: Target, replace: bool = False) -> None:
         """
         Take a target and register it with the optimizer under an alias name which is used to call the target.
 
-        Parameters:
-            target: The target class which is to be registered with the optimizer.
-            overwrite: If the alias is already registered overwrite with the new target data with no exception.
+        Parameters
+        ----------
+        target: Target
+            The target class which is to be registered with the optimizer.
+        replace: bool
+            If the alias is already registered replaced with the new target data with no exception.
+
+        Raises
+        ------
+        TargetRegisterError
+            If the target has already been registered.
         """
 
         current_targets = cls._get_registered_targets()
-        if (target.name not in current_targets) or (
-            target.name in current_targets and overwrite
+        if (target.name.lower() not in current_targets) or (
+            target.name.lower() in current_targets and replace
         ):
             try:
-                cls._all_targets[cls.__name__][target.name] = target
+                cls._all_targets[cls.__name__][target.name.lower()] = target
             except KeyError:
-                cls._all_targets[cls.__name__] = {target.name: target}
+                cls._all_targets[cls.__name__] = {target.name.lower(): target}
         else:
             raise TargetRegisterError(
-                f"The alias {target.name} has already been registered with this optimizer; to update use overwrite = `True`."
+                f"The alias {target.name.lower()} has already been registered with this optimizer; to update use overwrite = `True`."
             )
 
     @classmethod
@@ -108,13 +122,24 @@ class Optimizer(BaseModel, abc.ABC):
         """
         Remove a registered target from the optimizer.
 
-        Parameters:
-            target_name: The name of the target that should be removed.
+        Parameters
+        ----------
+        target_name: str
+            The name of the target that should be removed.
+
+        Raises
+        ------
+        TargetRegisterError
+            If no target is registered under the name to be removed.
         """
 
         current_targets = cls._get_registered_targets()
-        if target_name in current_targets:
-            del cls._all_targets[cls.__name__][target_name]
+        if target_name.lower() in current_targets:
+            del cls._all_targets[cls.__name__][target_name.lower()]
+        else:
+            raise TargetRegisterError(
+                f"No target with the name {target_name.lower()} was registered."
+            )
 
     @classmethod
     def _get_registered_targets(cls) -> Dict[str, Target]:

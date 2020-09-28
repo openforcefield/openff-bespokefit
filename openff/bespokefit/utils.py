@@ -4,6 +4,7 @@ import shutil
 from typing import Dict, List, Tuple, Union
 
 import networkx as nx
+import numpy as np
 from openforcefield import topology as off
 from pkg_resources import resource_filename
 
@@ -17,6 +18,31 @@ from qcsubmit.datasets import (
 from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
 
 from .collection_workflows import CollectionMethod
+
+
+def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.array]]:
+    """
+    Read a torsiondrive and forcebalance qdata files and return the geometry energy and gradients.
+
+    Parameters
+    ----------
+    qdata_file: str
+        The file path to the torsiondrive and forcebalance qdata files.
+    """
+
+    coords, energies, gradients = [], [], []
+    with open(qdata_file) as qdata:
+        for line in qdata.readlines():
+            if "COORDS" in line:
+                geom = np.array(line.split()[1:])
+                energies.append(geom)
+            elif "ENERGY" in line:
+                energies.append(float(line.split()[-1]))
+            elif "GRADIENT" in line:
+                grad = np.array(line.split()[1:])
+                gradients.append(grad)
+
+    return coords, energies, gradients
 
 
 def compare_smirks_graphs(smirks1: str, smirks2: str):
@@ -171,7 +197,7 @@ def get_data(relative_path):
         relative_path: The relative path to the data
     """
 
-    fn = resource_filename("bespokefit", os.path.join("data", relative_path))
+    fn = resource_filename("openff.bespokefit", os.path.join("data", relative_path))
 
     if not os.path.exists(fn):
         raise ValueError(
@@ -195,23 +221,6 @@ def forcebalance_setup(folder_name: str, keep_files: bool = True):
     os.chdir(cwd)
     if not keep_files:
         shutil.rmtree(folder_name)
-
-
-def string_to_tuple(string: str) -> Tuple:
-    """
-    Convert a n length string to a n length tuple.
-    """
-
-    return tuple(int(x) for x in string.split("-"))
-
-
-def tuple_to_string(data: Tuple) -> str:
-    """
-    Convert a n length tuple into a string of numbers separated by -.
-    """
-    str_data = [str(x) for x in data]
-
-    return "-".join(str_data)
 
 
 def schema_to_datasets(

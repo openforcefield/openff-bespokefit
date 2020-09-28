@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - omnia
   - defaults
+  - pytorch
 
 dependencies:
     # Base depends
@@ -25,9 +26,10 @@ dependencies:
   - qcfractal
   - torsiondrive
   - fragmenter
+  - torchani
+
 
     # Pip-only installs
   - pip:
       - basis_set_exchange
   #  - codecov
-

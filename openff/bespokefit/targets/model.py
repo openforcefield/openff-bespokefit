@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Tuple, Union
 import openforcefield.topology as off
 from pydantic import BaseModel
 
-from bespokefit.collection_workflows import CollectionMethod, WorkflowStage
 from qcsubmit.common_structures import QCSpec
 
+from ..collection_workflows import CollectionMethod, WorkflowStage
 from ..common_structures import ParameterSettings
 
 
@@ -90,16 +90,18 @@ class Target(BaseModel, abc.ABC):
         import importlib
         import openforcefield
         import openforcefields
+        import rdkit
 
         provenance = {
             "openforcefield": openforcefield.__version__,
             "openforcefields": openforcefields.__version__,
+            "rdkit": rdkit.__version__,
             "target": self.name,
         }
         # now loop over the extra dependencies
-        for dependencie in self._extra_dependencies:
-            dep = importlib.import_module(dependencie)
-            provenance[dependencie] = dep.__version__
+        for dependency in self._extra_dependencies:
+            dep = importlib.import_module(dependency)
+            provenance[dependency] = dep.__version__
 
         return provenance
 
@@ -141,12 +143,18 @@ class Target(BaseModel, abc.ABC):
         """
         Generate a new smirks pattern for the selected atoms of the given molecule.
 
-        Parameters:
-            atoms: The indices of the atoms that require a new smirks pattern.
-            molecule: The molecule that that patten should be made for.
-            layers: The number of layers that should be included in the pattern, default to all to make it molecule specific.
+        Parameters
+        ----------
+        atoms: Tuple[int]
+            The indices of the atoms that require a new smirks pattern.
+        molecule: off.Molecule
+            The molecule that that patten should be made for.
+        layers: Union[str, int]
+            The number of layers that should be included in the pattern, default to all to make it molecule specific.
 
-        Returns:
+        Returns
+        -------
+        str
             A single smirks string encapsulating the atoms requested in the given molecule.
         """
 
@@ -162,11 +170,18 @@ class Target(BaseModel, abc.ABC):
         """
         Generate a new smirks pattern which matches the requested atoms in all of the molecules.
 
-        Parameters:
-            atoms: A list of the atom indices that require a smirks pattern in the order of the molecules.
-            molecules: A list of the molecules in the same order as the atom indices.
+        Parameters
+        ----------
+        atoms: List[List[Tuple[int]]]
+            A list of the atom indices that require a smirks pattern in the order of the molecules.
+        molecules: List[off.Molecule]
+            A list of the molecules in the same order as the atom indices.
+        layers: int
+            The number of layers to be considered when making the pattern.
 
-        Returns:
+        Returns
+        -------
+        str
             A single smirks string which matches all of the atoms requested in each of the molecules.
         """
 
@@ -186,14 +201,20 @@ class Target(BaseModel, abc.ABC):
         """
         Get a mapping between two molecules of different size ie a fragment to a parent.
 
-        Parameters:
-            fragment: The fragment molecule that we want to map on to the parent.
-            parent: The parent molecule the fragment was made from.
+        Parameters
+        ----------
+        fragment: off.Molecule
+            The fragment molecule that we want to map on to the parent.
+        parent: off.Molecule
+            The parent molecule the fragment was made from.
 
-        Note:
+        Notes
+        -----
             As the MCS is used to create the mapping it will not be complete, that is some fragment atoms have no relation to the parent.
 
-        Returns:
+        Returns
+        -------
+        Dict[int, int]
             A mapping between the fragment and the parent molecule.
         """
 
@@ -207,7 +228,7 @@ class Target(BaseModel, abc.ABC):
             bond_stereochemistry_matching=False,
             atom_stereochemistry_matching=False,
         )
-        if atom_map:
+        if atom_map is not None:
             return atom_map
 
         else:

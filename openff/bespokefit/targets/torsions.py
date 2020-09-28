@@ -7,14 +7,10 @@ from typing import Any, Dict, List, Tuple
 from openforcefield import topology as off
 from simtk import unit
 
-from bespokefit.collection_workflows import (
-    CollectionMethod,
-    TorsiondriveWorkflow,
-    WorkflowStage,
-)
 from qcsubmit.results import SingleResult
 from qcsubmit.serializers import serialize
 
+from ..collection_workflows import CollectionMethod, TorsiondriveWorkflow, WorkflowStage
 from ..common_structures import FragmentData, ProperTorsionSettings
 from ..exceptions import FragmenterError, MissingReferenceError
 from ..schema.fitting import FittingEntry, TargetSchema
@@ -35,6 +31,7 @@ class TorsionDrive1D(Target):
     parameter_targets: List[ProperTorsionSettings] = [ProperTorsionSettings()]
     collection_workflow: List[WorkflowStage] = TorsiondriveWorkflow
     fragmentation: bool = True  # should we fragment the molecule
+    weight: float = 1.0
     torsion_selection: TorsionSelection = TorsionSelection.All  # which bonds should be fit
     fit_gradient: bool = False
     # torsiondrive settings
@@ -51,10 +48,14 @@ class TorsionDrive1D(Target):
         """
         Take a molecule and fragment it using WBOfragmenter across all rotatable bonds.
 
-        Parameters:
-            off_molecule: The openforcefield molecule that should be fragmented.
+        Parameters
+        ----------
+        off_molecule: off.Molecule
+            The openforcefield molecule that should be fragmented.
 
-        Returns:
+        Returns
+        -------
+        List[FragmentData]
             A list of FragmentData classes which hold the relations between the parent molecule and the fragment.
         """
 
@@ -84,7 +85,7 @@ class TorsionDrive1D(Target):
                 # get the fragment parent mapping
                 frag_dihedral = data["dihedral"][0][1:3]
 
-                # in some cases we get one fragment back which is th parent molecule
+                # in some cases we get one fragment back which is the parent molecule
                 # we should not work out a mapping
                 if not off_molecule.is_isomorphic_with(off_frag):
                     mapping = self._get_fragment_parent_mapping(
@@ -141,9 +142,12 @@ class TorsionDrive1D(Target):
         """
         This method will consume a molecule and produce a fitting schema related to that molecule for this target.
 
-        Parameters:
-            molecule: The molecule that the fitting schema should be created for.
-            conformers: The number of input conformers to supply.
+        Parameters
+        ----------
+        molecule: off.Molecule
+            The molecule that the fitting schema should be created for.
+        conformers: int, default=5
+            The number of input conformers to supply for the torsiondrive.
         """
         # the provenance here captures the settings used in the target including the priors.
         target_schema = TargetSchema(target_name=self.name, provenance=self.dict())
@@ -267,6 +271,16 @@ class TorsionDrive1D(Target):
     def select_rotatable_bonds(self, molecule: off.Molecule) -> List[Tuple[int, int]]:
         """
         Gather a list of rotatable bonds based on the chosen torsion selection method.
+
+        Parameters
+        ----------
+        molecule: off.Molecule
+            The molecule whoes rotatable bonds we want to find.
+
+        Returns
+        -------
+        List[Tuple[int, int]]
+            A list of central bond atom index tuples.
         """
 
         if self.torsion_selection == TorsionSelection.NonTerminal:
@@ -287,15 +301,19 @@ class TorsionDrive1D(Target):
         self, bond: Tuple[int, int], molecule: off.Molecule
     ) -> List[Tuple[int, int, int, int]]:
         """
-        Get all torsions that pass through the central bond to generate smirks paterns.
+        Get all torsions that pass through the central bond to generate smirks patterns.
 
-        Parameters:
-            bond: The bond which we want all torsions for.
-            molecule: The molecule which the bond corresponds to.
+        Parameters
+        ----------
+        bond: Tuple[int, int]
+            The bond which we want all torsions for.
+        molecule: off.Molecule
+            The molecule which the bond corresponds to.
 
-        Returns:
-            A list of all of the torsion tuples passing through this central bond ordered atomic weight with
-            the heaviest terminal atom first.
+        Returns
+        -------
+        List[Tuple[int, int, int, int]]
+            A list of all of the torsion tuples passing through this central bond.
         """
 
         torsions = []
@@ -360,10 +378,9 @@ class AbInitio_SMIRNOFF(TorsionDrive1D):
 
     name = "AbInitio_SMIRNOFF"
     description = "Static single point energy and gradient fitting."
-    weight: float = 1.0
     keywords: Dict[str, Any] = {
         "writelevel": 1,
-        "mol2": "molecule.sdf",
+        "mol2": "molecule.mol2",
         "pdb": "molecule.pdb",
         "coords": "scan.xyz",
     }

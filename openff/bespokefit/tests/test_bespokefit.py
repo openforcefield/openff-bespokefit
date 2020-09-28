@@ -4,10 +4,8 @@ Unit and regression test for the bespokefit package.
 
 import sys
 
-import pytest
-
 # Import package, test suite, and other packages as needed
-import bespokefit
+from openff.bespokefit import bespokefit
 
 
 def test_bespokefit_imported():

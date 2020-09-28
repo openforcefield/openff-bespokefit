@@ -1,0 +1,210 @@
+Note: Failed to import the optional openff.evaluator package.
+#======================================================================#
+#| [1m            Welcome to ForceBalance version 1.7.4! =D             [0m |#
+#| [1m                 Force Field Optimization System                  [0m |#
+#| [1m                                                                  [0m |#
+#| [1m                             Authors:                             [0m |#
+#| [1m                          Lee-Ping Wang                           [0m |#
+#| [1m                  Yudong Qiu, Keri A. McKiernan                   [0m |#
+#| [1m          Jeffrey R. Wagner, Hyesu Jang, Simon Boothroyd          [0m |#
+#| [1m           Arthur Vigil, Erik G. Brandt, Johnny Israeli           [0m |#
+#======================================================================#
+
+                          [44m     [0m
+                       [44m        [0m      [43m     [0m
+                    [44m        [0m   [44m  [0m    [43m         [0m
+                 [44m       [0m    [44m      [0m      [43m         [0m
+             [44m        [0m    [44m        [0m          [43m         [0m
+          [44m        [0m    [44m        [0m                 [43m        [0m
+       [44m        [0m    [44m       [0m                        [43m        [0m
+    [44m        [0m   [44m        [0m                              [43m         [0m
+   [44m      [0m   [44m        [0m               `.:+@@###@'          [43m         [0m
+    [44m [0m    [44m        [0m          ,;'+###############.             [43m     [0m
+      [44m        [0m         +################':`                    [43m [0m
+      [44m     [0m              `.,,...####+.
+                                ,#####      +##.               [44m   [0m   [44m   [0m
+ [43m    [0m                            #####      ######             [44m   [0m   [44m   [0m
+ [43m    [0m                ###'        ####'     :#####'             [44m   [0m   [44m   [0m
+ [43m    [0m                :####@      ####.    ,####'               [44m   [0m   [44m   [0m
+ [43m    [0m                 ######     ####    +###+                 [44m   [0m   [44m   [0m
+ [43m    [0m                  #####     ####   ###;                   [44m   [0m   [44m   [0m
+ [43m    [0m                   :##      ####  ++`                     [44m   [0m   [44m   [0m
+ [43m    [0m                            ####``..:;+##############+`   [44m   [0m   [44m   [0m
+ [43m    [0m             .,:;;'++##################################`  [44m   [0m   [44m   [0m
+ [43m    [0m    `############################++++''';;;;;;;;;;;'';    [44m   [0m   [44m   [0m
+ [43m    [0m      ,########':,.``       ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+ [43m    [0m                            ####                          [44m   [0m   [44m   [0m
+      [44m    [0m                       ####
+     [44m        [0m                    ####
+    [44m [0m    [44m       [0m                 ####                       [43m     [0m
+   [44m     [0m    [44m        [0m             ####                    [43m        [0m
+   [44m        [0m    [44m        [0m          ###                  [43m         [0m
+      [44m        [0m    [44m        [0m        +`               [43m        [0m
+          [44m        [0m   [44m        [0m                   [43m        [0m
+             [44m        [0m   [44m         [0m           [43m         [0m
+                [44m        [0m    [44m       [0m      [43m         [0m
+                   [44m        [0m    [44m   [0m    [43m        [0m
+                      [44m        [0m       [43m      [0m
+                          [44m      [0m      [43m  [0m
+                             [44m  [0m
+
+Reading options from file: optimize.in
+#========================================================#
+#| [95m  Options at their default values are not printed   [0m |#
+#| [95m        Use 'verbose_options True' to Enable        [0m |#
+#========================================================#
+Reading force field from file: bespoke.offxml
+#=========================================================#
+#| [92m Starting parameter indices, physical values and IDs [0m |#
+#=========================================================#
+   0 [  1.0000e-05 ] : ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   1 [  1.0000e-05 ] : ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   2 [  1.0000e-05 ] : ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   3 [  1.0000e-05 ] : ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   4 [  1.0000e-05 ] : ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   5 [  1.0000e-05 ] : ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   6 [  1.0000e-05 ] : ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   7 [  1.0000e-05 ] : ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   8 [  1.0000e-05 ] : ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   9 [  1.0000e-05 ] : ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  10 [  1.0000e-05 ] : ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  11 [  1.0000e-05 ] : ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  12 [  1.0000e-05 ] : ProperTorsions/Proper/k4/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  13 [  1.0000e-05 ] : ProperTorsions/Proper/k1/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  14 [  1.0000e-05 ] : ProperTorsions/Proper/k3/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  15 [  1.0000e-05 ] : ProperTorsions/Proper/k2/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  16 [  1.0000e-05 ] : ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  17 [  1.0000e-05 ] : ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  18 [  1.0000e-05 ] : ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  19 [  1.0000e-05 ] : ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+-----------------------------------------------------------
+#=========================================================#
+#| [91m Rescaling Factors by Type (Lower Takes Precedence): [0m |#
+#=========================================================#
+   ProperTorsions/Proper/k4             : 1.00000e-05
+   ProperTorsions/Proper/k1             : 1.00000e-05
+   ProperTorsions/Proper/k3             : 1.00000e-05
+   ProperTorsions/Proper/k2             : 1.00000e-05
+   ProperTorsions/Proper/k              : 1.00000e+00
+-----------------------------------------------------------
+#========================================================#
+#| [91m   Rescaling Types / Factors by Parameter Number:   [0m |#
+#========================================================#
+   0 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   1 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   2 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   3 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0]
+   4 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   5 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   6 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   7 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   8 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+   9 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  10 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  11 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4]
+  12 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k4/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  13 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k1/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  14 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k3/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  15 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k2/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  16 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  17 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  18 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+  19 [    ProperTorsions/Proper/k       : 1.00000e+00 ] : ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4]
+----------------------------------------------------------
+#========================================================#
+#| [92m               Setup for force field                [0m |#
+#========================================================#
+fnms                      ['bespoke.offxml']
+priors                    OrderedDict([('ProperTorsions/Proper/k', 1.0)])
+----------------------------------------------------------
+QM forces are not present, only fitting energies.
+#========================================================#
+#| [92m     Setup for target C(CO)O-torsiondrive1d-0 :     [0m |#
+#========================================================#
+pdb                       molecule.pdb
+mol2                      ['molecule.mol2']
+coords                    scan.xyz
+precision                 double
+platname                  Reference
+name                      C(CO)O-torsiondrive1d-0
+type                      ABINITIO_SMIRNOFF
+h                         0.01
+tgtdir                    targets/C(CO)O-torsiondrive1d-0
+writelevel                1
+shots                     24
+----------------------------------------------------------
+QM forces are not present, only fitting energies.
+#========================================================#
+#| [92m     Setup for target C(CO)O-torsiondrive1d-1 :     [0m |#
+#========================================================#
+pdb                       molecule.pdb
+mol2                      ['molecule.mol2']
+coords                    scan.xyz
+precision                 double
+platname                  Reference
+name                      C(CO)O-torsiondrive1d-1
+type                      ABINITIO_SMIRNOFF
+h                         0.01
+tgtdir                    targets/C(CO)O-torsiondrive1d-1
+writelevel                1
+shots                     24
+----------------------------------------------------------
+#========================================================#
+#| [92m        SMIRNOFF Parameter Coverage Analysis        [0m |#
+#========================================================#
+Force field assignment data written to /Users/joshuahorton/Documents/Projects/bespoke-fit/testing/[H:6][C:2]([H:7])([C:3]([H:8])([H:9])[O:4][H:10])[O:1][H:5]-fb/smirnoff_parameter_assignments.json
+ idx Parameter                                                                                                   Count
+----------------------------------------------------------------------------------------------------------------------
+   0 ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0] :          2
+   1 ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0] :          2
+   2 ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0] :          2
+   3 ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:4]-!@[#1AH0X1x0!r+0] :          2
+   4 ProperTorsions/Proper/k4/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+   5 ProperTorsions/Proper/k1/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+   6 ProperTorsions/Proper/k3/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+   7 ProperTorsions/Proper/k2/[#8AH1X2x0!r+0:1](-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+   8 ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+   9 ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+  10 ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+  11 ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:3](-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#1AH0X1x0!r+0:4] :          8
+  12 ProperTorsions/Proper/k4/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          4
+  13 ProperTorsions/Proper/k1/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          4
+  14 ProperTorsions/Proper/k3/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          4
+  15 ProperTorsions/Proper/k2/[#6AH2X4x0!r+0:1](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])(-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          4
+  16 ProperTorsions/Proper/k4/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          8
+  17 ProperTorsions/Proper/k1/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          8
+  18 ProperTorsions/Proper/k3/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          8
+  19 ProperTorsions/Proper/k2/[#1AH0X1x0!r+0:1]-!@[#6AH2X4x0!r+0:2](-!@[#1AH0X1x0!r+0])(-!@[#6AH2X4x0!r+0](-!@[#1AH0X1x0!r+0])(-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0]-!@[#1AH0X1x0!r+0])-!@[#8AH1X2x0!r+0:3]-!@[#1AH0X1x0!r+0:4] :          8
+SNIRNOFF Parameter Coverage Analysis result: 20/20 parameters are covered.
+----------------------------------------------------------------------------------------------------------------------
+L1 norm uses the hyperbolic penalty, make sure penalty_hyperbolic_b is set sufficiently small
+#========================================================#
+#| [92m           Setup for objective function :           [0m |#
+#========================================================#
+penalty_type              L1
+penalty_additive          1.0
+normalize_weights         False
+----------------------------------------------------------
+#========================================================#
+#| [92m                Setup for optimizer                 [0m |#
+#========================================================#
+jobtype                   OPTIMIZE
+trust0                    -0.25
+eps                       0.01
+h                         0.01
+h0                        0.01
+convergence_objective     0.01
+convergence_step          0.01
+convergence_gradient      0.01
+adapt_fac                 0.2
+adapt_damp                1.0
+print_hess                True
+err_tol                   1.0
+input_file                optimize.in
+criteria                  2

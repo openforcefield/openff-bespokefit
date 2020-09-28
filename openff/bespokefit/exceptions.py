@@ -23,7 +23,7 @@ class BespokeFitException(Exception):
 
 class TargetRegisterError(BespokeFitException):
     """
-    The registering the target raised an error.
+    Registering the target raised an error.
     """
 
     error_type = "target_register_error"
@@ -73,3 +73,21 @@ class WorkflowUpdateError(BespokeFitException):
 
     error_type = "workflow_update_error"
     header = "Workflow Update Error"
+
+
+class TargetNotSetError(BespokeFitException):
+    """
+    Raised when the target is referenced but not set.
+    """
+
+    error_type = "target_not_set_error"
+    header = "Target Not Set Error"
+
+
+class ForceFieldError(BespokeFitException):
+    """
+    Raised if the forcefield has an incorrect format or can not be loaded.
+    """
+
+    error_type = "force_field_error"
+    header = "Force Field Error"
