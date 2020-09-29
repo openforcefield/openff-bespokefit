@@ -85,7 +85,7 @@ jobs:
           fi
           conda activate test
           python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
-          python -m pip install --no-deps .
+          python setup.py develop --no-deps
 
       - name: Test the package
         shell: bash
