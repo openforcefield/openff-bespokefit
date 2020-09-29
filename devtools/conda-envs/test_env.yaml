@@ -23,7 +23,7 @@ dependencies:
   - pyyaml
   - chemper
   - qcportal
-  - openeye-toolkits
+  - openeye-toolkits ==2019.10.2
   - qcfractal
   - torsiondrive
   - fragmenter

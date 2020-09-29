@@ -22,7 +22,7 @@ dependencies:
   - qcsubmit
   - pyyaml
   - qcportal
-  - openeye-toolkits
+  - openeye-toolkits ==2019.10.2
   - qcfractal
   - torsiondrive
   - chemper
