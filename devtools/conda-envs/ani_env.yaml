@@ -21,12 +21,8 @@ dependencies:
   - forcebalance
   - qcsubmit
   - pyyaml
-  - qcportal
   - openeye-toolkits ==2019.10.2
-  - qcfractal
-  - torsiondrive
   - chemper
-  - fragmenter
   - torchani
 
 

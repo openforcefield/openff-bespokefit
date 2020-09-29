@@ -86,6 +86,7 @@ jobs:
           conda activate test
           python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
           python setup.py develop --no-deps
+          conda list
 
       - name: Test the package
         shell: bash
