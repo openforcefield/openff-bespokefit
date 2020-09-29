@@ -29,4 +29,4 @@ dependencies:
     # Pip-only installs
   - pip:
       - basis_set_exchange
-  #  - codecov
+      - git+git://github.com/openforcefield/fragmenter.git@0.0.7#egg=fragmenter
