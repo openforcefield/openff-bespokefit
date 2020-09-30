@@ -39,6 +39,8 @@ class WorkflowStage(SchemaBase):
     retires: int = 0
     job_id: str = ""
 
+    _enum_fields = ["precedence", "status", "method"]
+
     def get_result_geometries(self) -> List[unit.Quantity]:
         """
         For each result in the workflow stage extract the geometries useful for hessian workflows.

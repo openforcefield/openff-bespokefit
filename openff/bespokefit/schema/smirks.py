@@ -28,7 +28,7 @@ def _to_degrees(angle: float) -> str:
 
 
 def _to_bond_force(force: float) -> str:
-    return f"{force} * angstroms**-2 * mole**-1 * kilocalrie"
+    return f"{force} * angstroms**-2 * mole**-1 * kilocalorie"
 
 
 def _to_angle_force(force: float) -> str:
@@ -146,7 +146,7 @@ class BondSmirks(ValidatedSmirks):
         self.k = off_smirk.k.value_in_unit(
             unit=unit.kilocalories_per_mole / unit.angstrom ** 2
         )
-        self.length = off_smirk.value_in_unit(unit=unit.angstrom)
+        self.length = off_smirk.length.value_in_unit(unit=unit.angstrom)
 
 
 class AngleSmirks(ValidatedSmirks):

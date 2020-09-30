@@ -10,7 +10,7 @@ from pydantic import BaseModel, validator
 
 from qcsubmit.serializers import deserialize, serialize
 
-from .exceptions import ForceFieldError
+from .exceptions import ForceFieldError, OptimizerError
 from .optimizers import get_optimizer, list_optimizers
 from .optimizers.model import Optimizer
 from .schema.fitting import FittingSchema, MoleculeSchema, WorkflowSchema
@@ -79,6 +79,11 @@ class WorkflowFactory(BaseModel):
     def add_optimization_stage(self, optimizer: Union[str, Optimizer]) -> None:
         """
         Add an optimization stage to the workflow that will be executed in order.
+
+        Parameters
+        ----------
+        optimizer: Union[str, Optimizer]
+            The optimizer that should be added to the workflow, targets should also be added before creating the fitting schema.
         """
 
         if isinstance(optimizer, str):
@@ -90,17 +95,49 @@ class WorkflowFactory(BaseModel):
                 opt_engine = optimizer
 
             else:
-                raise KeyError(
+                raise OptimizerError(
                     f"The requested optimizer {optimizer} was not registered with bespokefit."
                 )
 
         self.optimization_workflow.append(opt_engine)
 
+    def remove_optimization_stage(self, optimizer: Union[str, Optimizer]) -> None:
+        """
+        Remove an optimizer from the list of optimization stages.
+
+        Parameters
+        ----------
+        optimizer: Union[str, Optimizer]
+            The optimizer that should be removed from the workflow.
+        """
+        # remove by name
+        if isinstance(optimizer, Optimizer):
+            opt_name = optimizer.optimizer_name.lower()
+        else:
+            opt_name = optimizer.lower()
+
+        stage_to_remove = None
+        # find the optimizer with this name and remove it
+        for opt in self.optimization_workflow:
+            if opt.optimizer_name.lower() == opt_name:
+                stage_to_remove = opt
+                break
+
+        if stage_to_remove is not None:
+            self.optimization_workflow.remove(stage_to_remove)
+        else:
+            raise OptimizerError(
+                f"No optimizer could be found in the workflow with the name {opt_name}."
+            )
+
     def export_workflow(self, file_name: str) -> None:
         """
-        Export the workflow to file.
-        Parameters:
-            file_name: The name of the file the workflow should be exported to, the type is determined from the name.
+        Export the workflow to yaml or json file.
+
+        Parameters
+        ----------
+        file_name: str
+            The name of the file the workflow should be exported to, the type is determined from the name.
         """
 
         serialize(serializable=self.dict(), file_name=file_name)
@@ -109,13 +146,28 @@ class WorkflowFactory(BaseModel):
         self, molecules: Union[off.Molecule, List[off.Molecule], str, List[str]]
     ) -> FittingSchema:
         """
-        This is the main function of the workflow which takes the general fitting metatemplate and generates a specific one for the set of molecules that are passed.
+        This is the main function of the workflow which takes the general fitting metatemplate and generates a specific
+        one for the set of molecules that are passed.
 
-        Here for each molecule for each target we should generate a collection job.
+        #TODO Expand to accept the QCSubmit results datasets directly to create the fitting schema and fill the tasks.
 
-        Parameters:
-            molecules: The molecule or list of molecules which should be processed by the schema to generate the fitting schema.
+        Parameters
+        ----------
+        molecules: Union[off.Molecule, List[off.Molecule]]
+            The molecule or list of molecules which should be processed by the schema to generate the fitting schema.
         """
+        # check we have an optimizer in the pipeline
+        if not self.optimization_workflow:
+            raise OptimizerError(
+                "There are no optimization stages in the optimization workflow, first add an optimizer and targets."
+            )
+
+        # now check we have targets in each optimizer
+        for opt in self.optimization_workflow:
+            if not opt.optimization_targets:
+                raise OptimizerError(
+                    f"There are no optimization targets for the optimizer {opt.optimizer_name} in the optimization workflow."
+                )
 
         # create a deduplicated list of molecules first.
         deduplicated_molecules = deduplicated_list(molecules=molecules)

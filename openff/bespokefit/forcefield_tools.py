@@ -54,6 +54,12 @@ class ForceFieldEditor:
             SmirksType.ProperTorsions: ProperTorsionHandler.ProperTorsionType,
             SmirksType.Vdw: vdWHandler.vdWType,
         }
+        _smirks_ids = {
+            SmirksType.Bonds.value: "b",
+            SmirksType.Angles.value: "a",
+            SmirksType.ProperTorsions.value: "t",
+            SmirksType.Vdw.value: "n",
+        }
         new_params = {}
 
         for smirk in smirks:
@@ -67,8 +73,8 @@ class ForceFieldEditor:
                 smirk_type
             ).parameters
             no_params = len(current_params)
-            for i, parameter in enumerate(parameters):
-                parameter["id"] = f"t{no_params + i}"
+            for i, parameter in enumerate(parameters, start=1):
+                parameter["id"] = _smirks_ids[smirk_type] + str(no_params + i)
                 current_params.insert(-1, _smirks_conversion[smirk_type](**parameter))
 
     def label_molecule(self, molecule: off.Molecule) -> Dict[str, str]:
