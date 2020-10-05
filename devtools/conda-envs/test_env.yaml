@@ -23,10 +23,11 @@ dependencies:
   - pyyaml
   - chemper
   - openeye-toolkits ==2019.10.2
+  - fragmenter ==0.0.7
 
     # Pip-only installs
   - pip:
       - basis_set_exchange
-      - git+git://github.com/openforcefield/fragmenter.git@0.0.7#egg=fragmenter
+     # - git+git://github.com/openforcefield/fragmenter.git@0.0.7#egg=fragmenter
 
 

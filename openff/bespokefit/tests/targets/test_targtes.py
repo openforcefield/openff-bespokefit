@@ -205,7 +205,7 @@ def test_abinitio_fitting_prep_no_gradient():
         coords, energies, gradients = read_qdata(qdata_file=qdata_file)
         # make sure no gradients were written
         assert not gradients
-        reference_data = schema.entries[0].reference_data
+        reference_data = schema.entries[0].get_reference_data
         for i, (coord, energy) in enumerate(zip(coords, energies)):
             # find the reference data
             data = reference_data[i]
@@ -251,7 +251,7 @@ def test_abinitio_fitting_prep_gradient():
         # make sure the scan coords and energies match
         qdata_file = os.path.join(folders[0], "qdata.txt")
         coords, energies, gradients = read_qdata(qdata_file=qdata_file)
-        reference_data = schema.entries[0].reference_data
+        reference_data = schema.entries[0].get_reference_data
         for i, (coord, energy, gradient) in enumerate(zip(coords, energies, gradients)):
             # find the reference data
             data = reference_data[i]
@@ -294,5 +294,5 @@ def test_torsionprofile_metadata():
         # now make sure the json is complete
         entry = schema.entries[0]
         assert entry.extras["dihedrals"][0] == tuple(metadata["dihedrals"][0])
-        for data in entry.reference_data:
+        for data in entry.get_reference_data():
             assert data.extras["dihedral_angle"] in metadata["torsion_grid_ids"]

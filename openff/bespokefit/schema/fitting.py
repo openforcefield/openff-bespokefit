@@ -23,7 +23,14 @@ from qcsubmit.validators import cmiles_validator
 
 from ..collection_workflows import CollectionMethod, Precedence, WorkflowStage
 from ..common_structures import Status, Task
-from ..exceptions import DihedralSelectionError, OptimizerError, WorkflowUpdateError
+from ..exceptions import (
+    DihedralSelectionError,
+    MissingReferenceError,
+    MissingWorkflowError,
+    MoleculeMissMatchError,
+    OptimizerError,
+    WorkflowUpdateError,
+)
 from ..utils import schema_to_datasets
 from .schema import SchemaBase
 from .smirks import AngleSmirks, AtomSmirks, BondSmirks, SmirksSchema, TorsionSmirks
@@ -37,12 +44,27 @@ class FittingEntry(SchemaBase):
     name: str
     attributes: Dict[str, str]
     collection_workflow: List[WorkflowStage] = []
-    target_smirks: List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]] = []
+    target_smirks: List[Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]] = []
     qc_spec: QCSpec = QCSpec()
     provenance: Dict[str, Any] = {}
     extras: Dict[str, Any] = {}
     input_conformers: List[Array[np.ndarray]] = []
     _validate_attributes = validator("attributes", allow_reuse=True)(cmiles_validator)
+
+    @validator("input_conformers")
+    def _check_conformers(
+        cls, conformers: List[Array[np.array]]
+    ) -> List[Array[np.array]]:
+        """
+        Take the list of input conformers which will be flat and reshape them.
+        """
+        reshaped_conformers = []
+        for conformer in conformers:
+            if conformer.shape[-1] != 3:
+                reshaped_conformers.append(conformer.reshape((-1, 3)))
+            else:
+                reshaped_conformers.append(conformer)
+        return reshaped_conformers
 
     @validator("extras")
     def _validate_extras(cls, extras: Dict[str, Any]) -> Dict[str, Any]:
@@ -124,7 +146,7 @@ class FittingEntry(SchemaBase):
                 tasks.append(stage)
                 # if the task can be done in parallel return the other tasks
                 if stage.precedence == Precedence.Parallel:
-                    for parallel_stage in self.collection_workflow[i:]:
+                    for parallel_stage in self.collection_workflow[i + 1 :]:
                         if parallel_stage.precedence == Precedence.Parallel:
                             job_id = self.get_task_hash(parallel_stage)
                             parallel_stage.job_id = job_id
@@ -145,7 +167,7 @@ class FittingEntry(SchemaBase):
         """
         Collect the general hash data.
         """
-        inchi = self.initial_molecule.to_inchi(
+        inchi = self.initial_molecule.to_inchikey(
             fixed_hydrogens=True
         )  # non standard inchi
         hash_string = (
@@ -190,12 +212,22 @@ class FittingEntry(SchemaBase):
         """
         return self.get_hash() == other.get_hash()
 
-    @property
-    def reference_data(self) -> List[SingleResult]:
+    def get_reference_data(self) -> List[SingleResult]:
         """
-        Return the final result of the collection workflow.
+        Return the final result of the collection workflow if it is set else raise an error.
         """
-        return self.collection_workflow[-1].result
+        if self.collection_workflow:
+            result = self.collection_workflow[-1].result
+            if result is not None:
+                return result
+            else:
+                raise MissingReferenceError(
+                    f"The workflow has not collected any results yet."
+                )
+        else:
+            raise MissingWorkflowError(
+                f"The Entry has no collection workflow to hold results."
+            )
 
     @property
     def ready_for_fitting(self) -> bool:
@@ -206,9 +238,12 @@ class FittingEntry(SchemaBase):
             `True` if all information is present else `False`.
         """
         # check the last stage is ready for fitting
-        stage = self.collection_workflow[-1]
-        if stage.status == Status.Complete and stage.result is not None:
-            return True
+        if self.collection_workflow:
+            stage = self.collection_workflow[-1]
+            if stage.status == Status.Complete and stage.result is not None:
+                return True
+
+        return False
 
     def update_with_results(
         self, results: Union[BasicResult, TorsionDriveResult, OptimizationEntryResult]
@@ -275,11 +310,11 @@ class FittingEntry(SchemaBase):
                             stage.status = Status.Complete
 
                         else:
-                            raise RuntimeError(
+                            raise DihedralSelectionError(
                                 f"Molecules are the same but do not target the same dihedral."
                             )
                     else:
-                        raise RuntimeError(
+                        raise MoleculeMissMatchError(
                             f"Molecules are not isomorphic and the results can not be transferred."
                         )
 

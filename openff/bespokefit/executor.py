@@ -82,7 +82,7 @@ class Executor:
             self.server = FractalSnowflakeHandler()
             self.client = self.server.client()
         elif client.lower() == "snowflake":
-            self.server = FractalSnowflake(max_workers=4)
+            self.server = FractalSnowflake(max_workers=5)
             self.client = self.server.client()
         else:
             self.client = FractalClient.from_file(client)
@@ -238,6 +238,8 @@ class Executor:
                         # now update all results in the schema
                         print("updating results for task ...", task)
                         task.update_with_results(results=results)
+                        # save the result back
+                        self.update_fitting_schema(task=task)
                         # now we should look for new tasks to submit
                         print("task updated,", task)
                         print("looking for new tasks ...")
@@ -255,7 +257,7 @@ class Executor:
                 else:
                     # the molecule is not finished and not ready for opt error cycle again
                     self.collection_queue.put(task)
-                time.sleep(30)
+                time.sleep(5)
 
     def update_fitting_schema(self, task: MoleculeSchema) -> None:
         """
@@ -264,6 +266,7 @@ class Executor:
         """
         for i, molecule_task in enumerate(self.fitting_schema.molecules):
             if task == molecule_task:
+                print("updating task")
                 # update the schema and break
                 self.fitting_schema.molecules[i] = task
                 break

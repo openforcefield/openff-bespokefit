@@ -133,7 +133,7 @@ def test_label_molecule():
     pytest.param(
         (AtomSmirks(smirks="[#1:1]", atoms={(0,)}, epsilon=0.01, rmin_half=3), {"epsilon": "0.0157 * mole**-1 * kilocalorie", "rmin_half": "0.6 * angstrom"}),
         id="Atom smirks"),
-    pytest.param((BondSmirks(smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, k=100, length=2), {"length": "1.520375903275 * angstrom", "k": "531.1373738609999 * angstroms**-2 * mole**-1 * kilocalorie"}),
+    pytest.param((BondSmirks(smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, k=100, length=2), {"length": "1.520375903275 * angstrom", "k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie"}),
                  id="Bond smirks"),
     pytest.param(
         (AngleSmirks(smirks="[*:1]~[#6X4:2]-[*:3]", atoms={(0, 1, 2)}, k=100, angle=120), {"angle": "107.6607821752 * degree", "k": "101.7373362367 * mole**-1 * radian**-2 * kilocalorie"}),

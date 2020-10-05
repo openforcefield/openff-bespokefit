@@ -8,10 +8,13 @@ from openforcefield.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import validator
+from pydantic import constr, validator
 from simtk import unit
 
+from chemper.graphs.environment import ChemicalEnvironment
+
 from ..common_structures import SmirksType
+from ..exceptions import SMIRKSTypeError
 from ..utils import compare_smirks_graphs
 from .schema import SchemaBase
 
@@ -28,7 +31,7 @@ def _to_degrees(angle: float) -> str:
 
 
 def _to_bond_force(force: float) -> str:
-    return f"{force} * angstroms**-2 * mole**-1 * kilocalorie"
+    return f"{force} * angstrom**-2 * mole**-1 * kilocalorie"
 
 
 def _to_angle_force(force: float) -> str:
@@ -37,6 +40,20 @@ def _to_angle_force(force: float) -> str:
 
 def _to_kcals_mol(force: float) -> str:
     return f"{force} * mole**-1 * kilocalorie"
+
+
+def _validate_smirks(smirks: str, expected_tags: int) -> str:
+    """
+    Make sure the supplied smirks has the correct number of tagged atoms.
+    """
+    smirk = ChemicalEnvironment(smirks=smirks)
+    tagged_atoms = len(smirk.get_indexed_atoms())
+    if tagged_atoms != expected_tags:
+        raise SMIRKSTypeError(
+            f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should have {expected_tags}."
+        )
+    else:
+        return smirks
 
 
 class SmirksSchema(SchemaBase):
@@ -64,7 +81,7 @@ class SmirksSchema(SchemaBase):
         Construct a dictionary that can be made into an OpenFF parameter.
         """
 
-        data = self.dict(exclude={"atoms", "type", "parameterize"})
+        data = self.dict(exclude={"atoms", "type", "parameterize", "identifier"})
         # now we have to format parameterize
         parameterize = ", ".join(self.parameterize)
         data["parameterize"] = parameterize
@@ -73,17 +90,17 @@ class SmirksSchema(SchemaBase):
 
 
 class ValidatedSmirks(SmirksSchema, abc.ABC):
-    @validator("parameterize", each_item=True)
-    def validate_parameterize(cls, parameter: str) -> str:
+    @validator("parameterize")
+    def _validate_parameterize(cls, parameters: Set[str]) -> Set[str]:
         """
         Make sure that the fields are valid for the molecule.
         """
-        if parameter.lower() in cls.__fields__:
-            return parameter.lower()
-        else:
-            raise ValueError(
-                f"This smirks does not correspond to the parameter attribute  {parameter}"
-            )
+        for parameter in parameters:
+            if parameter.lower() not in cls.__fields__:
+                raise ValueError(
+                    f"This smirks does not have a parameter attribute {parameter}"
+                )
+        return parameters
 
     @abc.abstractmethod
     def update_parameters(self, off_smirk) -> None:
@@ -104,6 +121,7 @@ class AtomSmirks(ValidatedSmirks):
     Specific atom smirks.
     """
 
+    identifier: constr(regex="atom") = "atom"
     atoms: Set[Tuple[int]]
     type: SmirksType = SmirksType.Vdw
     epsilon: str
@@ -111,6 +129,10 @@ class AtomSmirks(ValidatedSmirks):
 
     _validate_epsilion = validator("epsilon", allow_reuse=True)(_to_kcals_mol)
     _validate_sigma = validator("rmin_half", allow_reuse=True)(_to_angstrom)
+
+    @validator("smirks")
+    def _validate_smirks(cls, smirks: str) -> str:
+        return _validate_smirks(smirks=smirks, expected_tags=1)
 
     def update_parameters(self, off_smirk: vdWHandler.vdWType) -> None:
         """
@@ -126,6 +148,7 @@ class AtomSmirks(ValidatedSmirks):
 
 
 class BondSmirks(ValidatedSmirks):
+    identifier: constr(regex="bond") = "bond"
     atoms: Set[Tuple[int, int]]
     type: SmirksType = SmirksType.Bonds
     k: str
@@ -133,6 +156,10 @@ class BondSmirks(ValidatedSmirks):
 
     _validate_force = validator("k", allow_reuse=True)(_to_bond_force)
     _validate_length = validator("length", allow_reuse=True)(_to_angstrom)
+
+    @validator("smirks")
+    def _validate_smirks(cls, smirks: str) -> str:
+        return _validate_smirks(smirks=smirks, expected_tags=2)
 
     def update_parameters(self, off_smirk: BondHandler.BondType) -> None:
         """
@@ -150,6 +177,7 @@ class BondSmirks(ValidatedSmirks):
 
 
 class AngleSmirks(ValidatedSmirks):
+    identifier: constr(regex="angle") = "angle"
     atoms: Set[Tuple[int, int, int]]
     type: SmirksType = SmirksType.Angles
     k: str
@@ -157,6 +185,10 @@ class AngleSmirks(ValidatedSmirks):
 
     _validate_force = validator("k", allow_reuse=True)(_to_angle_force)
     _validate_angle = validator("angle", allow_reuse=True)(_to_degrees)
+
+    @validator("smirks")
+    def _validate_smirks(cls, smirks: str) -> str:
+        return _validate_smirks(smirks=smirks, expected_tags=3)
 
     def update_parameters(self, off_smirk: AngleHandler.AngleType) -> None:
         """
@@ -193,7 +225,7 @@ class TorsionTerm(SchemaBase):
         self,
         periodicity: str,
         phase: Optional[float] = None,
-        force: float = 1e-5,
+        k: float = 1e-5,
         idivf: float = 1.0,
     ):
         """
@@ -206,14 +238,30 @@ class TorsionTerm(SchemaBase):
             else:
                 phase = 180
 
-        data = {"periodicity": periodicity, "phase": phase, "k": force, "idivf": idivf}
+        data = {"periodicity": periodicity, "phase": phase, "k": k, "idivf": idivf}
         super().__init__(**data)
 
 
 class TorsionSmirks(SmirksSchema):
+    identifier: constr(regex="torsion") = "torsion"
     atoms: Set[Tuple[int, int, int, int]]
     type: SmirksType = SmirksType.ProperTorsions
     terms: Dict[str, TorsionTerm] = {}
+
+    @validator("smirks")
+    def _validate_smirks(cls, smirks: str) -> str:
+        return _validate_smirks(smirks=smirks, expected_tags=4)
+
+    @validator("parameterize")
+    def _validate_ks(cls, parameters: Set[str]) -> Set[str]:
+        "Make sure K values are specified"
+        allowed_values = ["k1", "k2", "k3", "k4", "k5", "k6"]
+        for parameter in parameters:
+            if parameter not in allowed_values:
+                raise ValueError(
+                    f"The parameter {parameter} is not supported for parametrization."
+                )
+        return parameters
 
     def update_parameters(
         self,
@@ -228,14 +276,16 @@ class TorsionSmirks(SmirksSchema):
         Parameters
         ----------
         off_smirk: Union[ProperTorsionHandler.ProperTorsionType, ImproperTorsionHandler.ImproperTorsionType]
-            The Torsion parameter type that the parameters should be extrated from.
+            The Torsion parameter type that the parameters should be extracted from.
         """
+        # clear out the current terms as the number of k could change
+        self.terms = {}
         for i, p in enumerate(off_smirk.periodicity):
             new_term = TorsionTerm(
                 periodicity=p,
                 phase=off_smirk.phase[i].value_in_unit(unit=unit.degree),
                 idivf=off_smirk.idivf[i],
-                force=off_smirk.k[i].value_in_unit(unit=unit.kilocalorie_per_mole),
+                k=off_smirk.k[i].value_in_unit(unit=unit.kilocalorie_per_mole),
             )
             self.add_torsion_term(term=new_term)
 
@@ -248,17 +298,6 @@ class TorsionSmirks(SmirksSchema):
             new_term = term
 
         self.terms[new_term.periodicity] = new_term
-
-    @validator("parameterize", each_item=True, pre=True)
-    def validate_ks(cls, parameter) -> str:
-        "Make sure K values are specified"
-        allowed_values = ["k1", "k2", "k3", "k4", "k5", "k6"]
-        if parameter in allowed_values:
-            return parameter
-        else:
-            raise ValueError(
-                f"The parameter {parameter} is not supported for parametrization."
-            )
 
     def to_off_smirks(self) -> Dict[str, str]:
         """

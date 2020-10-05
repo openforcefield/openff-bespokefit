@@ -114,11 +114,15 @@ def compare_smirks_graphs(smirks1: str, smirks2: str):
         smirks_type = len(env1.get_indexed_atoms())
 
     # define the general node match
-    def node_match(x, y):
+    def general_match(x, y):
         is_equal = x["_or_types"] == y["_or_types"]
         is_equal &= x["_and_types"] == y["_and_types"]
         is_equal &= x["ring"] == y["ring"]
         is_equal &= x["is_atom"] == y["is_atom"]
+        return is_equal
+
+    def node_match(x, y):
+        is_equal = general_match(x, y)
         is_equal &= environments[smirks_type](x, y)
         return is_equal
 
@@ -126,7 +130,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str):
     env1_graph = make_smirks_attribute_graph(env1)
     env2_graph = make_smirks_attribute_graph(env2)
     gm = nx.algorithms.isomorphism.GraphMatcher(
-        env1_graph, env2_graph, node_match=node_match
+        env1_graph, env2_graph, node_match=node_match, edge_match=general_match
     )
     return gm.is_isomorphic()
 
@@ -136,9 +140,12 @@ def make_smirks_attribute_graph(chem_env: ChemicalEnvironment) -> nx.Graph:
     Make a new nx.Graph from the environment with attributes.
     """
     new_graph = nx.Graph()
+    bonds = chem_env._graph_edges(data=True)
     nodes = list(chem_env._graph.nodes())
     new_graph.add_nodes_from([(node, node.__dict__) for node in nodes])
-    new_graph.add_edges_from(list(chem_env._graph.edges()))
+    new_graph.add_edges_from(
+        [(bond[0], bond[1], bond[-1]["bond"].__dict__) for bond in bonds]
+    )
     return new_graph
 
 

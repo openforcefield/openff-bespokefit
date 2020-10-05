@@ -91,3 +91,30 @@ class ForceFieldError(BespokeFitException):
 
     error_type = "force_field_error"
     header = "Force Field Error"
+
+
+class SMIRKSTypeError(BespokeFitException):
+    """
+    Raised when an incorect smirks pattern is used to make a Smirks schema, eg tagged one atom in a bond smirks.
+    """
+
+    error_type = "smirks_type_error"
+    header = "SMIRKS Type Error"
+
+
+class MissingWorkflowError(BespokeFitException):
+    """
+    Raised when we try and complete a fitting entry that has no workflow set.
+    """
+
+    error_type = "missing_workflow_error"
+    header = "Missing Workflow Error"
+
+
+class MoleculeMissMatchError(BespokeFitException):
+    """
+    Raised when two molecules do not match in a results update.
+    """
+
+    error_type = "molecule_miss_match_error"
+    header = "Molecule Miss Match Error"

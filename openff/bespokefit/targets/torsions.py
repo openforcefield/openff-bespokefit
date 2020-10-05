@@ -436,13 +436,13 @@ class AbInitio_SMIRNOFF(TorsionDrive1D):
             )
             # remove the conformers
             molecule._conformers = []
-            for result in entry.reference_data:
+            for result in entry.get_reference_data():
                 geometry = unit.Quantity(result.molecule.geometry, unit=unit.bohrs)
                 molecule.add_conformer(geometry)
             molecule.to_file("scan.xyz", "xyz")
             # now make the qdata file
             self.create_qdata(
-                entry.reference_data,
+                entry.get_reference_data(),
                 fit_gradient=fitting_target.provenance.get("fit_gradient", False),
             )
             # move back to the home dir
@@ -505,7 +505,7 @@ class TorsionProfile_SMIRNOFF(AbInitio_SMIRNOFF):
             "energy_upper_limit": self.energy_upper_limit,
             "attributes": entry.attributes,
             "torsion_grid_ids": [
-                data.extras["dihedral_angle"] for data in entry.reference_data
+                data.extras["dihedral_angle"] for data in entry.get_reference_data()
             ],
         }
         # now write to file
