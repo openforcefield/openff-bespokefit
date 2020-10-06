@@ -2,13 +2,14 @@
 Test all parts of the fitting schema.
 """
 
-from typing import Tuple
+from typing import List, Tuple
 
 import pytest
 from openforcefield.topology import Molecule
-
 from qcsubmit.common_structures import QCSpec
+from qcsubmit.datasets import OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import TorsionDriveCollectionResult
+from qcsubmit.testing import temp_directory
 
 from ...collection_workflows import (
     CollectionMethod,
@@ -23,10 +24,18 @@ from ...exceptions import (
     MissingReferenceError,
     MissingWorkflowError,
     MoleculeMissMatchError,
+    OptimizerError,
 )
-from ...schema.fitting import FittingEntry
-from ...schema.smirks import AtomSmirks
-from ...utils import get_data, get_molecule_cmiles, get_torsiondrive_index
+from ...optimizers import (
+    ForceBalanceOptimizer,
+    deregister_optimizer,
+    register_optimizer,
+)
+from ...schema.fitting import FittingEntry, FittingSchema
+from ...schema.smirks import AngleSmirks, AtomSmirks
+from ...targets import AbInitio_SMIRNOFF
+from ...utils import get_data, get_molecule_cmiles
+from ...workflow import WorkflowFactory
 
 
 def ethane_fitting_entry() -> Tuple[FittingEntry, Molecule]:
@@ -37,6 +46,29 @@ def ethane_fitting_entry() -> Tuple[FittingEntry, Molecule]:
     attributes = get_molecule_cmiles(molecule=ethane)
     entry = FittingEntry(name="ethane", attributes=attributes, extras={"dihedrals": (2, 0, 1, 5)})
     return entry, ethane
+
+
+def test_fitting_entry_roundtrip():
+    """
+    Make sure that the fitting entry can round trip correctly.
+    """
+    entry, ethane = ethane_fitting_entry()
+    tor = AngleSmirks(smirks="[#1:1]-[#6:2]-[#6:3]", atoms={(0, 1, 2)}, k=100, angle=120)
+    entry.target_smirks = [tor, ]
+    entry2 = FittingEntry.parse_obj(entry.dict())
+    assert entry.json() == entry2.json()
+
+
+def get_fitting_schema(molecules: List[Molecule]):
+    """
+    Make a fitting schema for testing from the input molecules.
+    """
+    workflow = WorkflowFactory(client="snowflake")
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF(fragmentation=False))
+    workflow.add_optimization_stage(fb)
+    schema = workflow.create_fitting_schema(molecules=molecules)
+    return schema
 
 
 def test_fitting_entry_conformer_reshape():
@@ -301,3 +333,163 @@ def test_update_molecule_remapping():
     _, atom_map = Molecule.are_isomorphic(can_occo, occo, return_atom_map=True)
     for i in range(len(normal_gradients)):
         assert normal_gradients[i].tolist() == mapped_gradients[atom_map[i]].tolist()
+
+
+def test_fitting_add_optimizer():
+    """
+    Test adding optimizers to the fitting schema
+    """
+
+    fitting = FittingSchema(client="snowflake")
+    fb = ForceBalanceOptimizer()
+    fitting.add_optimizer(optimizer=fb)
+    assert fb.optimizer_name.lower() in fitting.optimizer_settings
+    # now try and add an optimizer which is missing
+    fitting.optimizer_settings = {}
+    deregister_optimizer(optimizer=fb)
+    with pytest.raises(OptimizerError):
+        fitting.add_optimizer(optimizer=fb)
+
+    # now reset the optimizers
+    register_optimizer(optimizer=fb)
+
+
+def test_get_optimizers():
+    """
+    Make sure that the optimizers in the workflow can be remade with the correct settings.
+    """
+
+    fitting = FittingSchema(client="snowflake")
+    assert [] == fitting.get_optimizers
+    # now add the optimizers
+    fb = ForceBalanceOptimizer(penalty_type="L1")
+    fitting.add_optimizer(optimizer=fb)
+    assert [fb, ] == fitting.get_optimizers
+
+
+def test_get_optimizer():
+    """
+    Make sure that the fitting schema can correctly remake a specific optimizer.
+    """
+    fitting = FittingSchema(client="snowflake")
+    # try and get an optimizer
+    with pytest.raises(OptimizerError):
+        _ = fitting.get_optimizer(optimizer_name="forcebalanceoptimizer")
+
+    # now add forcebalance
+    fb = ForceBalanceOptimizer(penalty_type="L1")
+    fitting.add_optimizer(optimizer=fb)
+    assert fb == fitting.get_optimizer(optimizer_name=fb.optimizer_name)
+
+    with pytest.raises(OptimizerError):
+        _ = fitting.get_optimizer(optimizer_name="badoptimizer")
+
+
+def test_fitting_export_roundtrip():
+    """
+    Make sure that the fitting schema can be exported and imported.
+    """
+
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[ethane, ])
+
+    with temp_directory():
+        schema.export_schema(file_name="fitting.json")
+
+        schema2 = FittingSchema.parse_obj(schema)
+        assert schema.json() == schema2.json()
+
+
+def test_export_schema_error():
+    """
+    Make sure an error is raised if we try to export to the wrong type of file.
+    """
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[ethane, ])
+
+    with temp_directory():
+        with pytest.raises(RuntimeError):
+            schema.export_schema(file_name="schema.yaml")
+
+
+def test_schema_tasks():
+    """
+    Make sure that a schema with multipule similar tasks can deduplicate tasks.
+    """
+    occo = Molecule.from_file(file_path=get_data("OCCO.sdf"), file_format="sdf")
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[occo, ethane])
+
+    assert schema.n_molecules == 2
+    # occo has two torsions the same and ethane has 1 so only 3 unique tasks should be made
+    assert schema.n_tasks == 3
+
+
+def test_update_results_multipule():
+    """
+    Make sure the fitting schema can correctly apply any results to the correct tasks.
+    """
+    occo = Molecule.from_file(file_path=get_data("OCCO.sdf"), file_format="sdf")
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[occo, ethane])
+    assert schema.n_tasks == 3
+    results = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    schema.update_with_results(results=[results, ])
+    results = TorsionDriveCollectionResult.parse_file(get_data("occo.json"))
+    schema.update_with_results(results=[results, ])
+    # now make sure there is only one task left
+    tasks = set()
+    for molecule in schema.molecules:
+        for workflow in molecule.workflow:
+            for target in workflow.targets:
+                for entry in target.entries:
+                    for task in entry.current_tasks():
+                        tasks.add(task.job_id)
+
+    assert len(tasks) == 1
+
+
+def test_schema_to_qcsubmit_torsiondrives():
+    """
+    Make a qcsubmit dataset from the fitting schema.
+    """
+    occo = Molecule.from_file(file_path=get_data("OCCO.sdf"), file_format="sdf")
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[occo, ethane])
+    # make a torsiondrive dataset
+    datasets = schema.generate_qcsubmit_datasets()
+    assert len(datasets) == 1
+    tdrive = datasets[0]
+    # we should have two molecule and 3 tdrives in total
+    assert tdrive.n_molecules == 2
+    assert tdrive.n_records == 3
+    # now add a result and run again
+    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    schema.update_with_results(results=[result, ])
+    datasets = schema.generate_qcsubmit_datasets()
+
+    tdrive2 = datasets[0]
+    assert tdrive2.n_molecules == 1
+    assert tdrive2.n_records == 2
+
+
+def test_schema_to_qcsubmit_mixed():
+    """
+    Test exporting to qcsubmit datasets with a mixture of collection tasks.
+    """
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    schema = get_fitting_schema(molecules=[ethane, ])
+    td_target = schema.molecules[0].workflow[0].targets[0].copy(deep=True)
+    td_target.target_name = "tdoptimizer"
+    # now edit it to use optimizations
+    td_target.entries[0].collection_workflow = HessianWorkflow
+    schema.molecules[0].workflow[0].targets.append(td_target)
+
+    datasets = schema.generate_qcsubmit_datasets()
+    assert len(datasets) == 2
+    assert isinstance(datasets[0], OptimizationDataset) is True
+    assert isinstance(datasets[1], TorsiondriveDataset) is True
+
+
+
+

@@ -4,7 +4,6 @@ from typing import Dict, List, Tuple, Union
 
 from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
 from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
-
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import (
     BasicCollectionResult,
@@ -23,14 +22,14 @@ class Executor:
     should be ran. While running QCArchive tasks this class will also handle basic error handling in the form of restarts.
     """
 
-    def __init__(self, fitting_schema: FittingSchema) -> None:
+    def __init__(self, fitting_schema: FittingSchema, max_workers: int = 4) -> None:
         """
         Set up the executor data with dataset names and initial tasks which should be submitted.
         """
         self.client = None
         self.server = None
         # activate the client and server
-        self.activate_client(fitting_schema.client)
+        self.activate_client(client=fitting_schema.client, workers=max_workers)
         self.torsion_dataset: str = fitting_schema.torsiondrive_dataset_name
         self.optimization_dataset: str = fitting_schema.optimization_dataset_name
         self.energy_dataset: str = fitting_schema.singlepoint_dataset_name + " energy"
@@ -48,6 +47,7 @@ class Executor:
         self.collection_queue = Queue()
         # this is a queue for jobs ready to be optimized
         self.opt_queue = Queue()
+        self.finished_tasks = Queue()
         self.task_map: Dict[str, Tuple[str, str, str]] = dict()
         # get the input datasets
         print("making qcsubmit datasets")
@@ -64,25 +64,30 @@ class Executor:
         print("client response")
         print(responses)
 
-    def activate_client(self, client: str) -> None:
+    def activate_client(self, client: str, workers: int = 4) -> None:
         """
         Activate the connection to the chosen qcarchive instance.
 
-        Parameters:
-            client: A string of the client name for example snowflake will launch a local snowflake instance. This can
+        Parameters
+        ----------
+        client: str
+            A string of the client name for example snowflake will launch a local snowflake instance. This can
                 be the file name which contains login details which can be passed to FractalClient.
+        workers: int
+            If this is a snowflake worker this will be the number of workers used.
 
-        Note:
+        Notes
+        -----
             This can be a snowflake server or a local qcarchive instance error cycling should still work.
         """
-        from qcfractal import FractalSnowflakeHandler, FractalSnowflake
+        from qcfractal import FractalSnowflake, FractalSnowflakeHandler
         from qcfractal.interface import FractalClient
 
         if client.lower() == "snowflake_notebook":
             self.server = FractalSnowflakeHandler()
             self.client = self.server.client()
         elif client.lower() == "snowflake":
-            self.server = FractalSnowflake(max_workers=5)
+            self.server = FractalSnowflake(max_workers=workers)
             self.client = self.server.client()
         else:
             self.client = FractalClient.from_file(client)
@@ -143,6 +148,13 @@ class Executor:
         The main function of the class which begins the error cycling, new job submission and optimizations.
         The function will finish when all tasks are complete or have exceeded the error restart cap.
         """
+        # for coverage fix
+        try:
+            from pytest_cov.embed import cleanup_on_sigterm
+        except ImportError:
+            pass
+        else:
+            cleanup_on_sigterm()
 
         print("starting main executor ...")
         # start the error cycle process
@@ -154,6 +166,13 @@ class Executor:
         # join them
         error_p.join()
         optimizer_p.join()
+        while True:
+            # here we need to watch for results on the parent process
+            task = self.finished_tasks.get()
+            self.update_fitting_schema(task=task)
+            self.total_tasks -= 1
+            if self.total_tasks == 0:
+                break
         print("all tasks done ...")
         self.fitting_schema.export_schema("final_results.json")
 
@@ -236,12 +255,9 @@ class Executor:
                         # if there are tasks to collect get the results and update
                         results = self.collect_results(record_map=to_collect)
                         # now update all results in the schema
-                        print("updating results for task ...", task)
+                        print("updating results for task ...", task.molecule)
                         task.update_with_results(results=results)
-                        # save the result back
-                        self.update_fitting_schema(task=task)
                         # now we should look for new tasks to submit
-                        print("task updated,", task)
                         print("looking for new tasks ...")
                 if task.get_task_map():
                     response = self.submit_new_tasks(task)
@@ -252,12 +268,12 @@ class Executor:
                     # the molecule is complete and we should update the schema
                     self.update_fitting_schema(task)
                 elif opt.ready_for_fitting:
-                    print(" found optimization submitting ", opt)
+                    print(" found optimization submitting for task", task.molecule)
                     self.opt_queue.put(task)
                 else:
                     # the molecule is not finished and not ready for opt error cycle again
                     self.collection_queue.put(task)
-                time.sleep(5)
+                time.sleep(20)
 
     def update_fitting_schema(self, task: MoleculeSchema) -> None:
         """
@@ -399,7 +415,7 @@ class Executor:
         """
         Monitors the optimizer queue and runs any tasks that arrive in the list.
         """
-
+        sent_tasks = 0
         while True:
             print("looking for task in queue")
             task = self.opt_queue.get()
@@ -417,9 +433,6 @@ class Executor:
             print("applying results ...")
             print("current task workflow ...")
             task.update_optimization_stage(result)
-            # now lets update the fitting schema
-            print("updating the main fitting schema ...")
-            self.update_fitting_schema(task)
             # check for running QM tasks
             if task.get_task_map():
                 # submit to the collection queue again
@@ -428,9 +441,9 @@ class Executor:
                 # we have another task to optimize so put back into the queue for collection
                 self.opt_queue.put(task)
             else:
-                # the molecule is complete so take 1 from the number of molecules to fit
-                self.total_tasks -= 1
-                if self.total_tasks == 0:
-                    # we need to send the kill signal
+                # the task is finished so send it back
+                self.finished_tasks.put(task)
+                sent_tasks += 1
+                if sent_tasks == self.total_tasks:
                     self.collection_queue.put("END")
                     break

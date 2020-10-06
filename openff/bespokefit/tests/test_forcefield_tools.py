@@ -5,7 +5,6 @@ Test the forcefield editing tools.
 import pytest
 from openforcefield.topology import Molecule
 from openforcefield.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
-
 from qcsubmit.testing import temp_directory
 
 from ..forcefield_tools import ForceFieldEditor

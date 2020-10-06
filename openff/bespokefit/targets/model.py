@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Tuple, Union
 
 import openforcefield.topology as off
 from pydantic import BaseModel
-
 from qcsubmit.common_structures import QCSpec
 
 from ..collection_workflows import CollectionMethod, WorkflowStage
@@ -88,6 +87,7 @@ class Target(BaseModel, abc.ABC):
             New targets only need to add the name of the dependence to the _extra_dependencies list to have it included.
         """
         import importlib
+
         import openforcefield
         import openforcefields
         import rdkit
@@ -243,8 +243,8 @@ class Target(BaseModel, abc.ABC):
         Use rdkit MCS function to find the maximum mapping between the fragment and parent molecule.
         """
 
-        from rdkit.Chem import rdFMCS
         from rdkit import Chem
+        from rdkit.Chem import rdFMCS
 
         parent_rdkit = parent.to_rdkit()
         fragment_rdkit = fragment.to_rdkit()

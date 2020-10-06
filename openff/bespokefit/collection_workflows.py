@@ -1,9 +1,8 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from simtk import unit
-
 from qcsubmit.results import SingleResult
+from simtk import unit
 
 from .common_structures import Status
 from .schema.schema import SchemaBase

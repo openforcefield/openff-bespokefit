@@ -6,7 +6,6 @@ import os
 
 import pytest
 from openforcefield.topology import Molecule
-
 from qcsubmit.results import TorsionDriveCollectionResult
 from qcsubmit.testing import temp_directory
 

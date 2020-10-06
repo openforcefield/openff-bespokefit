@@ -3,6 +3,7 @@ Test the smirks schema objects.
 """
 
 import pytest
+from chemper.graphs.environment import SMIRKSParsingError
 from openforcefield.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -11,8 +12,6 @@ from openforcefield.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pydantic import ValidationError
-
-from chemper.graphs.environment import SMIRKSParsingError
 
 from ...exceptions import SMIRKSTypeError
 from ...schema.smirks import (

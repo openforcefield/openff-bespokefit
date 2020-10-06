@@ -1,6 +1,7 @@
 import abc
 from typing import Dict, Optional, Set, Tuple, Union
 
+from chemper.graphs.environment import ChemicalEnvironment
 from openforcefield.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -8,10 +9,8 @@ from openforcefield.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import constr, validator
+from pydantic import validator
 from simtk import unit
-
-from chemper.graphs.environment import ChemicalEnvironment
 
 from ..common_structures import SmirksType
 from ..exceptions import SMIRKSTypeError
@@ -23,22 +22,32 @@ def _to_angstrom(length: float) -> str:
     """
     Take a length value and return the validated version if the unit is missing.
     """
+    if isinstance(length, str):
+        length = length.split()[0]
     return f"{length} * angstrom"
 
 
 def _to_degrees(angle: float) -> str:
+    if isinstance(angle, str):
+        angle = angle.split()[0]
     return f"{angle} * degree"
 
 
 def _to_bond_force(force: float) -> str:
+    if isinstance(force, str):
+        force = force.split()[0]
     return f"{force} * angstrom**-2 * mole**-1 * kilocalorie"
 
 
 def _to_angle_force(force: float) -> str:
+    if isinstance(force, str):
+        force = force.split()[0]
     return f"{force} * mole**-1 * radian**-2 * kilocalorie"
 
 
 def _to_kcals_mol(force: float) -> str:
+    if isinstance(force, str):
+        force = force.split()[0]
     return f"{force} * mole**-1 * kilocalorie"
 
 
@@ -64,7 +73,8 @@ class SmirksSchema(SchemaBase):
     atoms: Set[Tuple[int, ...]]
     smirks: str
     type: SmirksType
-    parameterize: Set[str] = {}
+    parameterize: Set[str] = set()
+    _enum_fields = ["type"]
 
     def __eq__(self, other: "SmirksSchema"):
         """
@@ -121,7 +131,6 @@ class AtomSmirks(ValidatedSmirks):
     Specific atom smirks.
     """
 
-    identifier: constr(regex="atom") = "atom"
     atoms: Set[Tuple[int]]
     type: SmirksType = SmirksType.Vdw
     epsilon: str
@@ -148,7 +157,6 @@ class AtomSmirks(ValidatedSmirks):
 
 
 class BondSmirks(ValidatedSmirks):
-    identifier: constr(regex="bond") = "bond"
     atoms: Set[Tuple[int, int]]
     type: SmirksType = SmirksType.Bonds
     k: str
@@ -177,7 +185,6 @@ class BondSmirks(ValidatedSmirks):
 
 
 class AngleSmirks(ValidatedSmirks):
-    identifier: constr(regex="angle") = "angle"
     atoms: Set[Tuple[int, int, int]]
     type: SmirksType = SmirksType.Angles
     k: str
@@ -243,7 +250,6 @@ class TorsionTerm(SchemaBase):
 
 
 class TorsionSmirks(SmirksSchema):
-    identifier: constr(regex="torsion") = "torsion"
     atoms: Set[Tuple[int, int, int, int]]
     type: SmirksType = SmirksType.ProperTorsions
     terms: Dict[str, TorsionTerm] = {}

@@ -5,10 +5,9 @@ from typing import Dict, List, Tuple, Union
 
 import networkx as nx
 import numpy as np
+from chemper.graphs.environment import ChemicalEnvironment
 from openforcefield import topology as off
 from pkg_resources import resource_filename
-
-from chemper.graphs.environment import ChemicalEnvironment
 from qcsubmit.datasets import (
     BasicDataset,
     ComponentResult,

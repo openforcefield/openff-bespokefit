@@ -7,7 +7,6 @@ from typing import List, Union
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import get_available_force_fields
 from pydantic import BaseModel, validator
-
 from qcsubmit.serializers import deserialize, serialize
 
 from .exceptions import ForceFieldError, OptimizerError
@@ -65,7 +64,7 @@ class WorkflowFactory(BaseModel):
         data = deserialize(file_name=path)
         optimization_workflow = data.pop("optimization_workflow")
         workflow = cls.parse_obj(data)
-        # now we need to re initi the optimizer and the targets
+        # now we need to re init the optimizer and the targets
         for optimizer in optimization_workflow:
             opt_targets = optimizer.pop("optimization_targets")
             opt_engine = get_optimizer(**optimizer)

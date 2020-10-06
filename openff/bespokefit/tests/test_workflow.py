@@ -4,7 +4,6 @@ Test for the bespoke-fit workflow generator.
 
 import pytest
 from openforcefield.topology import Molecule
-
 from qcsubmit.testing import temp_directory
 
 from ..exceptions import ForceFieldError, OptimizerError

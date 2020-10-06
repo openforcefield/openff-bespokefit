@@ -5,10 +5,9 @@ import os
 from typing import Any, Dict, List, Tuple
 
 from openforcefield import topology as off
-from simtk import unit
-
 from qcsubmit.results import SingleResult
 from qcsubmit.serializers import serialize
+from simtk import unit
 
 from ..collection_workflows import CollectionMethod, TorsiondriveWorkflow, WorkflowStage
 from ..common_structures import FragmentData, ProperTorsionSettings

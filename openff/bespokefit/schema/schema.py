@@ -16,6 +16,7 @@ class SchemaBase(BaseModel):
     _enum_fields = []
 
     class Config:
+        extra = "forbid"
         allow_mutation = True
         validate_assignment = True
         json_encoders = {
@@ -44,6 +45,8 @@ class SchemaBase(BaseModel):
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
         )
+        exclude = exclude or []
         for field in self._enum_fields:
-            data[field] = getattr(self, field).value
+            if field not in exclude:
+                data[field] = getattr(self, field).value
         return data

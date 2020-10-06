@@ -6,8 +6,6 @@ from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import ForceField
 from pydantic import validator
 from qcelemental.models.types import Array
-from simtk import unit
-
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import (
@@ -20,6 +18,7 @@ from qcsubmit.results import (
     TorsionDriveResult,
 )
 from qcsubmit.validators import cmiles_validator
+from simtk import unit
 
 from ..collection_workflows import CollectionMethod, Precedence, WorkflowStage
 from ..common_structures import Status, Task
@@ -33,7 +32,14 @@ from ..exceptions import (
 )
 from ..utils import schema_to_datasets
 from .schema import SchemaBase
-from .smirks import AngleSmirks, AtomSmirks, BondSmirks, SmirksSchema, TorsionSmirks
+from .smirks import (
+    AngleSmirks,
+    AtomSmirks,
+    BondSmirks,
+    SmirksSchema,
+    TorsionSmirks,
+    ValidatedSmirks,
+)
 
 
 class FittingEntry(SchemaBase):
@@ -44,12 +50,33 @@ class FittingEntry(SchemaBase):
     name: str
     attributes: Dict[str, str]
     collection_workflow: List[WorkflowStage] = []
-    target_smirks: List[Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]] = []
+    target_smirks: List[Union[SmirksSchema, ValidatedSmirks]] = []
     qc_spec: QCSpec = QCSpec()
     provenance: Dict[str, Any] = {}
     extras: Dict[str, Any] = {}
     input_conformers: List[Array[np.ndarray]] = []
     _validate_attributes = validator("attributes", allow_reuse=True)(cmiles_validator)
+
+    @validator("target_smirks", pre=True)
+    def _check_target_smirks(cls, smirks):
+        """
+        A helper method to correctly handle the union of types.
+        """
+        new_smirks = []
+        _type_conversion = {
+            "vdW": AtomSmirks,
+            "Bonds": BondSmirks,
+            "Angles": AngleSmirks,
+            "ProperTorsions": TorsionSmirks,
+        }
+        for smirk in smirks:
+            if isinstance(smirk, dict):
+                # if it is a dict from importing unpack here
+                new_smirk = _type_conversion[smirk["type"]](**smirk)
+                new_smirks.append(new_smirk)
+            else:
+                new_smirks.append(smirk)
+            return new_smirks
 
     @validator("input_conformers")
     def _check_conformers(
@@ -444,7 +471,7 @@ class TargetSchema(SchemaBase):
                         ):
                             try:
                                 entry.update_with_results(td_result)
-                            except RuntimeError:
+                            except (DihedralSelectionError, MoleculeMissMatchError):
                                 continue
                         else:
                             continue
@@ -702,7 +729,7 @@ class FittingSchema(SchemaBase):
                     optimizer.optimizer_name.lower()
                 ] = optimizer.dict(exclude={"optimization_targets"})
         else:
-            raise KeyError(
+            raise OptimizerError(
                 f"The given optimizer {optimizer.optimizer_name} has not been registered with bespokefit, please register first."
             )
 
