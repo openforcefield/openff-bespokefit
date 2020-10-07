@@ -148,14 +148,6 @@ class Executor:
         The main function of the class which begins the error cycling, new job submission and optimizations.
         The function will finish when all tasks are complete or have exceeded the error restart cap.
         """
-        # for coverage fix
-        try:
-            from pytest_cov.embed import cleanup_on_sigterm
-        except ImportError:
-            pass
-        else:
-            cleanup_on_sigterm()
-
         print("starting main executor ...")
         # start the error cycle process
         error_p = Process(target=self.error_cycle)
