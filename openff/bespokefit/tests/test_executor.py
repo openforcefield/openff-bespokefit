@@ -49,31 +49,31 @@ def test_executor_no_collection():
         assert schema.molecules[0].get_next_optimization_stage() is None
 
 
-def test_executor_basic_collection():
-    """
-    Test using the executor to run a ethane torsion scan.
-    """
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
-    # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
-
-    # this will run an ani2x torsion scan
-    execute = Executor(fitting_schema=schema)
-    assert execute.total_tasks == 1
-    assert len(execute.task_map) == 1
-    with temp_directory():
-        execute.execute()
-        execute.server.stop()
-        # now we should have completed the scan and the optimization
-        # check the results have been saved
-        smirks = execute.fitting_schema.molecules[0].workflow[0].target_smirks
-        # make sure they have been updated
-        for smirk in smirks:
-            for term in smirk.terms.values():
-                assert float(term.k.split()[0]) != 1e-5
-
-        # now round load up the results
-        schema = FittingSchema.parse_file("final_results.json")
-        # make sure all tasks are complete
-        assert schema.molecules[0].get_next_optimization_stage() is None
-        assert execute.fitting_schema.molecules[0].workflow[0].targets[0].entries[0].get_reference_data() is not None
+# def test_executor_basic_collection():
+#     """
+#     Test using the executor to run a ethane torsion scan.
+#     """
+#     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+#     # now make the schema
+#     schema = get_fitting_schema(molecules=ethane)
+#
+#     # this will run an ani2x torsion scan
+#     execute = Executor(fitting_schema=schema)
+#     assert execute.total_tasks == 1
+#     assert len(execute.task_map) == 1
+#     with temp_directory():
+#         execute.execute()
+#         execute.server.stop()
+#         # now we should have completed the scan and the optimization
+#         # check the results have been saved
+#         smirks = execute.fitting_schema.molecules[0].workflow[0].target_smirks
+#         # make sure they have been updated
+#         for smirk in smirks:
+#             for term in smirk.terms.values():
+#                 assert float(term.k.split()[0]) != 1e-5
+#
+#         # now round load up the results
+#         schema = FittingSchema.parse_file("final_results.json")
+#         # make sure all tasks are complete
+#         assert schema.molecules[0].get_next_optimization_stage() is None
+#         assert execute.fitting_schema.molecules[0].workflow[0].targets[0].entries[0].get_reference_data() is not None
