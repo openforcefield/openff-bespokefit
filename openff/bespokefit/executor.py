@@ -1,15 +1,17 @@
 import time
 from multiprocessing import Process, Queue
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
 from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+from qcfractal.interface import FractalClient
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
 from qcsubmit.results import (
     BasicCollectionResult,
     OptimizationCollectionResult,
     TorsionDriveCollectionResult,
 )
+from qcsubmit.common_structures import QCSpec
 
 from .common_structures import Status
 from .schema.fitting import FittingSchema, MoleculeSchema
@@ -22,33 +24,59 @@ class Executor:
     should be ran. While running QCArchive tasks this class will also handle basic error handling in the form of restarts.
     """
 
-    def __init__(self, fitting_schema: FittingSchema, max_workers: int = 4) -> None:
+    def __init__(self, max_workers: int = 4, max_retries: int = 3) -> None:
         """
         Set up the executor data with dataset names and initial tasks which should be submitted.
         """
         self.client = None
         self.server = None
+        self.max_workers = max_workers
         # activate the client and server
-        self.activate_client(client=fitting_schema.client, workers=max_workers)
-        self.torsion_dataset: str = fitting_schema.torsiondrive_dataset_name
-        self.optimization_dataset: str = fitting_schema.optimization_dataset_name
-        self.energy_dataset: str = fitting_schema.singlepoint_dataset_name + " energy"
-        self.gradient_dataset: str = (
-            fitting_schema.singlepoint_dataset_name + " gradient"
-        )
-        self.hessian_dataset = fitting_schema.singlepoint_dataset_name + " hessain"
-        self.optimizer_settings = fitting_schema.optimizer_settings
-        self.fitting_schema = fitting_schema
+        self.fitting_schema = None
+        self._torsion_dataset: Optional[str] = None
+        self._optimization_dataset: Optional[str] = None
+        self._energy_dataset: Optional[str] = None
+        self._gradient_dataset: Optional[str] = None
+        self._hessian_dataset: Optional[str] = None
+        self._optimizer_settings = None
         # keep track of the total number of molecules to be fit
-        self.total_tasks = len(fitting_schema.molecules)
+        self.total_tasks = None
         # maybe let users set this for error cycling?
-        self.max_retires: int = 3
+        self.max_retires: int = max_retries
         # this is the error cycling queue
         self.collection_queue = Queue()
         # this is a queue for jobs ready to be optimized
         self.opt_queue = Queue()
         self.finished_tasks = Queue()
-        self.task_map: Dict[str, Tuple[str, str, str]] = dict()
+        self.task_map: Dict[str, Tuple[str, str, str]] = {}
+
+    def execute(self, fitting_schema: FittingSchema, client: Optional[FractalClient] = None) -> FittingSchema:
+        """
+        Execute a fitting schema. This involves generating QCSubmit datasets and error cycling them and then launching the forcebalance optimizations.
+
+
+        Parameters:
+            fitting_schema: The fitting schema that should be executed
+            client: Optional fractal client already connected if None we attempt to make a client using the details in the fitting schema.
+
+        Returns:
+            The completed fitting schema this will contain any collected results including errors.
+        """
+        # activate the client and server
+        self.activate_client(client=client or fitting_schema.client, workers=self.max_workers)
+        # set up the dataset names for error cycling
+        self._torsion_dataset: str = fitting_schema.torsiondrive_dataset_name
+        self._optimization_dataset: str = fitting_schema.optimization_dataset_name
+        self._energy_dataset: str = fitting_schema.singlepoint_dataset_name + " energy"
+        self._gradient_dataset: str = (
+                fitting_schema.singlepoint_dataset_name + " gradient"
+        )
+        self._hessian_dataset = fitting_schema.singlepoint_dataset_name + " hessain"
+        self._optimizer_settings = fitting_schema.optimizer_settings
+        self.fitting_schema = fitting_schema
+
+        # keep track of the total number of molecules to be fit
+        self.total_tasks = len(fitting_schema.molecules)
         # get the input datasets
         print("making qcsubmit datasets")
         input_datasets = fitting_schema.generate_qcsubmit_datasets()
@@ -59,10 +87,36 @@ class Executor:
         # generate the initial task queue of collection tasks
         self.create_input_task_queue(fitting_schema=fitting_schema)
         print(f"task queue now contains tasks.")
-        print("starting job submission")
-        responses = self.submit_datasets(datasets=input_datasets)
-        print("client response")
-        print(responses)
+        if client is not None:
+            # if the client is live some tasks might already be present so dont submit the dataset
+            print("starting job submission")
+            responses = self.submit_datasets(datasets=input_datasets)
+            print("client response")
+            print(responses)
+
+        return self._execute(fitting_schema=fitting_schema)
+
+    def _execute(self, fitting_schema: FittingSchema) -> FittingSchema:
+        print("starting main executor ...")
+        # start the error cycle process
+        error_p = Process(target=self.error_cycle)
+        error_p.start()
+        optimizer_p = Process(target=self.optimizer)
+        optimizer_p.start()
+
+        # join them
+        error_p.join()
+        optimizer_p.join()
+        while True:
+            # here we need to watch for results on the parent process
+            task = self.finished_tasks.get()
+            fitting_schema = self.update_fitting_schema(task=task, fitting_schema=fitting_schema)
+            self.total_tasks -= 1
+            if self.total_tasks == 0:
+                break
+        print("all tasks done exporting to file.")
+        fitting_schema.export_schema("final_results.json.xz")
+        return fitting_schema
 
     def activate_client(self, client: str, workers: int = 4) -> None:
         """
@@ -83,7 +137,10 @@ class Executor:
         from qcfractal import FractalSnowflake, FractalSnowflakeHandler
         from qcfractal.interface import FractalClient
 
-        if client.lower() == "snowflake_notebook":
+        if isinstance(client, FractalClient):
+            self.client = client
+            self.server = client.server_information()
+        elif client.lower() == "snowflake_notebook":
             self.server = FractalSnowflakeHandler()
             self.client = self.server.client()
         elif client.lower() == "snowflake":
@@ -143,30 +200,57 @@ class Executor:
 
         return responses
 
-    def execute(self) -> None:
+    def _get_record_and_index(self, dataset,  spec: QCSpec, record_name: str):
         """
-        The main function of the class which begins the error cycling, new job submission and optimizations.
-        The function will finish when all tasks are complete or have exceeded the error restart cap.
+        Find a record and its dataset index used for result collection.
         """
-        print("starting main executor ...")
-        # start the error cycle process
-        error_p = Process(target=self.error_cycle)
-        error_p.start()
-        optimizer_p = Process(target=self.optimizer)
-        optimizer_p.start()
+        try:
+            record = dataset.get_record(record_name, spec.spec_name)
+            # loop over the index
+            for td_index, td_entry in dataset.data.records.values():
+                if td_entry.name == record_name:
+                    return record, td_index
+        except KeyError:
+            pass
 
-        # join them
-        error_p.join()
-        optimizer_p.join()
-        while True:
-            # here we need to watch for results on the parent process
-            task = self.finished_tasks.get()
-            self.update_fitting_schema(task=task)
-            self.total_tasks -= 1
-            if self.total_tasks == 0:
-                break
-        print("all tasks done ...")
-        self.fitting_schema.export_schema("final_results.json")
+        return None, None
+
+    def _update_status(self, collection_tasks, record, task):
+        """
+        Update the collection tasks status with the record progress and the overall task progress.
+        """
+        # error cycle
+        if record.status.value == "ERROR":
+            if (
+                    collection_tasks[0].collection_stage.retires
+                    < self.max_retires
+            ):
+                # we should restart the task here
+                self.restart_archive_record(record)
+                # now increment the restart counter
+                for collection_task in collection_tasks:
+                    collection_task.collection_stage.retires += 1
+                    collection_task.collection_stage.status = Status.Collecting
+            else:
+                for collection_task in collection_tasks:
+                    collection_task.collection_stage.status = Status.Error
+        # normal execution
+        elif record.status.value == "RUNNING":
+            for collection_task in collection_tasks:
+                collection_task.collection_stage.status = Status.Collecting
+
+        elif record.status.value == "COMPLETE":
+            # now we need to save the results
+            for collection_task in collection_tasks:
+                collection_task.collection_stage.status = Status.Ready
+
+        # now update the task
+        for opt_stage in task.targets:
+            for entry in opt_stage.entries:
+                for task in entry.current_tasks():
+                    if task.status == Status.Error:
+                        opt_stage.status = Status.Error
+                        return
 
     def error_cycle(self) -> None:
         """
@@ -194,90 +278,73 @@ class Executor:
                 }
                 # now for each one we want to query the archive and their status
                 for task_hash, collection_tasks in task_map.items():
-                    spec_name = collection_tasks[0].entry.qc_spec.spec_name
+                    spec = collection_tasks[0].entry.qc_spec
                     entry_id, dataset_type, dataset_name = self.task_map[task_hash]
                     print("looking for ", entry_id, dataset_type, dataset_name)
                     dataset = self.client.get_collection(dataset_type, dataset_name)
-                    print("found dataset ", dataset)
-                    # only works for opts and torsiondrives
-                    record = dataset.get_record(entry_id, spec_name)
-                    print("found record, ", record)
-                    # error cycle
-                    if record.status.value == "ERROR":
-                        if (
-                            collection_tasks[0].collection_stage.retires
-                            < self.max_retires
-                        ):
-                            # we should restart the task here
-                            self.restart_archive_record(record)
-                            # now increment the restart counter
-                            for collection_task in collection_tasks:
-                                collection_task.collection_stage.retires += 1
-                        else:
-                            for collection_task in collection_tasks:
-                                collection_task.collection_stage.status = Status.Error
-                    # normal execution
-                    elif record.status.value == "RUNNING":
-                        for collection_task in collection_tasks:
-                            collection_task.collection_stage.status = Status.Collecting
+                    # get the record and the df index
+                    record, td_id = self._get_record_and_index(dataset=dataset, spec=spec, record_name=entry_id)
 
-                    elif record.status.value == "COMPLETE":
-                        # now we need to save the results
-                        for collection_task in collection_tasks:
-                            collection_task.collection_stage.status = Status.Ready
-                        # update the dict with records to collect
-                        # first we need the index id for the record
-                        for td_id, td_entry in dataset.data.records.items():
-                            if td_entry.name == entry_id:
-                                try:
-                                    to_collect[dataset_type][dataset_name].setdefault(
-                                        spec_name, []
-                                    ).append(td_id)
-                                except KeyError:
-                                    to_collect[dataset_type][dataset_name] = {
-                                        spec_name: [
-                                            td_id,
-                                        ]
-                                    }
-                                break
+                    # if the record is not found the job has not been generated yet
+                    if record is not None:
+                        self._update_status(collection_tasks, record, task)
+                        if collection_tasks[0].collection_stage.status == Status.Complete:
+                            try:
+                                to_collect[dataset_type][dataset_name].setdefault(
+                                    spec.spec_name, []
+                                ).append(td_id)
+                            except KeyError:
+                                to_collect[dataset_type][dataset_name] = {
+                                    spec.spec_name: [
+                                        td_id,
+                                    ]
+                                }
 
-                print("collecting results for ", to_collect)
-                for records in to_collect.values():
-                    if records:
-                        # if there are tasks to collect get the results and update
-                        results = self.collect_results(record_map=to_collect)
-                        # now update all results in the schema
-                        print("updating results for task ...", task.molecule)
-                        task.update_with_results(results=results)
-                        # now we should look for new tasks to submit
-                        print("looking for new tasks ...")
+                # if we have values to collect update the task here
+                if any(to_collect.values()):
+                    print("collecting results for ", to_collect)
+                    self._collect_task_results(task, to_collect)
+
+                # now we should look for new tasks to submit
+                print("looking for new tasks ...")
                 if task.get_task_map():
                     response = self.submit_new_tasks(task)
                     print("response of new tasks ... ", response)
+
                 print("checking for optimizations to run ...")
                 opt = task.get_next_optimization_stage()
                 if opt is None:
-                    # the molecule is complete and we should update the schema
-                    self.update_fitting_schema(task)
+                    # the molecule is complete and we should put it in the finished tasks queue
+                    self.finished_tasks.put(task)
                 elif opt.ready_for_fitting:
                     print(" found optimization submitting for task", task.molecule)
                     self.opt_queue.put(task)
+                elif opt.status == Status.Error:
+                    # one of the collection entries has filed so fail the task
+                    self.finished_tasks.put(task)
                 else:
                     # the molecule is not finished and not ready for opt error cycle again
                     self.collection_queue.put(task)
                 time.sleep(20)
 
-    def update_fitting_schema(self, task: MoleculeSchema) -> None:
+    def _collect_task_results(self, task: MoleculeSchema, collection_dict: Dict):
+        """
+        Gather the results in the collection dict and update the task with them.
+        """
+        results = self.collect_results(record_map=collection_dict)
+        task.update_with_results(results=results)
+
+    def update_fitting_schema(self, task: MoleculeSchema, fitting_schema: FittingSchema) -> FittingSchema:
         """
         Update the given task back into the fitting schema so we can keep track of progress.
         Call this after any result or optimization update.
         """
-        for i, molecule_task in enumerate(self.fitting_schema.molecules):
+        for i, molecule_task in enumerate(fitting_schema.molecules):
             if task == molecule_task:
                 print("updating task")
                 # update the schema and break
-                self.fitting_schema.molecules[i] = task
-                break
+                fitting_schema.molecules[i] = task
+                return fitting_schema
 
     def submit_new_tasks(self, task: MoleculeSchema) -> Dict[str, Dict[str, int]]:
         """

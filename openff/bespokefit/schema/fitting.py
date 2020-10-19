@@ -1,10 +1,11 @@
 import hashlib
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Type
+from pathlib import Path
 
 import numpy as np
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import ForceField
-from pydantic import validator
+from pydantic import validator, Protocol
 from qcelemental.models.types import Array
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
@@ -17,6 +18,7 @@ from qcsubmit.results import (
     TorsionDriveCollectionResult,
     TorsionDriveResult,
 )
+from qcsubmit.serializers import serialize, deserialize
 from qcsubmit.validators import cmiles_validator
 from simtk import unit
 
@@ -717,6 +719,19 @@ class FittingSchema(SchemaBase):
     optimizer_settings: Dict[str, Dict[str, Any]] = {}
     molecules: List[MoleculeSchema] = []
 
+    @classmethod
+    def parse_file(
+        cls: Type['Model'],
+        path: Union[str, Path],
+        *,
+        content_type: str = None,
+        encoding: str = 'utf8',
+        proto: Protocol = None,
+        allow_pickle: bool = False,
+    ) -> 'Model':
+        data = deserialize(file_name=path)
+        return cls(**data)
+
     def add_optimizer(self, optimizer: "Optimizer") -> None:
         """
         Add a valid optimizer to the fitting schema.
@@ -776,13 +791,12 @@ class FittingSchema(SchemaBase):
         """
         Export the fitting schema to file.
         """
-        file_type = file_name.split(".")[-1]
-        if file_type.lower() == "json":
-            with open(file_name, "w") as output:
-                output.write(self.json(indent=2))
+
+        if "json" in file_name:
+            serialize(self, file_name=file_name)
         else:
             raise RuntimeError(
-                f"The given file type: {file_type} is not supported please used json."
+                "The given file type is not supported please used json."
             )
 
     @property

@@ -24,27 +24,25 @@ def test_executor_no_collection():
     schema.update_with_results(results=result)
 
     # now submit to the executor
-    execute = Executor(fitting_schema=schema)
+    execute = Executor()
     # there are no collection tasks
     assert execute.task_map == {}
-    # there is one fitting task
-    assert execute.total_tasks == 1
     # submit the optimization
     with temp_directory():
-        execute.execute()
+        result_schema = execute.execute(fitting_schema=schema)
         # stop the server processes
         execute.server.stop()
         # make sure they are all finished
         assert execute.total_tasks == 0
         # check the results have been saved
-        smirks = execute.fitting_schema.molecules[0].workflow[0].target_smirks
+        smirks = result_schema.molecules[0].workflow[0].target_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
                 assert float(term.k.split()[0]) != 1e-5
 
         # now round load up the results
-        schema = FittingSchema.parse_file("final_results.json")
+        schema = FittingSchema.parse_file("final_results.json.xz")
         # make sure all tasks are complete
         assert schema.molecules[0].get_next_optimization_stage() is None
 
