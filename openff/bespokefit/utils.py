@@ -1,7 +1,7 @@
 import contextlib
 import os
 import shutil
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -15,6 +15,7 @@ from qcsubmit.datasets import (
     TorsiondriveDataset,
 )
 from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
+from qcsubmit.procedures import GeometricProcedure
 
 from .collection_workflows import CollectionMethod
 
@@ -234,6 +235,7 @@ def schema_to_datasets(
     singlepoint_name: str = "Bespokefit single points",
     optimization_name: str = "Bespokefit optimizations",
     torsiondrive_name: str = "Bespokefit torsiondrives",
+    geometric_options: Optional[GeometricProcedure] = None,
 ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
     """
     Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
@@ -243,6 +245,7 @@ def schema_to_datasets(
         singlepoint_name: The common name of the single point datasets used for hessian, energy and gradients
         optimization_name: The name of the optimization dataset
         torsiondrive_name: The name of the torsiondrive dataset
+        geometric_options: The geometric optimization settings that should be used.
 
     Note:
         Local custom tasks not possible in QCArchive are not included and will be ran when the fitting queue is started.
@@ -280,6 +283,9 @@ def schema_to_datasets(
         dataset_name=torsiondrive_name,
         description=description,
     )
+    if geometric_options is not None:
+        opt_dataset.optimization_procedure = geometric_options
+        torsion_dataset.optimization_procedure = geometric_options
 
     method_to_dataset = {
         CollectionMethod.Optimization: opt_dataset,

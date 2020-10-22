@@ -1,14 +1,15 @@
 import hashlib
-from typing import Any, Dict, List, Optional, Union, Type
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, Union
 
 import numpy as np
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import ForceField
-from pydantic import validator, Protocol
+from pydantic import Protocol, validator
 from qcelemental.models.types import Array
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
+from qcsubmit.procedures import GeometricProcedure
 from qcsubmit.results import (
     BasicCollectionResult,
     BasicResult,
@@ -18,7 +19,7 @@ from qcsubmit.results import (
     TorsionDriveCollectionResult,
     TorsionDriveResult,
 )
-from qcsubmit.serializers import serialize, deserialize
+from qcsubmit.serializers import deserialize, serialize
 from qcsubmit.validators import cmiles_validator
 from simtk import unit
 
@@ -721,14 +722,14 @@ class FittingSchema(SchemaBase):
 
     @classmethod
     def parse_file(
-        cls: Type['Model'],
+        cls: Type["Model"],
         path: Union[str, Path],
         *,
         content_type: str = None,
-        encoding: str = 'utf8',
+        encoding: str = "utf8",
         proto: Protocol = None,
         allow_pickle: bool = False,
-    ) -> 'Model':
+    ) -> "Model":
         data = deserialize(file_name=path)
         return cls(**data)
 
@@ -795,9 +796,7 @@ class FittingSchema(SchemaBase):
         if "json" in file_name:
             serialize(self, file_name=file_name)
         else:
-            raise RuntimeError(
-                "The given file type is not supported please used json."
-            )
+            raise RuntimeError("The given file type is not supported please used json.")
 
     @property
     def n_molecules(self) -> int:
@@ -848,7 +847,7 @@ class FittingSchema(SchemaBase):
             molecule.update_with_results(results)
 
     def generate_qcsubmit_datasets(
-        self,
+        self, geometric_settings: Optional[GeometricProcedure] = None
     ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
         """
         Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
@@ -864,4 +863,5 @@ class FittingSchema(SchemaBase):
             singlepoint_name=self.singlepoint_dataset_name,
             optimization_name=self.optimization_dataset_name,
             torsiondrive_name=self.torsiondrive_dataset_name,
+            geometric_options=geometric_settings,
         )

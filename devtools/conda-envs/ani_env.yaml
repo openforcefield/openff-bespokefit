@@ -17,7 +17,7 @@ dependencies:
   - codecov
   - openforcefield >= 0.7.0
   - openforcefields
-  - qcengine >=0.16.0
+  - qcengine >=0.17.0
   - forcebalance
   - qcsubmit
   - pyyaml
@@ -25,9 +25,10 @@ dependencies:
   - chemper
   - torchani
   - fragmenter ==0.0.7
+  - basis_set_exchange
 
 
     # Pip-only installs
-  - pip:
-      - basis_set_exchange
+#  - pip:
+#      - basis_set_exchange
       #- git+git://github.com/openforcefield/fragmenter.git@0.0.7#egg=fragmenter
