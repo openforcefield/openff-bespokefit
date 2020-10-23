@@ -132,8 +132,8 @@ def test_submit_new_tasks(fractal_compute_server):
     """
 
     client = FractalClient(fractal_compute_server)
-
-    ethane = Molecule.from_file(file_path=get_data("OCCO.sdf"), file_format="sdf")
+    # build a molecule that will fail fast to save compute
+    ethane = Molecule.from_smiles("BrCO")
     # now make the schema
     schema = get_fitting_schema(molecules=ethane)
 
@@ -145,7 +145,7 @@ def test_submit_new_tasks(fractal_compute_server):
     # make sure new tasks are submitted
     task = schema.molecules[0]
     response = executor.submit_new_tasks(task=task)
-    assert response == {'Bespokefit torsiondrives': {'ani2x': 2}}
+    assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
 
 
 def test_error_cycle_explicit(fractal_compute_server):
