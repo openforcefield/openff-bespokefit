@@ -23,7 +23,5 @@ dependencies:
   - pyyaml
   - openeye-toolkits ==2019.10.2
   - chemper
-  - pytorch =1.6.0
-  - torchani =2.2.0
   - fragmenter ==0.0.7
   - basis_set_exchange
