@@ -269,6 +269,9 @@ class TorsionSmirks(SmirksSchema):
                 )
         return parameters
 
+    def __eq__(self, other):
+        return super(TorsionSmirks, self).__eq__(other=other)
+
     def update_parameters(
         self,
         off_smirk: Union[

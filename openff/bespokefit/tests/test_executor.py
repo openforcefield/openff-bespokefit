@@ -5,6 +5,7 @@ The test are set out in
 
 import pytest
 from openforcefield.topology import Molecule
+from qcengine.testing import has_program
 from qcfractal.interface import FractalClient
 from qcfractal.testing import fractal_compute_server
 from qcsubmit.results import TorsionDriveCollectionResult
@@ -48,6 +49,8 @@ def test_restart_records(fractal_compute_server):
     """
     Make sure that the error cycle can restart a record and update the tasks when we hit an error.
     """
+    if not has_program("torchani"):
+        pytest.skip("Torchani not found")
 
     client = FractalClient(fractal_compute_server)
 
@@ -94,6 +97,9 @@ def test_error_cycle_explicit(fractal_compute_server):
     Run the error cycle in the main thread to make sure it does restart tasks correctly and keep track of the number of times this is attempted.
     Also make sure that a task status is moved to error when we exceed the retry limit.
     """
+
+    if not has_program("torchani"):
+        pytest.skip("Torchani not found")
 
     client = FractalClient(fractal_compute_server)
 
@@ -148,6 +154,9 @@ def test_collecting_results(fractal_compute_server):
     """
     Make sure results are collected and a task is updated when finished.
     """
+
+    if not has_program("torchani"):
+        pytest.skip("Torchani not found")
 
     client = FractalClient(fractal_compute_server)
 
