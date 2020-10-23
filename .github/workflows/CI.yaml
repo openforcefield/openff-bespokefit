@@ -23,10 +23,10 @@ jobs:
           # - 3.8
         cfg:
           - os: ubuntu-latest
-            prog: TORCHANI
+            prog: TORCHANI_MAC
 
           - os: macOS-latest
-            prog: TORCHANI
+            prog: TORCHANI_LINUX
 
     env:
       CI_OS: ${{ matrix.cfg.os }}
@@ -73,8 +73,10 @@ jobs:
         run: |
           . devtools/gh-actions/initialize_conda.sh
           conda activate
-          if [ $PROG == "TORCHANI" ]; then
-            python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/ani_env.yaml
+          if [ $PROG == "TORCHANI_LINUX" ]; then
+            python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/linux_env.yaml
+          elif [ $PROG == "TORCHANI_MAC" ]; then
+             python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/mac_env.yaml
           else
             echo "ERROR: No match for PROG ($PROG)."
           fi
