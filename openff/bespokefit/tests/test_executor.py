@@ -1,12 +1,12 @@
 """
 Tests for the executor class which runs and error cycles and optimizations.
+The test are set out in
 """
 
 import pytest
 from openforcefield.topology import Molecule
 from qcfractal.interface import FractalClient
 from qcfractal.testing import fractal_compute_server
-from qcsubmit.procedures import GeometricProcedure
 from qcsubmit.results import TorsionDriveCollectionResult
 from qcsubmit.testing import temp_directory
 
@@ -14,43 +14,6 @@ from ..executor import Executor
 from ..schema.fitting import FittingSchema
 from ..utils import get_data
 from .schema.test_fitting import get_fitting_schema
-
-
-def test_executor_no_collection():
-    """
-    Test using the executor when there are no tasks to collect only optimizations to run.
-    """
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
-    # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
-    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
-    schema.update_with_results(results=result)
-
-    # now submit to the executor
-    execute = Executor()
-    # there are no collection tasks
-    assert execute.task_map == {}
-    # submit the optimization
-    with temp_directory():
-        result_schema = execute.execute(fitting_schema=schema)
-        # stop the server processes
-        execute.server.stop()
-        # make sure they are all finished
-        assert execute.total_tasks == 0
-        # check the results have been saved
-        smirks = result_schema.molecules[0].workflow[0].target_smirks
-        # make sure they have been updated
-        for smirk in smirks:
-            for term in smirk.terms.values():
-                assert float(term.k.split()[0]) != 1e-5
-
-        # now round load up the results
-        schema = FittingSchema.parse_file("final_results.json.xz")
-        # make sure all tasks are complete
-        assert schema.molecules[0].get_next_optimization_stage() is None
-
-    # clean up the server
-    execute.server.stop()
 
 
 def test_optimizer_explicit():
@@ -126,28 +89,6 @@ def test_restart_records(fractal_compute_server):
         assert record.status.value == "RUNNING"
 
 
-def test_submit_new_tasks(fractal_compute_server):
-    """
-    Make sure that any new tasks which are generated/found are added to the archive instance.
-    """
-
-    client = FractalClient(fractal_compute_server)
-    # build a molecule that will fail fast to save compute
-    ethane = Molecule.from_smiles("BrCO")
-    # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
-
-    executor = Executor()
-    # register the client
-    executor.fitting_schema = schema
-    executor.activate_client(client=client)
-
-    # make sure new tasks are submitted
-    task = schema.molecules[0]
-    response = executor.submit_new_tasks(task=task)
-    assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
-
-
 def test_error_cycle_explicit(fractal_compute_server):
     """
     Run the error cycle in the main thread to make sure it does restart tasks correctly and keep track of the number of times this is attempted.
@@ -212,19 +153,19 @@ def test_collecting_results(fractal_compute_server):
 
     client = FractalClient(fractal_compute_server)
 
-    ethane = Molecule.from_smiles("CO")
+    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    # get ethane with the final converged geometries
+    ethane = result.collection["[h:1][c:2]([h])([h])[c:3]([h:4])([h])[h]"].get_torsiondrive()
     schema = get_fitting_schema(ethane)
     # now submit to the executor
     executor = Executor()
     executor.total_tasks = 1
-    # set very loose convergence for speed
-    executor.geometric_settings = GeometricProcedure(convergence_set="NWCHEM_LOOSE")
 
     # register the client
     executor.activate_client(client=client)
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
-    dataset.dataset_name = "CO torsiondrive"
+    dataset.dataset_name = "CC torsiondrive"
     # submit the dataset manually to ignore the errors
     dataset.submit(client=client)
 
@@ -232,16 +173,70 @@ def test_collecting_results(fractal_compute_server):
     executor.fitting_schema = schema
     executor.generate_dataset_task_map(datasets=[dataset, ])
 
-    # wait for the torsiondrive to finish
-    while True:
-        fractal_compute_server.await_services()
-        fractal_compute_server.await_results()
-        # keep waiting till the torsiondrive is done
-        if fractal_compute_server.update_services() == 0:
-            break
+    fractal_compute_server.await_services()
+    fractal_compute_server.await_results()
 
     executor._error_cycle_task(task=schema.molecules[0])
 
     task = executor.opt_queue.get(timeout=5)
     opt = task.get_next_optimization_stage()
     assert opt.ready_for_fitting is True
+
+
+def test_submit_new_tasks(fractal_compute_server):
+    """
+    Make sure that any new tasks which are generated/found are added to the archive instance.
+    """
+
+    client = FractalClient(fractal_compute_server)
+    # build a molecule that will fail fast to save compute
+    ethane = Molecule.from_smiles("CC")
+    # now make the schema
+    schema = get_fitting_schema(molecules=ethane)
+
+    executor = Executor()
+    # register the client
+    executor.fitting_schema = schema
+    executor.activate_client(client=client)
+
+    # make sure new tasks are submitted
+    task = schema.molecules[0]
+    response = executor.submit_new_tasks(task=task)
+    assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
+
+
+def test_executor_no_collection():
+    """
+    Test using the executor when there are no tasks to collect only optimizations to run.
+    """
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    # now make the schema
+    schema = get_fitting_schema(molecules=ethane)
+    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    schema.update_with_results(results=result)
+
+    # now submit to the executor
+    execute = Executor()
+    # there are no collection tasks
+    assert execute.task_map == {}
+    # submit the optimization
+    with temp_directory():
+        result_schema = execute.execute(fitting_schema=schema)
+        # stop the server processes
+        execute.server.stop()
+        # make sure they are all finished
+        assert execute.total_tasks == 0
+        # check the results have been saved
+        smirks = result_schema.molecules[0].workflow[0].target_smirks
+        # make sure they have been updated
+        for smirk in smirks:
+            for term in smirk.terms.values():
+                assert float(term.k.split()[0]) != 1e-5
+
+        # now round load up the results
+        schema = FittingSchema.parse_file("final_results.json.xz")
+        # make sure all tasks are complete
+        assert schema.molecules[0].get_next_optimization_stage() is None
+
+    # clean up the server
+    execute.server.stop()

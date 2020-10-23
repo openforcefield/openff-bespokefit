@@ -163,7 +163,8 @@ class TorsionDrive1D(Target):
                 torsions = self.get_all_torsions(
                     fragment.fragment_torsion, fragment.fragment_molecule
                 )
-                fragment.fragment_molecule.generate_conformers(n_conformers=conformers)
+                if fragment.fragment_molecule.n_conformers < conformers:
+                    fragment.fragment_molecule.generate_conformers(n_conformers=conformers)
                 # make the fitting entry with metadata
                 fitting_entry = FittingEntry(
                     name=fragment.fragment_molecule.to_smiles(explicit_hydrogens=False),
@@ -217,7 +218,8 @@ class TorsionDrive1D(Target):
             # for each rotatable bond we should generate a torsiondrive
             attributes = get_molecule_cmiles(molecule)
             rotatable_bonds = self.select_rotatable_bonds(molecule)
-            molecule.generate_conformers(n_conformers=conformers)
+            if molecule.n_conformers < conformers:
+                molecule.generate_conformers(n_conformers=conformers)
             while rotatable_bonds:
                 # get a bond
                 bond = rotatable_bonds.pop()
