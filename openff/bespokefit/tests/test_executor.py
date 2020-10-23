@@ -119,7 +119,6 @@ def test_error_cycle_explicit(fractal_compute_server):
 
     # wait for the torsiondrive to finish
     fractal_compute_server.await_services()
-    fractal_compute_server.await_results()
 
     # run the error cycle no 1
     executor._error_cycle_task(task=schema.molecules[0])
@@ -133,7 +132,6 @@ def test_error_cycle_explicit(fractal_compute_server):
 
     # task has been restarted so wait again
     fractal_compute_server.await_services()
-    fractal_compute_server.await_results()
 
     # run again
     executor._error_cycle_task(task=task)
@@ -173,8 +171,7 @@ def test_collecting_results(fractal_compute_server):
     executor.fitting_schema = schema
     executor.generate_dataset_task_map(datasets=[dataset, ])
 
-    fractal_compute_server.await_services()
-    fractal_compute_server.await_results()
+    fractal_compute_server.await_services(max_iter=50)
 
     executor._error_cycle_task(task=schema.molecules[0])
 

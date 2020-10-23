@@ -164,7 +164,9 @@ class TorsionDrive1D(Target):
                     fragment.fragment_torsion, fragment.fragment_molecule
                 )
                 if fragment.fragment_molecule.n_conformers < conformers:
-                    fragment.fragment_molecule.generate_conformers(n_conformers=conformers)
+                    fragment.fragment_molecule.generate_conformers(
+                        n_conformers=conformers
+                    )
                 # make the fitting entry with metadata
                 fitting_entry = FittingEntry(
                     name=fragment.fragment_molecule.to_smiles(explicit_hydrogens=False),
