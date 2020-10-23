@@ -25,6 +25,7 @@ dependencies:
   - chemper
   - torchani
   - fragmenter ==0.0.7
+  - basis_set_exchange
 
 
 
