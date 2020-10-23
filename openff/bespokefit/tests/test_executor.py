@@ -4,7 +4,8 @@ Tests for the executor class which runs and error cycles and optimizations.
 
 import pytest
 from openforcefield.topology import Molecule
-from qcfractal import FractalSnowflake
+from qcfractal.interface import FractalClient
+from qcfractal.testing import fractal_compute_server
 from qcsubmit.procedures import GeometricProcedure
 from qcsubmit.results import TorsionDriveCollectionResult
 from qcsubmit.testing import temp_directory
@@ -80,25 +81,26 @@ def test_optimizer_explicit():
                 assert float(term.k.split()[0]) != 1e-5
 
 
-def test_restart_records():
+def test_restart_records(fractal_compute_server):
     """
     Make sure that the error cycle can restart a record and update the tasks when we hit an error.
     """
+
+    client = FractalClient(fractal_compute_server)
+
     mol = Molecule.from_smiles("BrCO")
     schema = get_fitting_schema(molecules=mol)
 
     # make a server to submit the tasks to which will fail
     datasets = schema.generate_qcsubmit_datasets()
 
-    server = FractalSnowflake()
-    client = server.client()
-
     # submit the torsiondrive which will fail
     datasets[0].metadata.long_description_url = "https://test.org"
+    datasets[0].dataset_name = "restart testing"
     datasets[0].submit(client=client, ignore_errors=True)
     # wait for the errors
-    server.await_services()
-    server.await_results()
+    fractal_compute_server.await_services()
+    fractal_compute_server.await_results()
 
     executor = Executor()
     executor.activate_client(client=client)
@@ -122,21 +124,18 @@ def test_restart_records():
         # pull again
         record, td_id = executor._get_record_and_index(dataset=dataset, spec=spec, record_name=entry_id)
         assert record.status.value == "RUNNING"
-    # shut down the server
-    server.stop()
 
 
-def test_submit_new_tasks():
+def test_submit_new_tasks(fractal_compute_server):
     """
     Make sure that any new tasks which are generated/found are added to the archive instance.
     """
 
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    client = FractalClient(fractal_compute_server)
+
+    ethane = Molecule.from_file(file_path=get_data("OCCO.sdf"), file_format="sdf")
     # now make the schema
     schema = get_fitting_schema(molecules=ethane)
-    # make a separate server
-    server = FractalSnowflake()
-    client = server.client()
 
     executor = Executor()
     # register the client
@@ -146,30 +145,28 @@ def test_submit_new_tasks():
     # make sure new tasks are submitted
     task = schema.molecules[0]
     response = executor.submit_new_tasks(task=task)
-    assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
-    # shut down
-    server.stop()
+    assert response == {'Bespokefit torsiondrives': {'ani2x': 2}}
 
 
-def test_error_cycle_explicit():
+def test_error_cycle_explicit(fractal_compute_server):
     """
     Run the error cycle in the main thread to make sure it does restart tasks correctly and keep track of the number of times this is attempted.
     Also make sure that a task status is moved to error when we exceed the retry limit.
     """
 
+    client = FractalClient(fractal_compute_server)
+
     # get a molecule that will fail with ani
     mol = Molecule.from_smiles("BrCO")
     # now make the schema
     schema = get_fitting_schema(molecules=mol)
-    # make a separate server
-    server = FractalSnowflake()
-    client = server.client()
 
     executor = Executor()
     # register the client
     executor.activate_client(client=client)
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
+    dataset.dataset_name = "BrCO torsiondrive"
     # submit the dataset manually to ignore the errors
     dataset.submit(client=client, ignore_errors=True)
     # set up the executor manually
@@ -180,8 +177,8 @@ def test_error_cycle_explicit():
     executor.generate_dataset_task_map(datasets=[dataset, ])
 
     # wait for the torsiondrive to finish
-    server.await_services()
-    server.await_results()
+    fractal_compute_server.await_services()
+    fractal_compute_server.await_results()
 
     # run the error cycle no 1
     executor._error_cycle_task(task=schema.molecules[0])
@@ -194,8 +191,8 @@ def test_error_cycle_explicit():
     assert collection_stage.status.value == "COLLECTING"
 
     # task has been restarted so wait again
-    server.await_services()
-    server.await_results()
+    fractal_compute_server.await_services()
+    fractal_compute_server.await_results()
 
     # run again
     executor._error_cycle_task(task=task)
@@ -206,14 +203,14 @@ def test_error_cycle_explicit():
     assert collection_stage.retires == 1
     assert collection_stage.status.value == "ERROR"
     assert task.workflow[0].status.value == "ERROR"
-    # clean up server
-    server.stop()
 
 
-def test_collecting_results():
+def test_collecting_results(fractal_compute_server):
     """
     Make sure results are collected and a task is updated when finished.
     """
+
+    client = FractalClient(fractal_compute_server)
 
     ethane = Molecule.from_smiles("CO")
     schema = get_fitting_schema(ethane)
@@ -223,14 +220,11 @@ def test_collecting_results():
     # set very loose convergence for speed
     executor.geometric_settings = GeometricProcedure(convergence_set="NWCHEM_LOOSE")
 
-    # make a separate server
-    server = FractalSnowflake(max_workers=1)
-    client = server.client()
-
     # register the client
     executor.activate_client(client=client)
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
+    dataset.dataset_name = "CO torsiondrive"
     # submit the dataset manually to ignore the errors
     dataset.submit(client=client)
 
@@ -240,10 +234,10 @@ def test_collecting_results():
 
     # wait for the torsiondrive to finish
     while True:
-        server.await_services()
-        server.await_results()
+        fractal_compute_server.await_services()
+        fractal_compute_server.await_results()
         # keep waiting till the torsiondrive is done
-        if server.update_services() == 0:
+        if fractal_compute_server.update_services() == 0:
             break
 
     executor._error_cycle_task(task=schema.molecules[0])
@@ -251,6 +245,3 @@ def test_collecting_results():
     task = executor.opt_queue.get(timeout=5)
     opt = task.get_next_optimization_stage()
     assert opt.ready_for_fitting is True
-
-    # shut down
-    server.stop()

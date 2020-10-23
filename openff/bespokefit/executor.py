@@ -131,7 +131,9 @@ class Executor:
         fitting_schema.export_schema("final_results.json.xz")
         return fitting_schema
 
-    def activate_client(self, client: str, workers: int = 4) -> None:
+    def activate_client(
+        self, client: Union[str, FractalClient], workers: int = 4
+    ) -> None:
         """
         Activate the connection to the chosen qcarchive instance.
 
@@ -293,7 +295,6 @@ class Executor:
             if record is not None:
                 print("updating the status")
                 self._update_status(collection_tasks, record, task)
-                print(collection_tasks[0])
                 if collection_tasks[0].collection_stage.status == Status.Complete:
                     try:
                         to_collect[dataset_type][dataset_name].setdefault(
