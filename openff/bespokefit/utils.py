@@ -1,12 +1,20 @@
 import contextlib
 import os
 import shutil
-from typing import Dict, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
 
 import networkx as nx
 import numpy as np
 from chemper.graphs.environment import ChemicalEnvironment
 from openforcefield import topology as off
+from openforcefield.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ImproperTorsionHandler,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from pkg_resources import resource_filename
 from qcsubmit.datasets import (
     BasicDataset,
@@ -15,7 +23,6 @@ from qcsubmit.datasets import (
     TorsiondriveDataset,
 )
 from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
-from qcsubmit.procedures import GeometricProcedure
 
 from .collection_workflows import CollectionMethod
 
@@ -115,7 +122,8 @@ def compare_smirks_graphs(smirks1: str, smirks2: str):
 
     # define the general node match
     def general_match(x, y):
-        is_equal = x["_or_types"] == y["_or_types"]
+        # or only one has to match
+        is_equal = any(i in y["_or_types"] for i in x["_or_types"])
         is_equal &= x["_and_types"] == y["_and_types"]
         is_equal &= x["ring"] == y["ring"]
         is_equal &= x["is_atom"] == y["is_atom"]
@@ -130,7 +138,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str):
     env1_graph = make_smirks_attribute_graph(env1)
     env2_graph = make_smirks_attribute_graph(env2)
     gm = nx.algorithms.isomorphism.GraphMatcher(
-        env1_graph, env2_graph, node_match=node_match, edge_match=general_match
+        env1_graph, env2_graph, node_match=node_match
     )
     return gm.is_isomorphic()
 
@@ -220,14 +228,31 @@ def forcebalance_setup(folder_name: str, keep_files: bool = True):
     Create and enter a forcebalance fitting folder and setup the targets and forcefield sub-dirs.
     """
     cwd = os.getcwd()
+    print("making forcebalance file system in ", cwd)
     os.mkdir(folder_name)
+    print("making master folder", folder_name)
     os.chdir(folder_name)
     os.mkdir("forcefield")
     os.mkdir("targets")
+    print("yield to fb run")
     yield
     os.chdir(cwd)
     if not keep_files:
-        shutil.rmtree(folder_name)
+        shutil.rmtree(folder_name, ignore_errors=True)
+
+
+@contextlib.contextmanager
+def task_folder(folder_name: str, keep_files: bool = True):
+    """
+    Create a master folder for the bespoke task which all optimization stages will be performed in.
+    """
+    cwd = os.getcwd()
+    Path(folder_name).mkdir(parents=True, exist_ok=True)
+    os.chdir(folder_name)
+    yield
+    os.chdir(cwd)
+    if not keep_files:
+        shutil.rmtree(folder_name, ignore_errors=True)
 
 
 def schema_to_datasets(
@@ -235,7 +260,6 @@ def schema_to_datasets(
     singlepoint_name: str = "Bespokefit single points",
     optimization_name: str = "Bespokefit optimizations",
     torsiondrive_name: str = "Bespokefit torsiondrives",
-    geometric_options: Optional[GeometricProcedure] = None,
 ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
     """
     Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
@@ -283,9 +307,6 @@ def schema_to_datasets(
         dataset_name=torsiondrive_name,
         description=description,
     )
-    if geometric_options is not None:
-        opt_dataset.optimization_procedure = geometric_options
-        torsion_dataset.optimization_procedure = geometric_options
 
     method_to_dataset = {
         CollectionMethod.Optimization: opt_dataset,
@@ -368,3 +389,31 @@ def schema_to_datasets(
             datasets.append(dataset)
 
     return datasets
+
+
+def smirks_from_off(
+    off_smirks: Union[
+        AngleHandler.AngleType,
+        vdWHandler.vdWType,
+        BondHandler.BondType,
+        ProperTorsionHandler.ProperTorsionType,
+        ImproperTorsionHandler.ImproperTorsionType,
+    ]
+) -> Union["AtomSmirks", "BondSmirks", "AngleSmirks", "TorsionSmirks"]:
+    """ "
+    Build and Bespokefit smirks parameter object from the openforcefield toolkit equivalent object.
+    """
+    from .schema.smirks import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
+
+    # map the off types to the bespoke types
+    _off_to_smirks = {
+        "Angle": AngleSmirks,
+        "Atom": AtomSmirks,
+        "Bond": BondSmirks,
+        "ProperTorsion": TorsionSmirks,
+        "ImproperTorsion": TorsionSmirks,
+    }
+    # build the smirks and update it
+    smirk = _off_to_smirks[off_smirks._VALENCE_TYPE](smirks=off_smirks.smirks)
+    smirk.update_parameters(off_smirk=off_smirks)
+    return smirk

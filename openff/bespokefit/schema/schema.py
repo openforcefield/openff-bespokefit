@@ -16,7 +16,6 @@ class SchemaBase(BaseModel):
     _enum_fields = []
 
     class Config:
-        extra = "forbid"
         allow_mutation = True
         validate_assignment = True
         json_encoders = {

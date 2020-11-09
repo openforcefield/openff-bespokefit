@@ -77,11 +77,15 @@ class ForceBalanceOptimizer(Optimizer):
         # check that the correct optimizer workflow has been supplied
         priors = {}
         fitting_targets = {}
+        print("starting OPT")
         if workflow.optimizer_name.lower() == self.optimizer_name.lower():
+            print("making new fb folders in", os.getcwd())
             # this will set up the file structure and return use back to the current working dir after
+            print("new folder name", workflow.job_id)
             with forcebalance_setup(workflow.job_id):
                 # now for each target we need to prep the folders
                 fitting_file = os.getcwd()
+                print("running opt in ", fitting_file)
                 os.chdir("targets")
                 for target in workflow.targets:
                     target_class = self.get_optimization_target(
@@ -100,7 +104,10 @@ class ForceBalanceOptimizer(Optimizer):
 
                 os.chdir(fitting_file)
                 ff = workflow.get_fitting_forcefield(initial_forcefield)
-                ff.to_file(os.path.join("forcefield", "bespoke.offxml"))
+                ff.to_file(
+                    os.path.join("forcefield", "bespoke.offxml"),
+                    discard_cosmetic_attributes=False,
+                )
                 # now make the optimize in file
                 self.generate_optimize_in(
                     priors=priors, fitting_targets=fitting_targets
@@ -111,7 +118,9 @@ class ForceBalanceOptimizer(Optimizer):
                         "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
                     )
 
-                return self.collect_results(workflow=workflow)
+                result_workflow = self.collect_results(workflow=workflow)
+        print("OPT finished in folder", os.getcwd())
+        return result_workflow
 
     def collect_results(self, workflow: WorkflowSchema) -> WorkflowSchema:
         """
@@ -131,13 +140,10 @@ class ForceBalanceOptimizer(Optimizer):
         """
         # look for the result
         result = self.read_output()
-        if result["status"] == Status.Complete:
-            workflow.status = Status.Complete
-            ff = ForceFieldEditor(result["forcefield"])
-            # update the smirks in place
-            ff.update_smirks_parameters(smirks=workflow.target_smirks)
-        else:
-            workflow.status = Status.Error
+        workflow.status = result["status"]
+        ff = ForceFieldEditor(result["forcefield"])
+        # update the smirks in place
+        ff.update_smirks_parameters(smirks=workflow.target_smirks)
 
         return workflow
 
@@ -159,7 +165,7 @@ class ForceBalanceOptimizer(Optimizer):
                     break
                 elif "convergence failure" in line.lower():
                     # did not converge
-                    result["status"] = Status.Error
+                    result["status"] = Status.ConvergenceError
                     break
             else:
                 # still running?

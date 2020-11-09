@@ -2,7 +2,7 @@
 Define the basic torsion target class.
 """
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from openforcefield import topology as off
 from qcsubmit.results import SingleResult
@@ -12,6 +12,7 @@ from simtk import unit
 from ..collection_workflows import CollectionMethod, TorsiondriveWorkflow, WorkflowStage
 from ..common_structures import FragmentData, ProperTorsionSettings
 from ..exceptions import FragmenterError, MissingReferenceError
+from ..forcefield_tools import ForceFieldEditor
 from ..schema.fitting import FittingEntry, TargetSchema
 from ..schema.smirks import TorsionSmirks
 from ..utils import get_molecule_cmiles
@@ -137,10 +138,44 @@ class TorsionDrive1D(Target):
                 f"The molecule {off_molecule} could not be fragmented so no fitting target was made."
             )
 
+    def _generate_bespoke_fragment_smirks(
+        self, fragment_data: FragmentData, fragment_torsion: Tuple[int, int, int, int]
+    ) -> TorsionSmirks:
+        """
+        Generate the bespoke fragment smirks.
+        """
+        if fragment_data.fragment_molecule != fragment_data.parent_molecule:
+            parent_torsion = [
+                fragment_data.fragment_parent_mapping[i] for i in fragment_torsion
+            ]
+            smirks = TorsionSmirks(
+                atoms={fragment_torsion},
+                smirks=self._get_new_cluster_graph_smirks(
+                    atoms=[[parent_torsion], [fragment_torsion]],
+                    molecules=[
+                        fragment_data.parent_molecule,
+                        fragment_data.fragment_molecule,
+                    ],
+                    layers=1,
+                ),
+            )
+        else:
+            # no fragment was made so use a normal graph
+            smirks = TorsionSmirks(
+                atoms={fragment_torsion},
+                smirks=self._get_new_single_graph_smirks(
+                    atoms=fragment_torsion,
+                    molecule=fragment_data.fragment_molecule,
+                ),
+            )
+        return smirks
+
     def generate_fitting_schema(
         self,
         molecule: off.Molecule,
+        initial_ff_values: str,
         conformers: int = 5,
+        expand_torsion_terms: bool = False,
     ) -> TargetSchema:
         """
         This method will consume a molecule and produce a fitting schema related to that molecule for this target.
@@ -149,11 +184,22 @@ class TorsionDrive1D(Target):
         ----------
         molecule: off.Molecule
             The molecule that the fitting schema should be created for.
+        initial_ff_values: str
+            Where the input values should come from for fitting. Note Forcebalance will apply regularization against them.
         conformers: int, default=5
             The number of input conformers to supply for the torsiondrive.
+        expand_torsion_terms: bool, default=False
+            If the starting torsion terms given by the initial forcefield should first be expanded to cover all k values or not.
+
+        Notes
+        -----
+            Due to the clustering of the torsions into new molecule specific smirks patterns the starting values used from a current forcefield may not be correct.
         """
         # the provenance here captures the settings used in the target including the priors.
         target_schema = TargetSchema(target_name=self.name, provenance=self.dict())
+        # set up where the initial values will come from
+        ff = ForceFieldEditor(forcefield_name=initial_ff_values)
+
         if self.fragmentation:
             fragments = self._fragment_molecule(molecule)
             # now produce the fitting schema
@@ -181,36 +227,35 @@ class TorsionDrive1D(Target):
                     },
                     provenance=self.provenance(),
                 )
-                # for each torsion make a new smirks
-                for fragment_torsion in torsions:
-                    if fragment.fragment_molecule != fragment.parent_molecule:
-                        parent_torsion = [
-                            fragment.fragment_parent_mapping[i]
-                            for i in fragment_torsion
+                # for each torsion make a new smirks if required
+                if self.generate_bespoke_terms:
+                    for fragment_torsion in torsions:
+                        smirks = self._generate_bespoke_fragment_smirks(
+                            fragment_data=fragment, fragment_torsion=fragment_torsion
+                        )
+                        # set initial k values to cover all in the target smirks
+                        for k in self.parameter_targets[0].k_values:
+                            smirks.add_torsion_term(k)
+                        # now update the values using the initial values
+                        smirks = ff.get_initial_parameters(
+                            molecule=fragment.fragment_molecule,
+                            smirk=smirks,
+                            clear_existing=not expand_torsion_terms,
+                        )
+                        smirks.parameterize = [
+                            f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
                         ]
-                        smirks = TorsionSmirks(
-                            atoms={fragment_torsion},
-                            smirks=self._get_new_cluster_graph_smirks(
-                                atoms=[[parent_torsion], [fragment_torsion]],
-                                molecules=[
-                                    fragment.parent_molecule,
-                                    fragment.fragment_molecule,
-                                ],
-                            ),
-                        )
-                    else:
-                        # no fragment was made so use a normal graph
-                        smirks = TorsionSmirks(
-                            atoms={fragment_torsion},
-                            smirks=self._get_new_single_graph_smirks(
-                                atoms=fragment_torsion,
-                                molecule=fragment.fragment_molecule,
-                            ),
-                        )
-                    smirks.parameterize = self.parameter_targets[0].k_values
-                    for k in smirks.parameterize:
-                        smirks.add_torsion_term(k)
-                    fitting_entry.add_target_smirks(smirks)
+                        fitting_entry.add_target_smirks(smirks)
+                else:
+                    # pull the normal parsley terms
+                    smirks = self._get_current_smirks(
+                        molecule=fragment.fragment_molecule,
+                        atoms=torsions,
+                        expand_torsion_terms=expand_torsion_terms,
+                        forcefield=ff,
+                    )
+                    for smirk in smirks:
+                        fitting_entry.add_target_smirks(smirk)
 
                 target_schema.add_fitting_entry(fitting_entry)
 
@@ -240,19 +285,39 @@ class TorsionDrive1D(Target):
                     },
                     provenance=self.provenance(),
                 )
-                # make a new smirks pattern for each dihedral
-                for torsion in torsions:
-                    smirks = TorsionSmirks(
-                        atoms={torsion},
-                        smirks=self._get_new_single_graph_smirks(
-                            atoms=torsion,
+                # make a new smirks pattern for each dihedral if requested
+                if self.generate_bespoke_terms:
+                    for torsion in torsions:
+                        smirks = TorsionSmirks(
+                            atoms={torsion},
+                            smirks=self._get_new_single_graph_smirks(
+                                atoms=torsion,
+                                molecule=molecule,
+                            ),
+                        )
+                        # set initial k values to cover all in the target smirks
+                        for k in self.parameter_targets[0].k_values:
+                            smirks.add_torsion_term(k)
+
+                        # now update the values using the initial values
+                        smirks = ff.get_initial_parameters(
                             molecule=molecule,
-                        ),
+                            smirk=smirks,
+                            clear_existing=not expand_torsion_terms,
+                        )
+                        smirks.parameterize = [
+                            f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
+                        ]
+                        fitting_entry.add_target_smirks(smirks)
+                else:
+                    smirks = self._get_current_smirks(
+                        molecule=molecule,
+                        atoms=torsions,
+                        expand_torsion_terms=expand_torsion_terms,
+                        forcefield=ff,
                     )
-                    smirks.parameterize = self.parameter_targets[0].k_values
-                    for k in smirks.parameterize:
-                        smirks.add_torsion_term(k)
-                    fitting_entry.add_target_smirks(smirks)
+                    for smirk in smirks:
+                        fitting_entry.add_target_smirks(smirk)
 
                 # look for symmetry equivalent torsions
                 for smirks in fitting_entry.target_smirks:
@@ -283,6 +348,45 @@ class TorsionDrive1D(Target):
                 target_schema.add_fitting_entry(fitting_entry)
 
             return target_schema
+
+    def _get_current_smirks(
+        self,
+        molecule: off.Molecule,
+        atoms: List[Tuple[int, int, int, int]],
+        expand_torsion_terms: bool,
+        forcefield: Union[ForceFieldEditor, str],
+    ) -> List[TorsionSmirks]:
+        """
+        Get the current smirks torsion parameters in bespokefit form and expand the torsion k values when requested.
+
+        Parameters
+        ----------
+        molecule: off.Molecule
+            The molecule which we want the smirks for.
+        atoms: List[Tuple[int, int, int, int]]
+            The list of atom torsion tuples we want the smirks for.
+        expand_torsion_terms: bool
+            If the k values should be fully expanded with extra terms set close to zero. By default we expand up to k4.
+        forcefield: Union[ForceFieldEditor, str]
+            The forcefield that should be used to get the parameters, if this is a string a editor class is made other wise we can use the current class.
+        """
+        if isinstance(forcefield, str):
+            ff = ForceFieldEditor(forcefield_name=forcefield)
+        else:
+            ff = forcefield
+        smirks = ff.get_smirks_parameters(molecule=molecule, atoms=atoms)
+
+        if expand_torsion_terms:
+            # for each smirk if there is no k value add a new one
+            for smirk in smirks:
+                for i in range(5):
+                    if str(i) not in smirk.terms:
+                        smirk.add_torsion_term(term=str(i))
+        # update the parameterize flags
+        for smirk in smirks:
+            smirk.parameterize = [f"k{i}" for i, _ in enumerate(smirk.terms, start=1)]
+
+        return smirks
 
     def select_rotatable_bonds(self, molecule: off.Molecule) -> List[Tuple[int, int]]:
         """

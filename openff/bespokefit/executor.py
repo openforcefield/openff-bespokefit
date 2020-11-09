@@ -7,7 +7,6 @@ from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
 from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
-from qcsubmit.procedures import GeometricProcedure
 from qcsubmit.results import (
     BasicCollectionResult,
     OptimizationCollectionResult,
@@ -16,7 +15,7 @@ from qcsubmit.results import (
 
 from .common_structures import Status
 from .schema.fitting import FittingSchema, MoleculeSchema
-from .utils import schema_to_datasets
+from .utils import schema_to_datasets, task_folder
 
 
 class Executor:
@@ -32,7 +31,6 @@ class Executor:
         self.client = None
         self.server = None
         self.max_workers = max_workers
-        # activate the client and server
         self.fitting_schema = None
         self._torsion_dataset: Optional[str] = None
         self._optimization_dataset: Optional[str] = None
@@ -51,9 +49,8 @@ class Executor:
         self.finished_tasks = Queue()
         self.task_map: Dict[str, Tuple[str, str, str]] = {}
         # bump the maxiter for ani optimizations to help convergence
-        self.geometric_settings: Optional[GeometricProcedure] = GeometricProcedure(
-            maxiter=1000
-        )
+        self.maxiter = 1000
+        self.convergence_set = "GAU"
 
     def execute(
         self, fitting_schema: FittingSchema, client: Optional[FractalClient] = None
@@ -85,12 +82,12 @@ class Executor:
         self.fitting_schema = fitting_schema
 
         # keep track of the total number of molecules to be fit
-        self.total_tasks = len(fitting_schema.molecules)
+        self.total_tasks = len(fitting_schema.tasks)
         # get the input datasets
         print("making qcsubmit datasets")
-        input_datasets = fitting_schema.generate_qcsubmit_datasets(
-            geometric_settings=self.geometric_settings
-        )
+        input_datasets = fitting_schema.generate_qcsubmit_datasets()
+        # now update the maxiter and convergence
+        input_datasets = self._update_optimization_settings(datasets=input_datasets)
         # now generate a mapping between the hash and the dataset entry
         print("generating task map")
         self.generate_dataset_task_map(datasets=input_datasets)
@@ -107,32 +104,62 @@ class Executor:
 
         return self._execute(fitting_schema=fitting_schema)
 
+    def _update_optimization_settings(
+        self,
+        datasets: List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]],
+    ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
+        """
+        Update the generated datasets with the current optimization settings.
+        """
+        for dataset in datasets:
+            try:
+                dataset.optimization_procedure.maxiter = self.maxiter
+                dataset.optimization_procedure.convergence_set = self.convergence_set
+            except AttributeError:
+                pass
+
+        return datasets
+
     def _execute(self, fitting_schema: FittingSchema) -> FittingSchema:
         print("starting main executor ...")
         # start the error cycle process
+        jobs = []
         error_p = Process(target=self.error_cycle)
-        error_p.start()
+        jobs.append(error_p)
         optimizer_p = Process(target=self.optimizer)
-        optimizer_p.start()
+        jobs.append(optimizer_p)
+
+        for job in jobs:
+            job.start()
 
         # join them
-        error_p.join()
-        optimizer_p.join()
+        for job in jobs:
+            job.join(timeout=5)
+
+        print("starrting to collect finished tasks")
         while True:
             # here we need to watch for results on the parent process
+            print("collecting complete tasks...")
             task = self.finished_tasks.get()
+            print("Found a complete task")
             fitting_schema = self.update_fitting_schema(
                 task=task, fitting_schema=fitting_schema
             )
+            print("tasks to do ", self.total_tasks)
             self.total_tasks -= 1
+            print("tasks left", self.total_tasks)
             if self.total_tasks == 0:
+                print("breaking out of task updates")
                 break
+
         print("all tasks done exporting to file.")
         fitting_schema.export_schema("final_results.json.xz")
         return fitting_schema
 
     def activate_client(
-        self, client: Union[str, FractalClient], workers: int = 4
+        self,
+        client: Union[str, FractalClient],
+        workers: int = 4,
     ) -> None:
         """
         Activate the connection to the chosen qcarchive instance.
@@ -160,6 +187,7 @@ class Executor:
             self.client = self.server.client()
         elif client.lower() == "snowflake":
             self.server = FractalSnowflake(max_workers=workers)
+            print(self.server)
             self.client = self.server.client()
         else:
             self.client = FractalClient.from_file(client)
@@ -188,8 +216,8 @@ class Executor:
         """
         Create a task for each molecule in fitting schema and enter them into the collection queue.
         """
-        for molecule in fitting_schema.molecules:
-            self.collection_queue.put(molecule)
+        for task in fitting_schema.tasks:
+            self.collection_queue.put(task)
 
     def submit_datasets(
         self,
@@ -265,12 +293,12 @@ class Executor:
                         if task.status == Status.Error:
                             opt_stage.status = Status.Error
 
-    def _error_cycle_task(self, task) -> None:
+    def _error_cycle_task(self, task: MoleculeSchema) -> None:
         """
         Specific error cycling for a given task.
         """
 
-        print("task molecule name ", task.molecule)
+        print("task molecule name ", task.task_id)
 
         # first we have to get all of the tasks for this molecule
         task_map = task.get_task_map()
@@ -324,7 +352,7 @@ class Executor:
             # the molecule is done pas to the opt queue to be removed
             self.opt_queue.put(task)
         elif opt.ready_for_fitting:
-            print(" found optimization submitting for task", task.molecule)
+            print(" found optimization submitting for task", task.task_id)
             self.opt_queue.put(task)
         elif opt.status == Status.Error:
             # one of the collection entries has filed so pass to opt which will fail
@@ -345,6 +373,7 @@ class Executor:
             print("pulling task from collection queue")
             task = self.collection_queue.get()
             if isinstance(task, str):
+                print("the collection queue is ending now")
                 # this is the kill message so kill the worker
                 break
             else:
@@ -365,11 +394,11 @@ class Executor:
         Update the given task back into the fitting schema so we can keep track of progress.
         Call this after any result or optimization update.
         """
-        for i, molecule_task in enumerate(fitting_schema.molecules):
+        for i, molecule_task in enumerate(fitting_schema.tasks):
             if task == molecule_task:
                 print("updating task")
                 # update the schema and break
-                fitting_schema.molecules[i] = task
+                fitting_schema.tasks[i] = task
                 return fitting_schema
 
     def submit_new_tasks(self, task: MoleculeSchema) -> Dict[str, Dict[str, int]]:
@@ -384,12 +413,12 @@ class Executor:
             singlepoint_name=self.fitting_schema.singlepoint_dataset_name,
             optimization_name=self.fitting_schema.optimization_dataset_name,
             torsiondrive_name=self.fitting_schema.torsiondrive_dataset_name,
-            geometric_options=self.geometric_settings,
         )
         # now all tasks have been put into the dataset even those running
         # remove a hash that has been seen before
         # add new tasks to the hash record
-
+        # update the dataset optimization settings
+        datasets = self._update_optimization_settings(datasets=datasets)
         for dataset in datasets:
             to_remove = []
             for task_id, entry in dataset.dataset.items():
@@ -504,42 +533,59 @@ class Executor:
         """
         Monitors the optimizer queue and runs any tasks that arrive in the list.
         """
+        import warnings
+
         sent_tasks = 0
         while True:
             print("looking for task in queue")
             task = self.opt_queue.get()
-            print("found optimizer task for ", task.molecule)
-            # now get the opt
-            opt = task.get_next_optimization_stage()
-            # make sure it is ready
-            if opt is not None and opt.ready_for_fitting:
-                # now we need to set up the optimizer
-                optimizer = self.fitting_schema.get_optimizer(opt.optimizer_name)
-                # remove any tasks
-                optimizer.clear_optimization_targets()
-                result = optimizer.optimize(
-                    workflow=opt, initial_forcefield=task.initial_forcefield
-                )
-                # now we need to update the workflow stage with the result
-                print("applying results ...")
-                print("current task workflow ...")
-                task.update_optimization_stage(result)
-                # check for running QM tasks
-                if task.get_task_map():
-                    # submit to the collection queue again
-                    self.collection_queue.put(task)
-                elif task.get_next_optimization_stage() is not None:
-                    # we have another task to optimize so put back into the queue for collection
-                    self.opt_queue.put(task)
+            print("found optimizer task for ", task.task_id)
+            # move into the task folder
+            with task_folder(folder_name=task.task_id):
+                # now get the opt
+                opt = task.get_next_optimization_stage()
+                # make sure it is ready
+                if opt is not None and opt.ready_for_fitting:
+                    # now we need to set up the optimizer
+                    print("preparing to optimize")
+                    optimizer = self.fitting_schema.get_optimizer(opt.optimizer_name)
+                    # remove any tasks
+                    optimizer.clear_optimization_targets()
+                    print("sending task for optimization")
+                    result = optimizer.optimize(
+                        workflow=opt, initial_forcefield=task.initial_forcefield
+                    )
+                    if result.status == Status.ConvergenceError:
+                        warnings.warn(
+                            f"The optimization {result.job_id} for task {task.task_id} failed to converge the best results were still collected.",
+                            UserWarning,
+                        )
+                    # now we need to update the workflow stage with the result
+                    print("applying results ...")
+                    task.update_optimization_stage(result)
+                    # get the next opt stage
+                    new_opt = task.get_next_optimization_stage()
+                    # check for running QM tasks
+                    if task.get_task_map():
+                        print("putting back into collect queue")
+                        # submit to the collection queue again
+                        self.collection_queue.put(task)
+                    elif new_opt is not None and new_opt.status == Status.Ready:
+                        print("new optimise task found putting back in queue")
+                        # we have another task to optimize so put back into the queue for collection
+                        self.opt_queue.put(task)
+                    else:
+                        # the task is finished so send it back
+                        print("Finished task")
+                        self.finished_tasks.put(task)
+                        sent_tasks += 1
                 else:
-                    # the task is finished so send it back
+                    # the task has an error so fail it
                     self.finished_tasks.put(task)
                     sent_tasks += 1
-            else:
-                # the task has an error so fail it
-                self.finished_tasks.put(task)
-                sent_tasks += 1
-            # kill condition
-            if sent_tasks == self.total_tasks:
-                self.collection_queue.put("END")
-                break
+
+                # kill condition
+                if sent_tasks == self.total_tasks:
+                    print("killing workers")
+                    self.collection_queue.put("END")
+                    break

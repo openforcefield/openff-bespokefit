@@ -6,7 +6,7 @@ from typing import List, Union
 
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import get_available_force_fields
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from qcsubmit.serializers import deserialize, serialize
 
 from .exceptions import ForceFieldError, OptimizerError
@@ -21,14 +21,34 @@ class WorkflowFactory(BaseModel):
     The bespokefit workflow factory which is a template of the settings that will be used to generate the specific fitting schema for each molecule.
     """
 
-    initial_forcefield: str = "openff_unconstrained-1.2.0.offxml"
-    client: str = "snowflake"  # the type of client that should be used
-    torsiondrive_dataset_name: str = "Bespokefit torsiondrives"
-    optimization_dataset_name: str = "Bespokefit optimizations"
-    singlepoint_dataset_name: str = (
-        "Bespokefit single points"  # the driver type will be appended to the name
+    initial_forcefield: str = Field(
+        "openff_unconstrained-1.2.0.offxml",
+        description="The name of the unconstrained forcefield to use as a starting point for optimization. The forcefield must be conda installed.",
     )
-    optimization_workflow: List[Optimizer] = []
+    expand_torsion_terms: bool = Field(
+        False,
+        description="If the optimization should first expand the number of k values that should be fit for each torsion beyond what is in the initial force field.",
+    )
+    client: str = Field(
+        "snowflake",
+        description="The type of QCArchive server that will be used, snowflake/snowflake_notebook is a temperary local server that spins up temp compute but can connect to a static server.",
+    )
+    torsiondrive_dataset_name: str = Field(
+        "Bespokefit torsiondrives",
+        description="The name given to torsiondrive datasets generated for bespoke fitting",
+    )
+    optimization_dataset_name: str = Field(
+        "Bespokefit optimizations",
+        description="The name given to optimization datasets generated for bespoke fitting",
+    )
+    singlepoint_dataset_name: str = Field(
+        "Bespokefit single points",
+        description="The common name given to basic datasets needed for bespoke fitting, the driver is appened to the name",
+    )  # the driver type will be appended to the name
+    optimization_workflow: List[Optimizer] = Field(
+        [],
+        description="The optimization workflow that will be executed on each of the molecules, this consists of multiple optimizers and targets executed in order.",
+    )
 
     class Config:
         validate_assignment = True
@@ -180,23 +200,27 @@ class WorkflowFactory(BaseModel):
         # add the settings for each of the optimizers
         for optimizer in self.optimization_workflow:
             fitting_schema.add_optimizer(optimizer)
-        for molecule in deduplicated_molecules.molecules:
+        for i, molecule in enumerate(deduplicated_molecules.molecules):
             # for each molecule make the fitting schema
             mol_name = molecule.to_smiles(mapped=True)
             molecule_schema = MoleculeSchema(
                 molecule=mol_name,
                 initial_forcefield=self.initial_forcefield,
+                task_id=f"bespoke_task_{i}",
             )
             # add each optimizer
             # TODO fix job id name for other optimizers
-            for optimizer in self.optimization_workflow:
+            for j, optimizer in enumerate(self.optimization_workflow):
                 workflow_stage = WorkflowSchema(
-                    optimizer_name=optimizer.optimizer_name, job_id=mol_name + "-fb"
+                    optimizer_name=optimizer.optimizer_name,
+                    job_id=f"optimization_stage_{j}",
                 )
                 # now add all the targets associated with the optimizer
                 for target in optimizer.optimization_targets:
                     target_entry = target.generate_fitting_schema(
                         molecule=molecule,
+                        initial_ff_values=self.initial_forcefield,
+                        expand_torsion_terms=self.expand_torsion_terms,
                     )
                     workflow_stage.targets.append(target_entry)
                 molecule_schema.workflow.append(workflow_stage)

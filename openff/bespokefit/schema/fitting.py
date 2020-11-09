@@ -5,11 +5,10 @@ from typing import Any, Dict, List, Optional, Type, Union
 import numpy as np
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import ForceField
-from pydantic import Protocol, validator
+from pydantic import Field, Protocol, validator
 from qcelemental.models.types import Array
 from qcsubmit.common_structures import QCSpec
 from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
-from qcsubmit.procedures import GeometricProcedure
 from qcsubmit.results import (
     BasicCollectionResult,
     BasicResult,
@@ -79,7 +78,8 @@ class FittingEntry(SchemaBase):
                 new_smirks.append(new_smirk)
             else:
                 new_smirks.append(smirk)
-            return new_smirks
+
+        return new_smirks
 
     @validator("input_conformers")
     def _check_conformers(
@@ -160,6 +160,9 @@ class FittingEntry(SchemaBase):
             if target == smirks:
                 # we need to just transfer the atoms if the patterns are the same
                 target.atoms.update(smirks.atoms)
+                # we also need to take the pattern with the most or terms
+                if len(smirks.smirks) > len(target.smirks):
+                    target.smirks = smirks.smirks
                 break
         else:
             self.target_smirks.append(smirks)
@@ -306,13 +309,15 @@ class FittingEntry(SchemaBase):
                             (i, i) for i in range(self.initial_molecule.n_atoms)
                         ):
                             remap = True
-                        # work out if the result and schema target the same dihedral
+                        # work out if the result and schema target the same dihedral via central bond
                         dihedral = set(self.extras["dihedrals"][0][1:3])
                         # now map the result dihedral back
-                        target_dihedral = set(
-                            [atom_map[i] for i in results.dihedrals[0][1:3]]
-                        )
-                        if not target_dihedral.difference(dihedral):
+                        target_dihedral = [atom_map[i] for i in results.dihedrals[0]]
+                        if not dihedral.difference(set(target_dihedral[1:3])):
+                            # we need to change the target dihedral to match what the result is for
+                            self.extras["dihedrals"] = [
+                                target_dihedral,
+                            ]
                             # get the optimization results in order of the angle
                             # we need this data later
                             for (
@@ -417,12 +422,13 @@ class TargetSchema(SchemaBase):
 
     def get_target_smirks(self) -> List[SmirksSchema]:
         """
-        Collect all of the new target smirks from the entries for this target.
+        Generate a deduplicated list of all of the new target smirks from the entries for this target.
         """
         target_smirks = []
         for entry in self.entries:
-            target_smirks.extend(entry.target_smirks)
-
+            for smirk in entry.target_smirks:
+                if smirk not in target_smirks:
+                    target_smirks.append(smirk)
         return target_smirks
 
     @property
@@ -468,9 +474,11 @@ class TargetSchema(SchemaBase):
                 for td_result in result.collection.values():
                     for entry in self.entries:
                         if (
-                            result.program == entry.qc_spec.program
-                            and result.method == entry.qc_spec.method
-                            and result.basis == entry.qc_spec.basis
+                            result.program.lower() == entry.qc_spec.program.lower()
+                            and result.method.lower() == entry.qc_spec.method.lower()
+                            and result.basis.lower() == entry.qc_spec.basis.lower()
+                            if result.basis is not None
+                            else result.basis == entry.qc_spec.basis
                         ):
                             try:
                                 entry.update_with_results(td_result)
@@ -511,11 +519,13 @@ class WorkflowSchema(SchemaBase):
         self,
     ) -> List[Union[BondSmirks, AngleSmirks, TorsionSmirks, AtomSmirks]]:
         """
-        Get all of the smirks targeted by the optimization targets which are part of this workflow.
+        Get a depuplicated list of all of the smirks targeted by the optimization targets which are part of this workflow.
         """
-        target_smirks = [
-            smirk for target in self.targets for smirk in target.get_target_smirks()
-        ]
+        target_smirks = []
+        for target in self.targets:
+            for smirk in target.get_target_smirks():
+                if smirk not in target_smirks:
+                    target_smirks.append(smirk)
         return target_smirks
 
     def update_target_smirks(
@@ -550,9 +560,7 @@ class WorkflowSchema(SchemaBase):
         from ..forcefield_tools import ForceFieldEditor
 
         # get all of the new target smirks
-        target_smirks = [
-            smirk for target in self.targets for smirk in target.get_target_smirks()
-        ]
+        target_smirks = self.target_smirks
         ff = ForceFieldEditor(initial_forcefield)
         ff.add_smirks(target_smirks, parameterize=True)
         # if there are any parameters from a different optimization stage add them here without parameterize tags
@@ -604,6 +612,7 @@ class MoleculeSchema(SchemaBase):
     """
 
     molecule: str  # the mapped smiles
+    task_id: str
     initial_forcefield: str
     workflow: List[WorkflowSchema] = []
 
@@ -713,12 +722,30 @@ class FittingSchema(SchemaBase):
     This is the main fitting schema which can be consumed by bespokefit in order to be executed.
     """
 
-    client: str
-    torsiondrive_dataset_name: str = "Bespokefit torsiondrives"
-    optimization_dataset_name: str = "Bespokefit optimizations"
-    singlepoint_dataset_name: str = "Bespokefit single points"
-    optimizer_settings: Dict[str, Dict[str, Any]] = {}
-    molecules: List[MoleculeSchema] = []
+    client: str = Field(
+        "snowflake",
+        description="The type of QCArchive server that will be used, snowflake/snowflake_notebook is a temperary local server that spins up temp compute but can connect to a static server.",
+    )
+    torsiondrive_dataset_name: str = Field(
+        "Bespokefit torsiondrives",
+        description="The name given to torsiondrive datasets generated for bespoke fitting",
+    )
+    optimization_dataset_name: str = Field(
+        "Bespokefit optimizations",
+        description="The name given to optimization datasets generated for bespoke fitting",
+    )
+    singlepoint_dataset_name: str = Field(
+        "Bespokefit single points",
+        description="The common name given to basic datasets needed for bespoke fitting, the driver is appened to the name",
+    )
+    optimizer_settings: Dict[str, Dict[str, Any]] = Field(
+        {},
+        description="A dictionary containing all run time settings for each optimizaer in the workflow so that they can be rebuild when optimization tasks are generated.",
+    )
+    tasks: List[MoleculeSchema] = Field(
+        [],
+        description="The list of molecule schema which represent the individual tasks to be carried out in the fitting procedure.",
+    )
 
     @classmethod
     def parse_file(
@@ -786,7 +813,7 @@ class FittingSchema(SchemaBase):
         # we have to make sure that the optimizer has also been added to the schema.
         for stage in molecule_schema.workflow:
             assert stage.optimizer_name.lower() in self.optimizer_names
-        self.molecules.append(molecule_schema)
+        self.tasks.append(molecule_schema)
 
     def export_schema(self, file_name: str) -> None:
         """
@@ -804,7 +831,7 @@ class FittingSchema(SchemaBase):
         Calculate the number of initial molecules to be optimized.
         """
 
-        return len(self.molecules)
+        return len(self.tasks)
 
     @property
     def task_hashes(self) -> List[str]:
@@ -812,8 +839,8 @@ class FittingSchema(SchemaBase):
         Get all of the unique task hashes.
         """
         tasks = set()
-        for molecule in self.molecules:
-            tasks.update(molecule.task_hashes)
+        for task in self.tasks:
+            tasks.update(task.task_hashes)
         return list(tasks)
 
     @property
@@ -843,11 +870,11 @@ class FittingSchema(SchemaBase):
                 results,
             ]
 
-        for molecule in self.molecules:
-            molecule.update_with_results(results)
+        for task in self.tasks:
+            task.update_with_results(results)
 
     def generate_qcsubmit_datasets(
-        self, geometric_settings: Optional[GeometricProcedure] = None
+        self,
     ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
         """
         Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
@@ -859,9 +886,29 @@ class FittingSchema(SchemaBase):
         """
 
         return schema_to_datasets(
-            self.molecules,
+            self.tasks,
             singlepoint_name=self.singlepoint_dataset_name,
             optimization_name=self.optimization_dataset_name,
             torsiondrive_name=self.torsiondrive_dataset_name,
-            geometric_options=geometric_settings,
         )
+
+    @property
+    def molecules(self) -> List[off.Molecule]:
+        """
+        Return an openforcefield representation of each of the target molecules in the fitting schema.
+        """
+        return [task.off_molecule for task in self.tasks]
+
+    @property
+    def entry_molecules(self) -> List[off.Molecule]:
+        """
+        Generate a list of unique molecules which we have collection tasks for these are not always the same as the target molecules due to fragmentation.
+        """
+        unique_molecules = set()
+        for task in self.tasks:
+            for stage in task.workflow:
+                for target in stage.targets:
+                    for entry in target.entries:
+                        unique_molecules.add(entry.initial_molecule)
+
+        return list(unique_molecules)

@@ -32,13 +32,13 @@ def test_optimizer_explicit():
     # we dont need the server here
     # put a task in the opt queue then kill it
     execute.total_tasks = 1
-    execute.opt_queue.put(schema.molecules[0])
+    execute.opt_queue.put(schema.tasks[0])
     with temp_directory():
         execute.optimizer()
         # find the task in the finished queue
         task = execute.finished_tasks.get()
         result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
-        smirks = result_schema.molecules[0].workflow[0].target_smirks
+        smirks = result_schema.tasks[0].workflow[0].target_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
@@ -69,7 +69,7 @@ def test_restart_records(fractal_compute_server):
     fractal_compute_server.await_results()
 
     executor = Executor()
-    executor.activate_client(client=client)
+    executor.activate_client()
     # generate the task map and queue
     executor.generate_dataset_task_map(datasets=datasets)
     executor.create_input_task_queue(fitting_schema=schema)
@@ -110,7 +110,7 @@ def test_error_cycle_explicit(fractal_compute_server):
 
     executor = Executor()
     # register the client
-    executor.activate_client(client=client)
+    executor.activate_client()
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
     dataset.dataset_name = "BrCO torsiondrive"
@@ -169,7 +169,7 @@ def test_collecting_results(fractal_compute_server):
     executor.total_tasks = 1
 
     # register the client
-    executor.activate_client(client=client)
+    executor.activate_client()
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
     dataset.dataset_name = "CC torsiondrive"
@@ -203,7 +203,7 @@ def test_submit_new_tasks(fractal_compute_server):
     executor = Executor()
     # register the client
     executor.fitting_schema = schema
-    executor.activate_client(client=client)
+    executor.activate_client()
 
     # make sure new tasks are submitted
     task = schema.molecules[0]
@@ -233,7 +233,7 @@ def test_executor_no_collection():
         # make sure they are all finished
         assert execute.total_tasks == 0
         # check the results have been saved
-        smirks = result_schema.molecules[0].workflow[0].target_smirks
+        smirks = result_schema.tasks[0].workflow[0].target_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
@@ -242,7 +242,7 @@ def test_executor_no_collection():
         # now round load up the results
         schema = FittingSchema.parse_file("final_results.json.xz")
         # make sure all tasks are complete
-        assert schema.molecules[0].get_next_optimization_stage() is None
+        assert schema.tasks[0].get_next_optimization_stage() is None
 
     # clean up the server
     execute.server.stop()

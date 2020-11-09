@@ -28,6 +28,9 @@ class Target(BaseModel, abc.ABC):
     collection_workflow: List[WorkflowStage] = []
     keywords: Dict[str, Any] = {}
     weight: int
+    generate_bespoke_terms: bool = (
+        True  # if the target should generate bespoke parameters for the entry or not
+    )
     qc_spec: QCSpec = QCSpec(
         method="ani2x",
         basis=None,
@@ -71,7 +74,9 @@ class Target(BaseModel, abc.ABC):
         return data
 
     @abc.abstractmethod
-    def generate_fitting_schema(self, molecule: off.Molecule) -> "TargetSchema":
+    def generate_fitting_schema(
+        self, molecule: off.Molecule, initial_ff_values: str, **kwargs
+    ) -> "TargetSchema":
         """
         Generate the target schema for this molecule. This involves determining which parameters in the molecule should be fit
         , generating any new smirks patterns for the molecule and adding collection jobs to the queue which are required to fit the target.

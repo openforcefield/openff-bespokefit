@@ -23,7 +23,8 @@ class SmirksType(str, Enum):
 class Status(str, Enum):
     Complete = "COMPLETE"
     Optimizing = "OPTIMIZING"
-    Error = "ERROR"
+    ConvergenceError = "CONVERGENCE_ERROR"
+    CollectionError = "COLLECTION_ERROR"
     Collecting = "COLLECTING"
     Ready = "READY"
     Prepared = "PREPARED"
