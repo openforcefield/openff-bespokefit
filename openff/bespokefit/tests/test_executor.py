@@ -8,13 +8,14 @@ from openforcefield.topology import Molecule
 from qcengine.testing import has_program
 from qcfractal.interface import FractalClient
 from qcfractal.testing import fractal_compute_server
-from qcsubmit.results import TorsionDriveCollectionResult
-from qcsubmit.testing import temp_directory
 
-from ..executor import Executor
-from ..schema.fitting import FittingSchema
-from ..utils import get_data
-from .schema.test_fitting import get_fitting_schema
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.executor import Executor
+from openff.bespokefit.schema import FittingSchema
+from openff.bespokefit.tests.schema.test_fitting import get_fitting_schema
+from openff.bespokefit.utils import get_data
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 
 
 def test_optimizer_explicit():
@@ -38,7 +39,7 @@ def test_optimizer_explicit():
         # find the task in the finished queue
         task = execute.finished_tasks.get()
         result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
-        smirks = result_schema.tasks[0].workflow[0].target_smirks
+        smirks = result_schema.tasks[0].workflow.target_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
@@ -110,7 +111,7 @@ def test_error_cycle_explicit(fractal_compute_server):
 
     executor = Executor()
     # register the client
-    executor.activate_client()
+    executor.activate_client(client=client)
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
     dataset.dataset_name = "BrCO torsiondrive"
@@ -169,7 +170,7 @@ def test_collecting_results(fractal_compute_server):
     executor.total_tasks = 1
 
     # register the client
-    executor.activate_client()
+    executor.activate_client(client=client)
     dataset = schema.generate_qcsubmit_datasets()[0]
     dataset.metadata.long_description_url = "https://test.org"
     dataset.dataset_name = "CC torsiondrive"
@@ -203,10 +204,10 @@ def test_submit_new_tasks(fractal_compute_server):
     executor = Executor()
     # register the client
     executor.fitting_schema = schema
-    executor.activate_client()
+    executor.activate_client(client=client)
 
     # make sure new tasks are submitted
-    task = schema.molecules[0]
+    task = schema.tasks[0]
     response = executor.submit_new_tasks(task=task)
     assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
 
@@ -233,7 +234,7 @@ def test_executor_no_collection():
         # make sure they are all finished
         assert execute.total_tasks == 0
         # check the results have been saved
-        smirks = result_schema.tasks[0].workflow[0].target_smirks
+        smirks = result_schema.tasks[0].workflow.target_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
@@ -242,7 +243,7 @@ def test_executor_no_collection():
         # now round load up the results
         schema = FittingSchema.parse_file("final_results.json.xz")
         # make sure all tasks are complete
-        assert schema.tasks[0].get_next_optimization_stage() is None
+        assert schema.tasks[0].workflow.status == Status.Complete
 
     # clean up the server
     execute.server.stop()

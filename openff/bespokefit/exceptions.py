@@ -95,7 +95,7 @@ class ForceFieldError(BespokeFitException):
 
 class SMIRKSTypeError(BespokeFitException):
     """
-    Raised when an incorect smirks pattern is used to make a Smirks schema, eg tagged one atom in a bond smirks.
+    Raised when an incorrect smirks pattern is used to make a Smirks schema, eg tagged one atom in a bond smirks.
     """
 
     error_type = "smirks_type_error"

@@ -4,13 +4,17 @@ Test for the bespoke-fit workflow generator.
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.testing import temp_directory
 
-from ..exceptions import ForceFieldError, OptimizerError
-from ..optimizers import ForceBalanceOptimizer, deregister_optimizer, register_optimizer
-from ..targets import AbInitio_SMIRNOFF
-from ..utils import get_data
-from ..workflow import WorkflowFactory
+from openff.bespokefit.exceptions import ForceFieldError, OptimizerError
+from openff.bespokefit.optimizers import (
+    ForceBalanceOptimizer,
+    deregister_optimizer,
+    register_optimizer,
+)
+from openff.bespokefit.targets import AbInitio_SMIRNOFF
+from openff.bespokefit.utils import get_data
+from openff.bespokefit.workflow import WorkflowFactory
+from openff.qcsubmit.testing import temp_directory
 
 
 @pytest.mark.parametrize("forcefield", [
@@ -44,11 +48,11 @@ def test_adding_optimization_stages(optimization_data):
     workflow = WorkflowFactory()
 
     if error is None:
-        workflow.add_optimization_stage(optimizer=stage)
-        assert len(workflow.optimization_workflow) == 1
+        workflow.set_optimizer(optimizer=stage)
+        assert workflow.optimizer is not None
     else:
         with pytest.raises(error):
-            workflow.add_optimization_stage(optimizer=stage)
+            workflow.set_optimizer(optimizer=stage)
 
 
 def test_adding_optimization_stages_missing():
@@ -63,31 +67,20 @@ def test_adding_optimization_stages_missing():
     workflow = WorkflowFactory()
 
     with pytest.raises(OptimizerError):
-        workflow.add_optimization_stage(fb)
+        workflow.set_optimizer(fb)
 
     # register it again
     register_optimizer(optimizer=fb)
 
 
-@pytest.mark.parametrize("optimization_data", [
-    pytest.param(("ForceBalanceOptimizer", None), id="Forcebalance string"),
-    pytest.param((ForceBalanceOptimizer(), None), id="Forcebalance class"),
-    pytest.param(("BadOptimizer", OptimizerError), id="BadOptimizer Error")
-])
-def test_remove_optimization_stages(optimization_data):
+def test_remove_optimization_stages():
     """
     Test removing optimization stages from the workflow.
-    The workflow is set up with forcebalance each time.
     """
-    optimizer, error = optimization_data
-    workflow = WorkflowFactory(optimization_workflow=[ForceBalanceOptimizer()])
 
-    if error is None:
-        workflow.remove_optimization_stage(optimizer=optimizer)
-        assert workflow.optimization_workflow == []
-    else:
-        with pytest.raises(error):
-            workflow.remove_optimization_stage(optimizer=optimizer)
+    workflow = WorkflowFactory(optimization_workflow=[ForceBalanceOptimizer()])
+    workflow.clear_optimizer()
+    assert workflow.optimizer is None
 
 
 def test_workflow_export_import():
@@ -98,7 +91,7 @@ def test_workflow_export_import():
     workflow = WorkflowFactory()
     # add fb and a target with non standard settings
     fb = ForceBalanceOptimizer(penalty_type="L1", optimization_targets=[AbInitio_SMIRNOFF(fragmentation=False)])
-    workflow.add_optimization_stage(optimizer=fb)
+    workflow.set_optimizer(optimizer=fb)
 
     with temp_directory():
         workflow.export_workflow(file_name="test.yaml")
@@ -121,7 +114,7 @@ def test_make_fitting_schema(optimizer_data):
 
     optimizers, error = optimizer_data
     for opt in optimizers:
-        workflow.add_optimization_stage(optimizer=opt)
+        workflow.set_optimizer(optimizer=opt)
 
     if error is None:
         schema = workflow.create_fitting_schema(molecules=[ethane, ])
@@ -134,13 +127,13 @@ def test_make_fitting_schema(optimizer_data):
         assert schema.n_molecules == 1
         assert schema.n_tasks == 1
         # we need to make sure there is one TD target
-        molecule_schema = schema.molecules[0]
+        molecule_schema = schema.tasks[0]
         assert molecule_schema.molecule == ethane.to_smiles(isomeric=True, explicit_hydrogens=True, mapped=True)
         assert molecule_schema.off_molecule == ethane
         assert molecule_schema.n_tasks == 1
         assert molecule_schema.n_targets == 1
         assert molecule_schema.initial_forcefield == workflow.initial_forcefield
-        task_schema = molecule_schema.workflow[0]
+        task_schema = molecule_schema.workflow
         assert task_schema.optimizer_name == optimizers[0].optimizer_name
 
     else:

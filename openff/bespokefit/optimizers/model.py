@@ -7,8 +7,8 @@ from typing import Dict, List, Union
 
 from pydantic import BaseModel, validator
 
-from ..exceptions import TargetRegisterError
-from ..targets.model import Target
+from openff.bespokefit.exceptions import TargetRegisterError
+from openff.bespokefit.targets.model import Target
 
 
 class Optimizer(BaseModel, abc.ABC):
@@ -180,8 +180,8 @@ class Optimizer(BaseModel, abc.ABC):
 
     @abc.abstractmethod
     def optimize(
-        self, workflow: "WorkflowSchema", initial_forcefield: str
-    ) -> "WorkflowSchema":
+        self, workflow: "OptimizationSchema", initial_forcefield: str
+    ) -> "OptimizationSchema":
         """
         This is the main function of the optimizer which is called when the optimizer is put in a workflow.
         It should loop over the targets and assert they are registered and then dispatch compute and optimization.

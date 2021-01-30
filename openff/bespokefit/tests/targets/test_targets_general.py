@@ -5,9 +5,9 @@ Test all general target methods.
 import pytest
 from openforcefield.topology import Molecule
 
-from ...targets import Target, TorsionDrive1D
-from ...targets.atom_selection import TorsionSelection
-from ...utils import get_data
+from openff.bespokefit.targets import Target, TorsionDrive1D
+from openff.bespokefit.targets.atom_selection import TorsionSelection
+from openff.bespokefit.utils import get_data
 
 
 def test_provenance_extras():

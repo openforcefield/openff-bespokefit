@@ -2,22 +2,29 @@
 Define the basic torsion target class.
 """
 import os
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from openforcefield import topology as off
-from qcsubmit.results import SingleResult
-from qcsubmit.serializers import serialize
 from simtk import unit
 
-from ..collection_workflows import CollectionMethod, TorsiondriveWorkflow, WorkflowStage
-from ..common_structures import FragmentData, ProperTorsionSettings
-from ..exceptions import FragmenterError, MissingReferenceError
-from ..forcefield_tools import ForceFieldEditor
-from ..schema.fitting import FittingEntry, TargetSchema
-from ..schema.smirks import TorsionSmirks
-from ..utils import get_molecule_cmiles
-from .atom_selection import TorsionSelection
-from .model import Target
+from openff.bespokefit.collection_workflows import (
+    CollectionMethod,
+    TorsiondriveWorkflow,
+    WorkflowStage,
+)
+from openff.bespokefit.common_structures import (
+    FragmentData,
+    ParameterSettings,
+    ProperTorsionSettings,
+)
+from openff.bespokefit.exceptions import FragmenterError, MissingReferenceError
+from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.schema import FittingEntry, TargetSchema, TorsionSmirks
+from openff.bespokefit.targets.atom_selection import TorsionSelection
+from openff.bespokefit.targets.model import Target
+from openff.bespokefit.utils import get_molecule_cmiles
+from openff.qcsubmit.results import SingleResult
+from openff.qcsubmit.serializers import serialize
 
 
 class TorsionDrive1D(Target):
@@ -28,7 +35,7 @@ class TorsionDrive1D(Target):
     name = "TorsionDrive1D"
     description = "A basic 1D torsiondrive target factory."
     # this tells us which values in the smirks should be parameterized
-    parameter_targets: List[ProperTorsionSettings] = [ProperTorsionSettings()]
+    parameter_targets: List[ParameterSettings] = [ProperTorsionSettings()]
     collection_workflow: List[WorkflowStage] = TorsiondriveWorkflow
     fragmentation: bool = True  # should we fragment the molecule
     weight: float = 1.0
@@ -62,7 +69,8 @@ class TorsionDrive1D(Target):
         """
 
         from fragmenter import fragment
-        from qcsubmit.factories import TorsiondriveDatasetFactory
+
+        from openff.qcsubmit.factories import TorsiondriveDatasetFactory
 
         fragment_factory = fragment.WBOFragmenter(
             molecule=off_molecule.to_openeye(), verbose=False
@@ -72,7 +80,7 @@ class TorsionDrive1D(Target):
         try:
             # fragment the molecule
             fragment_factory.fragment(
-                threshold=0.03, keep_non_rotor_ring_substituents=False
+                threshold=0.03, keep_non_rotor_ring_substituents=True
             )
             # now we work out the relation between the fragment and the parent
             fragments_data = fragment_factory.to_torsiondrive_json()
@@ -89,10 +97,13 @@ class TorsionDrive1D(Target):
 
                 # in some cases we get one fragment back which is the parent molecule
                 # we should not work out a mapping
+                print("working out mapping")
                 if not off_molecule.is_isomorphic_with(off_frag):
+                    print("mapping not isomorphic work out with rdkit")
                     mapping = self._get_fragment_parent_mapping(
                         fragment=off_frag, parent=off_molecule
                     )
+                    print("got the mapping for fragment ", off_frag)
                     # get the parent torsion
                     parent_dihedral = tuple([mapping[i] for i in frag_dihedral])
                     parent_molecule = off_molecule
@@ -144,31 +155,109 @@ class TorsionDrive1D(Target):
         """
         Generate the bespoke fragment smirks.
         """
-        if fragment_data.fragment_molecule != fragment_data.parent_molecule:
-            parent_torsion = [
-                fragment_data.fragment_parent_mapping[i] for i in fragment_torsion
-            ]
-            smirks = TorsionSmirks(
-                atoms={fragment_torsion},
-                smirks=self._get_new_cluster_graph_smirks(
-                    atoms=[[parent_torsion], [fragment_torsion]],
-                    molecules=[
-                        fragment_data.parent_molecule,
-                        fragment_data.fragment_molecule,
-                    ],
-                    layers=1,
-                ),
-            )
-        else:
-            # no fragment was made so use a normal graph
-            smirks = TorsionSmirks(
-                atoms={fragment_torsion},
-                smirks=self._get_new_single_graph_smirks(
-                    atoms=fragment_torsion,
-                    molecule=fragment_data.fragment_molecule,
-                ),
-            )
+        # if fragment_data.fragment_molecule != fragment_data.parent_molecule:
+        #     parent_torsion = [
+        #         fragment_data.fragment_parent_mapping[i] for i in fragment_torsion
+        #     ]
+        #     smirks = TorsionSmirks(
+        #         atoms={fragment_torsion},
+        #         smirks=self._get_new_cluster_graph_smirks(
+        #             atoms=[[parent_torsion], [fragment_torsion]],
+        #             molecules=[
+        #                 fragment_data.parent_molecule,
+        #                 fragment_data.fragment_molecule,
+        #             ],
+        #             layers=1,
+        #         ),
+        #     )
+        # else:
+        # no fragment was made so use a normal graph
+        smirks = TorsionSmirks(
+            atoms={fragment_torsion},
+            smirks=self._get_new_single_graph_smirks(
+                atoms=fragment_torsion,
+                molecule=fragment_data.fragment_molecule,
+                layers=1,
+            ),
+        )
         return smirks
+
+    def _make_smirks_recursive(self, smirks: str, label: Optional[int]):
+        """Take a SMIRKS pattern produced by chemper and wraps it so that
+        it can be used inside a SMIRKS OR statement or chained with other
+        patterns to form a torsion smirks."""
+        import re
+
+        smirks = re.sub(r":\d+", "", smirks)
+
+        division = smirks.index("]")
+        first_atom = smirks[:division]
+        remainder = smirks[division + 1 :]
+
+        if label is not None:
+            smirks = f"{first_atom}$(*{remainder}):{label}]"
+        else:
+            smirks = f"{first_atom}$(*{remainder})]"
+
+        return smirks
+
+    def _generate_bespoke_central_smirks(
+        self, molecule: Union[FragmentData, off.Molecule], central_bond: Tuple[int, int]
+    ) -> TorsionSmirks:
+        """
+        Generate a bespoke torsion smirks which should hit all possible torsions passing through the given central bond.
+        This was developed with help from Simon.
+        """
+
+        # the number of layers depends on if this needs to hit the fragment or the parent
+        if isinstance(molecule, FragmentData):
+            target_mol = molecule.fragment_molecule
+            if molecule.fragment_molecule != molecule.parent_molecule:
+                layers = 1
+            else:
+                layers = "all"
+
+        else:
+            layers = "all"
+            target_mol = molecule
+
+        torsion_smirks = ["", "", "", ""]
+        # get all torsions for this bond
+        torsions = self.get_all_torsions(bond=central_bond, molecule=target_mol)
+        # get a list of only the end indices for each central atom
+        outer_indices = [
+            [torsion[0] for torsion in torsions],
+            [torsion[-1] for torsion in torsions],
+        ]
+
+        for i, central_index in enumerate(central_bond):
+
+            central_smirks = self._get_new_single_graph_smirks(
+                atoms=(central_index,), molecule=target_mol, layers=layers
+            )
+
+            torsion_smirks[i + 1] = self._make_smirks_recursive(
+                smirks=central_smirks, label=i + 2
+            )
+
+            end_smirks = [
+                self._make_smirks_recursive(
+                    smirks=self._get_new_single_graph_smirks(
+                        atoms=(end_index,), molecule=target_mol, layers=1
+                    ),
+                    label=None,
+                )[1:-1]
+                for end_index in outer_indices[i]
+            ]
+
+            end_smirks_string = ",".join(end_smirks)
+
+            torsion_smirks[i * 3] = f"[{end_smirks_string}:{i * 3 + 1}]"
+
+        final_smirks = "~".join(torsion_smirks)
+        return TorsionSmirks(
+            atoms={tuple(torsion) for torsion in torsions}, smirks=final_smirks
+        )
 
     def generate_fitting_schema(
         self,
@@ -214,16 +303,20 @@ class TorsionDrive1D(Target):
                         n_conformers=conformers
                     )
                 # make the fitting entry with metadata
+                # as this is a fragment store the info for latter
                 fitting_entry = FittingEntry(
                     name=fragment.fragment_molecule.to_smiles(explicit_hydrogens=False),
                     attributes=attributes,
                     collection_workflow=self.collection_workflow,
                     qc_spec=self.qc_spec,
                     input_conformers=fragment.fragment_molecule.conformers,
+                    dihedrals=[
+                        torsions[0],
+                    ],
+                    fragment=True,
+                    fragment_parent_mapping=fragment.fragment_parent_mapping,
                     extras={
-                        "dihedrals": [
-                            torsions[0],
-                        ]
+                        "fragment_torsion": fragment.fragment_torsion,
                     },
                     provenance=self.provenance(),
                 )
@@ -246,6 +339,25 @@ class TorsionDrive1D(Target):
                             f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
                         ]
                         fitting_entry.add_target_smirks(smirks)
+
+                    # generate a single bespoke smirks for the fragment
+                    # smirks = self._generate_bespoke_central_smirks(
+                    #     molecule=fragment, central_bond=fragment.fragment_torsion
+                    # )
+                    # # set initial k values to cover all in the target smirks
+                    # for k in self.parameter_targets[0].k_values:
+                    #     smirks.add_torsion_term(k)
+                    # # now update the values using the initial values
+                    # smirks = ff.get_initial_parameters(
+                    #     molecule=fragment.fragment_molecule,
+                    #     smirk=smirks,
+                    #     clear_existing=not expand_torsion_terms,
+                    # )
+                    # smirks.parameterize = [
+                    #     f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
+                    # ]
+                    # fitting_entry.add_target_smirks(smirks)
+
                 else:
                     # pull the normal parsley terms
                     smirks = self._get_current_smirks(
@@ -278,11 +390,10 @@ class TorsionDrive1D(Target):
                     collection_workflow=self.collection_workflow,
                     qc_spec=self.qc_spec,
                     input_conformers=molecule.conformers,
-                    extras={
-                        "dihedrals": [
-                            torsions[0],
-                        ]
-                    },
+                    fragment=False,
+                    dihedrals=[
+                        torsions[0],
+                    ],
                     provenance=self.provenance(),
                 )
                 # make a new smirks pattern for each dihedral if requested
@@ -309,6 +420,26 @@ class TorsionDrive1D(Target):
                             f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
                         ]
                         fitting_entry.add_target_smirks(smirks)
+
+                    # generate a single smirks for all torsions
+                    # smirks = self._generate_bespoke_central_smirks(
+                    #     molecule=molecule, central_bond=bond
+                    # )
+                    # # set initial k values to cover all in the target smirks
+                    # for k in self.parameter_targets[0].k_values:
+                    #     smirks.add_torsion_term(k)
+                    #
+                    # # now update the values using the initial values
+                    # smirks = ff.get_initial_parameters(
+                    #     molecule=molecule,
+                    #     smirk=smirks,
+                    #     clear_existing=not expand_torsion_terms,
+                    # )
+                    # smirks.parameterize = [
+                    #     f"k{i}" for i, _ in enumerate(smirks.terms, start=1)
+                    # ]
+                    # fitting_entry.add_target_smirks(smirks)
+
                 else:
                     smirks = self._get_current_smirks(
                         molecule=molecule,
@@ -374,12 +505,13 @@ class TorsionDrive1D(Target):
             ff = ForceFieldEditor(forcefield_name=forcefield)
         else:
             ff = forcefield
+
         smirks = ff.get_smirks_parameters(molecule=molecule, atoms=atoms)
 
         if expand_torsion_terms:
             # for each smirk if there is no k value add a new one
             for smirk in smirks:
-                for i in range(5):
+                for i in range(1, 5):
                     if str(i) not in smirk.terms:
                         smirk.add_torsion_term(term=str(i))
         # update the parameterize flags
@@ -416,44 +548,6 @@ class TorsionDrive1D(Target):
             )
         ]
         return bonds
-
-    def get_all_torsions(
-        self, bond: Tuple[int, int], molecule: off.Molecule
-    ) -> List[Tuple[int, int, int, int]]:
-        """
-        Get all torsions that pass through the central bond to generate smirks patterns.
-
-        Parameters
-        ----------
-        bond: Tuple[int, int]
-            The bond which we want all torsions for.
-        molecule: off.Molecule
-            The molecule which the bond corresponds to.
-
-        Returns
-        -------
-        List[Tuple[int, int, int, int]]
-            A list of all of the torsion tuples passing through this central bond.
-        """
-
-        torsions = []
-        central_bond = molecule.get_bond_between(*bond)
-        atom1, atom2 = central_bond.atom1, central_bond.atom2
-
-        for atom in atom1.bonded_atoms:
-            for end_atom in atom2.bonded_atoms:
-                if atom != atom2 and end_atom != atom1:
-                    dihedral = (
-                        atom.molecule_atom_index,
-                        atom1.molecule_atom_index,
-                        atom2.molecule_atom_index,
-                        end_atom.molecule_atom_index,
-                    )
-                    torsions.append(dihedral)
-                else:
-                    continue
-
-        return torsions
 
     def provenance(self) -> Dict[str, Any]:
         provenance = super().provenance()
@@ -527,26 +621,29 @@ class AbInitio_SMIRNOFF(TorsionDrive1D):
 
         home = os.getcwd()
         for entry in fitting_target.entries:
+            print(entry.name)
+
             # we need to make a new folder for this entry
             os.mkdir(entry.name)
             os.chdir(entry.name)
+
             # now we need to make all of the input files
             molecule = entry.current_molecule
-            # we only want one conformer here
             molecule.generate_conformers(n_conformers=1, clear_existing=True)
-            molecule.assign_partial_charges("am1-mulliken")
+            molecule.assign_partial_charges("am1bcc")
             molecule.to_file("molecule.mol2", "mol2")
             molecule.to_file(
                 file_path="molecule.pdb",
                 file_format="pdb",
                 toolkit_registry=RDKitToolkitWrapper(),
             )
-            # remove the conformers
+            # remove the conformers and use the final TD coordinates
             molecule._conformers = []
             for result in entry.get_reference_data():
                 geometry = unit.Quantity(result.molecule.geometry, unit=unit.bohrs)
                 molecule.add_conformer(geometry)
             molecule.to_file("scan.xyz", "xyz")
+
             # now make the qdata file
             self.create_qdata(
                 entry.get_reference_data(),
@@ -595,7 +692,7 @@ class TorsionProfile_SMIRNOFF(AbInitio_SMIRNOFF):
         "coords": "scan.xyz",
         "attenuate": None,
         "energy_denom": 1.0,
-        "energy_upper": 5.0,
+        "energy_upper": 10.0,
         "openmm_platform": "Reference",
     }
 
@@ -605,12 +702,12 @@ class TorsionProfile_SMIRNOFF(AbInitio_SMIRNOFF):
         """
         # move to the directory which has already been made
         json_data = {
-            "dihedrals": entry.extras["dihedrals"],
+            "dihedrals": entry.dihedrals,
             "grid_spacing": self.grid_spacings,
             "dihedral_ranges": None,
             "energy_decrease_thresh": None,
             "energy_upper_limit": self.energy_upper_limit,
-            "attributes": entry.attributes,
+            "attributes": entry.attributes.dict(),
             "torsion_grid_ids": [
                 data.extras["dihedral_angle"] for data in entry.get_reference_data()
             ],

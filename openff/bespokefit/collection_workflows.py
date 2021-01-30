@@ -1,11 +1,10 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from qcsubmit.results import SingleResult
 from simtk import unit
 
-from .common_structures import Status
-from .schema.schema import SchemaBase
+from openff.bespokefit.common_structures import SchemaBase, Status
+from openff.qcsubmit.results import SingleResult
 
 
 class CollectionMethod(str, Enum):

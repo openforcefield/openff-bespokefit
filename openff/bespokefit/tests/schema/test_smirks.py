@@ -13,15 +13,15 @@ from openforcefield.typing.engines.smirnoff import (
 )
 from pydantic import ValidationError
 
-from ...exceptions import SMIRKSTypeError
-from ...schema.smirks import (
+from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirks import (
     AngleSmirks,
     AtomSmirks,
     BondSmirks,
     TorsionSmirks,
     TorsionTerm,
 )
-from ...utils import compare_smirks_graphs
+from openff.bespokefit.utils import compare_smirks_graphs
 
 
 @pytest.mark.parametrize("smirks_data", [

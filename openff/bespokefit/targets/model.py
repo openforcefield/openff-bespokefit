@@ -6,11 +6,12 @@ import abc
 from typing import Any, Dict, List, Tuple, Union
 
 import openforcefield.topology as off
-from pydantic import BaseModel
-from qcsubmit.common_structures import QCSpec
+from pydantic import BaseModel, Field
+from typing_extensions import Literal
 
-from ..collection_workflows import CollectionMethod, WorkflowStage
-from ..common_structures import ParameterSettings
+from openff.bespokefit.collection_workflows import CollectionMethod, WorkflowStage
+from openff.bespokefit.common_structures import ParameterSettings
+from openff.qcsubmit.common_structures import QCSpec
 
 
 class Target(BaseModel, abc.ABC):
@@ -18,14 +19,17 @@ class Target(BaseModel, abc.ABC):
     The base target class used to create new targets.
     This acts as a factory which acts on each molecule passed producing fitting targets specific to the molecule.
 
-    Note:
-        In some cases where fragmentation is used multiple targets can be created.
     """
 
-    name: str
-    description: str
+    name: Literal["Target"] = Field(
+        "Target", description="The name of the optimization target."
+    )
+    description: str = Field(..., description="A description of how the target works.")
     parameter_targets: List[ParameterSettings] = []
-    collection_workflow: List[WorkflowStage] = []
+    collection_workflow: List[WorkflowStage] = Field(
+        [],
+        description="The collection workflow details the steps required to generate the input data to fit this target.",
+    )
     keywords: Dict[str, Any] = {}
     weight: int
     generate_bespoke_terms: bool = (
@@ -143,7 +147,7 @@ class Target(BaseModel, abc.ABC):
 
     @staticmethod
     def _get_new_single_graph_smirks(
-        atoms: Tuple[int], molecule: off.Molecule, layers: Union[str, int] = "all"
+        atoms: Tuple[int, ...], molecule: off.Molecule, layers: Union[str, int] = "all"
     ) -> str:
         """
         Generate a new smirks pattern for the selected atoms of the given molecule.
@@ -170,7 +174,9 @@ class Target(BaseModel, abc.ABC):
 
     @staticmethod
     def _get_new_cluster_graph_smirks(
-        atoms: List[List[Tuple[int]]], molecules: List[off.Molecule], layers: int = 1
+        atoms: List[List[Tuple[int, ...]]],
+        molecules: List[off.Molecule],
+        layers: int = 1,
     ) -> str:
         """
         Generate a new smirks pattern which matches the requested atoms in all of the molecules.

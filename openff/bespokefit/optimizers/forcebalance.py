@@ -6,13 +6,13 @@ from typing import Any, Dict, List
 from jinja2 import Template
 from pydantic import PositiveFloat, PositiveInt
 
-from ..common_structures import Status
-from ..exceptions import TargetNotSetError
-from ..forcefield_tools import ForceFieldEditor
-from ..schema.fitting import WorkflowSchema
-from ..targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
-from ..utils import forcebalance_setup, get_data
-from .model import Optimizer
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.exceptions import TargetNotSetError
+from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.optimizers.model import Optimizer
+from openff.bespokefit.schema import OptimizationSchema
+from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
+from openff.bespokefit.utils import forcebalance_setup, get_data
 
 
 class ForceBalanceOptimizer(Optimizer):
@@ -24,9 +24,9 @@ class ForceBalanceOptimizer(Optimizer):
     optimizer_description = "A systematic force field optimization tool: https://github.com/leeping/forcebalance"
 
     # forcebalance settings and validators
-    penalty_type: str = "L2"
+    penalty_type: str = "L1"
     job_type: str = "optimize"
-    max_iterations: PositiveInt = 100
+    max_iterations: PositiveInt = 10
     convergence_step_criteria: PositiveFloat = 0.01
     convergence_objective_criteria: PositiveFloat = 0.01
     convergence_gradient_criteria: PositiveFloat = 0.01
@@ -35,7 +35,7 @@ class ForceBalanceOptimizer(Optimizer):
     finite_difference_h: PositiveFloat = 0.01
     penalty_additive: PositiveFloat = 1.0
     constrain_charge: bool = False
-    initial_trust_radius: float = 0.25
+    initial_trust_radius: float = -0.25
     minimum_trust_radius: float = 0.05
     error_tolerance: PositiveFloat = 1.0
     adaptive_factor: PositiveFloat = 0.2
@@ -61,15 +61,15 @@ class ForceBalanceOptimizer(Optimizer):
             return False
 
     def optimize(
-        self, workflow: WorkflowSchema, initial_forcefield: str
-    ) -> WorkflowSchema:
+        self, workflow: OptimizationSchema, initial_forcefield: str
+    ) -> OptimizationSchema:
         """
         This is the main optimization method, which will consume a Workflow stage composed of targets and molecules it will prep them all for fitting
         optimize collect the results and return the completed task.
 
         Parameters
         ----------
-        workflow: WorkflowSchema
+        workflow: OptimizationSchema
             The workflow schema that should be executed, which contains the targets ready for fitting.
         initial_forcefield: str
             The name of the initial force field to be used as the optimization starting point.
@@ -95,12 +95,14 @@ class ForceBalanceOptimizer(Optimizer):
                     for param_target in target_class.parameter_targets:
                         name, value = param_target.get_prior()
                         priors[name] = value
-                        target_class.prep_for_fitting(target)
-                        # add the entry to the fitting target
-                        for entry in target.entries:
-                            fitting_targets.setdefault(target_class.name, []).append(
-                                entry.name
-                            )
+
+                    print("prepping target class ", target.provenance)
+                    target_class.prep_for_fitting(target)
+                    # add the entry to the fitting target
+                    for entry in target.entries:
+                        fitting_targets.setdefault(target_class.name, []).append(
+                            entry.name
+                        )
 
                 os.chdir(fitting_file)
                 ff = workflow.get_fitting_forcefield(initial_forcefield)
@@ -122,7 +124,7 @@ class ForceBalanceOptimizer(Optimizer):
         print("OPT finished in folder", os.getcwd())
         return result_workflow
 
-    def collect_results(self, workflow: WorkflowSchema) -> WorkflowSchema:
+    def collect_results(self, workflow: OptimizationSchema) -> OptimizationSchema:
         """
         Collect the results of a forcebalance optimization.
 
@@ -130,12 +132,12 @@ class ForceBalanceOptimizer(Optimizer):
 
         Parameters
         ----------
-        workflow: WorkflowSchema
+        workflow: OptimizationSchema
             The workflow schema that should be updated with the results of the current optimization.
 
         Returns
         -------
-        WorkflowSchema
+        OptimizationSchema
             The updated workflow schema.
         """
         # look for the result

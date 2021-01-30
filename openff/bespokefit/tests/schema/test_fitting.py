@@ -6,36 +6,40 @@ from typing import List, Tuple
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.common_structures import QCSpec
-from qcsubmit.datasets import OptimizationDataset, TorsiondriveDataset
-from qcsubmit.results import TorsionDriveCollectionResult
-from qcsubmit.testing import temp_directory
 
-from ...collection_workflows import (
+from openff.bespokefit.collection_workflows import (
     CollectionMethod,
     HessianWorkflow,
     Precedence,
     TorsiondriveWorkflow,
     WorkflowStage,
 )
-from ...common_structures import Status
-from ...exceptions import (
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.exceptions import (
     DihedralSelectionError,
     MissingReferenceError,
     MissingWorkflowError,
     MoleculeMissMatchError,
     OptimizerError,
 )
-from ...optimizers import (
+from openff.bespokefit.optimizers import (
     ForceBalanceOptimizer,
     deregister_optimizer,
     register_optimizer,
 )
-from ...schema.fitting import FittingEntry, FittingSchema
-from ...schema.smirks import AngleSmirks, AtomSmirks
-from ...targets import AbInitio_SMIRNOFF
-from ...utils import get_data, get_molecule_cmiles
-from ...workflow import WorkflowFactory
+from openff.bespokefit.schema import (
+    AngleSmirks,
+    AtomSmirks,
+    FittingEntry,
+    FittingSchema,
+)
+from openff.bespokefit.targets import AbInitio_SMIRNOFF
+from openff.bespokefit.utils import get_data, get_molecule_cmiles
+from openff.bespokefit.workflow import WorkflowFactory
+from openff.qcsubmit.common_structures import QCSpec
+from openff.qcsubmit.datasets import OptimizationDataset, TorsiondriveDataset
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 
 
 def ethane_fitting_entry() -> Tuple[FittingEntry, Molecule]:
@@ -66,7 +70,7 @@ def get_fitting_schema(molecules: List[Molecule]):
     workflow = WorkflowFactory(client="snowflake")
     fb = ForceBalanceOptimizer()
     fb.set_optimization_target(target=AbInitio_SMIRNOFF(fragmentation=False))
-    workflow.add_optimization_stage(fb)
+    workflow.set_optimizer(fb)
     schema = workflow.create_fitting_schema(molecules=molecules)
     return schema
 
@@ -164,15 +168,13 @@ def test_get_next_task():
     assert entry.current_tasks() == []
     # add a standard workflow
     entry.collection_workflow = TorsiondriveWorkflow
-    tasks = entry.current_tasks()
-    assert len(tasks) == 1
+    assert len(entry.current_tasks()) == 1
     # now add some tasks that can be done in parallel
     entry.collection_workflow = HessianWorkflow
     assert len(entry.current_tasks()) == 1
     # now allow both the opt and hessian to be done in parallel
     entry.collection_workflow[0].precedence = Precedence.Parallel
     entry.collection_workflow[1].precedence = Precedence.Parallel
-    tasks = entry.current_tasks()
     assert len(entry.current_tasks()) == 2
 
 
@@ -425,7 +427,7 @@ def test_schema_tasks():
     assert schema.n_tasks == 3
 
 
-def test_update_results_multipule():
+def test_update_results_multiple():
     """
     Make sure the fitting schema can correctly apply any results to the correct tasks.
     """
@@ -439,12 +441,11 @@ def test_update_results_multipule():
     schema.update_with_results(results=[results, ])
     # now make sure there is only one task left
     tasks = set()
-    for molecule in schema.molecules:
-        for workflow in molecule.workflow:
-            for target in workflow.targets:
-                for entry in target.entries:
-                    for task in entry.current_tasks():
-                        tasks.add(task.job_id)
+    for molecule in schema.tasks:
+        for target in molecule.workflow.targets:
+            for entry in target.entries:
+                for task in entry.current_tasks():
+                    tasks.add(task.job_id)
 
     assert len(tasks) == 1
 
@@ -479,11 +480,11 @@ def test_schema_to_qcsubmit_mixed():
     """
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
     schema = get_fitting_schema(molecules=[ethane, ])
-    td_target = schema.molecules[0].workflow[0].targets[0].copy(deep=True)
+    td_target = schema.tasks[0].workflow.targets[0].copy(deep=True)
     td_target.target_name = "tdoptimizer"
     # now edit it to use optimizations
     td_target.entries[0].collection_workflow = HessianWorkflow
-    schema.molecules[0].workflow[0].targets.append(td_target)
+    schema.tasks[0].workflow.targets.append(td_target)
 
     datasets = schema.generate_qcsubmit_datasets()
     assert len(datasets) == 2

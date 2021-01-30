@@ -3,9 +3,9 @@ Here we register all optimizers with bespokefit.
 """
 from typing import Dict, List, Union
 
-from ..exceptions import OptimizerError
-from .forcebalance import ForceBalanceOptimizer
-from .model import Optimizer
+from openff.bespokefit.exceptions import OptimizerError
+from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
+from openff.bespokefit.optimizers.model import Optimizer
 
 optimizers: Dict[str, Optimizer] = {}
 
@@ -28,9 +28,11 @@ def register_optimizer(optimizer: Optimizer, replace: bool = False) -> None:
     """
 
     if isinstance(optimizer, Optimizer):
-        optimier_name = optimizer.optimizer_name.lower()
-        if optimier_name not in optimizers or (optimier_name in optimizers and replace):
-            optimizers[optimizer.optimizer_name.lower()] = optimizer
+        optimizer_name = optimizer.optimizer_name.lower()
+        if optimizer_name not in optimizers or (
+            optimizer_name in optimizers and replace
+        ):
+            optimizers[optimizer_name] = optimizer
         else:
             raise OptimizerError(
                 f"An optimizer is already registered under the name {optimizer.optimizer_name}, to replace this please use the `replace=True` flag."

@@ -19,7 +19,7 @@ dependencies:
   - openforcefields
   - qcengine >=0.17.0
   - forcebalance
-  - qcsubmit
+  - openff-qcsubmit
   - pyyaml
   - openeye-toolkits ==2019.10.2
   - chemper

@@ -16,15 +16,15 @@ from openforcefield.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pkg_resources import resource_filename
-from qcsubmit.datasets import (
+
+from openff.bespokefit.collection_workflows import CollectionMethod
+from openff.qcsubmit.datasets import (
     BasicDataset,
     ComponentResult,
     OptimizationDataset,
     TorsiondriveDataset,
 )
-from qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
-
-from .collection_workflows import CollectionMethod
+from openff.qcsubmit.factories import BasicDatasetFactory, TorsiondriveDatasetFactory
 
 
 def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.array]]:
@@ -318,7 +318,7 @@ def schema_to_datasets(
     }
     # now generate a list of current tasks and assign them to a dataset
     hashes = set()
-
+    # TODO how to handel 1D and 2D torsions automatically
     # get all of the current tasks per molecule
     for molecule in schema:
         tasks = molecule.get_task_map()
@@ -331,9 +331,9 @@ def schema_to_datasets(
                 ):
                     # we just need to make the index now
                     molecule = task.entry.current_molecule
-                    dihedrals = task.entry.extras["dihedrals"][0]
+                    dihedrals = task.entry.dihedrals[0]
                     attributes = task.entry.attributes
-                    attributes["task_hash"] = job_hash
+                    attributes.task_hash = job_hash
                     atom_map = dict((atom, i) for i, atom in enumerate(dihedrals))
                     molecule.properties["atom_map"] = atom_map
                     index = get_torsiondrive_index(molecule)
@@ -358,7 +358,7 @@ def schema_to_datasets(
                     # get the entry metadata
                     molecule = task.entry.current_molecule
                     attributes = task.entry.attributes
-                    attributes["task_hash"] = job_hash
+                    attributes.task_hash = job_hash
                     index = molecule.to_smiles(
                         isomeric=True,
                         mapped=False,

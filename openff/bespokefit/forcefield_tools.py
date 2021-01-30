@@ -9,13 +9,14 @@ from openforcefield.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,
+    ParameterLookupError,
     ProperTorsionHandler,
     vdWHandler,
 )
 
-from .common_structures import SmirksType
-from .schema.smirks import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
-from .utils import smirks_from_off
+from openff.bespokefit.common_structures import SmirksType
+from openff.bespokefit.schema import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
+from openff.bespokefit.utils import smirks_from_off
 
 
 class ForceFieldEditor:
@@ -86,7 +87,7 @@ class ForceFieldEditor:
                     smirk_data["id"] = current_param.id
                     # update the parameter using the init to get around conditional assigment
                     current_param.__init__(**smirk_data)
-                except KeyError:
+                except ParameterLookupError:
                     smirk_data["id"] = _smirks_ids[smirk_type] + str(no_params + i)
                     current_params.append(_smirks_conversion[smirk_type](**smirk_data))
 
@@ -159,27 +160,38 @@ class ForceFieldEditor:
     def get_initial_parameters(
         self,
         molecule: off.Molecule,
-        smirk: Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks],
+        smirks: List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]],
         clear_existing: bool = True,
-    ) -> Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]:
+    ) -> List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]:
         """
         Find the initial parameters assigned to the atoms in the given smirks pattern and update the values to match the forcefield.
         """
         labels = self.label_molecule(molecule=molecule)
         # now find the atoms
-        parameters = labels[smirk.type.value]
-        openff_params = []
-        for atoms in smirk.atoms:
-            param = parameters[atoms]
-            openff_params.append(param)
+        for smirk in smirks:
+            parameters = labels[smirk.type.value]
+            if smirk.type == SmirksType.ProperTorsions:
+                # here we can combine multiple parameter types
+                # TODO is this needed?
+                openff_params = []
+                for atoms in smirk.atoms:
+                    param = parameters[atoms]
+                    openff_params.append(param)
 
-        # now check if they are different types
-        types = set([param.id for param in openff_params])
-        assert (
-            len(types) == 1
-        ), "The new smirks types have clustered some torsions that orginally had seperate parameters set initial value to None."
-        # now update the parameter
-        smirk.update_parameters(
-            off_smirk=openff_params[0], clear_existing=clear_existing
-        )
-        return smirk
+                # now check if they are different types
+                types = set([param.id for param in openff_params])
+
+                # now update the parameter
+                smirk.update_parameters(
+                    off_smirk=openff_params[0], clear_existing=clear_existing
+                )
+                # if there is more than expand the k terms
+                if len(types) > 1:
+                    for param in openff_params[1:]:
+                        smirk.update_parameters(param, clear_existing=False)
+            else:
+                atoms = list(smirk.atoms)[0]
+                param = parameters[atoms]
+                smirk.update_parameters(off_smirk=param, clear_existing=True)
+
+        return smirks

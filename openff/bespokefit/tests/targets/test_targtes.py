@@ -6,14 +6,18 @@ import os
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.results import TorsionDriveCollectionResult
-from qcsubmit.testing import temp_directory
 
-from ...exceptions import MissingReferenceError
-from ...schema.smirks import TorsionSmirks
-from ...targets import AbInitio_SMIRNOFF, TorsionDrive1D, TorsionProfile_SMIRNOFF
-from ...targets.atom_selection import TorsionSelection
-from ...utils import get_data, read_qdata
+from openff.bespokefit.exceptions import MissingReferenceError
+from openff.bespokefit.schema import TorsionSmirks
+from openff.bespokefit.targets import (
+    AbInitio_SMIRNOFF,
+    TorsionDrive1D,
+    TorsionProfile_SMIRNOFF,
+)
+from openff.bespokefit.targets.atom_selection import TorsionSelection
+from openff.bespokefit.utils import get_data, read_qdata
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 
 
 def test_get_all_torsions():
@@ -114,7 +118,7 @@ def test_generate_fitting_schema_fragmentation():
     bace = Molecule.from_file(file_path=get_data("bace.sdf"), file_format="sdf")
 
     # the toolkit will try and produce this many conformers
-    schema = torsion_target.generate_fitting_schema(molecule=bace, conformers=4)
+    schema = torsion_target.generate_fitting_schema(molecule=bace, conformers=4, initial_ff_values="openff_unconstrained-1.0.0.offxml")
     assert torsion_target.name == schema.target_name
     assert torsion_target.dict() == schema.provenance
     assert len(schema.entries) == 3
@@ -134,7 +138,7 @@ def test_generate_fitting_schema_same_molecule(fragmentation):
     torsion_target = TorsionDrive1D(fragmentation=fragmentation)
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    schema = torsion_target.generate_fitting_schema(molecule=ethane, conformers=4)
+    schema = torsion_target.generate_fitting_schema(molecule=ethane, conformers=4, initial_ff_values="openff_unconstrained-1.0.0.offxml")
     assert torsion_target.name == schema.target_name
     assert torsion_target.dict() == schema.provenance
     assert len(schema.entries) == 1
@@ -158,7 +162,7 @@ def test_prep_for_fitting_no_ref():
     torsion_target = AbInitio_SMIRNOFF(fragmentation=False)
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    schema = torsion_target.generate_fitting_schema(molecule=ethane)
+    schema = torsion_target.generate_fitting_schema(molecule=ethane, initial_ff_values="openff_unconstrained-1.0.0.offxml")
 
     with pytest.raises(MissingReferenceError):
         torsion_target.prep_for_fitting(fitting_target=schema)
@@ -172,7 +176,7 @@ def test_abinitio_fitting_prep_no_gradient():
     torsion_target = AbInitio_SMIRNOFF(fragmentation=False)
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    schema = torsion_target.generate_fitting_schema(molecule=ethane)
+    schema = torsion_target.generate_fitting_schema(molecule=ethane, initial_ff_values="openff_unconstrained-1.0.0.offxml")
     # now load in a scan result we have saved
     result_data = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
     # now try and update the results
@@ -204,7 +208,7 @@ def test_abinitio_fitting_prep_no_gradient():
         coords, energies, gradients = read_qdata(qdata_file=qdata_file)
         # make sure no gradients were written
         assert not gradients
-        reference_data = schema.entries[0].get_reference_data
+        reference_data = schema.entries[0].get_reference_data()
         for i, (coord, energy) in enumerate(zip(coords, energies)):
             # find the reference data
             data = reference_data[i]
@@ -220,7 +224,7 @@ def test_abinitio_fitting_prep_gradient():
     torsion_target = AbInitio_SMIRNOFF(fragmentation=False, fit_gradient=True)
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    schema = torsion_target.generate_fitting_schema(molecule=ethane)
+    schema = torsion_target.generate_fitting_schema(molecule=ethane, initial_ff_values="openff_unconstrained-1.0.0.offxml")
     # now load in a scan result we have saved
     result_data = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
     # now try and update the results
@@ -250,7 +254,7 @@ def test_abinitio_fitting_prep_gradient():
         # make sure the scan coords and energies match
         qdata_file = os.path.join(folders[0], "qdata.txt")
         coords, energies, gradients = read_qdata(qdata_file=qdata_file)
-        reference_data = schema.entries[0].get_reference_data
+        reference_data = schema.entries[0].get_reference_data()
         for i, (coord, energy, gradient) in enumerate(zip(coords, energies, gradients)):
             # find the reference data
             data = reference_data[i]
@@ -263,11 +267,11 @@ def test_torsionprofile_metadata():
     """
     Make sure that when using the torsionprofile target we make the metatdat.json file.
     """
-    from qcsubmit.serializers import deserialize
+    from openff.qcsubmit.serializers import deserialize
     torsion_target = TorsionProfile_SMIRNOFF(fragmentation=False)
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    schema = torsion_target.generate_fitting_schema(molecule=ethane)
+    schema = torsion_target.generate_fitting_schema(molecule=ethane, initial_ff_values="openff_unconstrained-1.0.0.offxml")
     assert schema.target_name == torsion_target.name
     assert schema.provenance == torsion_target.dict()
 

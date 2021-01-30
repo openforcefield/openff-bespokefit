@@ -7,23 +7,23 @@ import shutil
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.testing import temp_directory
 
-from ...common_structures import Status
-from ...exceptions import TargetNotSetError
-from ...optimizers import ForceBalanceOptimizer
-from ...schema.fitting import WorkflowSchema
-from ...targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
-from ...utils import get_data
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.exceptions import TargetNotSetError
+from openff.bespokefit.optimizers import ForceBalanceOptimizer
+from openff.bespokefit.schema import OptimizationSchema
+from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
+from openff.bespokefit.utils import get_data
+from openff.qcsubmit.testing import temp_directory
 
 
-def ethane_workflow(target) -> WorkflowSchema:
+def ethane_workflow(target) -> OptimizationSchema:
     """
     Create a workflow schema which targets the rotatable bond in ethane.
     """
     mol = Molecule.from_smiles("CC")
     target = target()
-    workflow = WorkflowSchema(optimizer_name="forcebalanceoptimizer", job_id=mol.to_smiles(), targets=[target.generate_fitting_schema(molecule=mol)])
+    workflow = OptimizationSchema(optimizer_name="forcebalanceoptimizer", job_id=mol.to_smiles(), targets=[target.generate_fitting_schema(molecule=mol)])
     return workflow
 
 
@@ -85,9 +85,9 @@ def test_generate_opt_in():
 
 
 @pytest.mark.parametrize("output", [
-    pytest.param(("complete.out", Status.Complete), id="Complete"),
-    pytest.param(("error.out", Status.Error), id="Error"),
-    pytest.param(("running.out", Status.Optimizing), id="Running")
+    pytest.param(("complete.out", Status.Complete), id="Complete run"),
+    pytest.param(("error.out", Status.ConvergenceError), id="Convergence error"),
+    pytest.param(("running.out", Status.Optimizing), id="Running ")
 ])
 def test_forcebalance_readoutput(output):
     """
