@@ -2,7 +2,7 @@
 Tools to help with bespoke target smirks generation
 """
 
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from chemper.graphs.single_graph import SingleGraph
 from openforcefield.topology import Molecule
@@ -74,6 +74,19 @@ class SmirksGenerator(BaseModel):
             new_smirks = self._get_all_smirks(
                 molecule=molecule, forcefield_editor=ff, central_bonds=central_bonds
             )
+        # now sort the smirks into a dict
+        all_smirks = dict()
+        for smirk in new_smirks:
+            all_smirks.setdefault(smirk.type.value, []).append(smirk)
+
+        # now we need to check if we need to expand any torsion smirks
+        if self.expand_torsion_terms:
+            for smirk in all_smirks.get(SmirksType.ProperTorsions, []):
+                for i in range(1, 5):
+                    if str(i) not in smirk.terms:
+                        smirk.add_torsion_term(f"k{i}")
+
+        return all_smirks
 
     def _get_all_smirks(
         self,
@@ -96,7 +109,7 @@ class SmirksGenerator(BaseModel):
             requested_smirks.extend(bond_indices)
         if SmirksType.Angles in self.target_smirks:
             angle_indices = [
-                (atom.molecule_atom_index for atom in angle)
+                tuple([atom.molecule_atom_index for atom in angle])
                 for angle in molecule.angles
             ]
             requested_smirks.extend(angle_indices)
@@ -127,7 +140,7 @@ class SmirksGenerator(BaseModel):
             atom_smirks = self._get_bespoke_atom_smirks(molecule=molecule)
             bespoke_smirks.extend(atom_smirks)
         if SmirksType.Bonds in self.target_smirks:
-            bond_smirks = self._get_bespoke_atom_smirks(molecule=molecule)
+            bond_smirks = self._get_bespoke_bond_smirks(molecule=molecule)
             bespoke_smirks.extend(bond_smirks)
         if SmirksType.Angles in self.target_smirks:
             angle_smirks = self._get_bespoke_angle_smirks(molecule=molecule)
@@ -144,11 +157,11 @@ class SmirksGenerator(BaseModel):
         )
         return updated_smirks
 
-    def _get_bespoke_atom_smirks(self, molecule: Molecule) -> Set[AtomSmirks]:
+    def _get_bespoke_atom_smirks(self, molecule: Molecule) -> List[AtomSmirks]:
         """
         For the molecule generate a unique set of bespoke atom smirks.
         """
-        atom_smirks = set()
+        atom_smirks = []
 
         for i in range(molecule.n_atoms):
             # make new smirks pattern with dummy params
@@ -160,14 +173,20 @@ class SmirksGenerator(BaseModel):
                     (i,),
                 ],
             )
-            atom_smirks.add(new_smirks)
+            if new_smirks not in atom_smirks:
+                atom_smirks.append(new_smirks)
+            else:
+                # update the covered atoms
+                index = atom_smirks.index(new_smirks)
+                atom_smirks[index].atoms.add((i,))
+
         return atom_smirks
 
-    def _get_bespoke_bond_smirks(self, molecule: Molecule) -> Set[BondSmirks]:
+    def _get_bespoke_bond_smirks(self, molecule: Molecule) -> List[BondSmirks]:
         """
         For the molecule generate a unique set of bespoke bond smirks.
         """
-        bond_smirks = set()
+        bond_smirks = []
         for bond in molecule.bonds:
             atoms = (bond.atom1_index, bond.atom2_index)
             new_smirks = BondSmirks(
@@ -180,17 +199,22 @@ class SmirksGenerator(BaseModel):
                     atoms,
                 ],
             )
-            bond_smirks.add(new_smirks)
+            if new_smirks not in bond_smirks:
+                bond_smirks.append(new_smirks)
+            else:
+                # update the covered atoms
+                index = bond_smirks.index(new_smirks)
+                bond_smirks[index].atoms.add(atoms)
 
         return bond_smirks
 
-    def _get_bespoke_angle_smirks(self, molecule: Molecule) -> Set[AngleSmirks]:
+    def _get_bespoke_angle_smirks(self, molecule: Molecule) -> List[AngleSmirks]:
         """
         For the molecule generate a unique set of bespoke angle smirks.
         """
-        angle_smirks = set()
+        angle_smirks = []
         for angle in molecule.angles:
-            atom_ids = [atom.molecule_atom_index for atom in angle]
+            atom_ids = tuple([atom.molecule_atom_index for atom in angle])
             new_smirks = AngleSmirks(
                 smirks=self._get_new_single_graph_smirks(
                     atoms=atom_ids, molecule=molecule
@@ -201,12 +225,18 @@ class SmirksGenerator(BaseModel):
                     atom_ids,
                 ],
             )
-            angle_smirks.add(new_smirks)
+            if new_smirks not in angle_smirks:
+                angle_smirks.append(new_smirks)
+            else:
+                # update the covered atoms
+                index = angle_smirks.index(new_smirks)
+                angle_smirks[index].atoms.add(atom_ids)
+
         return angle_smirks
 
     def _get_bespoke_torsion_smirks(
         self, molecule: Molecule, central_bonds: Optional[List[Tuple[int, int]]] = None
-    ) -> Set[TorsionSmirks]:
+    ) -> List[TorsionSmirks]:
         """
         For the molecule generate a unique set of bespoke proper torsion smirks for the target bonds or all torsions.
         """
@@ -215,7 +245,7 @@ class SmirksGenerator(BaseModel):
             molecule=molecule, central_bonds=central_bonds
         )
 
-        torsion_smirks = set()
+        torsion_smirks = []
         for dihedral in torsions:
             new_smirks = TorsionSmirks(
                 smirks=self._get_new_single_graph_smirks(
@@ -225,7 +255,12 @@ class SmirksGenerator(BaseModel):
                     dihedral,
                 ],
             )
-            torsion_smirks.add(new_smirks)
+            if new_smirks not in torsion_smirks:
+                torsion_smirks.append(new_smirks)
+            else:
+                # update the covered atoms
+                index = torsion_smirks.index(new_smirks)
+                torsion_smirks[index].atoms.add(dihedral)
 
         return torsion_smirks
 
@@ -244,7 +279,7 @@ class SmirksGenerator(BaseModel):
                 torsions.extend(target_torsions)
         else:
             for proper in molecule.propers:
-                target_torsion = [atom.molecule_atom_index for atom in proper]
+                target_torsion = tuple([atom.molecule_atom_index for atom in proper])
                 torsions.append(target_torsion)
         return torsions
 

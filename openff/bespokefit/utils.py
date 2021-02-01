@@ -414,6 +414,7 @@ def smirks_from_off(
         "ImproperTorsion": TorsionSmirks,
     }
     # build the smirks and update it
-    smirk = _off_to_smirks[off_smirks._VALENCE_TYPE](smirks=off_smirks.smirks)
-    smirk.update_parameters(off_smirk=off_smirks)
+    smirk = _off_to_smirks[off_smirks._VALENCE_TYPE].from_off_smirks(
+        off_smirk=off_smirks
+    )
     return smirk
