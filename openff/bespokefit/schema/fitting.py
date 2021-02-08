@@ -1,7 +1,7 @@
 import abc
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from openforcefield import topology as off
@@ -24,8 +24,6 @@ from openff.bespokefit.schema.smirks import (
     BondSmirks,
     SmirksType,
     TorsionSmirks,
-    ValidatedSmirks,
-    smirks_from_dict,
 )
 from openff.qcsubmit.common_structures import MoleculeAttributes, QCSpec
 from openff.qcsubmit.datasets import (
@@ -88,12 +86,12 @@ class FittingTask(SchemaBase, abc.ABC):
         description="Any errors recorded while generating the fitting data should be listed here.",
     )
 
-    def __init__(self, molecule: off.Molecule, **kwargs):
+    def __init__(self, molecule: Optional[off.Molecule] = None, **kwargs):
         """
         Handle the unpacking of the input conformers.
         """
         input_confs = kwargs.get("input_conformers", [])
-        if not input_confs:
+        if not input_confs and molecule is not None:
             # get from the molecule
             for conformer in molecule.conformers:
                 input_confs.append(conformer.in_units_of(unit.angstrom))
@@ -343,6 +341,8 @@ class TorsionTask(FittingTask):
                             new_single_result = SingleResult(**result_dict)
 
                         new_results.append(new_single_result)
+                    # set results back
+                    self.torsiondrive_data = new_results
 
                 else:
                     raise DihedralSelectionError(
@@ -555,7 +555,7 @@ class TargetSchema(SchemaBase):
         if task not in self.tasks:
             # we need to make sure the name has the correct index.
             no = len(self.tasks)
-            task.name = f"-{self.collection_workflow}-{no}"
+            task.name = f"{self.collection_workflow}-{no}"
             self.tasks.append(task)
 
     @property

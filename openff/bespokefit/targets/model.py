@@ -6,9 +6,9 @@ import abc
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import openforcefield.topology as off
-from pydantic import BaseModel
 from typing_extensions import Literal
 
+from openff.bespokefit.common_structures import SchemaBase
 from openff.bespokefit.schema import (
     HessianTask,
     OptimizationTask,
@@ -18,7 +18,7 @@ from openff.bespokefit.schema import (
 from openff.qcsubmit.common_structures import MoleculeAttributes, QCSpec
 
 
-class Target(BaseModel, abc.ABC):
+class Target(SchemaBase, abc.ABC):
     """
     The base target class used to create new targets.
     This acts as a factory which acts on each molecule passed producing fitting targets specific to the molecule.
@@ -36,9 +36,6 @@ class Target(BaseModel, abc.ABC):
     _enum_fields = []
 
     class Config:
-        validate_assignment = True
-        allow_mutation = True
-        arbitrary_types_allowed = True
         # define some fields that will be reused with new defaults
         fields = {
             "name": {
@@ -62,31 +59,31 @@ class Target(BaseModel, abc.ABC):
             },
         }
 
-    def dict(
-        self,
-        *,
-        include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        by_alias: bool = False,
-        skip_defaults: bool = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
-    ) -> "DictStrAny":
-
-        # correct the enum dict rep
-        data = super().dict(
-            include=include,
-            exclude=exclude,
-            by_alias=by_alias,
-            skip_defaults=skip_defaults,
-            exclude_unset=exclude_unset,
-            exclude_defaults=exclude_defaults,
-            exclude_none=exclude_none,
-        )
-        for field in self._enum_fields:
-            data[field] = getattr(self, field).value
-        return data
+    # def dict(
+    #     self,
+    #     *,
+    #     include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+    #     exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
+    #     by_alias: bool = False,
+    #     skip_defaults: bool = None,
+    #     exclude_unset: bool = False,
+    #     exclude_defaults: bool = False,
+    #     exclude_none: bool = False,
+    # ) -> "DictStrAny":
+    #
+    #     # correct the enum dict rep
+    #     data = super().dict(
+    #         include=include,
+    #         exclude=exclude,
+    #         by_alias=by_alias,
+    #         skip_defaults=skip_defaults,
+    #         exclude_unset=exclude_unset,
+    #         exclude_defaults=exclude_defaults,
+    #         exclude_none=exclude_none,
+    #     )
+    #     for field in self._enum_fields:
+    #         data[field] = getattr(self, field).value
+    #     return data
 
     def generate_target_schema(self) -> TargetSchema:
         """

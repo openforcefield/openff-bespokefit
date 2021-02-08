@@ -2,7 +2,7 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke workflows.
 """
 
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import get_available_force_fields
@@ -28,6 +28,14 @@ from openff.bespokefit.optimizers import Optimizer, get_optimizer, list_optimize
 from openff.bespokefit.schema import FittingSchema, MoleculeSchema, OptimizationSchema
 from openff.bespokefit.smirks import SmirksGenerator
 from openff.bespokefit.utils import deduplicated_list
+from openff.qcsubmit.results import (
+    BasicCollectionResult,
+    BasicResult,
+    OptimizationCollectionResult,
+    OptimizationResult,
+    TorsionDriveCollectionResult,
+    TorsionDriveResult,
+)
 from openff.qcsubmit.serializers import deserialize, serialize
 
 
@@ -301,6 +309,146 @@ class WorkflowFactory(BaseModel):
                         fragment.target_dihedral,
                     ],
                 )
+                target_schema.add_fitting_task(task=task_schema)
+            opt_schema.add_target(target=target_schema)
+
+        return opt_schema
+
+    def fitting_schema_from_results(
+        self,
+        results: Union[
+            TorsionDriveCollectionResult,
+            OptimizationCollectionResult,
+            BasicCollectionResult,
+        ],
+        combine: bool = False,
+        processors: Optional[int] = None,
+    ) -> FittingSchema:
+        """
+        Create a fitting schema from some results, here input molecules are turned into tasks and results are updated during the process.
+        If multiple targets are in the workflow the results will be applied to the correct target other targets can be updated after by calling update with parameters.
+        """
+        # make sure all required variables have been declared
+        self._pre_run_check()
+
+        from multiprocessing.pool import Pool
+
+        import tqdm
+
+        # group the tasks if requested
+        all_tasks = self._sort_results(results=results, combine=combine)
+
+        fitting_schema = FittingSchema(
+            client=self.client,
+        )
+        # add the settings for the optimizer and its targets
+        fitting_schema.add_optimizer(self.optimizer)
+
+        # now set up a process pool to do fragmentation and create the fitting schema while retaining
+        # the original fitting order
+        if processors is None or processors > 1:
+            with Pool() as pool:
+                schema_list = [
+                    pool.apply_async(self._task_from_results, task)
+                    for task in all_tasks
+                ]
+                # loop over the list and add the tasks fo the main fitting schema
+                for task in tqdm.tqdm(
+                    schema_list,
+                    total=len(schema_list),
+                    ncols=80,
+                    desc="Building Fitting Schema ",
+                ):
+                    schema = task.get()
+                    fitting_schema.add_optimization_task(schema)
+
+        return fitting_schema
+
+    def _sort_results(
+        self,
+        results: Union[
+            TorsionDriveCollectionResult,
+            OptimizationCollectionResult,
+            BasicCollectionResult,
+        ],
+        combine: bool = False,
+    ) -> List[Tuple[List, int]]:
+        """
+        Sort the results into a list that can be processed into a fitting schema, combining results when requested.
+        """
+        all_tasks = []
+        if combine:
+            # loop over the results and combine multiple results for the same molecule
+            # this only effects multiple torsion drives
+            dedup_tasks = {}
+            for result in results.collection.values():
+                # get the unique inchi key
+                inchi_key = result.molecule.to_inchikey(fixed_hydrogens=True)
+                dedup_tasks.setdefault(inchi_key, []).append(result)
+            # now make a list of tasks
+            for i, tasks in enumerate(dedup_tasks.values()):
+                all_tasks.append((tasks, i))
+        else:
+            for i, task in enumerate(results.collection.values()):
+                all_tasks.append(
+                    (
+                        [
+                            task,
+                        ],
+                        i,
+                    )
+                )
+
+        return all_tasks
+
+    def _task_from_results(
+        self,
+        results: List[Union[TorsionDriveResult, OptimizationResult, BasicResult]],
+        index: int,
+    ) -> OptimizationSchema:
+        """
+        Create an optimization task for a given list of results, the list allows multiple results to be combined from the same molecule
+        this is must useful for torsiondrives.
+        """
+        molecule_schema = MoleculeSchema(
+            attributes=results[0].attributes,
+            task_id=f"bespoke_task_{index}",
+            fragment_data=[],
+            fragmentation_engine=None,
+        )
+        opt_schema = self._build_optimization_schema(molecule_schema=molecule_schema)
+        smirks_gen = self._get_smirks_generator()
+        all_smirks = []
+        for result in results:
+            dihedrals = getattr(result, "dihedrals", None)
+            if dihedrals is not None:
+                bond = tuple([dihedrals[0][1], dihedrals[0][2]])
+            else:
+                bond = None
+            new_smirks = smirks_gen.generate_smirks(
+                molecule=result.molecule,
+                central_bonds=[
+                    bond,
+                ],
+            )
+            all_smirks.extend(new_smirks)
+
+        # finish the optimization schema
+        opt_schema.target_molecule = molecule_schema
+        opt_schema.target_smirks = all_smirks
+
+        # now loop over the targets and build the reference tasks
+        for target in self.optimizer.optimization_targets:
+            target_schema = target.generate_target_schema()
+            for result in results:
+                task_schema = target.generate_fitting_task(
+                    molecule=result.molecule,
+                    fragment=False,
+                    attributes=result.attributes,
+                    fragment_parent_mapping=None,
+                    dihedrals=getattr(result, "dihedrals", None),
+                )
+                task_schema.update_with_results(results=result)
                 target_schema.add_fitting_task(task=task_schema)
             opt_schema.add_target(target=target_schema)
 

@@ -5,14 +5,15 @@ The optimizer model abstract class.
 import abc
 from typing import Dict, List, Union
 
-from pydantic import BaseModel, validator
+from pydantic import validator
 
+from openff.bespokefit.common_structures import SchemaBase
 from openff.bespokefit.exceptions import TargetRegisterError
 from openff.bespokefit.schema import OptimizationSchema
 from openff.bespokefit.targets.model import Target
 
 
-class Optimizer(BaseModel, abc.ABC):
+class Optimizer(SchemaBase, abc.ABC):
     """
     This is the abstract basic Optimizer class that each optimizer should use.
     """

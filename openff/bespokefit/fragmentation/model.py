@@ -5,27 +5,28 @@ import abc
 from typing import Dict, List
 
 from openforcefield.topology import Molecule
-from pydantic import BaseModel, Field
 
-from openff.bespokefit.common_structures import FragmentData
+from openff.bespokefit.common_structures import FragmentData, SchemaBase
 
 
-class FragmentEngine(BaseModel, abc.ABC):
+class FragmentEngine(SchemaBase, abc.ABC):
     """
     The base Fragment engine class which controls the type of fragmentation that should be performed.
     New fragmentation engines can be implemented by subclassing and registering new class.
     """
 
-    fragmentation_engine: str = Field(
-        ..., description="The name of the Fragmentation engine."
-    )
-    description: str = Field(
-        ..., description="A description of the fragmentation engine."
-    )
+    fragmentation_engine: str
+    description: str
 
     class Config:
-        validate_assignment = True
-        arbitrary_types_allowed = True
+        fields = {
+            "fragmentation_engine": {
+                "description": "The name of the fragmentation engine."
+            },
+            "description": {
+                "description": "A description of the fragmentation engine and links to more info."
+            },
+        }
 
     @classmethod
     @abc.abstractmethod
