@@ -13,6 +13,9 @@ from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.forcefield_tools import ForceFieldEditor
 from openff.bespokefit.schema import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
 
+# a type that is often used
+Smirks = List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]
+
 
 class SmirksGenerator(BaseModel):
     """
@@ -21,8 +24,9 @@ class SmirksGenerator(BaseModel):
 
     class Config:
         validate_assigment = True
+        arbitrary_types_allowed = True
 
-    initial_forcefield: str = Field(
+    initial_forcefield: Union[str, ForceFieldEditor] = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",
     )
@@ -45,7 +49,7 @@ class SmirksGenerator(BaseModel):
 
     def generate_smirks(
         self, molecule: Molecule, central_bonds: Optional[List[Tuple[int, int]]] = None
-    ) -> Dict:
+    ) -> Smirks:
         """
         The main method of the class which takes an input molecule and can generate new smirks patterns for it corresponding to the types set in the target smirks list.
 
@@ -63,7 +67,10 @@ class SmirksGenerator(BaseModel):
             )
 
         # now we need to set the forcefield
-        ff = ForceFieldEditor(forcefield_name=self.initial_forcefield)
+        if isinstance(self.initial_forcefield, ForceFieldEditor):
+            ff = self.initial_forcefield
+        else:
+            ff = ForceFieldEditor(forcefield_name=self.initial_forcefield)
 
         # for each requested smirks type generate the parameters
         if self.generate_bespoke_terms:
@@ -75,25 +82,26 @@ class SmirksGenerator(BaseModel):
                 molecule=molecule, forcefield_editor=ff, central_bonds=central_bonds
             )
         # now sort the smirks into a dict
-        all_smirks = dict()
-        for smirk in new_smirks:
-            all_smirks.setdefault(smirk.type.value, []).append(smirk)
+        # all_smirks = dict()
+        # for smirk in new_smirks:
+        #     all_smirks.setdefault(smirk.type.value, []).append(smirk)
 
         # now we need to check if we need to expand any torsion smirks
         if self.expand_torsion_terms:
-            for smirk in all_smirks.get(SmirksType.ProperTorsions, []):
-                for i in range(1, 5):
-                    if str(i) not in smirk.terms:
-                        smirk.add_torsion_term(f"k{i}")
+            for smirk in new_smirks:
+                if smirk.type == SmirksType.ProperTorsions:
+                    for i in range(1, 5):
+                        if str(i) not in smirk.terms:
+                            smirk.add_torsion_term(f"k{i}")
 
-        return all_smirks
+        return new_smirks
 
     def _get_all_smirks(
         self,
         molecule: Molecule,
         forcefield_editor: ForceFieldEditor,
         central_bonds: Optional[List[Tuple[int, int]]] = None,
-    ) -> List:
+    ) -> Smirks:
         """
         The main worker method for extracting current smirks patterns for the molecule, this will only extract parameters for the requested groups.
         """
@@ -130,7 +138,7 @@ class SmirksGenerator(BaseModel):
         molecule: Molecule,
         forcefield_editor: ForceFieldEditor,
         central_bonds: Optional[List[Tuple[int, int]]] = None,
-    ) -> List:
+    ) -> Smirks:
         """
         The main worker method for generating new bespoke smirks, this will check which parameters are wanted and call each method.
         The new smirks will then have any dummy values set by the initial forcefield values.

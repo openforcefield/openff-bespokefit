@@ -100,13 +100,10 @@ class WBOFragmenter(FragmentEngine):
 
                 # in some cases we get one fragment back which is the parent molecule
                 # we should not work out a mapping
-                print("working out mapping")
                 if not molecule.is_isomorphic_with(off_frag):
-                    print("mapping not isomorphic work out with rdkit")
                     mapping = self._get_fragment_parent_mapping(
                         fragment=off_frag, parent=molecule
                     )
-                    print("got the mapping for fragment ", off_frag)
                     # get the parent torsion
                     parent_dihedral = tuple([mapping[i] for i in frag_dihedral])
                     parent_molecule = molecule
@@ -135,7 +132,7 @@ class WBOFragmenter(FragmentEngine):
 
     def provenance(self) -> Dict:
         """
-        Return the provanace of the the fragmentEngine.
+        Return the provenance of the the fragmentEngine.
         """
         import fragmenter
         import openeye

@@ -11,6 +11,7 @@ from openforcefield.typing.engines.smirnoff import (
 )
 from pydantic import validator
 from simtk import unit
+from typing_extensions import Literal
 
 from openff.bespokefit.common_structures import SchemaBase, SmirksType
 from openff.bespokefit.exceptions import SMIRKSTypeError
@@ -54,10 +55,12 @@ def _validate_smirks(smirks: str, expected_tags: int) -> str:
     """
     Make sure the supplied smirks has the correct number of tagged atoms.
     """
+    from pydantic import ValidationError
+
     smirk = ChemicalEnvironment(smirks=smirks)
     tagged_atoms = len(smirk.get_indexed_atoms())
     if tagged_atoms != expected_tags:
-        raise SMIRKSTypeError(
+        raise ValidationError(
             f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should have {expected_tags}."
         )
     else:
@@ -142,7 +145,7 @@ class AtomSmirks(ValidatedSmirks):
     """
 
     atoms: Set[Tuple[int]] = set()
-    type: SmirksType = SmirksType.Vdw
+    type: Literal[SmirksType.Vdw] = SmirksType.Vdw
     epsilon: str
     rmin_half: str
 
@@ -180,7 +183,7 @@ class AtomSmirks(ValidatedSmirks):
 
 class BondSmirks(ValidatedSmirks):
     atoms: Set[Tuple[int, int]] = set()
-    type: SmirksType = SmirksType.Bonds
+    type: Literal[SmirksType.Bonds] = SmirksType.Bonds
     k: str
     length: str
 
@@ -220,7 +223,7 @@ class BondSmirks(ValidatedSmirks):
 
 class AngleSmirks(ValidatedSmirks):
     atoms: Set[Tuple[int, int, int]] = set()
-    type: SmirksType = SmirksType.Angles
+    type: Literal[SmirksType.Angles] = SmirksType.Angles
     k: str
     angle: str
 
@@ -297,7 +300,7 @@ class TorsionTerm(SchemaBase):
 
 class TorsionSmirks(SmirksSchema):
     atoms: Set[Tuple[int, int, int, int]] = set()
-    type: SmirksType = SmirksType.ProperTorsions
+    type: Literal[SmirksType.ProperTorsions] = SmirksType.ProperTorsions
     terms: Dict[str, TorsionTerm] = {}
 
     @validator("smirks")
@@ -398,3 +401,18 @@ class TorsionSmirks(SmirksSchema):
             data.update(corrected_data)
 
         return data
+
+
+def smirks_from_dict(
+    smirks_data: Dict,
+) -> Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]:
+    """
+    For a smirks data dict build the correct smirks parameter based on type.
+    """
+    conversion = {
+        SmirksType.Vdw: AngleSmirks,
+        SmirksType.Bonds: BondSmirks,
+        SmirksType.Angles: AngleSmirks,
+        SmirksType.ProperTorsions: TorsionSmirks,
+    }
+    return conversion[smirks_data["type"]](**smirks_data)

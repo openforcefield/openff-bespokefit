@@ -223,10 +223,11 @@ def test_generate_smirks(bespoke_smirks):
     gen.generate_bespoke_terms = bespoke_smirks
 
     mol = Molecule.from_smiles("CC")
-    smirks_dict = gen.generate_smirks(molecule=mol)
+    smirks_list = gen.generate_smirks(molecule=mol)
 
     # we only request one parameter type
-    assert len(smirks_dict) == 1
+    types = set([smirk.type for smirk in smirks_list])
+    assert len(types) == 1
 
 
 @pytest.mark.parametrize("bespoke_smirks", [
@@ -248,11 +249,11 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
 
     mol = Molecule.from_smiles("CC")
 
-    smirks_dict = gen.generate_smirks(molecule=mol)
+    smirks_list = gen.generate_smirks(molecule=mol)
     # make sure there is only one parameter type
-    assert len(smirks_dict) == 1
-    torsions = smirks_dict[SmirksType.ProperTorsions]
-    for smirk in torsions:
+    types = set([smirk.type for smirk in smirks_list])
+    assert len(types) == 1
+    for smirk in smirks_list:
         if expand_torsions:
             assert len(smirk.terms) == 4
         else:

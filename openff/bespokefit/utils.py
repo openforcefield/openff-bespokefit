@@ -2,7 +2,7 @@ import contextlib
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -18,6 +18,7 @@ from openforcefield.typing.engines.smirnoff import (
 from pkg_resources import resource_filename
 
 from openff.bespokefit.collection_workflows import CollectionMethod
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import (
     BasicDataset,
     ComponentResult,
@@ -157,7 +158,7 @@ def make_smirks_attribute_graph(chem_env: ChemicalEnvironment) -> nx.Graph:
     return new_graph
 
 
-def get_molecule_cmiles(molecule: off.Molecule) -> Dict[str, str]:
+def get_molecule_cmiles(molecule: off.Molecule) -> MoleculeAttributes:
     """
     Generate the molecule cmiles data.
     """

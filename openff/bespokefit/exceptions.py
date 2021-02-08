@@ -118,3 +118,12 @@ class MoleculeMissMatchError(BespokeFitException):
 
     error_type = "molecule_miss_match_error"
     header = "Molecule Miss Match Error"
+
+
+class TaskMissMatchError(BespokeFitException):
+    """
+    Raised when a task type and collection workflow do not match.
+    """
+
+    error_type = "task_miss_match_error"
+    header = "Task Miss Match Error"

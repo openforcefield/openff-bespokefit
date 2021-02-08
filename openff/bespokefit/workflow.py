@@ -8,19 +8,25 @@ from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import get_available_force_fields
 from pydantic import BaseModel, Field, validator
 
-from openff.bespokefit.exceptions import ForceFieldError, OptimizerError
+from openff.bespokefit.common_structures import (
+    ProperTorsionSettings,
+    SmirksSettings,
+    SmirksType,
+)
+from openff.bespokefit.exceptions import (
+    ForceFieldError,
+    FragmenterError,
+    OptimizerError,
+    TargetNotSetError,
+)
 from openff.bespokefit.fragmentation import (
     FragmentEngine,
     WBOFragmenter,
-    get_fragment_engine,
+    get_fragmentation_engine,
 )
-from openff.bespokefit.optimizers import get_optimizer, list_optimizers
-from openff.bespokefit.optimizers.model import Optimizer
-from openff.bespokefit.schema.fitting import (
-    FittingSchema,
-    MoleculeSchema,
-    OptimizationSchema,
-)
+from openff.bespokefit.optimizers import Optimizer, get_optimizer, list_optimizers
+from openff.bespokefit.schema import FittingSchema, MoleculeSchema, OptimizationSchema
+from openff.bespokefit.smirks import SmirksGenerator
 from openff.bespokefit.utils import deduplicated_list
 from openff.qcsubmit.serializers import deserialize, serialize
 
@@ -35,25 +41,17 @@ class WorkflowFactory(BaseModel):
         description="The name of the unconstrained forcefield to use as a starting point for optimization. The forcefield must be conda installed.",
     )
     expand_torsion_terms: bool = Field(
-        False,
+        True,
         description="If the optimization should first expand the number of k values that should be fit for each torsion beyond what is in the initial force field.",
+    )
+    generate_bespoke_terms: bool = Field(
+        True,
+        description="If the optimized smirks should be bespoke to the target molecules.",
     )
     client: str = Field(
         "snowflake",
         description="The type of QCArchive server that will be used, snowflake/snowflake_notebook is a temperary local server that spins up temp compute but can connect to a static server.",
     )
-    torsiondrive_dataset_name: str = Field(
-        "Bespokefit torsiondrives",
-        description="The name given to torsiondrive datasets generated for bespoke fitting",
-    )
-    optimization_dataset_name: str = Field(
-        "Bespokefit optimizations",
-        description="The name given to optimization datasets generated for bespoke fitting",
-    )
-    singlepoint_dataset_name: str = Field(
-        "Bespokefit single points",
-        description="The common name given to basic datasets needed for bespoke fitting, the driver is appened to the name",
-    )  # the driver type will be appended to the name
     optimizer: Optional[Optimizer] = Field(
         None,
         description="The optimizer that should be used with the targets already set.",
@@ -63,6 +61,18 @@ class WorkflowFactory(BaseModel):
         description="The Fragment engine that should be used to fragment the molecule, note that if None is "
         "provided the molecules will not be fragmented. By default we use the WBO fragmenter by openforcefield.",
     )
+    target_parameters: SmirksSettings = Field(
+        [
+            ProperTorsionSettings(),
+        ],
+        description="The set of specific parameters that should be optimmized such as bond length.",
+    )
+    target_smirks: List[SmirksType] = Field(
+        [
+            SmirksType.ProperTorsions,
+        ],
+        description="The list of parameters the new smirks patterns should be made for.",
+    )
 
     class Config:
         validate_assignment = True
@@ -70,7 +80,7 @@ class WorkflowFactory(BaseModel):
         arbitrary_types_allowed = True
 
     @validator("initial_forcefield")
-    def check_forcefield(cls, forcefield: str) -> str:
+    def _check_forcefield(cls, forcefield: str) -> str:
         """
         Check that the forcefield is available via the toolkit.
         TODO add support for local forcefields and store the string
@@ -100,7 +110,7 @@ class WorkflowFactory(BaseModel):
         optimizer = data.pop("optimizer")
         fragmentation_engine = data.pop("fragmentation_engine")
         if fragmentation_engine is not None:
-            fragmenter = get_fragment_engine(**fragmentation_engine)
+            fragmenter = get_fragmentation_engine(**fragmentation_engine)
         else:
             fragmenter = None
         workflow = cls.parse_obj(data)
@@ -159,7 +169,36 @@ class WorkflowFactory(BaseModel):
 
         serialize(serializable=self.dict(), file_name=file_name)
 
-    def create_fitting_schema(
+    def _pre_run_check(self) -> None:
+        """
+        Check that all required settings are declared before running.
+        """
+        # check we have an optimizer in the pipeline
+        if self.optimizer is None:
+            raise OptimizerError(
+                "No optimizer has been set please set it using `set_optimizer`"
+            )
+        # now check we have targets in each optimizer
+        elif not self.optimizer.optimization_targets:
+            raise OptimizerError(
+                f"There are no optimization targets for the optimizer {self.optimizer.optimizer_name} in the optimization workflow."
+            )
+        elif not self.fragmentation_engine:
+            raise FragmenterError(
+                f"There is no fragmentation engine registered for the workflow."
+            )
+        elif not self.target_parameters:
+            raise TargetNotSetError(
+                f"No target parameter was set, this will mean that the optimiser has no parameters to optimize."
+            )
+        elif not self.target_smirks:
+            raise TargetNotSetError(
+                f"No forcefield groups have been supplied, which means no smirks were selected to be optimized."
+            )
+        else:
+            return
+
+    def fitting_schema_from_molecules(
         self,
         molecules: Union[off.Molecule, List[off.Molecule]],
         processors: Optional[int] = None,
@@ -173,93 +212,124 @@ class WorkflowFactory(BaseModel):
 
         Parameters
         ----------
-        molecules: Union[off.Molecule, List[off.Molecule]]
-            The molecule or list of molecules which should be processed by the schema to generate the fitting schema.
+        molecules: The molecule or list of molecules which should be processed by the schema to generate the fitting schema.
+        processors: The number of processors that should be used when building the workflow, this helps with fragmentation
+            which can be quite slow for large numbers of molecules.
         """
+        # make sure all required variables have been declared
+        self._pre_run_check()
+
         from multiprocessing.pool import Pool
 
-        # check we have an optimizer in the pipeline
-        if self.optimizer is None:
-            raise OptimizerError(
-                "No optimizer has been set please set it using `set_optimizer`"
-            )
-
-        # now check we have targets in each optimizer
-        if not self.optimizer.optimization_targets:
-            raise OptimizerError(
-                f"There are no optimization targets for the optimizer {self.optimizer.optimizer_name} in the optimization workflow."
-            )
+        import tqdm
 
         # create a deduplicated list of molecules first.
         deduplicated_molecules = deduplicated_list(molecules=molecules)
 
         fitting_schema = FittingSchema(
             client=self.client,
-            torsiondrive_dataset_name=self.torsiondrive_dataset_name,
-            optimization_dataset_name=self.optimization_dataset_name,
-            singlepoint_dataset_name=self.singlepoint_dataset_name,
         )
-        # add the settings for the optimizer
+        # add the settings for the optimizer and its targets
         fitting_schema.add_optimizer(self.optimizer)
 
         # now set up a process pool to do fragmentation and create the fitting schema while retaining
         # the original fitting order
         if processors is None or processors > 1:
             with Pool() as pool:
-                schema_list = {
-                    (i, pool.apply_async(self.create_task_schema, (molecule, i)))
-                    for i, molecule in enumerate(deduplicated_molecules)
-                }
-                for i, molecule in enumerate(deduplicated_molecules.molecules):
-                    # for each molecule make the fitting schema
-                    mol_name = molecule.to_smiles(mapped=True)
-                    molecule_schema = MoleculeSchema(
-                        molecule=mol_name,
-                        initial_forcefield=self.initial_forcefield,
-                        task_id=f"bespoke_task_{i}",
-                    )
-                    # Make a workflow for each molecule/optimizer combination
-                    workflow_stage = OptimizationSchema(
-                        optimizer_name=self.optimizer.optimizer_name,
-                        job_id=f"{self.optimizer.optimizer_name}",
-                    )
-                    # now add all the targets associated with the optimizer
-                    for target in self.optimizer.optimization_targets:
-                        target_entry = target.generate_fitting_schema(
-                            molecule=molecule,
-                            initial_ff_values=self.initial_forcefield,
-                            expand_torsion_terms=self.expand_torsion_terms,
-                        )
-                        workflow_stage.targets.append(target_entry)
-                    molecule_schema.workflow = workflow_stage
-                    fitting_schema.add_molecule_schema(molecule_schema)
+                schema_list = [
+                    pool.apply_async(self._task_from_molecule, (molecule, i))
+                    for i, molecule in enumerate(deduplicated_molecules.molecules)
+                ]
+                # loop over the list and add the tasks fo the main fitting schema
+                for task in tqdm.tqdm(
+                    schema_list,
+                    total=len(schema_list),
+                    ncols=80,
+                    desc="Building Fitting Schema ",
+                ):
+                    schema = task.get()
+                    fitting_schema.add_optimization_task(schema)
 
         return fitting_schema
 
-    def create_task_schema(self, molecule: off.Molecule, index: int) -> MoleculeSchema:
+    def _task_from_molecule(
+        self, molecule: off.Molecule, index: int
+    ) -> OptimizationSchema:
         """
-        For the given molecule run the fragmentation and generate the Molecule schema.
+        Build an optimization schema from an input molecule this involves fragmentation.
         """
-        mol_name = molecule.to_smiles(mapped=True)
+        from openff.bespokefit.utils import get_molecule_cmiles
+
+        fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
+        attributes = get_molecule_cmiles(molecule=molecule)
         molecule_schema = MoleculeSchema(
-            molecule=mol_name,
-            initial_forcefield=self.initial_forcefield,
+            attributes=attributes,
             task_id=f"bespoke_task_{index}",
+            fragment_data=[],
+            fragmentation_engine=self.fragmentation_engine.dict(),
         )
-        # Make a workflow for each molecule/optimizer combination
-        workflow_stage = OptimizationSchema(
-            optimizer_name=self.optimizer.optimizer_name,
-            job_id=f"{self.optimizer.optimizer_name}",
-        )
-        if self.fragmentation_engine is not None:
-            fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
-        else:
-            fragment_data = [
-                molecule,
-            ]
+        # build the optimization schema
+        opt_schema = self._build_optimization_schema(molecule_schema=molecule_schema)
+        smirks_gen = self._get_smirks_generator()
+        all_smirks = []
+        for fragment in fragment_data:
+            # get the smirks and build the fragment schema
+            fragment_schema = fragment.fragment_schema()
+            new_smirks = smirks_gen.generate_smirks(
+                molecule=fragment_schema.molecule,
+                central_bonds=[
+                    fragment.fragment_torsion,
+                ],
+            )
+            all_smirks.extend(new_smirks)
+            molecule_schema.add_fragment(fragment=fragment_schema)
 
-        # now for each target make the target schema which details the target properties
+        # finish the optimization schema
+        opt_schema.target_molecule = molecule_schema
+        opt_schema.target_smirks = all_smirks
+
+        # now loop over the targets and build the reference tasks
         for target in self.optimizer.optimization_targets:
-            target_schema = target.target_schema()
+            target_schema = target.generate_target_schema()
+            for fragment in molecule_schema.fragment_data:
+                task_schema = target.generate_fitting_task(
+                    molecule=fragment.molecule,
+                    fragment=True,
+                    attributes=fragment.fragment_attributes,
+                    fragment_parent_mapping=fragment.fragment_parent_mapping,
+                    dihedrals=[
+                        fragment.target_dihedral,
+                    ],
+                )
+                target_schema.add_fitting_task(task=task_schema)
+            opt_schema.add_target(target=target_schema)
 
-        return molecule_schema
+        return opt_schema
+
+    def _get_smirks_generator(self) -> SmirksGenerator:
+        """
+        Build a smirks generator from the set of inputs.
+        """
+        smirks_gen = SmirksGenerator(
+            initial_forcefield=self.initial_forcefield,
+            generate_bespoke_terms=self.generate_bespoke_terms,
+            expand_torsion_terms=self.expand_torsion_terms,
+            target_smirks=self.target_smirks,
+        )
+        return smirks_gen
+
+    def _build_optimization_schema(
+        self, molecule_schema: MoleculeSchema
+    ) -> OptimizationSchema:
+        """
+        For a given molecule schema build an optimization schema.
+        """
+        schema = OptimizationSchema(
+            initial_forcefield=self.initial_forcefield,
+            optimizer_name=self.optimizer.optimizer_name,
+            settings=self.optimizer.dict(exclude={"optimization_targets"}),
+            target_parameters=self.target_parameters,
+            job_id=self.optimizer.optimizer_name,
+            target_molecule=molecule_schema,
+        )
+        return schema
