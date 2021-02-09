@@ -91,7 +91,7 @@ class ForceBalanceOptimizer(Optimizer):
                         name, value = param_target.get_prior()
                         priors[name] = value
 
-                    print("prepping target class ", target.provenance)
+                    print("prepping target class ", target.target_name)
                     target_class.prep_for_fitting(target)
                     # add the entry to the fitting target
                     for task in target.tasks:

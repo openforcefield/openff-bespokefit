@@ -57,20 +57,20 @@ class ForceFieldEditor:
             SmirksType.Vdw: vdWHandler.vdWType,
         }
         _smirks_ids = {
-            SmirksType.Bonds.value: "b",
-            SmirksType.Angles.value: "a",
-            SmirksType.ProperTorsions.value: "t",
-            SmirksType.Vdw.value: "n",
+            SmirksType.Bonds: "b",
+            SmirksType.Angles: "a",
+            SmirksType.ProperTorsions: "t",
+            SmirksType.Vdw: "n",
         }
         new_params = {}
         for smirk in smirks:
-            if smirk.type.value not in new_params:
-                new_params[smirk.type.value] = [
+            if smirk.type not in new_params:
+                new_params[smirk.type] = [
                     smirk,
                 ]
             else:
-                if smirk not in new_params[smirk.type.value]:
-                    new_params[smirk.type.value].append(smirk)
+                if smirk not in new_params[smirk.type]:
+                    new_params[smirk.type].append(smirk)
 
         for smirk_type, parameters in new_params.items():
             current_params = self.forcefield.get_parameter_handler(
@@ -152,7 +152,7 @@ class ForceFieldEditor:
 
         for smirk in smirks:
             new_parameter = self.forcefield.get_parameter_handler(
-                smirk.type.value
+                smirk.type
             ).parameters[smirk.smirks]
             # now we just need to update the smirks with the new values
             smirk.update_parameters(off_smirk=new_parameter)
@@ -169,7 +169,7 @@ class ForceFieldEditor:
         labels = self.label_molecule(molecule=molecule)
         # now find the atoms
         for smirk in smirks:
-            parameters = labels[smirk.type.value]
+            parameters = labels[smirk.type]
             if smirk.type == SmirksType.ProperTorsions:
                 # here we can combine multiple parameter types
                 # TODO is this needed?

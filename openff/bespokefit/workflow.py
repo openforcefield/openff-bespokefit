@@ -412,11 +412,13 @@ class WorkflowFactory(BaseModel):
         """
         molecule_schema = MoleculeSchema(
             attributes=results[0].attributes,
-            task_id=f"bespoke_task_{index}",
+            task_id=results[0].molecule.to_smiles(),
             fragment_data=[],
             fragmentation_engine=None,
         )
-        opt_schema = self._build_optimization_schema(molecule_schema=molecule_schema)
+        opt_schema = self._build_optimization_schema(
+            molecule_schema=molecule_schema, index=index
+        )
         smirks_gen = self._get_smirks_generator()
         all_smirks = []
         for result in results:
@@ -467,7 +469,7 @@ class WorkflowFactory(BaseModel):
         return smirks_gen
 
     def _build_optimization_schema(
-        self, molecule_schema: MoleculeSchema
+        self, molecule_schema: MoleculeSchema, index: int
     ) -> OptimizationSchema:
         """
         For a given molecule schema build an optimization schema.
@@ -477,7 +479,7 @@ class WorkflowFactory(BaseModel):
             optimizer_name=self.optimizer.optimizer_name,
             settings=self.optimizer.dict(exclude={"optimization_targets"}),
             target_parameters=self.target_parameters,
-            job_id=self.optimizer.optimizer_name,
+            job_id=f"bespoke_task_{index}",
             target_molecule=molecule_schema,
         )
         return schema

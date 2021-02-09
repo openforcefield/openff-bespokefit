@@ -377,23 +377,25 @@ class TorsionTask(FittingTask):
         """
         Build a qcsubmit torsiondrive entry for this molecule.
         """
-        from openff.bespokefit.utils import get_torsiondrive_index
+        if not self.collected:
+            from openff.bespokefit.utils import get_torsiondrive_index
 
-        # Note we only support 1D scans
-        atom_map = dict((atom, i) for i, atom in enumerate(self.dihedrals[0]))
-        molecule = self.initial_molecule
-        molecule.properties["atom_map"] = atom_map
-        index = get_torsiondrive_index(molecule)
-        task = self.get_task_hash()
-        attributes = self.attributes
-        attributes.task_hash = task  # add in the task hash
-        new_entry = TorsionDriveEntry(
-            index=index,
-            off_molecule=molecule,
-            attributes=attributes,
-            dihedrals=self.dihedrals,
-        )
-        return new_entry
+            # Note we only support 1D scans
+            atom_map = dict((atom, i) for i, atom in enumerate(self.dihedrals[0]))
+            molecule = self.initial_molecule
+            molecule.properties["atom_map"] = atom_map
+            index = get_torsiondrive_index(molecule)
+            task = self.get_task_hash()
+            attributes = self.attributes
+            attributes.task_hash = task  # add in the task hash
+            new_entry = TorsionDriveEntry(
+                index=index,
+                off_molecule=molecule,
+                attributes=attributes,
+                dihedrals=self.dihedrals,
+                extras=self.extras,
+            )
+            return new_entry
 
 
 class OptimizationTask(FittingTask):
@@ -414,7 +416,8 @@ class OptimizationTask(FittingTask):
         """
         Generate an optimization entry for the molecule.
         """
-        return self._make_optimization_entry()
+        if not self.collected:
+            return self._make_optimization_entry()
 
     def _make_optimization_entry(self) -> OptimizationEntry:
         """
@@ -429,7 +432,10 @@ class OptimizationTask(FittingTask):
             explicit_hydrogens=False,
         )
         opt_entry = OptimizationEntry(
-            index=index, off_molecule=molecule, attributes=attributes
+            index=index,
+            off_molecule=molecule,
+            attributes=attributes,
+            extras=self.extras,
         )
         return opt_entry
 
@@ -470,10 +476,11 @@ class HessianTask(OptimizationTask):
         """
         Generate either an optimization task or a hessian single point task based on the progress of the workflow.
         """
-        if self.optimization_data is None:
-            return self._make_optimization_entry()
-        else:
-            return self._make_hessian_entry()
+        if not self.collected:
+            if self.optimization_data is None:
+                return self._make_optimization_entry()
+            else:
+                return self._make_hessian_entry()
 
     def _make_hessian_entry(self) -> DatasetEntry:
         """
@@ -493,7 +500,10 @@ class HessianTask(OptimizationTask):
             explicit_hydrogens=False,
         )
         new_entry = DatasetEntry(
-            index=index, off_molecule=molecule, attributes=attributes
+            index=index,
+            off_molecule=molecule,
+            attributes=attributes,
+            extras=self.extras,
         )
         return new_entry
 
@@ -607,15 +617,18 @@ class TargetSchema(SchemaBase):
         tasks = {}
         for task in self.tasks:
             job = task.get_qcsubmit_task()
-            if job.attributes.task_hash not in tasks:
-                tasks[job.attributes.task_hash] = job
+            if job is not None:
+                if job.attributes.task_hash not in tasks:
+                    tasks[job.attributes.task_hash] = job
         return list(tasks.values())
 
     def build_qcsubmit_dataset(
         self,
-    ) -> Union[OptimizationDataset, TorsiondriveDataset, BasicDataset]:
+    ) -> Optional[Union[OptimizationDataset, TorsiondriveDataset, BasicDataset]]:
         """
         Build a qcsubmit dataset from the qcsubmit tasks associated with this target and collection type.
+        Note:
+            This will return None if there are no tasks to collect.
         """
         description = "A bespoke-fit generated dataset to be used for parameter optimization for more information please visit https://github.com/openforcefield/bespoke-fit."
         dataset_name = "OpenFF Bespoke-fit"
@@ -659,7 +672,9 @@ class TargetSchema(SchemaBase):
             # validate the entry type.
             dataset.metadata.elements.update(task.initial_molecules[0].symbols)
 
-        return dataset
+        if dataset.n_records > 0:
+            return dataset
+        return None
 
     def update_with_results(
         self,
@@ -856,6 +871,17 @@ class OptimizationSchema(SchemaBase):
         description="The target molecule is defined along with information about its fragments.",
     )
 
+    def get_optimizer(self) -> "Optimizer":
+        """
+        Get the requested optimizer with correct settings from the optimizer list.
+        """
+        from openff.bespokefit.optimizers import get_optimizer
+
+        settings = self.settings
+        del settings["optimizer_name"]
+        optimizer = get_optimizer(optimizer_name=self.optimizer_name, **settings)
+        return optimizer
+
     @property
     def n_tasks(self) -> int:
         """
@@ -892,6 +918,8 @@ class OptimizationSchema(SchemaBase):
         for target in self.targets:
             if not target.ready_for_fitting:
                 return False
+        # make sure we update the status
+        self.status = Status.Ready
         return True
 
     def get_final_forcefield(
@@ -1106,7 +1134,7 @@ class OptimizationSchema(SchemaBase):
         For each of the targets build a qcsubmit dataset of reference collection tasks.
         """
         datasets = [target.build_qcsubmit_dataset() for target in self.targets]
-        return datasets
+        return [dataset for dataset in datasets if dataset is not None]
 
     def add_target(self, target: TargetSchema) -> None:
         """
