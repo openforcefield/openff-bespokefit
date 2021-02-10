@@ -101,22 +101,6 @@ class Executor:
             fitting_schema=fitting_schema, server=server, client=client
         )
 
-    # def _update_optimization_settings(
-    #     self,
-    #     datasets: List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]],
-    # ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
-    #     """
-    #     Update the generated datasets with the current optimization settings.
-    #     """
-    #     for dataset in datasets:
-    #         try:
-    #             dataset.optimization_procedure.maxiter = self.maxiter
-    #             dataset.optimization_procedure.convergence_set = self.convergence_set
-    #         except AttributeError:
-    #             pass
-    #
-    #     return datasets
-
     def _execute(
         self,
         fitting_schema: FittingSchema,
@@ -230,7 +214,7 @@ class Executor:
 
         return responses
 
-    def _get_record(self, dataset, spec: QCSpec, record_name: str):
+    def get_record(self, dataset, spec: QCSpec, record_name: str):
         """
         Find a record and its dataset index used for result collection.
         This abstracts accessing all dataset types into one function.
@@ -243,40 +227,6 @@ class Executor:
             pass
 
         return None, None
-
-    # def _update_status(self, collection_tasks, record, task):
-    #     """
-    #     Update the collection tasks status with the record progress and the overall task progress.
-    #     """
-    #     # error cycle
-    #     if record.status.value == "ERROR":
-    #         if collection_tasks[0].collection_stage.retires < self.max_retires:
-    #             # we should restart the task here
-    #             print("restarting the record")
-    #             self.restart_archive_record(record)
-    #             # now increment the restart counter
-    #             for collection_task in collection_tasks:
-    #                 collection_task.collection_stage.retires += 1
-    #                 collection_task.collection_stage.status = Status.Collecting
-    #         else:
-    #             for collection_task in collection_tasks:
-    #                 collection_task.collection_stage.status = Status.Error
-    #     # normal execution
-    #     elif record.status.value == "RUNNING":
-    #         for collection_task in collection_tasks:
-    #             collection_task.collection_stage.status = Status.Collecting
-    #
-    #     elif record.status.value == "COMPLETE":
-    #         # now we need to save the results
-    #         for collection_task in collection_tasks:
-    #             collection_task.collection_stage.status = Status.Complete
-    #
-    #     # now update the opt stage
-    #     for target in task.workflow.targets:
-    #         for entry in target.entries:
-    #             for current_task in entry.current_tasks():
-    #                 if current_task.status == Status.Error:
-    #                     task.workflow.status = Status.Error
 
     def _error_cycle_task(
         self, task: OptimizationSchema, client: FractalClient
@@ -301,7 +251,7 @@ class Executor:
                 task_hash = entry.get_task_hash()
                 entry_id = self.task_map[task_hash]
                 print("pulling record for ", entry_id)
-                record = self._get_record(
+                record = self.get_record(
                     dataset=dataset, spec=target.qc_spec, record_name=entry_id
                 )
                 if record.status.value == "COMPLETE":
@@ -335,12 +285,12 @@ class Executor:
         # if we have values to collect update the task here
         if any(to_collect.values()):
             print("collecting results for ", to_collect)
-            self._collect_task_results(task, to_collect)
+            self.collect_task_results(task, to_collect, client)
 
         # now we should look for new tasks to submit
         print("looking for new reference tasks ...")
         if task.get_task_map():
-            response = self.submit_new_tasks(task)
+            response = self.submit_new_tasks(task, client=client)
             print("response of new tasks ... ", response)
 
         print("checking for optimizations to run ...")
@@ -383,11 +333,13 @@ class Executor:
 
             time.sleep(20)
 
-    def _collect_task_results(self, task: OptimizationSchema, collection_dict: Dict):
+    def collect_task_results(
+        self, task: OptimizationSchema, collection_dict: Dict, client: FractalClient
+    ):
         """
         Gather the results in the collection dict and update the task with them.
         """
-        results = self.collect_results(record_map=collection_dict)
+        results = self.collect_results(record_map=collection_dict, client=client)
         for result in results:
             task.update_with_results(results=result)
 
@@ -405,7 +357,9 @@ class Executor:
                 fitting_schema.tasks[i] = task
                 return fitting_schema
 
-    def submit_new_tasks(self, task: OptimizationSchema) -> Dict[str, Dict[str, int]]:
+    def submit_new_tasks(
+        self, task: OptimizationSchema, client: FractalClient
+    ) -> Dict[str, Dict[str, int]]:
         """
         For the given molecule schema query it for new tasks to submit and either add them to qcarchive or put them in the
         local task queue.
@@ -428,7 +382,7 @@ class Executor:
                     del dataset.dataset[entry_id]
 
         # now submit the datasets
-        return self.submit_datasets(datasets)
+        return self.submit_datasets(datasets=datasets, client=client)
 
     def collect_results(
         self,
@@ -472,7 +426,7 @@ class Executor:
         """
         Take a record and dispatch the type of restart to be done.
         """
-        if isinstance(task, ResultRecord):
+        if task.__class__ == ResultRecord:
             print("restarting basic ...")
             self.restart_basic(
                 [
@@ -480,7 +434,7 @@ class Executor:
                 ],
                 client=client,
             )
-        elif isinstance(task, OptimizationRecord):
+        elif task.__class__ == OptimizationRecord:
             print("restarting optimizations ...")
             self.restart_optimizations(
                 [

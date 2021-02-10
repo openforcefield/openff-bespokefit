@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from openforcefield.topology import Molecule
 from pydantic import Field
+from typing_extensions import Literal
 
 from openff.bespokefit.common_structures import FragmentData
 from openff.bespokefit.exceptions import FragmenterError
@@ -18,7 +19,7 @@ class WBOFragmenter(FragmentEngine):
     For more information see <https://github.com/openforcefield/fragmenter>.
     """
 
-    fragmentation_engine = "WBOFragmenter"
+    fragmentation_engine: Literal["WBOFragmenter"] = "WBOFragmenter"
     description = (
         "Fragment a molecule across all rotatable bonds using the WBO fragmenter."
     )

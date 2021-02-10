@@ -143,8 +143,8 @@ class ProperTorsionSettings(ParameterSettings):
     parameter_subtype: Literal["Proper"] = "Proper"
     target: Literal["k"] = "k"
     prior: PositiveFloat = 6.0
-    # allow k values up to k6
-    k_values: List[constr(regex="k[1-6]")] = ["k1", "k2", "k3", "k4"]
+    # # allow k values up to k6
+    # k_values: List[constr(regex="k[1-6]")] = ["k1", "k2", "k3", "k4"]
 
 
 class BondLengthSettings(ParameterSettings):

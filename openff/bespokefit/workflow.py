@@ -56,10 +56,6 @@ class WorkflowFactory(BaseModel):
         True,
         description="If the optimized smirks should be bespoke to the target molecules.",
     )
-    client: str = Field(
-        "snowflake",
-        description="The type of QCArchive server that will be used, snowflake/snowflake_notebook is a temperary local server that spins up temp compute but can connect to a static server.",
-    )
     optimizer: Optional[Optimizer] = Field(
         None,
         description="The optimizer that should be used with the targets already set.",
@@ -234,9 +230,7 @@ class WorkflowFactory(BaseModel):
         # create a deduplicated list of molecules first.
         deduplicated_molecules = deduplicated_list(molecules=molecules)
 
-        fitting_schema = FittingSchema(
-            client=self.client,
-        )
+        fitting_schema = FittingSchema()
         # add the settings for the optimizer and its targets
         fitting_schema.add_optimizer(self.optimizer)
 
@@ -257,6 +251,17 @@ class WorkflowFactory(BaseModel):
                 ):
                     schema = task.get()
                     fitting_schema.add_optimization_task(schema)
+        else:
+            # run with 1 processor
+            for i, molecule in tqdm.tqdm(
+                enumerate(deduplicated_molecules.molecules),
+                total=deduplicated_molecules.n_molecules,
+                ncols=80,
+                desc="Building Fitting Schema",
+            ):
+
+                schema = self._task_from_molecule(molecule=molecule, index=i)
+                fitting_schema.add_optimization_task(schema)
 
         return fitting_schema
 
@@ -277,7 +282,9 @@ class WorkflowFactory(BaseModel):
             fragmentation_engine=self.fragmentation_engine.dict(),
         )
         # build the optimization schema
-        opt_schema = self._build_optimization_schema(molecule_schema=molecule_schema)
+        opt_schema = self._build_optimization_schema(
+            molecule_schema=molecule_schema, index=index
+        )
         smirks_gen = self._get_smirks_generator()
         all_smirks = []
         for fragment in fragment_data:
@@ -338,9 +345,7 @@ class WorkflowFactory(BaseModel):
         # group the tasks if requested
         all_tasks = self._sort_results(results=results, combine=combine)
 
-        fitting_schema = FittingSchema(
-            client=self.client,
-        )
+        fitting_schema = FittingSchema()
         # add the settings for the optimizer and its targets
         fitting_schema.add_optimizer(self.optimizer)
 
@@ -361,6 +366,16 @@ class WorkflowFactory(BaseModel):
                 ):
                     schema = task.get()
                     fitting_schema.add_optimization_task(schema)
+        else:
+            # run with 1 processor
+            for i, task in tqdm.tqdm(
+                all_tasks,
+                total=len(all_tasks),
+                ncols=80,
+                desc="Building Fitting Schema",
+            ):
+                schema = self._task_from_results(*task)
+                fitting_schema.add_optimization_task(schema)
 
         return fitting_schema
 

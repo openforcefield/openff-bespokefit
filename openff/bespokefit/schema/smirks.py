@@ -14,7 +14,6 @@ from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.common_structures import SchemaBase, SmirksType
-from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.utils import compare_smirks_graphs
 
 
@@ -401,18 +400,3 @@ class TorsionSmirks(SmirksSchema):
             data.update(corrected_data)
 
         return data
-
-
-def smirks_from_dict(
-    smirks_data: Dict,
-) -> Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]:
-    """
-    For a smirks data dict build the correct smirks parameter based on type.
-    """
-    conversion = {
-        SmirksType.Vdw: AngleSmirks,
-        SmirksType.Bonds: BondSmirks,
-        SmirksType.Angles: AngleSmirks,
-        SmirksType.ProperTorsions: TorsionSmirks,
-    }
-    return conversion[smirks_data["type"]](**smirks_data)

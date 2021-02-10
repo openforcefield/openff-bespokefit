@@ -436,6 +436,7 @@ class OptimizationTask(FittingTask):
             off_molecule=molecule,
             attributes=attributes,
             extras=self.extras,
+            keywords={},
         )
         return opt_entry
 
@@ -689,19 +690,19 @@ class TargetSchema(SchemaBase):
         """
         # make sure the result type matches the collection workflow allowed types
         if (
-            isinstance(results, TorsionDriveCollectionResult)
+            results.__class__ == TorsionDriveCollectionResult
             and self.collection_workflow != "torsion1d"
         ):
             raise Exception("Torsion1d workflow requires torsiondrive results.")
         elif (
-            not isinstance(results, TorsionDriveCollectionResult)
+            results.__class__ != TorsionDriveCollectionResult
             and self.collection_workflow == "torsion1d"
         ):
             raise Exception(
                 "Optimization and hessian workflows require optimization and basic dataset results"
             )
         elif (
-            isinstance(results, BasicCollectionResult)
+            results.__class__ == BasicCollectionResult
             and results.driver != self.collection_workflow
         ):
             raise Exception(
@@ -1070,7 +1071,9 @@ class OptimizationSchema(SchemaBase):
                     target_parameter.parameter_type == smirk.type
                     and target_parameter.parameter_type == SmirksType.ProperTorsions
                 ):
-                    smirk.parameterize = target_parameter.k_values
+                    smirk.parameterize = [
+                        f"k{i}" for i, _ in enumerate(smirk.terms, start=1)
+                    ]
                 elif target_parameter.parameter_type == smirk.type:
                     smirk.parameterize.add(target_parameter.target)
         return target_smirks
@@ -1152,10 +1155,6 @@ class FittingSchema(SchemaBase):
     This is the main fitting schema which can be consumed by bespokefit in order to be executed.
     """
 
-    client: str = Field(
-        "snowflake",
-        description="The type of QCArchive server that will be used, snowflake/snowflake_notebook is a temperary local server that spins up temp compute but can connect to a static server.",
-    )
     optimizer_settings: Dict[str, Dict[str, Any]] = Field(
         dict(),
         description="A dictionary containing all run time settings for each optimizer in the workflow so that they can be rebuilt when optimization tasks are generated.",
@@ -1206,7 +1205,7 @@ class FittingSchema(SchemaBase):
         """
         Get all of the optimizers from the settings.
         """
-        from ..optimizers import get_optimizer
+        from openff.bespokefit.optimizers import get_optimizer
 
         return list(
             get_optimizer(**settings) for settings in self.optimizer_settings.values()

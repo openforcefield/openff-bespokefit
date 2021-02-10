@@ -5,8 +5,6 @@ The optimizer model abstract class.
 import abc
 from typing import Dict, List, Union
 
-from pydantic import validator
-
 from openff.bespokefit.common_structures import SchemaBase
 from openff.bespokefit.exceptions import TargetRegisterError
 from openff.bespokefit.schema import OptimizationSchema
@@ -41,16 +39,6 @@ class Optimizer(SchemaBase, abc.ABC):
 
     # this is shared across optimizers so we have to separate by optimizer
     _all_targets: Dict[str, Dict[str, Target]] = {}
-
-    @validator("optimizer_name")
-    def _set_optimizer_name(cls, optimizer_name: str) -> str:
-        """
-        Make sure that the optimizer name is the same as the cls.__name__
-        """
-        if optimizer_name.lower() == cls.__name__.lower():
-            return optimizer_name
-        else:
-            return cls.__name__
 
     def set_optimization_target(self, target: Union[Target, str], **kwargs) -> None:
         """

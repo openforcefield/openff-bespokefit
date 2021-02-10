@@ -27,7 +27,7 @@ def register_optimizer(optimizer: Optimizer, replace: bool = False) -> None:
         If the optimizer is already registered or if the optimizer object is not compatible.
     """
 
-    if isinstance(optimizer, Optimizer):
+    if issubclass(type(optimizer), Optimizer):
         optimizer_name = optimizer.optimizer_name.lower()
         if optimizer_name not in optimizers or (
             optimizer_name in optimizers and replace
@@ -53,9 +53,9 @@ def deregister_optimizer(optimizer: Union[Optimizer, str]) -> None:
         The optimizer class or name of the class that should be removed.
     """
 
-    if isinstance(optimizer, Optimizer):
+    try:
         optimizer_name = optimizer.optimizer_name.lower()
-    else:
+    except AttributeError:
         optimizer_name = optimizer.lower()
 
     opt = optimizers.pop(optimizer_name, None)

@@ -25,7 +25,7 @@ def register_fragment_engine(
             If the fragment engine is already registered or if the FragmentEngine object is not compatible.
     """
 
-    if isinstance(fragment_engine, FragmentEngine):
+    if issubclass(type(fragment_engine), FragmentEngine):
         fragment_name = fragment_engine.fragmentation_engine.lower()
         if fragment_name not in fragment_engines or (
             fragment_name in fragment_engines and replace
@@ -49,9 +49,9 @@ def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> N
         fragment_engine: The FragmentEngine class or name of the class that should be removed.
     """
 
-    if isinstance(fragment_engine, FragmentEngine):
+    try:
         fragment_name = fragment_engine.fragmentation_engine.lower()
-    else:
+    except AttributeError:
         fragment_name = fragment_engine.lower()
 
     fragmenter = fragment_engines.pop(fragment_name, None)
@@ -66,7 +66,7 @@ def get_fragmentation_engine(fragmentation_engine: str, **kwargs) -> FragmentEng
     Get the fragmentation engine class from the list of registered optimizers in bespokefit by name.
 
     Parameters:
-        fragment_engine: The name of the fragment engine that should be fetched
+        fragmentation_engine: The name of the fragment engine that should be fetched
         kwargs: Any kwargs that should be passed into the fragmentation engine to initialise the object.
 
     Returns:

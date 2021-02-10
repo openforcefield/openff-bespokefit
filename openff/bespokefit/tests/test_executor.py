@@ -11,9 +11,13 @@ from qcfractal.testing import fractal_compute_server
 
 from openff.bespokefit.common_structures import Status
 from openff.bespokefit.executor import Executor
+from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema import FittingSchema
+from openff.bespokefit.targets import AbInitio_SMIRNOFF
 from openff.bespokefit.tests.schema.test_fitting import get_fitting_schema
 from openff.bespokefit.utils import get_data
+from openff.bespokefit.workflow import WorkflowFactory
+from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.results import TorsionDriveCollectionResult
 from openff.qcsubmit.testing import temp_directory
 
@@ -22,14 +26,13 @@ def test_optimizer_explicit():
     """
     Run the optimizer process in the main thread to make sure it works.
     """
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
     # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
-    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    schema = get_fitting_schema(molecules=biphenyl)
+    result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
     schema.update_with_results(results=result)
     # now submit to the executor
     execute = Executor()
-    execute.fitting_schema = schema
     # we dont need the server here
     # put a task in the opt queue then kill it
     execute.total_tasks = 1
@@ -39,155 +42,87 @@ def test_optimizer_explicit():
         # find the task in the finished queue
         task = execute.finished_tasks.get()
         result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
-        smirks = result_schema.tasks[0].workflow.target_smirks
+        smirks = result_schema.tasks[0].final_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
                 assert float(term.k.split()[0]) != 1e-5
 
 
-def test_restart_records(fractal_compute_server):
+def test_full_run_xtb(fractal_compute_server):
     """
-    Make sure that the error cycle can restart a record and update the tasks when we hit an error.
+    Test a full run through using xtb, this will generate and run the tasks on the snowflake and then run the fitting.
     """
-    if not has_program("torchani"):
-        pytest.skip("Torchani not found")
+    if not has_program("xtb"):
+        pytest.skip("Xtb not installed")
 
+    # first build the workflow with biphenyl
+    biphenyl = Molecule.from_file(get_data("biphenyl.sdf"))
+    workflow = WorkflowFactory()
+    fb = ForceBalanceOptimizer()
+    target = AbInitio_SMIRNOFF()
+    spec = QCSpec(method="gf2xtb", basis=None, program="xtb", spec_name="default")
+    target.qc_spec = spec
+    # set the spec to use xtb
+    fb.set_optimization_target(target=target)
+    workflow.set_optimizer(fb)
+    schema = workflow.fitting_schema_from_molecules(molecules=biphenyl, processors=1)
+    execute = Executor()
     client = FractalClient(fractal_compute_server)
-
-    mol = Molecule.from_smiles("BrCO")
-    schema = get_fitting_schema(molecules=mol)
-
-    # make a server to submit the tasks to which will fail
-    datasets = schema.generate_qcsubmit_datasets()
-
-    # submit the torsiondrive which will fail
-    datasets[0].metadata.long_description_url = "https://test.org"
-    datasets[0].dataset_name = "restart testing"
-    datasets[0].submit(client=client, ignore_errors=True)
-    # wait for the errors
-    fractal_compute_server.await_services()
-    fractal_compute_server.await_results()
-
-    executor = Executor()
-    executor.activate_client()
-    # generate the task map and queue
-    executor.generate_dataset_task_map(datasets=datasets)
-    executor.create_input_task_queue(fitting_schema=schema)
-    task = schema.molecules[0]
-    task_map = task.get_task_map()
-
-    for task_hash, collection_tasks in task_map.items():
-        spec = collection_tasks[0].entry.qc_spec
-        entry_id, dataset_type, dataset_name = executor.task_map[task_hash]
-        print("looking for ", entry_id, dataset_type, dataset_name)
-        dataset = executor.client.get_collection(dataset_type, dataset_name)
-        # get the record and the df index
-        record, td_id = executor._get_record_and_index(dataset=dataset, spec=spec, record_name=entry_id)
-
-        assert record is not None
-        assert record.status.value == "ERROR"
-        executor.restart_archive_record(record)
-        # pull again
-        record, td_id = executor._get_record_and_index(dataset=dataset, spec=spec, record_name=entry_id)
-        assert record.status.value == "RUNNING"
+    with temp_directory():
+        result = execute.execute(fitting_schema=schema, client=client)
+        # try and get the final parameters
+        task = result.tasks[0]
+        assert task.target_smirks != task.final_smirks
+        assert task.final_smirks is not None
+        _ = task.get_final_forcefield(generate_bespoke_terms=True)
 
 
-def test_error_cycle_explicit(fractal_compute_server):
+def test_error_cycle_complete():
     """
-    Run the error cycle in the main thread to make sure it does restart tasks correctly and keep track of the number of times this is attempted.
-    Also make sure that a task status is moved to error when we exceed the retry limit.
+    Try and error cycle a task which is complete in qcarchive this should cause the task result to be collected
+    and put into the optimization queue.
     """
 
-    if not has_program("torchani"):
-        pytest.skip("Torchani not found")
+    client = FractalClient()
+    biphenyl = Molecule.from_file(get_data("biphenyl.sdf"))
+    schema = get_fitting_schema(biphenyl)
+    execute = Executor()
+    # fake the dataset name
+    execute._dataset_name = "OpenFF-benchmark-ligand-fragments-v1.0"
+    task = schema.tasks[0]
+    tasks = list(task.get_task_map().keys())
+    # fake the task map
+    execute.task_map = {tasks[0]: "[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[h])[h])[h])[h]"}
+    execute._error_cycle_task(task=task, client=client)
+    # the result should be collected and the task is now in the opt queue
+    opt_task = execute.opt_queue.get(timeout=5)
+    assert opt_task.ready_for_fitting is True
 
-    client = FractalClient(fractal_compute_server)
 
-    # get a molecule that will fail with ani
-    mol = Molecule.from_smiles("BrCO")
+def test_collecting_results():
+    """
+    Make sure that tasks are collected correctly from a QCArchive instance.
+    """
+
+    # connect to the public database
+    client = FractalClient()
+    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
     # now make the schema
-    schema = get_fitting_schema(molecules=mol)
+    schema = get_fitting_schema(molecules=biphenyl)
 
-    executor = Executor()
-    # register the client
-    executor.activate_client(client=client)
-    dataset = schema.generate_qcsubmit_datasets()[0]
-    dataset.metadata.long_description_url = "https://test.org"
-    dataset.dataset_name = "BrCO torsiondrive"
-    # submit the dataset manually to ignore the errors
-    dataset.submit(client=client, ignore_errors=True)
-    # set up the executor manually
-    executor.total_tasks = 1
-    # lower the retry limit
-    executor.max_retires = 1
-    executor.fitting_schema = schema
-    executor.generate_dataset_task_map(datasets=[dataset, ])
-
-    # wait for the torsiondrive to finish
-    fractal_compute_server.await_services()
-
-    # run the error cycle no 1
-    executor._error_cycle_task(task=schema.molecules[0])
-    # now get the tasks and update the schema
-    task = executor.collection_queue.get()
-    # make sure the task retries was incremented
-    task_map = task.get_task_map()
-    collection_stage = task_map["d263fc4d38661679402ca04d438435ee34b1c31f"][0].collection_stage
-    assert collection_stage.retires == 1
-    assert collection_stage.status.value == "COLLECTING"
-
-    # task has been restarted so wait again
-    fractal_compute_server.await_services()
-
-    # run again
-    executor._error_cycle_task(task=task)
-    # now pull the task out again
-    task = executor.opt_queue.get()
-    task_map = task.get_task_map()
-    collection_stage = task_map["d263fc4d38661679402ca04d438435ee34b1c31f"][0].collection_stage
-    assert collection_stage.retires == 1
-    assert collection_stage.status.value == "ERROR"
-    assert task.workflow[0].status.value == "ERROR"
-
-
-def test_collecting_results(fractal_compute_server):
-    """
-    Make sure results are collected and a task is updated when finished.
-    """
-
-    if not has_program("torchani"):
-        pytest.skip("Torchani not found")
-
-    client = FractalClient(fractal_compute_server)
-
-    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
-    # get ethane with the final converged geometries
-    ethane = result.collection["[h:1][c:2]([h])([h])[c:3]([h:4])([h])[h]"].get_torsiondrive()
-    schema = get_fitting_schema(ethane)
     # now submit to the executor
     executor = Executor()
-    executor.total_tasks = 1
-
-    # register the client
-    executor.activate_client(client=client)
-    dataset = schema.generate_qcsubmit_datasets()[0]
-    dataset.metadata.long_description_url = "https://test.org"
-    dataset.dataset_name = "CC torsiondrive"
-    # submit the dataset manually to ignore the errors
-    dataset.submit(client=client)
-
-    # set up the executor manually
-    executor.fitting_schema = schema
-    executor.generate_dataset_task_map(datasets=[dataset, ])
-
-    fractal_compute_server.await_services(max_iter=50)
-
-    executor._error_cycle_task(task=schema.molecules[0])
-
-    task = executor.opt_queue.get(timeout=5)
-    opt = task.get_next_optimization_stage()
-    assert opt.ready_for_fitting is True
+    # change to make sure we search the correct dataset
+    executor._dataset_name = "OpenFF-benchmark-ligand-fragments-v1.0"
+    # fake a collection dict
+    to_collect = {
+        "torsion1d": {"default": ["[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[h])[h])[h])[h]", ]},
+        "optimization": {}, "hessian": {}}
+    # now let the executor update the task
+    executor.collect_task_results(task=schema.tasks[0], collection_dict=to_collect, client=client)
+    # make sure it worked
+    assert schema.tasks[0].ready_for_fitting is True
 
 
 def test_submit_new_tasks(fractal_compute_server):
@@ -196,30 +131,27 @@ def test_submit_new_tasks(fractal_compute_server):
     """
 
     client = FractalClient(fractal_compute_server)
-    # build a molecule that will fail fast to save compute
-    ethane = Molecule.from_smiles("CC")
+    # this will not actually run as we do not install psi4
+    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
     # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
+    schema = get_fitting_schema(molecules=biphenyl)
 
     executor = Executor()
-    # register the client
-    executor.fitting_schema = schema
-    executor.activate_client(client=client)
-
     # make sure new tasks are submitted
     task = schema.tasks[0]
-    response = executor.submit_new_tasks(task=task)
-    assert response == {'Bespokefit torsiondrives': {'ani2x': 1}}
+    response = executor.submit_new_tasks(task=task, client=client)
+    assert response == {'OpenFF Bespoke-fit': {'default': 1}}
 
 
-def test_executor_no_collection():
+def test_executor_no_collection(fractal_compute_server):
     """
     Test using the executor when there are no tasks to collect only optimizations to run.
     """
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    client = FractalClient(fractal_compute_server)
+    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
     # now make the schema
-    schema = get_fitting_schema(molecules=ethane)
-    result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
+    schema = get_fitting_schema(molecules=biphenyl)
+    result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
     schema.update_with_results(results=result)
 
     # now submit to the executor
@@ -228,13 +160,13 @@ def test_executor_no_collection():
     assert execute.task_map == {}
     # submit the optimization
     with temp_directory():
-        result_schema = execute.execute(fitting_schema=schema)
-        # stop the server processes
-        execute.server.stop()
+        result_schema = execute.execute(fitting_schema=schema, client=client)
+        # make sure we can generate the final forcefield
+        _ = result_schema.tasks[0].get_final_forcefield(generate_bespoke_terms=True, drop_out_value=5e-5)
         # make sure they are all finished
         assert execute.total_tasks == 0
         # check the results have been saved
-        smirks = result_schema.tasks[0].workflow.target_smirks
+        smirks = result_schema.tasks[0].final_smirks
         # make sure they have been updated
         for smirk in smirks:
             for term in smirk.terms.values():
@@ -243,7 +175,4 @@ def test_executor_no_collection():
         # now round load up the results
         schema = FittingSchema.parse_file("final_results.json.xz")
         # make sure all tasks are complete
-        assert schema.tasks[0].workflow.status == Status.Complete
-
-    # clean up the server
-    execute.server.stop()
+        assert schema.tasks[0].status == Status.Complete

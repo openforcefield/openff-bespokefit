@@ -1,5 +1,6 @@
 from openff.bespokefit.schema.fitting import (
     FittingSchema,
+    FittingTask,
     FragmentSchema,
     HessianTask,
     MoleculeSchema,
@@ -16,6 +17,4 @@ from openff.bespokefit.schema.smirks import (
     SmirksType,
     TorsionSmirks,
     TorsionTerm,
-    ValidatedSmirks,
-    smirks_from_dict,
 )

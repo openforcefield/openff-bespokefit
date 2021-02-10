@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from jinja2 import Template
 from pydantic import PositiveFloat, PositiveInt
+from typing_extensions import Literal
 
 from openff.bespokefit.common_structures import Status
 from openff.bespokefit.exceptions import TargetNotSetError
@@ -19,7 +20,7 @@ class ForceBalanceOptimizer(Optimizer):
     A Optimizer class which controls the interface with ForceBalanace.
     """
 
-    optimizer_name = "ForceBalanceOptimizer"
+    optimizer_name: Literal["ForceBalanceOptimizer"] = "ForceBalanceOptimizer"
     optimizer_description = "A systematic force field optimization tool: https://github.com/leeping/forcebalance"
 
     # forcebalance settings and validators

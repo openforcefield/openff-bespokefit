@@ -99,17 +99,9 @@ def test_register_optimizers(optimizers):
             register_optimizer(optimizer=optimizer, replace=replace)
 
 
-def test_optimizer_name_validation():
-    """
-    Test that tring to reset the optimizer name does not work.
-    """
-    fb = ForceBalanceOptimizer(optimizer_name="testoptimizer")
-    assert fb.optimizer_name == "ForceBalanceOptimizer"
-
-
 @pytest.mark.parametrize("opt_target", [
-    pytest.param((ForceBalanceOptimizer, "TorsionProfile_SMIRNOFF", {"fragmentation": False, "grid_spacings": [30]}, None), id="Torsionprofile with settings"),
-    pytest.param((ForceBalanceOptimizer, "AbInitio_SMIRNOFF", {"weight": 2, "fragmentation": False}, None), id="AbInitio_SMIRNOFF with settings"),
+    pytest.param((ForceBalanceOptimizer, "TorsionProfile_SMIRNOFF", {"grid_spacings": [30]}, None), id="Torsionprofile with settings"),
+    pytest.param((ForceBalanceOptimizer, "AbInitio_SMIRNOFF", {"weight": 2}, None), id="AbInitio_SMIRNOFF with settings"),
     pytest.param((ForceBalanceOptimizer, "DDEC6_CHARGES", {}, TargetRegisterError), id="Missing targte error")
 ])
 def test_get_optimization_target_settings(opt_target):
@@ -174,6 +166,16 @@ def test_get_registered_targets():
     assert targets == [AbInitio_SMIRNOFF(), TorsionProfile_SMIRNOFF()]
 
 
+def test_get_registered_target_names():
+    """
+    Make sure the names of the targets are returned.
+    """
+    fb = ForceBalanceOptimizer()
+    names = fb.get_registered_target_names()
+    assert AbInitio_SMIRNOFF().name.lower() in names
+    assert TorsionProfile_SMIRNOFF().name.lower() in names
+
+
 @pytest.mark.parametrize("opt_targets", [
     pytest.param((ForceBalanceOptimizer, AbInitio_SMIRNOFF, None), id="Forcebalance and AbInitio_SMIRNOFF"),
     pytest.param((ForceBalanceOptimizer, TorsionDrive1D, TargetRegisterError), id="Forcebalance missing target")
@@ -203,18 +205,17 @@ def test_register_optimization_target():
     """
     fb = ForceBalanceOptimizer()
     # first try and add a target again with different settings
-    target = TorsionProfile_SMIRNOFF(fragmentation=False, keywords={"test": True})
+    target = TorsionProfile_SMIRNOFF(keywords={"test": True})
     with pytest.raises(TargetRegisterError):
         # this will not allow the target to be registered
         fb.register_target(target=target, replace=False)
 
     opt_target = fb.get_optimization_target(target_name=target.name)
-    assert opt_target.fragmentation is True
+    assert opt_target.keywords != {"test": True}
 
     # now use the replace flag
     fb.register_target(target=target, replace=True)
     opt_target = fb.get_optimization_target(target_name=target.name)
-    assert opt_target.fragmentation is False
     assert opt_target.keywords["test"] is True
 
     # now add a totally new target
