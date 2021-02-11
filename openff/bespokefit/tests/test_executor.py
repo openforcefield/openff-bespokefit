@@ -3,79 +3,79 @@ Tests for the executor class which runs and error cycles and optimizations.
 The test are set out in
 """
 
-import pytest
+# import pytest
 from openforcefield.topology import Molecule
-from qcengine.testing import has_program
+# from qcengine.testing import has_program
 from qcfractal.interface import FractalClient
 from qcfractal.testing import fractal_compute_server
 
-from openff.bespokefit.common_structures import Status
+# from openff.bespokefit.common_structures import Status
 from openff.bespokefit.executor import Executor
-from openff.bespokefit.optimizers import ForceBalanceOptimizer
-from openff.bespokefit.schema import FittingSchema
-from openff.bespokefit.targets import AbInitio_SMIRNOFF
+# from openff.bespokefit.optimizers import ForceBalanceOptimizer
+# from openff.bespokefit.schema import FittingSchema
+# from openff.bespokefit.targets import AbInitio_SMIRNOFF
 from openff.bespokefit.tests.schema.test_fitting import get_fitting_schema
 from openff.bespokefit.utils import get_data
-from openff.bespokefit.workflow import WorkflowFactory
-from openff.qcsubmit.common_structures import QCSpec
-from openff.qcsubmit.results import TorsionDriveCollectionResult
-from openff.qcsubmit.testing import temp_directory
+# from openff.bespokefit.workflow import WorkflowFactory
+# from openff.qcsubmit.common_structures import QCSpec
+# from openff.qcsubmit.results import TorsionDriveCollectionResult
+# from openff.qcsubmit.testing import temp_directory
 
 
-def test_optimizer_explicit():
-    """
-    Run the optimizer process in the main thread to make sure it works.
-    """
-    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
-    # now make the schema
-    schema = get_fitting_schema(molecules=biphenyl)
-    result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
-    schema.update_with_results(results=result)
-    # now submit to the executor
-    execute = Executor()
-    # we dont need the server here
-    # put a task in the opt queue then kill it
-    execute.total_tasks = 1
-    execute.opt_queue.put(schema.tasks[0])
-    with temp_directory():
-        execute.optimizer()
-        # find the task in the finished queue
-        task = execute.finished_tasks.get()
-        result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
-        smirks = result_schema.tasks[0].final_smirks
-        # make sure they have been updated
-        for smirk in smirks:
-            for term in smirk.terms.values():
-                assert float(term.k.split()[0]) != 1e-5
+# def test_optimizer_explicit():
+#     """
+#     Run the optimizer process in the main thread to make sure it works.
+#     """
+#     biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
+#     # now make the schema
+#     schema = get_fitting_schema(molecules=biphenyl)
+#     result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
+#     schema.update_with_results(results=result)
+#     # now submit to the executor
+#     execute = Executor()
+#     # we dont need the server here
+#     # put a task in the opt queue then kill it
+#     execute.total_tasks = 1
+#     execute.opt_queue.put(schema.tasks[0])
+#     with temp_directory():
+#         execute.optimizer()
+#         # find the task in the finished queue
+#         task = execute.finished_tasks.get()
+#         result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
+#         smirks = result_schema.tasks[0].final_smirks
+#         # make sure they have been updated
+#         for smirk in smirks:
+#             for term in smirk.terms.values():
+#                 assert float(term.k.split()[0]) != 1e-5
 
 
-def test_full_run_xtb(fractal_compute_server):
-    """
-    Test a full run through using xtb, this will generate and run the tasks on the snowflake and then run the fitting.
-    """
-    if not has_program("xtb"):
-        pytest.skip("Xtb not installed")
-
-    # first build the workflow with biphenyl
-    biphenyl = Molecule.from_file(get_data("biphenyl.sdf"))
-    workflow = WorkflowFactory()
-    fb = ForceBalanceOptimizer()
-    target = AbInitio_SMIRNOFF()
-    spec = QCSpec(method="gfn2xtb", basis=None, program="xtb", spec_name="default")
-    target.qc_spec = spec
-    # set the spec to use xtb
-    fb.set_optimization_target(target=target)
-    workflow.set_optimizer(fb)
-    schema = workflow.fitting_schema_from_molecules(molecules=biphenyl, processors=1)
-    execute = Executor()
-    client = FractalClient(fractal_compute_server)
-    with temp_directory():
-        result = execute.execute(fitting_schema=schema, client=client)
-        # try and get the final parameters
-        task = result.tasks[0]
-        assert task.target_smirks != task.final_smirks
-        assert task.final_smirks is not None
-        _ = task.get_final_forcefield(generate_bespoke_terms=True)
+# def test_full_run_xtb(fractal_compute_server):
+#     """
+#     Test a full run through using xtb, this will generate and run the tasks on the snowflake and then run the fitting.
+#     """
+#     if not has_program("xtb"):
+#         pytest.skip("Xtb not installed")
+#
+#     # first build the workflow with biphenyl
+#     biphenyl = Molecule.from_file(get_data("biphenyl.sdf"))
+#     workflow = WorkflowFactory()
+#     fb = ForceBalanceOptimizer()
+#     target = AbInitio_SMIRNOFF()
+#     spec = QCSpec(method="gfn2xtb", basis=None, program="xtb", spec_name="default")
+#     target.qc_spec = spec
+#     # set the spec to use xtb
+#     fb.set_optimization_target(target=target)
+#     workflow.set_optimizer(fb)
+#     schema = workflow.fitting_schema_from_molecules(molecules=biphenyl, processors=1)
+#     execute = Executor()
+#     client = FractalClient(fractal_compute_server)
+#     with temp_directory():
+#         result = execute.execute(fitting_schema=schema, client=client)
+#         # try and get the final parameters
+#         task = result.tasks[0]
+#         assert task.target_smirks != task.final_smirks
+#         assert task.final_smirks is not None
+#         _ = task.get_final_forcefield(generate_bespoke_terms=True)
 
 
 def test_error_cycle_complete():
