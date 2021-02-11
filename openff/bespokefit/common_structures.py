@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from openforcefield import topology as off
-from pydantic import BaseModel, PositiveFloat, constr
+from pydantic import BaseModel, PositiveFloat
 from typing_extensions import Literal
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
@@ -18,9 +18,6 @@ class SchemaBase(BaseModel):
     This is the Schema base class which is adapted to the other schema as required.
     """
 
-    # # set any enum fields here to make sure json and yaml work
-    # _enum_fields = []
-
     class Config:
         allow_mutation = True
         validate_assignment = True
@@ -29,35 +26,6 @@ class SchemaBase(BaseModel):
             np.ndarray: lambda v: v.flatten().tolist(),
             Enum: lambda v: v.value,
         }
-
-    #
-    # def dict(
-    #     self,
-    #     *,
-    #     include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-    #     exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-    #     by_alias: bool = False,
-    #     skip_defaults: bool = None,
-    #     exclude_unset: bool = False,
-    #     exclude_defaults: bool = False,
-    #     exclude_none: bool = False,
-    # ) -> "DictStrAny":
-    #
-    #     # correct the enum dict rep
-    #     data = super().dict(
-    #         include=include,
-    #         exclude=exclude,
-    #         by_alias=by_alias,
-    #         skip_defaults=skip_defaults,
-    #         exclude_unset=exclude_unset,
-    #         exclude_defaults=exclude_defaults,
-    #         exclude_none=exclude_none,
-    #     )
-    #     exclude = exclude or []
-    #     for field in self._enum_fields:
-    #         if field not in exclude:
-    #             data[field] = getattr(self, field).value
-    #     return data
 
 
 class SmirksType(str, Enum):
@@ -143,8 +111,6 @@ class ProperTorsionSettings(ParameterSettings):
     parameter_subtype: Literal["Proper"] = "Proper"
     target: Literal["k"] = "k"
     prior: PositiveFloat = 6.0
-    # # allow k values up to k6
-    # k_values: List[constr(regex="k[1-6]")] = ["k1", "k2", "k3", "k4"]
 
 
 class BondLengthSettings(ParameterSettings):

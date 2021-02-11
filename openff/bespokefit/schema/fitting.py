@@ -722,8 +722,6 @@ class TargetSchema(SchemaBase):
                     task.update_with_results(result)
                 except (DihedralSelectionError, MoleculeMissMatchError):
                     continue
-            else:
-                continue
 
 
 class FragmentSchema(SchemaBase):

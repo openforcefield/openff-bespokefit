@@ -2,7 +2,7 @@
 Tools to help with bespoke target smirks generation
 """
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from chemper.graphs.single_graph import SingleGraph
 from openforcefield.topology import Molecule

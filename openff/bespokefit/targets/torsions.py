@@ -589,7 +589,7 @@ class AbInitio_SMIRNOFF(TorsionDrive1D):
             # now we need to make all of the input files
             molecule = task.graph_molecule
             molecule.generate_conformers(n_conformers=1, clear_existing=True)
-            molecule.assign_partial_charges("am1bcc")
+            molecule.compute_partial_charges_am1bcc()
             molecule.to_file("molecule.mol2", "mol2")
             molecule.to_file(
                 file_path="molecule.pdb",

@@ -61,7 +61,7 @@ def test_full_run_xtb(fractal_compute_server):
     workflow = WorkflowFactory()
     fb = ForceBalanceOptimizer()
     target = AbInitio_SMIRNOFF()
-    spec = QCSpec(method="gf2xtb", basis=None, program="xtb", spec_name="default")
+    spec = QCSpec(method="gfn2xtb", basis=None, program="xtb", spec_name="default")
     target.qc_spec = spec
     # set the spec to use xtb
     fb.set_optimization_target(target=target)

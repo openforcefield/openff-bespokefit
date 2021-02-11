@@ -81,5 +81,5 @@ def test_missing_task_type():
     target.collection_workflow = "test"
     molecule = Molecule.from_file(get_data("ethanol.sdf"))
     with pytest.raises(NotImplementedError):
-        task_schema = target.generate_fitting_task(molecule=molecule, fragment=False,
+        _ = target.generate_fitting_task(molecule=molecule, fragment=False,
                                                    attributes=get_molecule_cmiles(molecule), dihedrals=[(8, 2, 1, 0)])
