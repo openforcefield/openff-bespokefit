@@ -23,10 +23,10 @@ jobs:
           # - 3.8
         cfg:
           - os: ubuntu-latest
-            prog: NONE
+            prog: XTB
 
           - os: macOS-latest
-            prog: TORCHANI
+            prog: NONE
 
 
     env:
@@ -76,8 +76,8 @@ jobs:
           conda activate
           if [ $PROG == "NONE" ]; then
             python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/test_env.yaml
-          elif [ $PROG == "TORCHANI" ]; then
-            python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/ani_env.yaml
+          elif [ $PROG == "XTB" ]; then
+            python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/xtb_env.yaml
           else
             echo "ERROR: No match for PROG ($PROG)."
           fi

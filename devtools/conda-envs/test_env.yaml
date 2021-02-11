@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - omnia
   - omnia/label/rc
-  - pytorch
+  - omnia/label/benchmark
   - defaults
 
 dependencies:
@@ -19,7 +19,7 @@ dependencies:
   - openforcefields
   - qcengine >=0.17.0
   - forcebalance
-  - qcsubmit
+  - openff-qcsubmit ==0.2.1
   - pyyaml
   - openeye-toolkits ==2019.10.2
   - chemper

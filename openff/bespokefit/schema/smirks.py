@@ -11,11 +11,10 @@ from openforcefield.typing.engines.smirnoff import (
 )
 from pydantic import validator
 from simtk import unit
+from typing_extensions import Literal
 
-from ..common_structures import SmirksType
-from ..exceptions import SMIRKSTypeError
-from ..utils import compare_smirks_graphs
-from .schema import SchemaBase
+from openff.bespokefit.common_structures import SchemaBase, SmirksType
+from openff.bespokefit.utils import compare_smirks_graphs
 
 
 def _to_angstrom(length: float) -> str:
@@ -55,10 +54,12 @@ def _validate_smirks(smirks: str, expected_tags: int) -> str:
     """
     Make sure the supplied smirks has the correct number of tagged atoms.
     """
+    from pydantic import ValidationError
+
     smirk = ChemicalEnvironment(smirks=smirks)
     tagged_atoms = len(smirk.get_indexed_atoms())
     if tagged_atoms != expected_tags:
-        raise SMIRKSTypeError(
+        raise ValidationError(
             f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should have {expected_tags}."
         )
     else:
@@ -70,7 +71,7 @@ class SmirksSchema(SchemaBase):
     This schema identifies new smirks patterns and the corresponding atoms they should be applied to.
     """
 
-    atoms: Set[Tuple[int, ...]]
+    atoms: Set[Tuple[int, ...]] = set()
     smirks: str
     type: SmirksType
     parameterize: Set[str] = set()
@@ -113,7 +114,7 @@ class ValidatedSmirks(SmirksSchema, abc.ABC):
         return parameters
 
     @abc.abstractmethod
-    def update_parameters(self, off_smirk) -> None:
+    def update_parameters(self, off_smirk, **kwargs) -> None:
         """
         Update the parameters of the current smirks pattern using the corresponding openforcefield toolkit smirks class.
 
@@ -125,14 +126,25 @@ class ValidatedSmirks(SmirksSchema, abc.ABC):
         """
         raise NotImplementedError()
 
+    @classmethod
+    @abc.abstractmethod
+    def from_off_smirks(cls, off_smirk):
+        """
+        Create a bespokefit smirks schema from the openforcefield object version.
+
+        Parameters:
+            off_smirk: The openforcefield parameter type that should be converted into the bespoke schema.
+        """
+        raise NotImplementedError()
+
 
 class AtomSmirks(ValidatedSmirks):
     """
     Specific atom smirks.
     """
 
-    atoms: Set[Tuple[int]]
-    type: SmirksType = SmirksType.Vdw
+    atoms: Set[Tuple[int]] = set()
+    type: Literal[SmirksType.Vdw] = SmirksType.Vdw
     epsilon: str
     rmin_half: str
 
@@ -143,7 +155,19 @@ class AtomSmirks(ValidatedSmirks):
     def _validate_smirks(cls, smirks: str) -> str:
         return _validate_smirks(smirks=smirks, expected_tags=1)
 
-    def update_parameters(self, off_smirk: vdWHandler.vdWType) -> None:
+    @classmethod
+    def from_off_smirks(cls, off_smirk: vdWHandler.vdWType):
+        """
+        Create a bespokefit AtomSmirks schema from the openforcefield vdWType
+
+        Parameters:
+            off_smirk: The vdW parameter type that should be converted into a bespokefit object.
+        """
+        atom_smirk = cls(smirks=off_smirk.smirks, epsilon=1, rmin_half=1)
+        atom_smirk.update_parameters(off_smirk=off_smirk)
+        return atom_smirk
+
+    def update_parameters(self, off_smirk: vdWHandler.vdWType, **kwargs) -> None:
         """
         Update the Atom smirks parameter handler using the corresponding openforcefield parameter handler.
 
@@ -157,8 +181,8 @@ class AtomSmirks(ValidatedSmirks):
 
 
 class BondSmirks(ValidatedSmirks):
-    atoms: Set[Tuple[int, int]]
-    type: SmirksType = SmirksType.Bonds
+    atoms: Set[Tuple[int, int]] = set()
+    type: Literal[SmirksType.Bonds] = SmirksType.Bonds
     k: str
     length: str
 
@@ -169,7 +193,19 @@ class BondSmirks(ValidatedSmirks):
     def _validate_smirks(cls, smirks: str) -> str:
         return _validate_smirks(smirks=smirks, expected_tags=2)
 
-    def update_parameters(self, off_smirk: BondHandler.BondType) -> None:
+    @classmethod
+    def from_off_smirks(cls, off_smirk: BondHandler.BondType):
+        """
+        Create a bespokefit BondSmirks schema from the openforcefield BondType.
+
+        Parameters:
+             off_smirk: The bond parameter type that should be converted into a bespokefit object.
+        """
+        bond_smirk = cls(smirks=off_smirk.smirks, k=1, length=1)
+        bond_smirk.update_parameters(off_smirk=off_smirk)
+        return bond_smirk
+
+    def update_parameters(self, off_smirk: BondHandler.BondType, **kwargs) -> None:
         """
         Update the Bond smirks parameter handler using the corresponding openforcefield parameter handler.
 
@@ -185,8 +221,8 @@ class BondSmirks(ValidatedSmirks):
 
 
 class AngleSmirks(ValidatedSmirks):
-    atoms: Set[Tuple[int, int, int]]
-    type: SmirksType = SmirksType.Angles
+    atoms: Set[Tuple[int, int, int]] = set()
+    type: Literal[SmirksType.Angles] = SmirksType.Angles
     k: str
     angle: str
 
@@ -197,7 +233,19 @@ class AngleSmirks(ValidatedSmirks):
     def _validate_smirks(cls, smirks: str) -> str:
         return _validate_smirks(smirks=smirks, expected_tags=3)
 
-    def update_parameters(self, off_smirk: AngleHandler.AngleType) -> None:
+    @classmethod
+    def from_off_smirks(cls, off_smirk: AngleHandler.AngleType):
+        """
+        Create a bespokefit AngleSmirks schema from the openforcefield AngleType.
+
+        Parameters:
+             off_smirk: The angle parameter type that should be converted into a bespokefit object.
+        """
+        angle_smirk = cls(smirks=off_smirk.smirks, k=1, angle=1)
+        angle_smirk.update_parameters(off_smirk=off_smirk)
+        return angle_smirk
+
+    def update_parameters(self, off_smirk: AngleHandler.AngleType, **kwargs) -> None:
         """
         Update the Angle smirks parameter handler using the corresponding openforcefield parameter handler.
 
@@ -232,7 +280,7 @@ class TorsionTerm(SchemaBase):
         self,
         periodicity: str,
         phase: Optional[float] = None,
-        k: float = 1e-5,
+        k: float = 1e-6,
         idivf: float = 1.0,
     ):
         """
@@ -250,8 +298,8 @@ class TorsionTerm(SchemaBase):
 
 
 class TorsionSmirks(SmirksSchema):
-    atoms: Set[Tuple[int, int, int, int]]
-    type: SmirksType = SmirksType.ProperTorsions
+    atoms: Set[Tuple[int, int, int, int]] = set()
+    type: Literal[SmirksType.ProperTorsions] = SmirksType.ProperTorsions
     terms: Dict[str, TorsionTerm] = {}
 
     @validator("smirks")
@@ -272,12 +320,31 @@ class TorsionSmirks(SmirksSchema):
     def __eq__(self, other):
         return super(TorsionSmirks, self).__eq__(other=other)
 
+    @classmethod
+    def from_off_smirks(
+        cls,
+        off_smirk: Union[
+            ProperTorsionHandler.ProperTorsionType,
+            ImproperTorsionHandler.ImproperTorsionType,
+        ],
+    ):
+        """
+        Create a bespokefit TorsionSmirks schema from the openforcefield Proper or Improper TorsionType.
+
+        Parameters:
+             off_smirk: The torsion parameter type that should be converted into a bespokefit object.
+        """
+        torsion_smirk = cls(smirks=off_smirk.smirks)
+        torsion_smirk.update_parameters(off_smirk=off_smirk)
+        return torsion_smirk
+
     def update_parameters(
         self,
         off_smirk: Union[
             ProperTorsionHandler.ProperTorsionType,
             ImproperTorsionHandler.ImproperTorsionType,
         ],
+        clear_existing: bool = True,
     ) -> None:
         """
         Update the Torsion smirks parameter handler using the corresponding openforcefield parameter handler.
@@ -286,14 +353,17 @@ class TorsionSmirks(SmirksSchema):
         ----------
         off_smirk: Union[ProperTorsionHandler.ProperTorsionType, ImproperTorsionHandler.ImproperTorsionType]
             The Torsion parameter type that the parameters should be extracted from.
+        clear_existing: bool, default=True
+            If any existing smirks k terms should be removed first.
         """
-        # clear out the current terms as the number of k could change
-        self.terms = {}
+        # clear out the current terms if requested
+        if clear_existing:
+            self.terms = {}
         for i, p in enumerate(off_smirk.periodicity):
             new_term = TorsionTerm(
                 periodicity=p,
                 phase=off_smirk.phase[i].value_in_unit(unit=unit.degree),
-                idivf=off_smirk.idivf[i],
+                idivf=1,  # always keep at 1
                 k=off_smirk.k[i].value_in_unit(unit=unit.kilocalorie_per_mole),
             )
             self.add_torsion_term(term=new_term)
@@ -322,10 +392,10 @@ class TorsionSmirks(SmirksSchema):
         parameterize = ", ".join(self.parameterize)
         data["parameterize"] = parameterize
         # now for each term we have to expand them out and correct the tags
-        for value, term in self.terms.items():
+        for i, term in enumerate(self.terms.values(), start=1):
             term_data = term.dict()
             corrected_data = {
-                (name + value, param) for name, param in term_data.items()
+                (name + str(i), param) for name, param in term_data.items()
             }
             data.update(corrected_data)
 

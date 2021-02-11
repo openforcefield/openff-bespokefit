@@ -4,14 +4,28 @@ Test for the bespoke-fit workflow generator.
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.testing import temp_directory
+from qcfractal.interface import FractalClient
 
-from ..exceptions import ForceFieldError, OptimizerError
-from ..optimizers import ForceBalanceOptimizer, deregister_optimizer, register_optimizer
-from ..targets import AbInitio_SMIRNOFF
-from ..utils import get_data
-from ..workflow import WorkflowFactory
+from openff.bespokefit.exceptions import (
+    ForceFieldError,
+    FragmenterError,
+    OptimizerError,
+    TargetNotSetError,
+)
+from openff.bespokefit.optimizers import (
+    ForceBalanceOptimizer,
+    deregister_optimizer,
+    register_optimizer,
+)
+from openff.bespokefit.targets import AbInitio_SMIRNOFF
+from openff.bespokefit.utils import get_data
+from openff.bespokefit.workflow import WorkflowFactory
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 
+bace_entries = ['[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[h])[h])[h])[h]',
+                "[h]c1c([c:1]([c:2](c(c1[h])[h])[c@:3]2(c(=o)n(c(=[n+:4]2[h])n([h])[h])c([h])([h])[h])c3(c(c3([h])[h])([h])[h])[h])[h])[h]",
+                "[h]c1c(c(c(c(c1[h])[h])[c@:3]2(c(=o)n(c(=[n+:4]2[h])n([h])[h])c([h])([h])[h])[c:2]3([c:1](c3([h])[h])([h])[h])[h])[h])[h]"]
 
 @pytest.mark.parametrize("forcefield", [
     pytest.param(("openff-1.0.0.offxml", None), id="Parsley 1.0.0"),
@@ -44,11 +58,11 @@ def test_adding_optimization_stages(optimization_data):
     workflow = WorkflowFactory()
 
     if error is None:
-        workflow.add_optimization_stage(optimizer=stage)
-        assert len(workflow.optimization_workflow) == 1
+        workflow.set_optimizer(optimizer=stage)
+        assert workflow.optimizer is not None
     else:
         with pytest.raises(error):
-            workflow.add_optimization_stage(optimizer=stage)
+            workflow.set_optimizer(optimizer=stage)
 
 
 def test_adding_optimization_stages_missing():
@@ -63,31 +77,20 @@ def test_adding_optimization_stages_missing():
     workflow = WorkflowFactory()
 
     with pytest.raises(OptimizerError):
-        workflow.add_optimization_stage(fb)
+        workflow.set_optimizer(fb)
 
     # register it again
     register_optimizer(optimizer=fb)
 
 
-@pytest.mark.parametrize("optimization_data", [
-    pytest.param(("ForceBalanceOptimizer", None), id="Forcebalance string"),
-    pytest.param((ForceBalanceOptimizer(), None), id="Forcebalance class"),
-    pytest.param(("BadOptimizer", OptimizerError), id="BadOptimizer Error")
-])
-def test_remove_optimization_stages(optimization_data):
+def test_remove_optimization_stages():
     """
     Test removing optimization stages from the workflow.
-    The workflow is set up with forcebalance each time.
     """
-    optimizer, error = optimization_data
-    workflow = WorkflowFactory(optimization_workflow=[ForceBalanceOptimizer()])
 
-    if error is None:
-        workflow.remove_optimization_stage(optimizer=optimizer)
-        assert workflow.optimization_workflow == []
-    else:
-        with pytest.raises(error):
-            workflow.remove_optimization_stage(optimizer=optimizer)
+    workflow = WorkflowFactory(optimization_workflow=[ForceBalanceOptimizer()])
+    workflow.clear_optimizer()
+    assert workflow.optimizer is None
 
 
 def test_workflow_export_import():
@@ -98,51 +101,199 @@ def test_workflow_export_import():
     workflow = WorkflowFactory()
     # add fb and a target with non standard settings
     fb = ForceBalanceOptimizer(penalty_type="L1", optimization_targets=[AbInitio_SMIRNOFF(fragmentation=False)])
-    workflow.add_optimization_stage(optimizer=fb)
+    workflow.set_optimizer(optimizer=fb)
 
     with temp_directory():
-        workflow.export_workflow(file_name="test.yaml")
+        workflow.export_workflow(file_name="test.json")
         # now read it back in
-        workflow2 = WorkflowFactory.parse_file("test.yaml")
+        workflow2 = WorkflowFactory.parse_file("test.json")
         assert workflow.dict() == workflow2.dict()
 
 
-@pytest.mark.parametrize("optimizer_data",[
-    pytest.param(([], OptimizerError), id="No Optimizer error"),
-    pytest.param(([ForceBalanceOptimizer()], OptimizerError), id="Forcebalane no targets"),
-    pytest.param(([ForceBalanceOptimizer(optimization_targets=[AbInitio_SMIRNOFF(fragmentation=False)])], None), id="Correct setup")
-])
-def test_make_fitting_schema(optimizer_data):
+def test_pre_run_check_no_opt():
     """
-    Test making a fitting schema for a simple molecule.
+    Make sure that the pre run check throws an error if there is no optimiser.
     """
-    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
     workflow = WorkflowFactory()
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
-    optimizers, error = optimizer_data
-    for opt in optimizers:
-        workflow.add_optimization_stage(optimizer=opt)
+    with pytest.raises(OptimizerError):
+        _ = workflow.fitting_schema_from_molecules(molecules=ethane)
 
-    if error is None:
-        schema = workflow.create_fitting_schema(molecules=[ethane, ])
-        assert schema.client == workflow.client
-        assert schema.singlepoint_dataset_name == workflow.singlepoint_dataset_name
-        assert schema.optimization_dataset_name == workflow.optimization_dataset_name
-        assert schema.torsiondrive_dataset_name == workflow.torsiondrive_dataset_name
-        # now we need to make sure the optimizer data is correct
-        assert schema.optimizer_settings[optimizers[0].optimizer_name.lower()] == optimizers[0].dict(exclude={"optimization_targets"})
-        assert schema.n_molecules == 1
-        assert schema.n_tasks == 1
-        # we need to make sure there is one TD target
-        molecule_schema = schema.molecules[0]
-        assert molecule_schema.molecule == ethane.to_smiles(isomeric=True, explicit_hydrogens=True, mapped=True)
-        assert molecule_schema.off_molecule == ethane
-        assert molecule_schema.n_tasks == 1
-        assert molecule_schema.n_targets == 1
-        assert molecule_schema.initial_forcefield == workflow.initial_forcefield
-        task_schema = molecule_schema.workflow[0]
-        assert task_schema.optimizer_name == optimizers[0].optimizer_name
 
+def test_pre_run_check_no_target():
+    """
+    Make sure that the pre run check catches if there are no targets set up
+    """
+    workflow = WorkflowFactory()
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    fb = ForceBalanceOptimizer()
+    workflow.set_optimizer(optimizer=fb)
+    with pytest.raises(OptimizerError):
+        _ = workflow.fitting_schema_from_molecules(molecules=ethane)
+
+
+def test_pre_run_check_no_frag():
+    """
+    Make sure the pre run check catches if there is no fragmentation method set.
+    """
+    workflow = WorkflowFactory()
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+    workflow.fragmentation_engine = None
+    with pytest.raises(FragmenterError):
+        _ = workflow.fitting_schema_from_molecules(molecules=ethane)
+
+
+def test_pre_run_check_no_params():
+    """
+    Make sure that the pre run check catches if we have not set any parameters to optimise, like bond length.
+    """
+    workflow = WorkflowFactory()
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+    workflow.target_parameters = []
+    with pytest.raises(TargetNotSetError):
+        _ = workflow.fitting_schema_from_molecules(molecules=ethane)
+
+
+def test_pre_run_check_no_smirks():
+    """
+    Make sure that the pre run check checks that some target smirks have been supplied.
+    """
+    workflow = WorkflowFactory()
+    ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+    workflow.target_smirks = []
+    with pytest.raises(TargetNotSetError):
+        _ = workflow.fitting_schema_from_molecules(molecules=ethane)
+
+
+def test_make_fitting_schema_from_molecules():
+    """
+    Test making a fitting schema for a simple molecule using the default settings.
+    Bace is a small molecule that should split into 2 fragments for a total of 3 torsiondrives.
+    """
+    bace = Molecule.from_file(file_path=get_data("bace.sdf"), file_format="sdf")
+    workflow = WorkflowFactory()
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+
+    schema = workflow.fitting_schema_from_molecules(molecules=bace)
+    # make sure one ethane torsion dirve is made
+    assert schema.n_molecules == 1
+    assert schema.n_tasks == 3
+    assert bace in schema.molecules
+    assert bace not in schema.entry_molecules
+    # get the qcsubmit dataset
+    datasets = schema.generate_qcsubmit_datasets()
+    assert len(datasets) == 1
+    assert datasets[0].dataset_type == "TorsiondriveDataset"
+    assert datasets[0].n_records == 3
+
+
+def test_task_from_molecule():
+    """
+    Test the workflow function which makes the optimization schema from a molecule
+    """
+    bace = Molecule.from_file(file_path=get_data("bace.sdf"), file_format="sdf")
+    workflow = WorkflowFactory()
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+
+    opt_schema = workflow._task_from_molecule(molecule=bace, index=1)
+    assert opt_schema.initial_forcefield == workflow.initial_forcefield
+    assert opt_schema.optimizer_name == fb.optimizer_name
+    assert opt_schema.job_id == "bespoke_task_1"
+    assert bool(opt_schema.target_smirks) is True
+    assert opt_schema.target_parameters == workflow.target_parameters
+    assert opt_schema.target_molecule.molecule == bace
+    assert opt_schema.n_tasks == 3
+    assert opt_schema.n_targets == 1
+
+
+@pytest.mark.parametrize("combine", [
+    pytest.param(True, id="combine"),
+    pytest.param(False, id="no combine")
+])
+def test_sort_results(combine):
+    """
+    Test sorting the results before making a fitting schema with and without combination.
+    """
+    # load up the fractal client
+    client = FractalClient()
+    # grab a dataset with bace fragments in it
+    result = TorsionDriveCollectionResult.from_server(client=client, spec_name="default", dataset_name="OpenFF-benchmark-ligand-fragments-v1.0", final_molecule_only=True, subset=bace_entries)
+    workflow = WorkflowFactory()
+    # now sort the results
+    all_results = workflow._sort_results(results=result, combine=combine)
+    if combine:
+        assert len(all_results) == 2
     else:
-        with pytest.raises(error):
-            _ = workflow.create_fitting_schema(molecules=[ethane, ])
+        assert len(all_results) == 3
+
+
+def test_task_from_results():
+    """
+    Test making an individual task from a set of results
+    """
+    # load a client and pull some results
+    client = FractalClient()
+    # grab a dataset with small fragments in it
+    result = TorsionDriveCollectionResult.from_server(client=client, spec_name="default",
+                                                      dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
+                                                      final_molecule_only=True, subset=bace_entries[:1])
+    # grab the only result
+    result = list(result.collection.values())[0]
+    # set up the workflow
+    workflow = WorkflowFactory()
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+    # this should be a simple biphenyl molecule
+    opt_schema = workflow._task_from_results(results=[result, ], index=1)
+
+    assert opt_schema.initial_forcefield == workflow.initial_forcefield
+    assert opt_schema.optimizer_name == fb.optimizer_name
+    assert opt_schema.job_id == "bespoke_task_1"
+    assert bool(opt_schema.target_smirks) is True
+    assert opt_schema.target_parameters == workflow.target_parameters
+    assert result.molecule == opt_schema.target_molecule.molecule
+    assert opt_schema.n_tasks == 1
+    assert opt_schema.n_targets == 1
+    assert opt_schema.ready_for_fitting is True
+
+
+def test_make_fitting_schema_from_results():
+    """
+    Test that new fitting schemas can be made from results and that all results are full
+    """
+    # build the workflow
+    workflow = WorkflowFactory()
+    fb = ForceBalanceOptimizer()
+    fb.set_optimization_target(target=AbInitio_SMIRNOFF())
+    workflow.set_optimizer(optimizer=fb)
+
+    # set up the client and load the results
+    # load a client and pull some results
+    client = FractalClient()
+    # grab a dataset with small fragments in it
+    result = TorsionDriveCollectionResult.from_server(client=client, spec_name="default",
+                                                      dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
+                                                      final_molecule_only=True, subset=bace_entries)
+    schema = workflow.fitting_schema_from_results(results=result, combine=True)
+    # there should be 2 total molecules as we have combined two results
+    assert schema.n_molecules == 2
+    # there are a total of 3 torsiondrives
+    assert schema.n_tasks == 3
+    # make sure each task has results and is ready to fit
+    for task in schema.tasks:
+        assert task.ready_for_fitting is True

@@ -7,24 +7,33 @@ import shutil
 
 import pytest
 from openforcefield.topology import Molecule
-from qcsubmit.testing import temp_directory
+from pydantic import ValidationError
 
-from ...common_structures import Status
-from ...exceptions import TargetNotSetError
-from ...optimizers import ForceBalanceOptimizer
-from ...schema.fitting import WorkflowSchema
-from ...targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
-from ...utils import get_data
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.exceptions import TargetNotSetError
+from openff.bespokefit.optimizers import ForceBalanceOptimizer
+from openff.bespokefit.schema import OptimizationSchema
+from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
+from openff.bespokefit.utils import get_data
+from openff.bespokefit.workflow import WorkflowFactory
+from openff.qcsubmit.testing import temp_directory
 
 
-def ethane_workflow(target) -> WorkflowSchema:
+def biphenyl_workflow(target) -> OptimizationSchema:
     """
     Create a workflow schema which targets the rotatable bond in ethane.
     """
-    mol = Molecule.from_smiles("CC")
+    mol = Molecule.from_file(get_data("biphenyl.sdf"), "sdf")
+    workflow = WorkflowFactory()
+    # turn off bespoke terms we want fast fitting
+    workflow.generate_bespoke_terms = False
+    workflow.expand_torsion_terms = False
+    fb = ForceBalanceOptimizer()
     target = target()
-    workflow = WorkflowSchema(optimizer_name="forcebalanceoptimizer", job_id=mol.to_smiles(), targets=[target.generate_fitting_schema(molecule=mol)])
-    return workflow
+    fb.set_optimization_target(target=target)
+    workflow.set_optimizer(optimizer=fb)
+    schema = workflow.fitting_schema_from_molecules(molecules=mol)
+    return schema.tasks[0]
 
 
 def test_forcebalance_name_change():
@@ -33,11 +42,8 @@ def test_forcebalance_name_change():
     """
     fb = ForceBalanceOptimizer()
     # try a random name
-    fb.optimizer_name = "fancy_opt"
-    assert fb.optimizer_name.lower() != "fancy_opt"
-    # try and just lower case
-    fb.optimizer_name = "forcebalanceoptimizer"
-    assert fb.optimizer_name.lower() == "forcebalanceoptimizer"
+    with pytest.raises(ValidationError):
+        fb.optimizer_name = "fancy_opt"
 
 
 def test_forcebalance_provenance():
@@ -85,9 +91,9 @@ def test_generate_opt_in():
 
 
 @pytest.mark.parametrize("output", [
-    pytest.param(("complete.out", Status.Complete), id="Complete"),
-    pytest.param(("error.out", Status.Error), id="Error"),
-    pytest.param(("running.out", Status.Optimizing), id="Running")
+    pytest.param(("complete.out", Status.Complete), id="Complete run"),
+    pytest.param(("error.out", Status.ConvergenceError), id="Convergence error"),
+    pytest.param(("running.out", Status.Optimizing), id="Running ")
 ])
 def test_forcebalance_readoutput(output):
     """
@@ -100,42 +106,43 @@ def test_forcebalance_readoutput(output):
         # now we have to make sum dummy folders
         results_folder = os.path.join("result", "optimize")
         os.makedirs(results_folder, exist_ok=True)
-        with open(os.path.join(results_folder, "bespoke_10.offxml"), "w") as xml:
+        with open(os.path.join(results_folder, "bespoke.offxml"), "w") as xml:
             xml.write("test")
         fb = ForceBalanceOptimizer()
         result = fb.read_output()
         assert result["status"] == status
-        assert "bespoke_10.offxml" in result["forcefield"]
+        assert "bespoke.offxml" in result["forcefield"]
 
 
 def test_forcebalance_collect_result_error():
     """
     Test trying to collect the result when the workflow has an error.
     """
-    workflow = ethane_workflow(target=AbInitio_SMIRNOFF)
+    workflow = biphenyl_workflow(target=AbInitio_SMIRNOFF)
     # we need to set up a dummy folder with the error
     with temp_directory():
         # copy the file over
         shutil.copy(get_data("error.out"), "optimize.out")
         results_folder = os.path.join("result", "optimize")
         os.makedirs(results_folder, exist_ok=True)
-        with open(os.path.join(results_folder, "bespoke_10.offxml"), "w") as xml:
-            xml.write("test")
+        ff_path = os.path.join(results_folder, "bespoke.offxml")
+        shutil.copy(get_data("bespoke.offxml"), ff_path)
         fb = ForceBalanceOptimizer()
-        result_workflow = fb.collect_results(workflow=workflow)
-        assert result_workflow.status == Status.Error
+        result_workflow = fb.collect_results(schema=workflow)
+        assert result_workflow.status == Status.ConvergenceError
 
 
 def test_forcebalance_collect_results():
     """
     Test trying to collect results that have been successful and updated the parameters.
     """
-    workflow = ethane_workflow(target=AbInitio_SMIRNOFF)
+    workflow = biphenyl_workflow(target=AbInitio_SMIRNOFF)
     # first make sure the target smirks are set to the default value
     target_smirks = workflow.target_smirks
     for smirk in target_smirks:
         for param in smirk.terms.values():
-            assert param.k == "1e-05 * mole**-1 * kilocalorie"
+            # starting value
+            assert param.k == "1.048715180139 * mole**-1 * kilocalorie"
 
     # set up the dummy output folder
     with temp_directory():
@@ -143,15 +150,15 @@ def test_forcebalance_collect_results():
         shutil.copy(get_data("complete.out"), "optimize.out")
         results_folder = os.path.join("result", "optimize")
         os.makedirs(results_folder, exist_ok=True)
-        ff_path = os.path.join(results_folder, "bespoke_1.offxml")
-        shutil.copy(get_data("bespoke_1.offxml"), ff_path)
+        ff_path = os.path.join(results_folder, "bespoke.offxml")
+        shutil.copy(get_data("bespoke.offxml"), ff_path)
         fb = ForceBalanceOptimizer()
-        result_workflow = fb.collect_results(workflow=workflow)
+        result_workflow = fb.collect_results(schema=workflow)
         # make sure the smirks have been updated
-        new_smirks = result_workflow.target_smirks
+        new_smirks = result_workflow.final_smirks
         for smirk in new_smirks:
             for param in smirk.terms.values():
-                assert param.k != "1e-05 * mole**-1 * kilocalorie"
+                assert param.k != "1.048715180139 * mole**-1 * kilocalorie"
 
 
 @pytest.mark.parametrize("optimization_target", [
@@ -160,18 +167,18 @@ def test_forcebalance_collect_results():
 ])
 def test_forcebalance_optimize(optimization_target):
     """
-    Test running the ful optimization stage for ethane using different targets.
-    The data has been precomputed using ani2x.
+    Test running the full optimization stage for a simple biphenyl system using different targets.
+    The data has been extracted from qcarchive.
     """
-    from qcsubmit.results import TorsionDriveCollectionResult
-    workflow = ethane_workflow(target=optimization_target)
+    from openff.qcsubmit.results import TorsionDriveCollectionResult
+    workflow = biphenyl_workflow(target=optimization_target)
     with temp_directory():
         # load the computed results and add them to the workflow
-        torsiondrive_result = TorsionDriveCollectionResult.parse_file(get_data("ethane.json"))
-        workflow.update_with_results(results=[torsiondrive_result, ])
+        torsiondrive_result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
+        workflow.update_with_results(results=torsiondrive_result)
         # setup the optimizer
         fb = ForceBalanceOptimizer()
-        result = fb.optimize(workflow=workflow, initial_forcefield="openff_unconstrained-1.2.0.offxml")
+        result = fb.optimize(schema=workflow)
         assert result.status == Status.Complete
         new_smirks = result.target_smirks
         for smirk in new_smirks:

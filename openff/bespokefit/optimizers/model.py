@@ -5,13 +5,13 @@ The optimizer model abstract class.
 import abc
 from typing import Dict, List, Union
 
-from pydantic import BaseModel, validator
+from openff.bespokefit.common_structures import SchemaBase
+from openff.bespokefit.exceptions import TargetRegisterError
+from openff.bespokefit.schema import OptimizationSchema
+from openff.bespokefit.targets.model import Target
 
-from ..exceptions import TargetRegisterError
-from ..targets.model import Target
 
-
-class Optimizer(BaseModel, abc.ABC):
+class Optimizer(SchemaBase, abc.ABC):
     """
     This is the abstract basic Optimizer class that each optimizer should use.
     """
@@ -22,19 +22,20 @@ class Optimizer(BaseModel, abc.ABC):
         Target
     ] = []  # this is the actual targets that are to be executed in the optimizaion
 
-    @validator("optimizer_name")
-    def _set_optimizer_name(cls, optimizer_name: str) -> str:
-        """
-        Make sure that the optimizer name is the same as the cls.__name__
-        """
-        if optimizer_name.lower() == cls.__name__.lower():
-            return optimizer_name
-        else:
-            return cls.__name__
-
     class Config:
         validate_assignment = True
         arbitrary_types_allowed = True
+        fields = {
+            "optimizer_name": {
+                "description": "The name of the optimizer used to rebuild the optimizer model."
+            },
+            "optimizer_description": {
+                "description": "A short description of the optimizer and links to more info."
+            },
+            "optimization_targets": {
+                "description": "The list of optimization targets."
+            },
+        }
 
     # this is shared across optimizers so we have to separate by optimizer
     _all_targets: Dict[str, Dict[str, Target]] = {}
@@ -159,6 +160,13 @@ class Optimizer(BaseModel, abc.ABC):
 
         return list(cls._get_registered_targets().values())
 
+    @classmethod
+    def get_registered_target_names(cls) -> List[str]:
+        """
+        Get the names of the registered targets for this optimizer.
+        """
+        return list(cls._get_registered_targets().keys())
+
     @abc.abstractmethod
     def provenance(self) -> Dict:
         """
@@ -179,9 +187,7 @@ class Optimizer(BaseModel, abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def optimize(
-        self, workflow: "WorkflowSchema", initial_forcefield: str
-    ) -> "WorkflowSchema":
+    def optimize(self, schema: OptimizationSchema) -> OptimizationSchema:
         """
         This is the main function of the optimizer which is called when the optimizer is put in a workflow.
         It should loop over the targets and assert they are registered and then dispatch compute and optimization.

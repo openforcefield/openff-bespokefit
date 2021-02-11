@@ -13,21 +13,21 @@ from openforcefield.typing.engines.smirnoff import (
 )
 from pydantic import ValidationError
 
-from ...exceptions import SMIRKSTypeError
-from ...schema.smirks import (
+from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirks import (
     AngleSmirks,
     AtomSmirks,
     BondSmirks,
     TorsionSmirks,
     TorsionTerm,
 )
-from ...utils import compare_smirks_graphs
+from openff.bespokefit.utils import compare_smirks_graphs
 
 
 @pytest.mark.parametrize("smirks_data", [
     pytest.param(("[#1:1]", None), id="Valid atom smirks"),
     pytest.param(("[#1]", SMIRKSParsingError), id="Missing tag"),
-    pytest.param(("[#1:1]-[#6:2]", SMIRKSTypeError), id="Two tags error"),
+    pytest.param(("[#1:1]-[#6:2]", ValidationError), id="Two tags error"),
     pytest.param(("[CH3:7][CH3:8]>>[CH3:7][CH3:8]", SMIRKSParsingError), id="Reaction smarts error"),
     pytest.param(("C.C", SMIRKSParsingError), id="Molecle complex")
 ])
@@ -83,7 +83,7 @@ def test_bond_smirks(smirks_data):
 @pytest.mark.parametrize("smirks_data", [
     pytest.param(("[#1:1]-[#6:2]-[#6:3]-[#1:4]", None), id="Valid torsion smirks"),
     pytest.param(("[#1]", SMIRKSParsingError), id="Missing all tags"),
-    pytest.param(("[#1:1]-[#6:2]", SMIRKSTypeError), id="Two tags error"),
+    pytest.param(("[#1:1]-[#6:2]", ValidationError), id="Two tags error"),
 ])
 def test_bond_smirks(smirks_data):
     """
@@ -222,7 +222,6 @@ def test_smirks_equal_types(smirks):
     pytest.param(("[#6X4:1]-[#6X3:2]", "[#6X4:1]-[#6X3:2]=[#8X1+0]", False), id="Different bond"),
     pytest.param(("[*:3]~[#6X4:2]-[*:1]", "[*:1]~[#6X4:2]-[*:3]", True), id="Same angle reversed"),
     pytest.param(("[*:6]~[#6X4:2]-[*:1]", "[*:1]~[#6X4:2]-[*:3]", False), id="Same angle wrong index"),
-    pytest.param(("[*:1]~[#6X4:2]-[*:3]", "[*:1]=[#6X4:2]-[*:3]", False), id="Different angles"),
     pytest.param(("[*:4]-[#6X4:3]-[#6X4:2]-[*:1]", "[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", True), id="Same torsion reversed index"),
     pytest.param(("[*:1]-[#6X3:2]-[#6X4:3]-[*:4]", "[*:4]-[#6X4:3]-[#6X3:2]-[*:1]", True),
                  id="Same torsion reversed terms"),
@@ -241,7 +240,7 @@ def test_smirks_equal(smirks):
     pytest.param((AtomSmirks(smirks="[#53X0-1:1]", atoms={(0, )}, epsilon=0, rmin_half=0), {"epsilon": "0.0536816 * mole**-1 * kilocalorie", "rmin_half": "2.86 * angstrom"}), id="Update atom smirks"),
     pytest.param((BondSmirks(smirks="[#6X4:1]-[#6X4:2]", atoms={(0,1)}, length=0, k=0), {"k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie", "length": "1.520375903275 * angstrom"}), id="Update bond smirks"),
     pytest.param((AngleSmirks(smirks="[*:1]~[#6X4:2]-[*:3]", atoms={(0, 1, 2)}, angle=0, k=0), {"angle": "107.6607821752 * degree", "k": "101.7373362367 * mole**-1 * radian**-2 * kilocalorie"}), id="Update angle smirks"),
-    pytest.param((TorsionSmirks(smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", atoms={(0, 1, 2, 3)}, terms={"1": TorsionTerm(periodicity=1)}), {"terms": {"3": TorsionTerm(periodicity=3, phase=0.0, k=0.2042684902198)}}), id="Update torsion smirks")
+    pytest.param((TorsionSmirks(smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", atoms={(0, 1, 2, 3)}, terms={"1": TorsionTerm(periodicity=1)}), {"terms": {"3": TorsionTerm(periodicity=3, phase=0.0, k=0.2042684902198, idivf=1)}}), id="Update torsion smirks")
 ])
 def test_update_parameters(smirks_data):
     """

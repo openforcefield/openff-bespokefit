@@ -1,16 +1,40 @@
+import abc
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import ForceField
-from pydantic import Protocol, validator
+from pydantic import Field, Protocol, validator
 from qcelemental.models.types import Array
-from qcsubmit.common_structures import QCSpec
-from qcsubmit.datasets import BasicDataset, OptimizationDataset, TorsiondriveDataset
-from qcsubmit.procedures import GeometricProcedure
-from qcsubmit.results import (
+from simtk import unit
+from typing_extensions import Literal
+
+from openff.bespokefit.common_structures import SchemaBase, SmirksSettings, Status
+from openff.bespokefit.exceptions import (
+    DihedralSelectionError,
+    MoleculeMissMatchError,
+    OptimizerError,
+    TaskMissMatchError,
+)
+from openff.bespokefit.schema.smirks import (
+    AngleSmirks,
+    AtomSmirks,
+    BondSmirks,
+    SmirksType,
+    TorsionSmirks,
+)
+from openff.qcsubmit.common_structures import MoleculeAttributes, QCSpec
+from openff.qcsubmit.datasets import (
+    BasicDataset,
+    DatasetEntry,
+    OptimizationDataset,
+    OptimizationEntry,
+    TorsiondriveDataset,
+    TorsionDriveEntry,
+)
+from openff.qcsubmit.results import (
     BasicCollectionResult,
     BasicResult,
     OptimizationCollectionResult,
@@ -19,67 +43,61 @@ from qcsubmit.results import (
     TorsionDriveCollectionResult,
     TorsionDriveResult,
 )
-from qcsubmit.serializers import deserialize, serialize
-from qcsubmit.validators import cmiles_validator
-from simtk import unit
-
-from ..collection_workflows import CollectionMethod, Precedence, WorkflowStage
-from ..common_structures import Status, Task
-from ..exceptions import (
-    DihedralSelectionError,
-    MissingReferenceError,
-    MissingWorkflowError,
-    MoleculeMissMatchError,
-    OptimizerError,
-    WorkflowUpdateError,
-)
-from ..utils import schema_to_datasets
-from .schema import SchemaBase
-from .smirks import (
-    AngleSmirks,
-    AtomSmirks,
-    BondSmirks,
-    SmirksSchema,
-    TorsionSmirks,
-    ValidatedSmirks,
-)
+from openff.qcsubmit.serializers import deserialize, serialize
 
 
-class FittingEntry(SchemaBase):
+class FittingTask(SchemaBase, abc.ABC):
     """
     This is the fitting schema which has instructions on how to collect the reference data and fit the parameters for a molecule.
     """
 
-    name: str
-    attributes: Dict[str, str]
-    collection_workflow: List[WorkflowStage] = []
-    target_smirks: List[Union[SmirksSchema, ValidatedSmirks]] = []
-    qc_spec: QCSpec = QCSpec()
-    provenance: Dict[str, Any] = {}
-    extras: Dict[str, Any] = {}
-    input_conformers: List[Array[np.ndarray]] = []
-    _validate_attributes = validator("attributes", allow_reuse=True)(cmiles_validator)
+    # used to distinguish between fitting entry types
+    task_type: Literal["FittingTask"] = "FittingTask"
 
-    @validator("target_smirks", pre=True)
-    def _check_target_smirks(cls, smirks):
+    name: str = Field(
+        ...,
+        description="The name of the fitting entry, this is normally the molecule name and task which generates the input data like torsiondrive.",
+    )
+    attributes: MoleculeAttributes = Field(
+        ...,
+        description="A dictionary containing the cmiles information about the molecule.",
+    )
+    provenance: Dict[str, Any] = Field(
+        dict(),
+        description="A dictionary of the provenance info used to create this fitting entry.",
+    )
+    extras: Dict[str, Any] = Field(
+        dict(),
+        description="Any extra information that might be needed by the target.",
+    )
+    input_conformers: List[Array[np.ndarray]] = Field(
+        ...,
+        description="The list of conformers stored as a np.ndarray so we can serialize to json.",
+    )
+    fragment: bool = Field(
+        ..., description="If the molecule is a fragment of a parent."
+    )
+    fragment_parent_mapping: Optional[Dict[int, int]] = Field(
+        None,
+        description="If the molecule is a fragment store the fragment to parent mapping here, to use this enter the index of the atom in the fragment to get the corresponding index of the parent atom.",
+    )
+    error_message: Optional[str] = Field(
+        None,
+        description="Any errors recorded while generating the fitting data should be listed here.",
+    )
+
+    def __init__(self, molecule: Optional[off.Molecule] = None, **kwargs):
         """
-        A helper method to correctly handle the union of types.
+        Handle the unpacking of the input conformers.
         """
-        new_smirks = []
-        _type_conversion = {
-            "vdW": AtomSmirks,
-            "Bonds": BondSmirks,
-            "Angles": AngleSmirks,
-            "ProperTorsions": TorsionSmirks,
-        }
-        for smirk in smirks:
-            if isinstance(smirk, dict):
-                # if it is a dict from importing unpack here
-                new_smirk = _type_conversion[smirk["type"]](**smirk)
-                new_smirks.append(new_smirk)
-            else:
-                new_smirks.append(smirk)
-            return new_smirks
+        input_confs = kwargs.get("input_conformers", [])
+        if not input_confs and molecule is not None:
+            # get from the molecule
+            for conformer in molecule.conformers:
+                input_confs.append(conformer.in_units_of(unit.angstrom))
+            kwargs["input_conformers"] = input_confs
+
+        super(FittingTask, self).__init__(**kwargs)
 
     @validator("input_conformers")
     def _check_conformers(
@@ -96,36 +114,30 @@ class FittingEntry(SchemaBase):
                 reshaped_conformers.append(conformer)
         return reshaped_conformers
 
-    @validator("extras")
-    def _validate_extras(cls, extras: Dict[str, Any]) -> Dict[str, Any]:
+    @property
+    def has_errors(self) -> bool:
+        """Return if collecting the reference data resulted in an error."""
+        return True if self.error_message is not None else False
+
+    @property
+    def graph_molecule(self) -> off.Molecule:
         """
-        Dihedrals are stored in the extras field so make sure they are formatted correctly.
+        Create just the OpenFF graph molecule representation for the FittingSchema no geometry is included.
+
+        Note:
+            This is useful for quick comparsions as the geometry does not have to be built and validated.
         """
-        dihedrals = extras.get("dihedrals", None)
-        if dihedrals is not None:
-            # make sure we have a list of lists/tuples
-            if len(dihedrals) == 4:
-                # single list
-                extras["dihedrals"] = [
-                    dihedrals,
-                ]
-                return extras
-            elif len(dihedrals) <= 2:
-                return extras
-            else:
-                raise DihedralSelectionError(
-                    f"A maximum of a 2D dihedral scan is supported but a scan of length {len(dihedrals)} was given."
-                )
-        return extras
+
+        return off.Molecule.from_mapped_smiles(
+            self.attributes.canonical_isomeric_explicit_hydrogen_mapped_smiles
+        )
 
     @property
     def initial_molecule(self) -> off.Molecule:
         """
         Create an openFF molecule representation for the FittingSchema with the input geometries.
         """
-        off_mol = off.Molecule.from_mapped_smiles(
-            self.attributes["canonical_isomeric_explicit_hydrogen_mapped_smiles"]
-        )
+        off_mol = self.graph_molecule
         # check if there are any complete workflow stages
         for conformer in self.input_conformers:
             geometry = unit.Quantity(value=conformer, unit=unit.angstrom)
@@ -133,223 +145,57 @@ class FittingEntry(SchemaBase):
 
         return off_mol
 
-    @property
-    def current_molecule(self) -> off.Molecule:
-        """
-        Create an openFF molecule representation for the FittingSchema with the latest geometries from the results.
-        """
-        # get the initial molecule
-        off_mol = self.initial_molecule
-        # now workout if there are any new geometries
-        for stage in self.collection_workflow:
-            if stage.status == Status.Complete:
-                geometries = stage.get_result_geometries()
-                off_mol._conformers = []
-                for geometry in geometries:
-                    off_mol.add_conformer(geometry)
-        return off_mol
-
-    def add_target_smirks(
-        self, smirks: Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]
-    ) -> None:
-        """
-        Add a smirks schema to list this method also makes sure the smirks is not already registered and deduplicates the smirks entries.
-        """
-
-        for target in self.target_smirks:
-            if target == smirks:
-                # we need to just transfer the atoms if the patterns are the same
-                target.atoms.update(smirks.atoms)
-                break
-        else:
-            self.target_smirks.append(smirks)
-
-    def current_tasks(self) -> List[WorkflowStage]:
-        """
-        Get the current task to be executed with its hash added to it.
-        """
-        tasks = []
-        for i, stage in enumerate(self.collection_workflow):
-            if stage.status != Status.Complete:
-                job_id = self.get_task_hash(stage)
-                stage.job_id = job_id
-                tasks.append(stage)
-                # if the task can be done in parallel return the other tasks
-                if stage.precedence == Precedence.Parallel:
-                    for parallel_stage in self.collection_workflow[i + 1 :]:
-                        if parallel_stage.precedence == Precedence.Parallel:
-                            job_id = self.get_task_hash(parallel_stage)
-                            parallel_stage.job_id = job_id
-                            tasks.append(parallel_stage)
-                return tasks
-        return []
-
-    def get_task_hash(self, stage: WorkflowStage) -> str:
-        """
-        Generate a task hash for the metadata and collection stage combination.
-        """
-        m = hashlib.sha1()
-        hash_string = self._get_general_hash_data() + self._get_stage_hash_data(stage)
-        m.update(hash_string.encode("utf-8"))
-        return m.hexdigest()
-
     def _get_general_hash_data(self) -> str:
         """
         Collect the general hash data.
         """
-        inchi = self.initial_molecule.to_inchikey(
-            fixed_hydrogens=True
-        )  # non standard inchi
-        hash_string = (
-            inchi + self.qc_spec.method + str(self.qc_spec.basis) + self.qc_spec.program
-        )
-        return hash_string
+        inchi = self.graph_molecule.to_inchikey(fixed_hydrogens=True)
+        return inchi
 
-    def _get_stage_hash_data(self, stage: WorkflowStage) -> str:
+    @abc.abstractmethod
+    def _get_task_hash(self) -> str:
         """
-        Get the data from a collection stage read for hashing.
+        Get a specific task data that will be combined with general molecule data to make the hash.
         """
-        if stage.method.value == "local":
-            # we need to specify the target method as well
-            target_data = stage.method.value + self.provenance["target"]
-        elif stage.method.value == "torsiondrive1d":
-            # we also need to add the dihedrals
-            dihedral = str(self.extras["dihedrals"])
-            target_data = stage.method.value + dihedral
-        else:
-            target_data = stage.method.value
+        raise NotImplementedError()
 
-        return target_data
-
-    def get_hash(self):
+    @abc.abstractmethod
+    def get_qcsubmit_task(self):
         """
-        Get a hash of the Fitting entry including all tasks in the collection workflow used when constructing a
-        deduplicated queue of collection tasks.
+        Generate a qcsubmit task for this fitting entry.
         """
+        raise NotImplementedError()
 
+    def get_task_hash(self) -> str:
+        """
+        Get a hash of the current task.
+        """
         m = hashlib.sha1()
-        hash_string = self._get_general_hash_data()
-        for stage in self.collection_workflow:
-            target_data = self._get_stage_hash_data(stage)
-            hash_string += target_data
-
+        hash_string = self._get_general_hash_data() + self._get_task_hash()
         m.update(hash_string.encode("utf-8"))
         return m.hexdigest()
 
-    def __eq__(self, other: "FittingEntry") -> bool:
+    @abc.abstractmethod
+    def update_with_results(self, result) -> None:
         """
-        Check if the job hash is the same.
+        Take a results class and update the results in the schema.
         """
-        return self.get_hash() == other.get_hash()
+        raise NotImplementedError()
 
-    def get_reference_data(self) -> List[SingleResult]:
+    @abc.abstractmethod
+    def reference_data(self) -> List[SingleResult]:
         """
-        Return the final result of the collection workflow if it is set else raise an error.
+        Return the reference data ready for fitting.
         """
-        if self.collection_workflow:
-            result = self.collection_workflow[-1].result
-            if result is not None:
-                return result
-            else:
-                raise MissingReferenceError(
-                    f"The workflow has not collected any results yet."
-                )
-        else:
-            raise MissingWorkflowError(
-                f"The Entry has no collection workflow to hold results."
-            )
+        raise NotImplementedError()
 
     @property
-    def ready_for_fitting(self) -> bool:
+    @abc.abstractmethod
+    def collected(self) -> bool:
         """
-        A self validation method to make sure the molecule is ready for fitting.
-
-        Returns:
-            `True` if all information is present else `False`.
+        Return if the schema is complete and has reference data.
         """
-        # check the last stage is ready for fitting
-        if self.collection_workflow:
-            stage = self.collection_workflow[-1]
-            if stage.status == Status.Complete and stage.result is not None:
-                return True
-
-        return False
-
-    def update_with_results(
-        self, results: Union[BasicResult, TorsionDriveResult, OptimizationEntryResult]
-    ) -> None:
-        """
-        This will update the fitting entry with results collected with qcsubmit, the type of data accepted depends here on the collection method specified.
-
-        Note:
-            - torsiondrive1d/2d will accept TorsionDriveResults and OptimizationEntryResult if it is constrained
-            - singlepoints will accept any input type.
-        """
-        for stage in self.collection_workflow:
-            if stage.method in [
-                CollectionMethod.TorsionDrive1D,
-                CollectionMethod.TorsionDrive2D,
-                CollectionMethod.Optimization,
-            ]:
-                # keep track of if we need to remap
-                remap = False
-
-                new_results = []
-                if isinstance(results, TorsionDriveResult):
-                    # this is valid so work out any mapping differences and update the result
-                    isomorphic, atom_map = off.Molecule.are_isomorphic(
-                        results.molecule, self.initial_molecule, return_atom_map=True
-                    )
-                    if isomorphic:
-                        # if the atom map is not the same remap the result
-                        if atom_map != dict(
-                            (i, i) for i in range(self.initial_molecule.n_atoms)
-                        ):
-                            remap = True
-                        # work out if the result and schema target the same dihedral
-                        dihedral = set(self.extras["dihedrals"][0][1:3])
-                        # now map the result dihedral back
-                        target_dihedral = set(
-                            [atom_map[i] for i in results.dihedrals[0][1:3]]
-                        )
-                        if not target_dihedral.difference(dihedral):
-                            # get the optimization results in order of the angle
-                            # we need this data later
-                            for (
-                                angle,
-                                optimization_result,
-                            ) in results.get_ordered_results():
-                                if remap:
-                                    new_single_result = self._remap_single_result(
-                                        mapping=atom_map,
-                                        new_molecule=self.initial_molecule,
-                                        result=optimization_result,
-                                        extras={"dihedral_angle": angle},
-                                    )
-                                else:
-                                    # get a new single result with the angle in it
-                                    result_dict = optimization_result.dict(
-                                        exclude={"wbo", "mbo"}
-                                    )
-                                    result_dict["extras"] = {"dihedral_angle": angle}
-                                    new_single_result = SingleResult(**result_dict)
-
-                                new_results.append(new_single_result)
-
-                            stage.result = new_results
-                            stage.status = Status.Complete
-
-                        else:
-                            raise DihedralSelectionError(
-                                f"Molecules are the same but do not target the same dihedral."
-                            )
-                    else:
-                        raise MoleculeMissMatchError(
-                            f"Molecules are not isomorphic and the results can not be transferred."
-                        )
-
-                else:
-                    raise NotImplementedError()
+        raise NotImplementedError()
 
     def _remap_single_result(
         self,
@@ -371,7 +217,7 @@ class FittingEntry(SchemaBase):
         # re map the geometry and attach
         new_conformer = np.zeros((new_molecule.n_atoms, 3))
         for i in range(new_molecule.n_atoms):
-            new_conformer[i] = result.molecule.geometry[mapping[i]]
+            new_conformer[mapping[i]] = result.molecule.geometry[i]
         geometry = unit.Quantity(new_conformer, unit.bohr)
         new_molecule.add_conformer(geometry)
         # drop the bond order indices and just remap the gradient and hessian
@@ -393,6 +239,285 @@ class FittingEntry(SchemaBase):
             extras=extras,
         )
 
+    def __eq__(self, other: "FittingTask") -> bool:
+        """
+        Check if the job hash is the same.
+        """
+        return self.get_task_hash() == other.get_task_hash()
+
+
+class TorsionTask(FittingTask):
+    """
+    A schema detailing a torsiondrive fitting target.
+    """
+
+    task_type: Literal["torsion1d"] = "torsion1d"
+    dihedrals: Optional[List[Tuple[int, int, int, int]]] = Field(
+        None,
+        description="The dihedrals which are to be driven during the collection workflow.",
+    )
+    torsiondrive_data: Optional[List[SingleResult]] = Field(
+        None, description="The results of the torsiondrive."
+    )
+
+    @validator("dihedrals")
+    def _validate_dihedrals(
+        cls, dihedrals: Optional[List[Tuple[int, int, int, int]]]
+    ) -> Optional[List[Tuple[int, int, int, int]]]:
+        """
+        Dihedrals targeted for driving and optimization are stored here make sure that only 1D or 2D scans are available.
+        """
+        if dihedrals is not None:
+            # make sure we have a list of lists/tuples
+            if len(dihedrals) == 4:
+                # single list
+                dihedrals = [
+                    tuple(dihedrals),
+                ]
+
+            if len(dihedrals) >= 3:
+                # make sure we are not doing more than 2D
+                raise DihedralSelectionError(
+                    f"A maximum of a 2D dihedral scan is supported but a scan of length {len(dihedrals)} was given."
+                )
+        return dihedrals
+
+    @property
+    def central_bonds(self) -> List[Tuple[int, int]]:
+        """
+        Return a list of central bond tuples for the target torsions.
+        """
+        if self.dihedrals is not None:
+            bonds = [(dihedral[1], dihedral[2]) for dihedral in self.dihedrals]
+            return bonds
+
+    def update_with_results(self, results: TorsionDriveResult) -> None:
+        """
+        Take a torsiondrive result check if the molecule is the same and the same dihedral is targeted and apply the results.
+        """
+        # keep track of if we need to remap
+        remap = False
+
+        new_results = []
+        if isinstance(results, TorsionDriveResult):
+            # this is valid so work out any mapping differences and update the result
+            isomorphic, atom_map = off.Molecule.are_isomorphic(
+                results.molecule, self.initial_molecule, return_atom_map=True
+            )
+            if isomorphic:
+                # if the atom map is not the same remap the result
+                if atom_map != dict(
+                    (i, i) for i in range(self.initial_molecule.n_atoms)
+                ):
+                    remap = True
+                # work out if the result and schema target the same dihedral via central bond
+                dihedral = set(self.dihedrals[0][1:3])
+                # now map the result dihedral back
+                target_dihedral = [atom_map[i] for i in results.dihedrals[0]]
+                if not dihedral.difference(set(target_dihedral[1:3])):
+                    # we need to change the target dihedral to match what the result is for
+                    self.dihedrals = [
+                        target_dihedral,
+                    ]
+                    # get the optimization results in order of the angle
+                    # we need this data later
+                    for (
+                        angle,
+                        optimization_result,
+                    ) in results.get_ordered_results():
+                        if remap:
+                            new_single_result = self._remap_single_result(
+                                mapping=atom_map,
+                                new_molecule=self.initial_molecule,
+                                result=optimization_result,
+                                extras={"dihedral_angle": angle},
+                            )
+                        else:
+                            # get a new single result with the angle in it
+                            result_dict = optimization_result.dict(
+                                exclude={"wbo", "mbo"}
+                            )
+                            result_dict["extras"] = {"dihedral_angle": angle}
+                            new_single_result = SingleResult(**result_dict)
+
+                        new_results.append(new_single_result)
+                    # set results back
+                    self.torsiondrive_data = new_results
+
+                else:
+                    raise DihedralSelectionError(
+                        f"Molecules are the same but do not target the same dihedral."
+                    )
+            else:
+                raise MoleculeMissMatchError(
+                    f"Molecules are not isomorphic and the results can not be transferred."
+                )
+
+    @property
+    def collected(self) -> bool:
+        """
+        Do we want some more explicit checking here?
+        """
+        return True if self.torsiondrive_data is not None else False
+
+    def reference_data(self) -> List[SingleResult]:
+        """
+        Return the reference data ready for fitting.
+        """
+        return self.torsiondrive_data
+
+    def _get_task_hash(self) -> str:
+        """
+        Make the specific task has for this molecule.
+        """
+        dihedral = str(self.dihedrals)
+        return "torsiondrive1d" + dihedral
+
+    def get_qcsubmit_task(self) -> TorsionDriveEntry:
+        """
+        Build a qcsubmit torsiondrive entry for this molecule.
+        """
+        if not self.collected:
+            from openff.bespokefit.utils import get_torsiondrive_index
+
+            # Note we only support 1D scans
+            atom_map = dict((atom, i) for i, atom in enumerate(self.dihedrals[0]))
+            molecule = self.initial_molecule
+            molecule.properties["atom_map"] = atom_map
+            index = get_torsiondrive_index(molecule)
+            task = self.get_task_hash()
+            attributes = self.attributes
+            attributes.task_hash = task  # add in the task hash
+            new_entry = TorsionDriveEntry(
+                index=index,
+                off_molecule=molecule,
+                attributes=attributes,
+                dihedrals=self.dihedrals,
+                extras=self.extras,
+            )
+            return new_entry
+
+
+class OptimizationTask(FittingTask):
+    """
+    A schema detailing an optimisation fitting target.
+    """
+
+    task_type: Literal["optimization"] = "optimization"
+    optimization_data: Optional[SingleResult] = Field(
+        None,
+        description="The results of the optimization which contains the optimised geometry",
+    )
+
+    def _get_task_hash(self) -> str:
+        return "optimization"
+
+    def get_qcsubmit_task(self) -> OptimizationEntry:
+        """
+        Generate an optimization entry for the molecule.
+        """
+        if not self.collected:
+            return self._make_optimization_entry()
+
+    def _make_optimization_entry(self) -> OptimizationEntry:
+        """
+        Make a qcsubmit optimization entry.
+        """
+        molecule = self.initial_molecule
+        attributes = self.attributes
+        attributes.task_hash = self.get_task_hash()
+        index = molecule.to_smiles(
+            isomeric=True,
+            mapped=False,
+            explicit_hydrogens=False,
+        )
+        opt_entry = OptimizationEntry(
+            index=index,
+            off_molecule=molecule,
+            attributes=attributes,
+            extras=self.extras,
+            keywords={},
+        )
+        return opt_entry
+
+    def update_with_results(self, result: OptimizationEntryResult) -> None:
+        """
+        Update the results of this task with an optimization result
+        """
+        raise NotImplementedError()
+
+    def reference_data(self) -> SingleResult:
+        return self.optimization_data
+
+    @property
+    def collected(self) -> bool:
+        return True if self.optimization_data is not None else False
+
+
+class HessianTask(OptimizationTask):
+    """
+    A schema detailing a hessian generation task.
+    """
+
+    task_type: Literal["hessian"] = "hessian"
+    hessian_data: Optional[SingleResult] = Field(
+        None, description="The results of a hessian calculation."
+    )
+
+    def _get_task_hash(self) -> str:
+        """
+        Get a task hash based on the current job that needs to be completed.
+        """
+        if self.optimization_data is None:
+            return "optimization"
+        else:
+            return "hessian"
+
+    def get_qcsubmit_task(self) -> Union[OptimizationEntry, DatasetEntry]:
+        """
+        Generate either an optimization task or a hessian single point task based on the progress of the workflow.
+        """
+        if not self.collected:
+            if self.optimization_data is None:
+                return self._make_optimization_entry()
+            else:
+                return self._make_hessian_entry()
+
+    def _make_hessian_entry(self) -> DatasetEntry:
+        """
+        Make a single point entry to compute the hessian from the optimised geometry.
+        """
+        from simtk import unit
+
+        molecule = self.graph_molecule
+        geometry = unit.Quantity(self.optimization_data.molecule.geometry, unit.bohr)
+        molecule.add_conformer(coordinates=geometry)
+        task = self.get_task_hash()
+        attributes = self.attributes
+        attributes.task_hash = task
+        index = molecule.to_smiles(
+            isomeric=True,
+            mapped=False,
+            explicit_hydrogens=False,
+        )
+        new_entry = DatasetEntry(
+            index=index,
+            off_molecule=molecule,
+            attributes=attributes,
+            extras=self.extras,
+        )
+        return new_entry
+
+    def update_with_results(self, result: BasicResult) -> None:
+        raise NotImplementedError()
+
+    def reference_data(self) -> SingleResult:
+        return self.hessian_data
+
+    @property
+    def collected(self) -> bool:
+        return True if self.hessian_data is not None else False
+
 
 class TargetSchema(SchemaBase):
     """
@@ -400,100 +525,388 @@ class TargetSchema(SchemaBase):
     data listed here.
     """
 
-    target_name: str
-    provenance: Dict[str, Any]
-    entries: List[FittingEntry] = []
+    target_name: str = Field(
+        ..., description="The name of the registered target that is to be optimized."
+    )
+    provenance: Dict[str, Any] = Field(
+        ...,
+        description="The run time dependencies of the target.",
+    )
+    settings: Dict[str, Any] = Field(
+        ..., description="The run time settings for this target that should be loaded."
+    )
+    qc_spec: QCSpec = Field(
+        ...,
+        description="The qc specification that should be used to collect the reference data.",
+    )
+    collection_workflow: Literal["torsion1d", "optimization", "hessian"] = Field(
+        ..., description="The collection workflow used to gather the reference data."
+    )
+    tasks: List[Union[TorsionTask, OptimizationTask, HessianTask]] = Field(
+        [],
+        description="The list of fitting tasks that this target will include for optimization.",
+    )
 
-    def add_fitting_entry(self, entry: FittingEntry) -> None:
+    @property
+    def n_tasks(self) -> int:
+        """Get the number of tasks for this target."""
+        return len(self.tasks)
+
+    def add_fitting_task(
+        self, task: Union[TorsionTask, OptimizationTask, HessianTask]
+    ) -> None:
         """
-        Add a fitting entry if it has not already been specified.
+        Add a fitting task if it has not already been specified, the task must match the collection workflow.
         """
 
-        if entry not in self.entries:
+        if task.task_type != self.collection_workflow:
+            raise TaskMissMatchError(
+                f"A {task.task_type} task can not be put into a {self.collection_workflow} collection workflow."
+            )
+        if task not in self.tasks:
             # we need to make sure the name has the correct index.
-            no = len(self.entries)
-            entry.name += f"-{entry.collection_workflow[-1].method.value}-{no}"
-            self.entries.append(entry)
-
-    def get_target_smirks(self) -> List[SmirksSchema]:
-        """
-        Collect all of the new target smirks from the entries for this target.
-        """
-        target_smirks = []
-        for entry in self.entries:
-            target_smirks.extend(entry.target_smirks)
-
-        return target_smirks
+            no = len(self.tasks)
+            task.name = f"{self.collection_workflow}-{no}"
+            self.tasks.append(task)
 
     @property
     def ready_for_fitting(self) -> bool:
         """
-        A self validation method which makes sure all fitting entries are ready before fitting the target.
+        A self validation method which makes sure all fitting tasks are ready before fitting the target.
         """
-        for entry in self.entries:
-            if not entry.ready_for_fitting:
+        for task in self.tasks:
+            if not task.collected:
                 return False
         return True
 
-    def get_task_map(self) -> Dict[str, List[Task]]:
+    def get_task_map(
+        self,
+    ) -> Dict[str, List[Union[TorsionTask, OptimizationTask, HessianTask]]]:
         """
-        Generate a mapping between all current tasks and their collection workflow stage.
+        Generate a mapping between all current tasks and their task hash.
         """
 
         hash_map = dict()
-        for entry in self.entries:
-            tasks = entry.current_tasks()
-            for task in tasks:
-                hash_map.setdefault(task.job_id, []).append(
-                    Task(entry=entry, collection_stage=task)
-                )
+        for task in self.tasks:
+            if not task.collected:
+                task_hash = task.get_task_hash()
+                hash_map.setdefault(task_hash, []).append(task)
         return hash_map
+
+    def compare_qcspec(self, result) -> bool:
+        """
+        Make sure the qcspec from the results match the targeted qcspec.
+        """
+        if (
+            result.program.lower() == self.qc_spec.program.lower()
+            and result.method.lower() == self.qc_spec.method.lower()
+            and result.basis.lower() == self.qc_spec.basis.lower()
+            if result.basis is not None
+            else result.basis == self.qc_spec.basis
+        ):
+            return True
+        else:
+            return False
+
+    def get_qcsubmit_tasks(
+        self,
+    ) -> List[Union[TorsionDriveEntry, OptimizationEntry, DatasetEntry]]:
+        """
+        Gather the qcsubmit tasks for the entries in this target.
+        Make sure we deduplicate the jobs which should make it easier to build the dataset.
+        """
+        tasks = {}
+        for task in self.tasks:
+            job = task.get_qcsubmit_task()
+            if job is not None:
+                if job.attributes.task_hash not in tasks:
+                    tasks[job.attributes.task_hash] = job
+        return list(tasks.values())
+
+    def build_qcsubmit_dataset(
+        self,
+    ) -> Optional[Union[OptimizationDataset, TorsiondriveDataset, BasicDataset]]:
+        """
+        Build a qcsubmit dataset from the qcsubmit tasks associated with this target and collection type.
+        Note:
+            This will return None if there are no tasks to collect.
+        """
+        description = "A bespoke-fit generated dataset to be used for parameter optimization for more information please visit https://github.com/openforcefield/bespoke-fit."
+        dataset_name = "OpenFF Bespoke-fit"
+        if self.collection_workflow == "torsion1d":
+            dataset = TorsiondriveDataset(
+                dataset_name=dataset_name,
+                qc_specifications={},
+                description=description,
+                driver="gradient",
+            )
+        elif self.collection_workflow == "optimization":
+            dataset = OptimizationDataset(
+                dataset_name=dataset_name,
+                qc_specifications={},
+                description=description,
+                driver="gradient",
+            )
+        elif self.collection_workflow == "hessian":
+            dataset = BasicDataset(
+                dataset_name=dataset_name,
+                qc_specifications={},
+                description=description,
+                driver="hessian",
+            )
+        else:
+            raise NotImplementedError(
+                f"The collection workflow {self.collection_workflow} does not have a supported qcsubmit dataset type."
+            )
+        # update the metadata url
+        dataset.metadata.long_description_url = (
+            "https://github.com/openforcefield/bespoke-fit"
+        )
+        # set the qc_spec
+        dataset.add_qc_spec(**self.qc_spec.dict())
+        # now add each task
+        tasks = self.get_qcsubmit_tasks()
+        for task in tasks:
+            dataset.dataset[task.index] = task
+            # we also need to update the elements metadata
+            # TODO add an api point to qcsubmit to allow adding dataset entries, this would also
+            # validate the entry type.
+            dataset.metadata.elements.update(task.initial_molecules[0].symbols)
+
+        if dataset.n_records > 0:
+            return dataset
+        return None
 
     def update_with_results(
         self,
-        results: List[
-            Union[
-                BasicCollectionResult,
-                OptimizationCollectionResult,
-                TorsionDriveCollectionResult,
-            ]
+        results: Union[
+            BasicCollectionResult,
+            OptimizationCollectionResult,
+            TorsionDriveCollectionResult,
         ],
     ) -> None:
         """
         Take a list of results and work out if they can be mapped on the the target.
         """
-        for result in results:
-            if isinstance(result, TorsionDriveCollectionResult):
-                # now work out if they can be mapped.
-                for td_result in result.collection.values():
-                    for entry in self.entries:
-                        if (
-                            result.program == entry.qc_spec.program
-                            and result.method == entry.qc_spec.method
-                            and result.basis == entry.qc_spec.basis
-                        ):
-                            try:
-                                entry.update_with_results(td_result)
-                            except (DihedralSelectionError, MoleculeMissMatchError):
-                                continue
-                        else:
-                            continue
-            else:
-                raise NotImplementedError()
+        # make sure the result type matches the collection workflow allowed types
+        if (
+            results.__class__ == TorsionDriveCollectionResult
+            and self.collection_workflow != "torsion1d"
+        ):
+            raise Exception("Torsion1d workflow requires torsiondrive results.")
+        elif (
+            results.__class__ != TorsionDriveCollectionResult
+            and self.collection_workflow == "torsion1d"
+        ):
+            raise Exception(
+                "Optimization and hessian workflows require optimization and basic dataset results"
+            )
+        elif (
+            results.__class__ == BasicCollectionResult
+            and results.driver != self.collection_workflow
+        ):
+            raise Exception(
+                "Hessian results must be computed using the hessian driver."
+            )
+
+        # check the QC method matches what we targeted
+        if not self.compare_qcspec(results):
+            raise Exception(
+                "The results could not be saved as the qcspec did not match"
+            )
+
+        # we now know the specification and result type match so try and apply the results
+        for result in results.collection.values():
+            for task in self.tasks:
+                try:
+                    task.update_with_results(result)
+                except (DihedralSelectionError, MoleculeMissMatchError):
+                    continue
 
 
-class WorkflowSchema(SchemaBase):
+class FragmentSchema(SchemaBase):
     """
-    This class collects together an optimizer with its targets and the entries.
+    A basic data class which records the relation betweent parent and a fragment.
     """
 
-    optimizer_name: str
-    job_id: str
-    targets: List[TargetSchema] = []
-    status: Status = Status.Prepared
-    extra_parameters: List[
-        Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]
-    ] = []
+    parent_torsion: Tuple[int, int] = Field(
+        ...,
+        description="The target torsion in the parent molecule which was fragmented around.",
+    )
+    fragment_torsion: Tuple[int, int] = Field(
+        ...,
+        description="The corresponding indices of the fragment torsion which maps to the parent torsion.",
+    )
+    fragment_attributes: MoleculeAttributes = Field(
+        ..., description="The full set of cmiles descriptors for this molecule."
+    )
+    fragment_parent_mapping: Dict[int, int] = Field(
+        ...,
+        description="The mapping from the fragment to the parent atoms, so fragment_parent_mapping[i] would give the index of the atom in the parent which is equivalent to atom i.",
+    )
+
+    @property
+    def molecule(self) -> off.Molecule:
+        """Build the graph of the fragment molecule"""
+        return off.Molecule.from_mapped_smiles(
+            self.fragment_attributes.canonical_isomeric_explicit_hydrogen_mapped_smiles
+        )
+
+    @property
+    def target_dihedral(self) -> Tuple[int, int, int, int]:
+        """
+        Return a target dihedral that could be driven for the target central bond.
+        """
+        from openff.bespokefit.smirks import SmirksGenerator
+
+        dihedrals = SmirksGenerator.get_all_torsions(
+            bond=self.fragment_torsion, molecule=self.molecule
+        )
+        molecule = self.molecule
+        # now find the first dihedral with no hydrogens,
+        # if none can be found return any
+        for dihedral in dihedrals:
+            atoms = [molecule.atoms[i].atomic_number for i in dihedral]
+            if 1 not in atoms:
+                return dihedral
+
+        return dihedrals[0]
+
+
+class MoleculeSchema(SchemaBase):
+    """
+    This is the main fitting schema which wraps a molecule object with settings and information about the target to be
+    fit and the reference data.
+    """
+
+    attributes: MoleculeAttributes = Field(
+        ...,
+        description="The full set of molecule cmiles descriptors which can be used to build the molecule.",
+    )
+    task_id: str = Field(
+        ...,
+        description="An id given to the parameterization of this molecule to separate when multiple molecules are to be parameterized separately.",
+    )
+    fragment_data: Optional[List[FragmentSchema]] = Field(
+        None, description="The list of fragment which corespond to this molecule."
+    )
+    fragmentation_engine: Optional[Dict[str, Any]] = Field(
+        None,
+        description="The fragmentation engine and settings used to fragment this molecule.",
+    )
+
+    @property
+    def molecule(self) -> off.Molecule:
+        """
+        Get the openff molecule representation of the input target molecule.
+        """
+        return off.Molecule.from_mapped_smiles(
+            self.attributes.canonical_isomeric_explicit_hydrogen_mapped_smiles
+        )
+
+    @property
+    def fragments(self) -> List[off.Molecule]:
+        """
+        Get a unique list of the fragments in this molecule.
+        """
+        unique_mols = []
+        for fragment in self.fragment_data:
+            fragment_mol = fragment.molecule
+            if fragment_mol not in unique_mols:
+                unique_mols.append(fragment_mol)
+        return unique_mols
+
+    def add_fragment(self, fragment: FragmentSchema) -> None:
+        """
+        Add a new fragment schema to this molecule.
+        """
+        if self.fragment_data is None:
+            self.fragment_data = []
+        self.fragment_data.append(fragment)
+
+
+class OptimizationSchema(SchemaBase):
+    """
+    This class collects together an optimizer with its targets and the tasks.
+    """
+
+    initial_forcefield: str = Field(
+        ..., description="The initial Forcefield that should then be optimized"
+    )
+    optimizer_name: str = Field(
+        ...,
+        description="The name of the registered optimizer used for this set of targets.",
+    )
+    settings: Dict[str, Any] = Field(
+        ...,
+        description="The run time settings for this optimizer which is used to rebuild the class.",
+    )
+    job_id: str = Field(
+        ..., description="The unique job id given to this optimization task."
+    )
+    targets: List[TargetSchema] = Field(
+        [],
+        description="The list of registered targets which will be optimized simultaneously by this optimizer.",
+    )
+    status: Status = Field(
+        Status.Prepared,
+        description="The enum declaring the current status of this optimization.",
+    )
+    target_smirks: List[
+        Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]
+    ] = Field(
+        [],
+        description="A List of all of the target smirks that should be optimised.",
+    )
+    final_smirks: Optional[
+        List[Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]]
+    ] = Field(None, description="The final set of smirks after optimisation.")
+    target_parameters: SmirksSettings = Field(
+        ...,
+        description="The set of specific parameters that should be optimmized such as bond length.",
+    )
+    target_molecule: MoleculeSchema = Field(
+        ...,
+        description="The target molecule is defined along with information about its fragments.",
+    )
+
+    def get_optimizer(self) -> "Optimizer":
+        """
+        Get the requested optimizer with correct settings from the optimizer list.
+        """
+        from openff.bespokefit.optimizers import get_optimizer
+
+        settings = self.settings
+        del settings["optimizer_name"]
+        optimizer = get_optimizer(optimizer_name=self.optimizer_name, **settings)
+        return optimizer
+
+    @property
+    def n_tasks(self) -> int:
+        """
+        Calculate the number of unique tasks to be currently computed
+        """
+        return len(self.task_hashes)
+
+    @property
+    def task_hashes(self) -> List[str]:
+        """
+        Compute the task hashes for this molecule.
+        """
+        task_hash = set()
+
+        for target in self.targets:
+            for task in target.tasks:
+                task_hash.add(task.get_task_hash())
+        return list(task_hash)
+
+    @property
+    def n_targets(self) -> int:
+        """
+        Calculate the number of targets to be fit for this molecule.
+        """
+
+        return len(self.targets)
 
     @property
     def ready_for_fitting(self) -> bool:
@@ -504,60 +917,179 @@ class WorkflowSchema(SchemaBase):
         for target in self.targets:
             if not target.ready_for_fitting:
                 return False
+        # make sure we update the status
+        self.status = Status.Ready
         return True
 
-    @property
-    def target_smirks(
+    def get_final_forcefield(
         self,
-    ) -> List[Union[BondSmirks, AngleSmirks, TorsionSmirks, AtomSmirks]]:
+        generate_bespoke_terms: bool = True,
+        drop_out_value: Optional[float] = None,
+    ) -> ForceField:
         """
-        Get all of the smirks targeted by the optimization targets which are part of this workflow.
-        """
-        target_smirks = [
-            smirk for target in self.targets for smirk in target.get_target_smirks()
-        ]
-        return target_smirks
+        Generate the final bespoke forcefield for this molecule by collecting together all optimized smirks.
 
-    def update_target_smirks(
-        self, smirks: List[Union[BondSmirks, AngleSmirks, TorsionSmirks, AtomSmirks]]
-    ):
-        """
-        Given a list of smirks with current parameters insert them back into the correct fitting entry.
+        Note:
+            It is know that when creating fitting smirks for the fragments that they can hit unintended dihedrals in other fragments if they are similar during fitting. To ensure the correct parameters are used in their intended positions
+            on the parent molecule each fragment is typed with the fitting forcefield and parameters again and a new bespoke term for the parent is made which uses the same parameters.
 
         Parameters:
-            smirks: A list of the smirks types with parameters that should be inserted back into the fitting entry.
+            generate_bespoke_terms: If molecule specific bespoke terms should be made, this is recommended as some fragment smirks patterns may not transfer back to the parent correctly due to fragmentation.
+            drop_out_value: Any torsion force constants below this value will be dropped as they are probably negligible.
         """
-        for target in self.targets:
-            for entry in target.entries:
-                new_smirks = []
-                for smirk in entry.target_smirks:
-                    if smirk in smirks:
-                        # the smirks match so transfer the parameters back to the entry
-                        location = smirks.index(smirk)
-                        new_smirks.append(smirks[location])
-                    else:
-                        new_smirks.append(smirk)
-                # now update the list
-                entry.target_smirks = new_smirks
+        # TODO change this to a util function remove from target base class
 
-    def get_fitting_forcefield(self, initial_forcefield: str) -> ForceField:
+        # check that all optimizations are finished
+        if self.status != Status.Complete:
+            raise OptimizerError(
+                f"The molecule has not completed all optimization stages which are required to generate the final forcefield."
+            )
+        if self.final_smirks is None:
+            raise OptimizerError(
+                f"The optimization status is complete but no optimized smirks were found."
+            )
+        from openff.bespokefit.forcefield_tools import ForceFieldEditor
+
+        # get all of the target smirks
+        target_smirks = self.final_smirks
+        # build the parent molecule
+        parent_molecule = self.target_molecule.molecule
+
+        if drop_out_value is not None:
+            # loop over all of the target smirks and drop and torsion k values lower than the drop out
+            for smirk in target_smirks:
+                if smirk.type == SmirksType.ProperTorsions:
+                    # keep a list of terms to remove
+                    to_remove = []
+
+                    for p, term in smirk.terms.items():
+                        if abs(float(term.k.split("*")[0])) < drop_out_value:
+                            to_remove.append(p)
+
+                    # now remove the low values
+                    for p in to_remove:
+                        del smirk.terms[p]
+
+        # the final fitting force field should have all final smirks propagated through
+        fitting_ff = ForceFieldEditor(forcefield_name=self.initial_forcefield)
+        fitting_ff.add_smirks(smirks=target_smirks, parameterize=False)
+
+        # here we type the fragment with the final forcefield and then build a bespoke dihedral term for the parent
+        # to hit the atoms that map from the fragment to the parent
+        # we do not modify any other smirks types but this needs testing to make sure that they do transfer.
+        if generate_bespoke_terms:
+            bespoke_smirks = []
+            # get a list of unique fragments and all of the torsions that have been targeted
+            for target in self.targets:
+                if target.collection_workflow == "torsion1d":
+                    for task in target.tasks:
+                        # check if the smirks are from a fragment
+                        if task.fragment:
+                            new_smirks = self._generate_bespoke_torsions(
+                                forcefield=fitting_ff,
+                                parent_molecule=parent_molecule,
+                                task_data=task,
+                            )
+                            bespoke_smirks.extend(new_smirks)
+
+            # make a new ff object with the new terms
+            bespoke_ff = ForceFieldEditor(forcefield_name=self.initial_forcefield)
+            # get a list of non torsion smirks
+            new_smirks = [
+                smirk
+                for smirk in target_smirks
+                if smirk.type != SmirksType.ProperTorsions
+            ]
+            new_smirks.extend(bespoke_smirks)
+            bespoke_ff.add_smirks(smirks=new_smirks, parameterize=False)
+            return bespoke_ff.forcefield
+
+        else:
+            return fitting_ff.forcefield
+
+    def _generate_bespoke_torsions(
+        self,
+        forcefield: "ForceFieldEditor",
+        parent_molecule: off.Molecule,
+        task_data: TorsionTask,
+    ) -> List[TorsionSmirks]:
+        """
+        For the given task generate set of bespoke torsion terms for the parent molecule using all layers. Here we have to type the fragment and use the fragment parent mapping
+        to transfer the parameters.
+        """
+        from openff.bespokefit.smirks import SmirksGenerator
+
+        smirks_gen = SmirksGenerator(
+            target_smirks=[SmirksType.ProperTorsions],
+            layers="all",
+            expand_torsion_terms=False,
+        )
+
+        fragment = task_data.graph_molecule
+        fragment_parent_mapping = task_data.fragment_parent_mapping
+        # label the fitting molecule
+        labels = forcefield.label_molecule(molecule=fragment)["ProperTorsions"]
+
+        bespoke_torsions = []
+        for bond in task_data.central_bonds:
+            fragment_dihedrals = smirks_gen.get_all_torsions(
+                bond=bond, molecule=fragment
+            )
+            for dihedral in fragment_dihedrals:
+                # get the smirk that hit this torsion
+                off_smirk = labels[dihedral]
+                # work out the parent torsion
+                parent_torsion = tuple([fragment_parent_mapping[i] for i in dihedral])
+                # make the bespoke smirks
+                smirks = smirks_gen._get_new_single_graph_smirks(
+                    atoms=parent_torsion, molecule=parent_molecule
+                )
+                # make the new Torsion Smirks
+                bespoke_smirk = TorsionSmirks(smirks=smirks)
+                bespoke_smirk.update_parameters(off_smirk=off_smirk)
+                if bespoke_smirk not in bespoke_torsions:
+                    bespoke_torsions.append(bespoke_smirk)
+
+        return bespoke_torsions
+
+    @property
+    def parameterize_smirks(
+        self,
+    ) -> List[Union[AtomSmirks, BondSmirks, AngleSmirks, TorsionSmirks]]:
+        """
+        For the set of target smirks use the parameter targets to tag the values which should be optimized.
+        For example a BondSmirks with a parameter target of BondLength will have length set to be parameterized.
+        """
+        import copy
+
+        target_smirks = copy.deepcopy(self.target_smirks)
+        for target_parameter in self.target_parameters:
+            for smirk in target_smirks:
+                if (
+                    target_parameter.parameter_type == smirk.type
+                    and target_parameter.parameter_type == SmirksType.ProperTorsions
+                ):
+                    smirk.parameterize = [
+                        f"k{i}" for i, _ in enumerate(smirk.terms, start=1)
+                    ]
+                elif target_parameter.parameter_type == smirk.type:
+                    smirk.parameterize.add(target_parameter.target)
+        return target_smirks
+
+    def get_fitting_forcefield(self) -> ForceField:
         """
         Take the initial forcefield and edit it to add the new terms and return the OpenFF FF object.
 
         Parameters:
             initial_forcefield: The name of the initial Forcefield we will be starting at.
         """
-        from ..forcefield_tools import ForceFieldEditor
+        from openff.bespokefit.forcefield_tools import ForceFieldEditor
 
         # get all of the new target smirks
-        target_smirks = [
-            smirk for target in self.targets for smirk in target.get_target_smirks()
-        ]
-        ff = ForceFieldEditor(initial_forcefield)
+        target_smirks = self.parameterize_smirks
+        ff = ForceFieldEditor(self.initial_forcefield)
         ff.add_smirks(target_smirks, parameterize=True)
         # if there are any parameters from a different optimization stage add them here without parameterize tags
-        if self.extra_parameters:
-            ff.add_smirks(self.extra_parameters, parameterize=False)
         return ff.forcefield
 
     def dict(self, *args, **kwargs):
@@ -567,12 +1099,10 @@ class WorkflowSchema(SchemaBase):
 
     def update_with_results(
         self,
-        results: List[
-            Union[
-                BasicCollectionResult,
-                OptimizationCollectionResult,
-                TorsionDriveCollectionResult,
-            ]
+        results: Union[
+            BasicCollectionResult,
+            OptimizationCollectionResult,
+            TorsionDriveCollectionResult,
         ],
     ) -> None:
         """
@@ -584,7 +1114,9 @@ class WorkflowSchema(SchemaBase):
         if self.ready_for_fitting:
             self.status = Status.Ready
 
-    def get_task_map(self) -> Dict[str, List[Task]]:
+    def get_task_map(
+        self,
+    ) -> Dict[str, List[Union[TorsionTask, OptimizationTask, HessianTask]]]:
         """
         Generate a mapping between all of the current tasks and their collection workflow stage.
         """
@@ -596,116 +1128,24 @@ class WorkflowSchema(SchemaBase):
 
         return hash_map
 
-
-class MoleculeSchema(SchemaBase):
-    """
-    This is the main fitting schema which wraps a molecule object with settings and information about the target to be
-    fit and the reference data.
-    """
-
-    molecule: str  # the mapped smiles
-    initial_forcefield: str
-    workflow: List[WorkflowSchema] = []
-
-    @property
-    def off_molecule(self) -> off.Molecule:
-        """
-        Get the openff molecule representation of the input target molecule.
-        """
-        return off.Molecule.from_mapped_smiles(self.molecule)
-
-    @property
-    def n_targets(self) -> int:
-        """
-        Calculate the number of targets to be fit for this molecule.
-        """
-
-        return sum([len(workflow.targets) for workflow in self.workflow])
-
-    @property
-    def task_hashes(self) -> List[str]:
-        """
-        Compute the task hashes for this molecule.
-        """
-        task_hash = set()
-        for stage in self.workflow:
-            for target in stage.targets:
-                for entry in target.entries:
-                    task_hash.add(entry.get_hash())
-        return list(task_hash)
-
-    def __eq__(self, other: "MoleculeSchema") -> bool:
-        """
-        Check if two molecule tasks are the same by comparing the task hashes that required inorder to fit the data.
-        """
-        return self.task_hashes == other.task_hashes
-
-    @property
-    def n_tasks(self) -> int:
-        """
-        Calculate the number of unique tasks to be computed to fit this molecule.
-        """
-        return len(self.task_hashes)
-
-    def update_with_results(
+    def build_qcsubmit_datasets(
         self,
-        results: List[
-            Union[
-                BasicCollectionResult,
-                OptimizationCollectionResult,
-                TorsionDriveCollectionResult,
-            ]
-        ],
-    ) -> None:
+    ) -> List[Union[TorsiondriveDataset, OptimizationDataset, BasicDataset]]:
         """
-        Take a list of result and pass them to the entries to find valid reference data.
+        For each of the targets build a qcsubmit dataset of reference collection tasks.
         """
+        datasets = [target.build_qcsubmit_dataset() for target in self.targets]
+        return [dataset for dataset in datasets if dataset is not None]
 
-        for workflow_stage in self.workflow:
-            workflow_stage.update_with_results(results)
-
-    def get_next_optimization_stage(self) -> Optional[WorkflowSchema]:
+    def add_target(self, target: TargetSchema) -> None:
         """
-        Return the next stage in the workflow order which is to be optimized. If no states left returns None to signal it is complete.
-
-        Note:
-            The stage may have an error state.
+        Add a target schema to the optimizer making sure this target is registered with the optimizer.
         """
-        for stage in self.workflow:
-            if stage.status != Status.Complete:
-                return stage
-        return None
+        from openff.bespokefit.optimizers import get_optimizer
 
-    def update_optimization_stage(self, stage: WorkflowSchema) -> None:
-        """
-        Update an optimization stage with a completed optimization stage.
-
-        Parameters:
-            stage: The optimization stage which should be updated into the molecule schema
-
-        Raises:
-            WorkflowUpdateError: If no workflow stage in the schema matches the stage supplied.
-        """
-        for i, workflow in enumerate(self.workflow):
-            if workflow.job_id == stage.job_id:
-                self.workflow[i] = stage
-                break
-        else:
-            raise WorkflowUpdateError(
-                f"No workflow stage matches the job id {stage.job_id}."
-            )
-
-    def get_task_map(self) -> Dict[str, List[Task]]:
-        """
-        Generate a hash map for all of the current tasks to be executed to fit this molecule.
-        """
-        hash_map = dict()
-        for workflow in self.workflow:
-            workflow_hash = workflow.get_task_map()
-            for key, tasks in workflow_hash.items():
-                hash_map.setdefault(key, []).extend(tasks)
-
-        return hash_map
+        opt = get_optimizer(optimizer_name=self.optimizer_name)
+        if target.target_name.lower() in opt.get_registered_target_names():
+            self.targets.append(target)
 
 
 class FittingSchema(SchemaBase):
@@ -713,12 +1153,18 @@ class FittingSchema(SchemaBase):
     This is the main fitting schema which can be consumed by bespokefit in order to be executed.
     """
 
-    client: str
-    torsiondrive_dataset_name: str = "Bespokefit torsiondrives"
-    optimization_dataset_name: str = "Bespokefit optimizations"
-    singlepoint_dataset_name: str = "Bespokefit single points"
-    optimizer_settings: Dict[str, Dict[str, Any]] = {}
-    molecules: List[MoleculeSchema] = []
+    optimizer_settings: Dict[str, Dict[str, Any]] = Field(
+        dict(),
+        description="A dictionary containing all run time settings for each optimizer in the workflow so that they can be rebuilt when optimization tasks are generated.",
+    )
+    target_settings: Dict[str, Dict[str, Any]] = Field(
+        dict(),
+        description="A dictonary containing all of the run time settings for each of the targets in the pipeline, they will be used to build each target.",
+    )
+    tasks: List[OptimizationSchema] = Field(
+        [],
+        description="The list of optimization tasks to be carried out in the fitting procedure.",
+    )
 
     @classmethod
     def parse_file(
@@ -737,13 +1183,16 @@ class FittingSchema(SchemaBase):
         """
         Add a valid optimizer to the fitting schema.
         """
-        from ..optimizers import list_optimizers
+        from openff.bespokefit.optimizers import list_optimizers
 
         if optimizer.optimizer_name.lower() in list_optimizers():
             if optimizer.optimizer_name not in self.optimizer_settings:
                 self.optimizer_settings[
                     optimizer.optimizer_name.lower()
                 ] = optimizer.dict(exclude={"optimization_targets"})
+            # now we need to store the target settings
+            for target in optimizer.optimization_targets:
+                self.target_settings[target.name] = target.dict()
         else:
             raise OptimizerError(
                 f"The given optimizer {optimizer.optimizer_name} has not been registered with bespokefit, please register first."
@@ -754,7 +1203,7 @@ class FittingSchema(SchemaBase):
         """
         Get all of the optimizers from the settings.
         """
-        from ..optimizers import get_optimizer
+        from openff.bespokefit.optimizers import get_optimizer
 
         return list(
             get_optimizer(**settings) for settings in self.optimizer_settings.values()
@@ -779,14 +1228,13 @@ class FittingSchema(SchemaBase):
         """
         return list(self.optimizer_settings.keys())
 
-    def add_molecule_schema(self, molecule_schema: MoleculeSchema) -> None:
+    def add_optimization_task(self, optimization_task: OptimizationSchema) -> None:
         """
         Add a complete molecule schema to the fitting schema.
         """
         # we have to make sure that the optimizer has also been added to the schema.
-        for stage in molecule_schema.workflow:
-            assert stage.optimizer_name.lower() in self.optimizer_names
-        self.molecules.append(molecule_schema)
+        assert optimization_task.optimizer_name.lower() in self.optimizer_names
+        self.tasks.append(optimization_task)
 
     def export_schema(self, file_name: str) -> None:
         """
@@ -804,7 +1252,7 @@ class FittingSchema(SchemaBase):
         Calculate the number of initial molecules to be optimized.
         """
 
-        return len(self.molecules)
+        return len(self.tasks)
 
     @property
     def task_hashes(self) -> List[str]:
@@ -812,8 +1260,8 @@ class FittingSchema(SchemaBase):
         Get all of the unique task hashes.
         """
         tasks = set()
-        for molecule in self.molecules:
-            tasks.update(molecule.task_hashes)
+        for task in self.tasks:
+            tasks.update(task.task_hashes)
         return list(tasks)
 
     @property
@@ -826,42 +1274,60 @@ class FittingSchema(SchemaBase):
 
     def update_with_results(
         self,
-        results: List[
-            Union[
-                BasicCollectionResult,
-                OptimizationCollectionResult,
-                TorsionDriveCollectionResult,
-            ]
+        results: Union[
+            BasicCollectionResult,
+            OptimizationCollectionResult,
+            TorsionDriveCollectionResult,
         ],
     ) -> None:
         """
         Take a list of results and try to apply them to each of the molecules in the fitting schema.
         """
-
-        if not isinstance(results, list):
-            results = [
-                results,
-            ]
-
-        for molecule in self.molecules:
-            molecule.update_with_results(results)
+        for task in self.tasks:
+            task.update_with_results(results)
 
     def generate_qcsubmit_datasets(
-        self, geometric_settings: Optional[GeometricProcedure] = None
+        self,
     ) -> List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]]:
         """
         Generate a set of qcsubmit datasets containing all of the tasks required to compute the QM data.
 
         Note:
-            Local custom tasks not possible in QCArchive are not included and will be ran when the fitting queue is started.
             Hessian datasets can not be produced until the initial optimization is complete
             The task hash will also be embedded into the entry to make updating the results faster.
         """
+        # group the datasets by type
+        all_datasets = {}
+        for task in self.tasks:
+            datasets = task.build_qcsubmit_datasets()
+            for dataset in datasets:
+                all_datasets.setdefault(dataset.dataset_type, []).append(dataset)
 
-        return schema_to_datasets(
-            self.molecules,
-            singlepoint_name=self.singlepoint_dataset_name,
-            optimization_name=self.optimization_dataset_name,
-            torsiondrive_name=self.torsiondrive_dataset_name,
-            geometric_options=geometric_settings,
-        )
+        # now we want to do dataset adding for each type
+        final_datasets = []
+        for datasets in list(all_datasets.values()):
+            master_dataset = datasets.pop()
+            for dataset in datasets:
+                master_dataset += dataset
+            final_datasets.append(master_dataset)
+
+        return final_datasets
+
+    @property
+    def molecules(self) -> List[off.Molecule]:
+        """
+        Return an openforcefield representation of each of the target molecules in the fitting schema.
+        """
+        return [task.target_molecule.molecule for task in self.tasks]
+
+    @property
+    def entry_molecules(self) -> List[off.Molecule]:
+        """
+        Generate a list of unique molecules which we have collection tasks for these are not always the same as the target molecules due to fragmentation.
+        """
+        unique_molecules = set()
+        for task in self.tasks:
+            fragments = task.target_molecule.fragments
+            unique_molecules.update(fragments)
+
+        return list(unique_molecules)

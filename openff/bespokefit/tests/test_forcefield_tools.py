@@ -5,17 +5,17 @@ Test the forcefield editing tools.
 import pytest
 from openforcefield.topology import Molecule
 from openforcefield.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
-from qcsubmit.testing import temp_directory
 
-from ..forcefield_tools import ForceFieldEditor
-from ..schema.smirks import (
+from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.schema import (
     AngleSmirks,
     AtomSmirks,
     BondSmirks,
     TorsionSmirks,
     TorsionTerm,
 )
-from ..utils import get_data
+from openff.bespokefit.utils import get_data
+from openff.qcsubmit.testing import temp_directory
 
 
 def test_loading_forcefields():

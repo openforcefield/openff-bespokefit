@@ -1,18 +1,18 @@
 import os
-import re
 import subprocess
 from typing import Any, Dict, List
 
 from jinja2 import Template
 from pydantic import PositiveFloat, PositiveInt
+from typing_extensions import Literal
 
-from ..common_structures import Status
-from ..exceptions import TargetNotSetError
-from ..forcefield_tools import ForceFieldEditor
-from ..schema.fitting import WorkflowSchema
-from ..targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
-from ..utils import forcebalance_setup, get_data
-from .model import Optimizer
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.exceptions import TargetNotSetError
+from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.optimizers.model import Optimizer
+from openff.bespokefit.schema import OptimizationSchema
+from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
+from openff.bespokefit.utils import forcebalance_setup, get_data
 
 
 class ForceBalanceOptimizer(Optimizer):
@@ -20,13 +20,13 @@ class ForceBalanceOptimizer(Optimizer):
     A Optimizer class which controls the interface with ForceBalanace.
     """
 
-    optimizer_name = "ForceBalanceOptimizer"
+    optimizer_name: Literal["ForceBalanceOptimizer"] = "ForceBalanceOptimizer"
     optimizer_description = "A systematic force field optimization tool: https://github.com/leeping/forcebalance"
 
     # forcebalance settings and validators
-    penalty_type: str = "L2"
+    penalty_type: str = "L1"
     job_type: str = "optimize"
-    max_iterations: PositiveInt = 100
+    max_iterations: PositiveInt = 10
     convergence_step_criteria: PositiveFloat = 0.01
     convergence_objective_criteria: PositiveFloat = 0.01
     convergence_gradient_criteria: PositiveFloat = 0.01
@@ -35,7 +35,7 @@ class ForceBalanceOptimizer(Optimizer):
     finite_difference_h: PositiveFloat = 0.01
     penalty_additive: PositiveFloat = 1.0
     constrain_charge: bool = False
-    initial_trust_radius: float = 0.25
+    initial_trust_radius: float = -0.25
     minimum_trust_radius: float = 0.05
     error_tolerance: PositiveFloat = 1.0
     adaptive_factor: PositiveFloat = 0.2
@@ -60,47 +60,52 @@ class ForceBalanceOptimizer(Optimizer):
         except ImportError:
             return False
 
-    def optimize(
-        self, workflow: WorkflowSchema, initial_forcefield: str
-    ) -> WorkflowSchema:
+    def optimize(self, schema: OptimizationSchema) -> OptimizationSchema:
         """
         This is the main optimization method, which will consume a Workflow stage composed of targets and molecules it will prep them all for fitting
         optimize collect the results and return the completed task.
 
         Parameters
         ----------
-        workflow: WorkflowSchema
+        schema: OptimizationSchema
             The workflow schema that should be executed, which contains the targets ready for fitting.
-        initial_forcefield: str
-            The name of the initial force field to be used as the optimization starting point.
         """
         # check that the correct optimizer workflow has been supplied
         priors = {}
         fitting_targets = {}
-        if workflow.optimizer_name.lower() == self.optimizer_name.lower():
+        print("starting OPT")
+        if schema.optimizer_name.lower() == self.optimizer_name.lower():
+            print("making new fb folders in", os.getcwd())
             # this will set up the file structure and return use back to the current working dir after
-            with forcebalance_setup(workflow.job_id):
+            print("new folder name", schema.job_id)
+            with forcebalance_setup(schema.job_id):
                 # now for each target we need to prep the folders
                 fitting_file = os.getcwd()
+                print("running opt in ", fitting_file)
                 os.chdir("targets")
-                for target in workflow.targets:
+                for target in schema.targets:
                     target_class = self.get_optimization_target(
-                        target_name=target.target_name, **target.provenance
+                        target_name=target.target_name, **target.settings
                     )
                     self.set_optimization_target(target_class)
-                    for param_target in target_class.parameter_targets:
+                    for param_target in schema.target_parameters:
                         name, value = param_target.get_prior()
                         priors[name] = value
-                        target_class.prep_for_fitting(target)
-                        # add the entry to the fitting target
-                        for entry in target.entries:
-                            fitting_targets.setdefault(target_class.name, []).append(
-                                entry.name
-                            )
+
+                    print("prepping target class ", target.target_name)
+                    target_class.prep_for_fitting(target)
+                    # add the entry to the fitting target
+                    for task in target.tasks:
+                        fitting_targets.setdefault(target_class.name, []).append(
+                            task.name
+                        )
 
                 os.chdir(fitting_file)
-                ff = workflow.get_fitting_forcefield(initial_forcefield)
-                ff.to_file(os.path.join("forcefield", "bespoke.offxml"))
+                ff = schema.get_fitting_forcefield()
+                ff.to_file(
+                    os.path.join("forcefield", "bespoke.offxml"),
+                    discard_cosmetic_attributes=False,
+                )
                 # now make the optimize in file
                 self.generate_optimize_in(
                     priors=priors, fitting_targets=fitting_targets
@@ -111,9 +116,11 @@ class ForceBalanceOptimizer(Optimizer):
                         "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
                     )
 
-                return self.collect_results(workflow=workflow)
+                result_workflow = self.collect_results(schema=schema)
+        print("OPT finished in folder", os.getcwd())
+        return result_workflow
 
-    def collect_results(self, workflow: WorkflowSchema) -> WorkflowSchema:
+    def collect_results(self, schema: OptimizationSchema) -> OptimizationSchema:
         """
         Collect the results of a forcebalance optimization.
 
@@ -121,25 +128,26 @@ class ForceBalanceOptimizer(Optimizer):
 
         Parameters
         ----------
-        workflow: WorkflowSchema
+        schema: OptimizationSchema
             The workflow schema that should be updated with the results of the current optimization.
 
         Returns
         -------
-        WorkflowSchema
+        OptimizationSchema
             The updated workflow schema.
         """
+        import copy
+
         # look for the result
         result = self.read_output()
-        if result["status"] == Status.Complete:
-            workflow.status = Status.Complete
-            ff = ForceFieldEditor(result["forcefield"])
-            # update the smirks in place
-            ff.update_smirks_parameters(smirks=workflow.target_smirks)
-        else:
-            workflow.status = Status.Error
-
-        return workflow
+        schema.status = result["status"]
+        ff = ForceFieldEditor(result["forcefield"])
+        # make a new list as smirks are updated in place
+        final_smirks = copy.deepcopy(schema.target_smirks)
+        ff.update_smirks_parameters(smirks=final_smirks)
+        # put the new smirks back in the schema
+        schema.final_smirks = final_smirks
+        return schema
 
     def read_output(self) -> Dict[str, str]:
         """
@@ -159,27 +167,15 @@ class ForceBalanceOptimizer(Optimizer):
                     break
                 elif "convergence failure" in line.lower():
                     # did not converge
-                    result["status"] = Status.Error
+                    result["status"] = Status.ConvergenceError
                     break
             else:
                 # still running?
                 result["status"] = Status.Optimizing
 
-        # now we need the path to the last forcefield file
+        # now we need the path to optimised forcefield
         forcefield_dir = os.path.join("result", "optimize")
-        files = os.listdir(forcefield_dir)
-        try:
-            files.remove("bespoke.offxml")
-        except ValueError:
-            pass
-
-        forcefields = [
-            (int(re.search("[0-9]+", file_name).group()), file_name)
-            for file_name in files
-        ]
-        # now sort them so the highest optimization is the last in the list
-        forcefields.sort(key=lambda x: x[0])
-        result["forcefield"] = os.path.join(forcefield_dir, forcefields[-1][-1])
+        result["forcefield"] = os.path.join(forcefield_dir, "bespoke.offxml")
         return result
 
     def generate_optimize_in(

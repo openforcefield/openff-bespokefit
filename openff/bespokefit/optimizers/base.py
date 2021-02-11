@@ -3,9 +3,9 @@ Here we register all optimizers with bespokefit.
 """
 from typing import Dict, List, Union
 
-from ..exceptions import OptimizerError
-from .forcebalance import ForceBalanceOptimizer
-from .model import Optimizer
+from openff.bespokefit.exceptions import OptimizerError
+from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
+from openff.bespokefit.optimizers.model import Optimizer
 
 optimizers: Dict[str, Optimizer] = {}
 
@@ -27,10 +27,12 @@ def register_optimizer(optimizer: Optimizer, replace: bool = False) -> None:
         If the optimizer is already registered or if the optimizer object is not compatible.
     """
 
-    if isinstance(optimizer, Optimizer):
-        optimier_name = optimizer.optimizer_name.lower()
-        if optimier_name not in optimizers or (optimier_name in optimizers and replace):
-            optimizers[optimizer.optimizer_name.lower()] = optimizer
+    if issubclass(type(optimizer), Optimizer):
+        optimizer_name = optimizer.optimizer_name.lower()
+        if optimizer_name not in optimizers or (
+            optimizer_name in optimizers and replace
+        ):
+            optimizers[optimizer_name] = optimizer
         else:
             raise OptimizerError(
                 f"An optimizer is already registered under the name {optimizer.optimizer_name}, to replace this please use the `replace=True` flag."
@@ -51,9 +53,9 @@ def deregister_optimizer(optimizer: Union[Optimizer, str]) -> None:
         The optimizer class or name of the class that should be removed.
     """
 
-    if isinstance(optimizer, Optimizer):
+    try:
         optimizer_name = optimizer.optimizer_name.lower()
-    else:
+    except AttributeError:
         optimizer_name = optimizer.lower()
 
     opt = optimizers.pop(optimizer_name, None)
