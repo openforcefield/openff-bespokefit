@@ -143,36 +143,36 @@ def test_submit_new_tasks(fractal_compute_server):
     assert response == {'OpenFF Bespoke-fit': {'default': 1}}
 
 
-def test_executor_no_collection(fractal_compute_server):
-    """
-    Test using the executor when there are no tasks to collect only optimizations to run.
-    """
-    client = FractalClient(fractal_compute_server)
-    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
-    # now make the schema
-    schema = get_fitting_schema(molecules=biphenyl)
-    result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
-    schema.update_with_results(results=result)
-
-    # now submit to the executor
-    execute = Executor()
-    # there are no collection tasks
-    assert execute.task_map == {}
-    # submit the optimization
-    with temp_directory():
-        result_schema = execute.execute(fitting_schema=schema, client=client)
-        # make sure we can generate the final forcefield
-        _ = result_schema.tasks[0].get_final_forcefield(generate_bespoke_terms=True, drop_out_value=5e-5)
-        # make sure they are all finished
-        assert execute.total_tasks == 0
-        # check the results have been saved
-        smirks = result_schema.tasks[0].final_smirks
-        # make sure they have been updated
-        for smirk in smirks:
-            for term in smirk.terms.values():
-                assert float(term.k.split()[0]) != 1e-5
-
-        # now round load up the results
-        schema = FittingSchema.parse_file("final_results.json.xz")
-        # make sure all tasks are complete
-        assert schema.tasks[0].status == Status.Complete
+# def test_executor_no_collection(fractal_compute_server):
+#     """
+#     Test using the executor when there are no tasks to collect only optimizations to run.
+#     """
+#     client = FractalClient(fractal_compute_server)
+#     biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
+#     # now make the schema
+#     schema = get_fitting_schema(molecules=biphenyl)
+#     result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
+#     schema.update_with_results(results=result)
+#
+#     # now submit to the executor
+#     execute = Executor()
+#     # there are no collection tasks
+#     assert execute.task_map == {}
+#     # submit the optimization
+#     with temp_directory():
+#         result_schema = execute.execute(fitting_schema=schema, client=client)
+#         # make sure we can generate the final forcefield
+#         _ = result_schema.tasks[0].get_final_forcefield(generate_bespoke_terms=True, drop_out_value=5e-5)
+#         # make sure they are all finished
+#         assert execute.total_tasks == 0
+#         # check the results have been saved
+#         smirks = result_schema.tasks[0].final_smirks
+#         # make sure they have been updated
+#         for smirk in smirks:
+#             for term in smirk.terms.values():
+#                 assert float(term.k.split()[0]) != 1e-5
+#
+#         # now round load up the results
+#         schema = FittingSchema.parse_file("final_results.json.xz")
+#         # make sure all tasks are complete
+#         assert schema.tasks[0].status == Status.Complete
