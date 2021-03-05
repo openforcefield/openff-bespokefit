@@ -60,10 +60,10 @@ jobs:
             echo "${ENC_OE_LICENSE}" > ${OE_LICENSE}
 
       - name: Environment Information
-          shell: bash -l {0}
-          run: |
-            conda info
-            conda list --show-channel-urls
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list --show-channel-urls
 
       - name: Install Openff-Bespokefit
         shell: bash -l {0}
