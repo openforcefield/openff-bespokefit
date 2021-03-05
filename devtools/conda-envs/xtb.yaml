@@ -1,9 +1,9 @@
-name: xtb_bespokefit
+name: test
 channels:
   - conda-forge
   - omnia
   - omnia/label/rc
-  - omnia/label/benchmark
+  - openeye
   - defaults
 
 dependencies:
