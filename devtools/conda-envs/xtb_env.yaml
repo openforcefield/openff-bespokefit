@@ -15,7 +15,7 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
-  - openforcefield >= 0.7.0
+  - openforcefield == 0.8.0
   - openforcefields
   - qcengine >=0.17.0
   - forcebalance
