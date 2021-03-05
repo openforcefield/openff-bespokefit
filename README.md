@@ -17,7 +17,7 @@ Please note that this software in an early and experimental state and unsuitable
 The required dependencies for `Bespokefit` can be installed using `conda`:
 
 ```
-conda create --name bespokefit -c omnia/label/rc -c openeye -c conda-forge -c omnia/label/benchmark openff-qcsubmit chemper fragmenter openeye-toolkits forcebalance 
+conda create --name bespokefit -c omnia/label/rc -c openeye -c conda-forge openff-qcsubmit chemper fragmenter openeye-toolkits forcebalance openforcefield==0.8.0 pydantic==1.7.2
 
 python setup.py develop
 ```

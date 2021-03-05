@@ -1,9 +1,9 @@
-name: basic_bespokefit
+name: test
 channels:
   - conda-forge
   - omnia
   - omnia/label/rc
-  - omnia/label/benchmark
+  - openeye
   - defaults
 
 dependencies:
@@ -15,7 +15,8 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
-  - openforcefield >= 0.7.0
+  - openforcefield == 0.8.0
+  - pydantic ==1.7.2
   - openforcefields
   - qcengine >=0.17.0
   - forcebalance

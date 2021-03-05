@@ -18,35 +18,35 @@ from openff.bespokefit.tests.schema.test_fitting import get_fitting_schema
 from openff.bespokefit.utils import get_data
 # from openff.bespokefit.workflow import WorkflowFactory
 # from openff.qcsubmit.common_structures import QCSpec
-# from openff.qcsubmit.results import TorsionDriveCollectionResult
-# from openff.qcsubmit.testing import temp_directory
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 
 
-# def test_optimizer_explicit():
-#     """
-#     Run the optimizer process in the main thread to make sure it works.
-#     """
-#     biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
-#     # now make the schema
-#     schema = get_fitting_schema(molecules=biphenyl)
-#     result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
-#     schema.update_with_results(results=result)
-#     # now submit to the executor
-#     execute = Executor()
-#     # we dont need the server here
-#     # put a task in the opt queue then kill it
-#     execute.total_tasks = 1
-#     execute.opt_queue.put(schema.tasks[0])
-#     with temp_directory():
-#         execute.optimizer()
-#         # find the task in the finished queue
-#         task = execute.finished_tasks.get()
-#         result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
-#         smirks = result_schema.tasks[0].final_smirks
-#         # make sure they have been updated
-#         for smirk in smirks:
-#             for term in smirk.terms.values():
-#                 assert float(term.k.split()[0]) != 1e-5
+def test_optimizer_explicit():
+    """
+    Run the optimizer process in the main thread to make sure it works.
+    """
+    biphenyl = Molecule.from_file(file_path=get_data("biphenyl.sdf"), file_format="sdf")
+    # now make the schema
+    schema = get_fitting_schema(molecules=biphenyl)
+    result = TorsionDriveCollectionResult.parse_file(get_data("biphenyl.json.xz"))
+    schema.update_with_results(results=result)
+    # now submit to the executor
+    execute = Executor()
+    # we dont need the server here
+    # put a task in the opt queue then kill it
+    execute.total_tasks = 1
+    execute.opt_queue.put(schema.tasks[0])
+    with temp_directory():
+        execute.optimizer()
+        # find the task in the finished queue
+        task = execute.finished_tasks.get()
+        result_schema = execute.update_fitting_schema(task=task, fitting_schema=schema)
+        smirks = result_schema.tasks[0].final_smirks
+        # make sure they have been updated
+        for smirk in smirks:
+            for term in smirk.terms.values():
+                assert float(term.k.split()[0]) != 1e-5
 
 
 # def test_full_run_xtb(fractal_compute_server):

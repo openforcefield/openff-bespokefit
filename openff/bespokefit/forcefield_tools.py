@@ -9,7 +9,7 @@ from openforcefield.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,
-    ParameterLookupError,
+    # ParameterLookupError,
     ProperTorsionHandler,
     vdWHandler,
 )
@@ -87,7 +87,7 @@ class ForceFieldEditor:
                     smirk_data["id"] = current_param.id
                     # update the parameter using the init to get around conditional assigment
                     current_param.__init__(**smirk_data)
-                except ParameterLookupError:
+                except IndexError:
                     smirk_data["id"] = _smirks_ids[smirk_type] + str(no_params + i)
                     current_params.append(_smirks_conversion[smirk_type](**smirk_data))
 
