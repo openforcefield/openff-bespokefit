@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.cfg.os }}, 🐍=${{ matrix.python-version }}, Program=${{ matrix.cfg.prog }}
+    name: Test on ${{ matrix.cfg.os }}, 🐍=${{ matrix.python-version }}, Program=${{ matrix.cfg.conda-env }}
     runs-on: ${{ matrix.cfg.os }}
     strategy:
       fail-fast: false
@@ -73,8 +73,6 @@ jobs:
       - name: PyTest
         shell: bash -l {0}
         run: |
-          . devtools/gh-actions/initialize_conda.sh
-          conda activate test
           pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
 
       - name: Codecov
