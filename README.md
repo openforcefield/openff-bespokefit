@@ -1,6 +1,7 @@
 BespokeFit
 ==============================
 [//]: # (Badges)
+[![CI](https://github.com/openforcefield/bespoke-fit/actions/workflows/CI.yaml/badge.svg)](https://github.com/openforcefield/bespoke-fit/actions/workflows/CI.yaml)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/openforcefield/bespoke-fit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/openforcefield/bespoke-fit/context:python)
 [![codecov](https://codecov.io/gh/openforcefield/bespoke-fit/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/bespoke-fit/branch/master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -17,8 +18,7 @@ Please note that this software in an early and experimental state and unsuitable
 The required dependencies for `Bespokefit` can be installed using `conda`:
 
 ```
-conda create --name bespokefit -c omnia/label/rc -c openeye -c conda-forge openff-qcsubmit chemper fragmenter openeye-toolkits forcebalance openforcefield==0.8.0 pydantic==1.7.2
-
+conda create --name bespokefit -c conda-forge -c omnia -c omnia/label/rc -c openeye openff-qcsubmit chemper fragmenter==0.0.7 openeye-toolkits forcebalance openforcefield==0.8.0 pydantic==1.7.2
 python setup.py develop
 ```
 
