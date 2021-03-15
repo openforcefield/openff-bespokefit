@@ -3,101 +3,92 @@ The optimizer model abstract class.
 """
 
 import abc
-from typing import Dict, List, Union
+import copy
+from collections import defaultdict
+from typing import Dict, Type, Union
 
-from openff.bespokefit.common_structures import SchemaBase
-from openff.bespokefit.exceptions import TargetRegisterError
-from openff.bespokefit.schema import OptimizationSchema
-from openff.bespokefit.targets.model import Target
+from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
+from openff.bespokefit.schema.fitting import BaseOptimizationSchema
+from openff.bespokefit.schema.optimizers import OptimizerSchema
+from openff.bespokefit.schema.results import (
+    BespokeOptimizationResults,
+    OptimizationResults,
+)
+from openff.bespokefit.schema.targets import BaseTargetSchema
+
+OptimizerResultsType = Union[OptimizationResults, BespokeOptimizationResults]
+TargetSchemaType = Type[BaseTargetSchema]
 
 
-class Optimizer(SchemaBase, abc.ABC):
+class Optimizer(abc.ABC):
     """
     This is the abstract basic Optimizer class that each optimizer should use.
     """
 
-    optimizer_name: str
-    optimizer_description: str
-    optimization_targets: List[
-        Target
-    ] = []  # this is the actual targets that are to be executed in the optimizaion
-
-    class Config:
-        validate_assignment = True
-        arbitrary_types_allowed = True
-        fields = {
-            "optimizer_name": {
-                "description": "The name of the optimizer used to rebuild the optimizer model."
-            },
-            "optimizer_description": {
-                "description": "A short description of the optimizer and links to more info."
-            },
-            "optimization_targets": {
-                "description": "The list of optimization targets."
-            },
-        }
-
     # this is shared across optimizers so we have to separate by optimizer
-    _all_targets: Dict[str, Dict[str, Target]] = {}
-
-    def set_optimization_target(self, target: Union[Target, str], **kwargs) -> None:
-        """
-        Add a valid registered optimization target to the list of targets to be executed.
-
-        Parameters:
-            target: Either the target instance or the name of the registered target which should be added to the optimization targets list.
-            kwargs: Any kwargs that should be used to build the target, these are only used when the target name is supplied to add the target.
-        """
-        if isinstance(target, str):
-            self.optimization_targets.append(
-                self.get_optimization_target(target, **kwargs)
-            )
-
-        elif target.name.lower() in self._get_registered_targets().keys():
-            self.optimization_targets.append(target)
-
-        else:
-            raise TargetRegisterError(
-                f"The requested target {target.name} is not registered with the optimizer, {self.__class__.__name__}"
-            )
-
-    def clear_optimization_targets(self) -> None:
-        """
-        Clear out the optimization targets currently set into the optimizer.
-        """
-
-        self.optimization_targets = []
-
-    def get_optimization_target(self, target_name: str, **kwargs) -> Target:
-        """
-        Get an optimization target initialized using the given kwargs if it has been registered with the optimizer.
-
-        Parameters:
-            target_name: The name of the target that was registered with the optimizer
-            kwargs: The kwargs that should be passed into the init.
-        """
-        targets = self._get_registered_targets()
-        for name, target in targets.items():
-            if name.lower() == target_name.lower():
-                if kwargs:
-                    return target.parse_obj(kwargs)
-                else:
-                    return target
-        raise TargetRegisterError(
-            f"No target is registered to this optimizer under the name {target_name.lower()}"
-        )
+    _registered_targets: Dict[str, Dict[str, TargetSchemaType]] = defaultdict(dict)
 
     @classmethod
-    def register_target(cls, target: Target, replace: bool = False) -> None:
+    @abc.abstractmethod
+    def name(cls) -> str:
+        """Returns the friendly name of the optimizer."""
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def description(cls) -> str:
+        """Returns a friendly description of the optimizer."""
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def provenance(cls) -> Dict:
         """
-        Take a target and register it with the optimizer under an alias name which is used to call the target.
+        This function should detail the programs with the version information called
+        during the running od the optimizer.
+
+        Returns:
+            A dictionary containing the information about the optimizer called.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def is_available(cls) -> bool:
+        """
+        This method should check that installation requirements are met before trying to
+        run the optimizer.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def _schema_class(cls) -> Type[OptimizerSchema]:
+        """The schema associated with this optimizer."""
+        raise NotImplementedError
+
+    @classmethod
+    def get_registered_targets(cls) -> Dict[str, TargetSchemaType]:
+        """
+        Internal method to get the registered targets for this specific optimizer.
+        """
+        return copy.deepcopy(cls._registered_targets.get(cls.__name__, {}))
+
+    @classmethod
+    def register_target(
+        cls, target_type: TargetSchemaType, replace: bool = False
+    ) -> None:
+        """
+        Take a target and register it with the optimizer under an alias name which is
+        used to call the target.
 
         Parameters
         ----------
-        target: Target
-            The target class which is to be registered with the optimizer.
-        replace: bool
-            If the alias is already registered replaced with the new target data with no exception.
+        target_type
+            The type of target to be registered with the optimizer.
+        replace
+            If the alias is already registered replaced with the new target data with no
+            exception.
 
         Raises
         ------
@@ -105,21 +96,29 @@ class Optimizer(SchemaBase, abc.ABC):
             If the target has already been registered.
         """
 
-        current_targets = cls._get_registered_targets()
-        if (target.name.lower() not in current_targets) or (
-            target.name.lower() in current_targets and replace
+        if not issubclass(target_type, BaseTargetSchema):
+
+            raise TargetRegisterError(
+                f"The {target_type.__name__} does not inherit from the "
+                f"``BaseTargetSchema`` target base class."
+            )
+
+        target_name = target_type.__fields__["type"].default
+
+        current_targets = cls.get_registered_targets()
+
+        if (target_name.lower() not in current_targets) or (
+            target_name.lower() in current_targets and replace
         ):
-            try:
-                cls._all_targets[cls.__name__][target.name.lower()] = target
-            except KeyError:
-                cls._all_targets[cls.__name__] = {target.name.lower(): target}
+            cls._registered_targets[cls.__name__][target_name.lower()] = target_type
         else:
             raise TargetRegisterError(
-                f"The alias {target.name.lower()} has already been registered with this optimizer; to update use overwrite = `True`."
+                f"The alias {target_name.lower()} has already been registered with "
+                f"this optimizer; to update use overwrite = `True`."
             )
 
     @classmethod
-    def deregister_target(cls, target_name: str) -> None:
+    def deregister_target(cls, target_name: str):
         """
         Remove a registered target from the optimizer.
 
@@ -134,62 +133,62 @@ class Optimizer(SchemaBase, abc.ABC):
             If no target is registered under the name to be removed.
         """
 
-        current_targets = cls._get_registered_targets()
+        current_targets = cls.get_registered_targets()
+
         if target_name.lower() in current_targets:
-            del cls._all_targets[cls.__name__][target_name.lower()]
+            del cls._registered_targets[cls.__name__][target_name.lower()]
         else:
             raise TargetRegisterError(
                 f"No target with the name {target_name.lower()} was registered."
             )
 
     @classmethod
-    def _get_registered_targets(cls) -> Dict[str, Target]:
+    def _validate_schema(cls, schema: BaseOptimizationSchema):
+        """Validates that a particular optimization schema can be used with this
+        optimizer.
         """
-        Internal method to get the registered targets for this specific optimizer.
-        """
-        return cls._all_targets.get(cls.__name__, {})
+
+        if not isinstance(schema.optimizer, cls._schema_class()):
+
+            raise OptimizerError(
+                f"The ``{cls.__name__}`` optimizer can only be used with "
+                f"optimization schemas which specify a {cls._schema_class().__name__} "
+                f"optimizer, not a {schema.optimizer.__class__.__name__}."
+            )
+
+        registered_targets = cls.get_registered_targets()
+
+        for target in schema.targets:
+
+            if target.type.lower() not in registered_targets:
+                continue
+
+            raise TargetRegisterError(
+                f"The {target.type} target type is not registered with the "
+                f"{cls.__class__.__name__} optimizer."
+            )
 
     @classmethod
-    def get_registered_targets(cls) -> List[Target]:
+    def _optimize(
+        cls, schema: BaseOptimizationSchema, keep_files
+    ) -> OptimizerResultsType:
+        """The internal implementation of the main ``optimize`` method. The input
+        ``schema`` is assumed to have been validated before being passed to this
+        method.
         """
-        Get all of the targets registered for this optimizer.
-
-        Returns:
-            A list of the registered targets and details describing their function.
-        """
-
-        return list(cls._get_registered_targets().values())
-
-    @classmethod
-    def get_registered_target_names(cls) -> List[str]:
-        """
-        Get the names of the registered targets for this optimizer.
-        """
-        return list(cls._get_registered_targets().keys())
-
-    @abc.abstractmethod
-    def provenance(self) -> Dict:
-        """
-        This function should detail the programs with the version information called during the running od the optimizer.
-
-        Returns:
-            A dictionary containing the information about the optimizer called.
-        """
-
         raise NotImplementedError()
 
     @classmethod
-    @abc.abstractmethod
-    def is_available(cls) -> bool:
+    def optimize(
+        cls, schema: BaseOptimizationSchema, keep_files: bool = False
+    ) -> OptimizerResultsType:
         """
-        This method should check that installation requirements are met before trying to run the optimizer.
-        """
-        raise NotImplementedError()
+        This is the main function of the optimizer which is called when the optimizer is
+        put in a workflow.
 
-    @abc.abstractmethod
-    def optimize(self, schema: OptimizationSchema) -> OptimizationSchema:
+        It should loop over the targets and assert they are registered and then dispatch
+        compute and optimization.
         """
-        This is the main function of the optimizer which is called when the optimizer is put in a workflow.
-        It should loop over the targets and assert they are registered and then dispatch compute and optimization.
-        """
-        raise NotImplementedError()
+
+        cls._validate_schema(schema)
+        return cls._optimize(schema, keep_files)

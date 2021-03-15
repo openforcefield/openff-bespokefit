@@ -6,14 +6,14 @@ import os
 from typing import Union
 
 import pytest
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 from openforcefield.topology import Molecule
 
 from openff.bespokefit.exceptions import MissingReferenceError
 from openff.bespokefit.schema import TargetSchema
 from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
 from openff.bespokefit.utils import get_data, get_molecule_cmiles, read_qdata
-from openff.qcsubmit.results import TorsionDriveCollectionResult
-from openff.qcsubmit.testing import temp_directory
 
 
 def biphenyl_target(target: Union[AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF]) -> TargetSchema:

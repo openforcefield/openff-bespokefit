@@ -8,31 +8,37 @@ from chemper.graphs.single_graph import SingleGraph
 from openforcefield.topology import Molecule
 from pydantic import BaseModel, Field
 
-from openff.bespokefit.common_structures import SmirksType
 from openff.bespokefit.exceptions import SMIRKSTypeError
-from openff.bespokefit.forcefield_tools import ForceFieldEditor
-from openff.bespokefit.schema import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
 
-# a type that is often used
-Smirks = List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]
+from openff.bespokefit.schema.bespoke.smirks import (
+    BespokeAngleSmirks,
+    BespokeAtomSmirks,
+    BespokeBondSmirks,
+    BespokeSmirksParameter,
+    BespokeTorsionSmirks,
+)
+from openff.bespokefit.schema.smirnoff import SmirksType
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 class SmirksGenerator(BaseModel):
     """
-    Generates a set of smirks that describe the requested force groups of the molecule, these can be bespoke or simply extract the curent values from the target forcefield.
+    Generates a set of smirks that describe the requested force groups of the molecule,
+    these can be bespoke or simply extract the curent values from the target forcefield.
     """
 
     class Config:
         validate_assigment = True
         arbitrary_types_allowed = True
 
-    initial_forcefield: Union[str, ForceFieldEditor] = Field(
+    initial_force_field: Union[str, ForceFieldEditor] = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",
     )
     generate_bespoke_terms: bool = Field(
         True,
-        description="For each instance of a force group in the molecule generate a new bespoke smirks parameter.",
+        description="For each instance of a force group in the molecule generate a new "
+        "bespoke smirks parameter.",
     )
     expand_torsion_terms: bool = Field(
         True,
@@ -44,18 +50,22 @@ class SmirksGenerator(BaseModel):
     )
     smirks_layers: Union[str, int] = Field(
         1,
-        description="The number of layers that should be included into the generated patterns.",
+        description="The number of layers that should be included into the generated "
+        "patterns.",
     )
 
     def generate_smirks(
         self, molecule: Molecule, central_bonds: Optional[List[Tuple[int, int]]] = None
-    ) -> Smirks:
-        """
-        The main method of the class which takes an input molecule and can generate new smirks patterns for it corresponding to the types set in the target smirks list.
+    ) -> List[BespokeSmirksParameter]:
+        """The main method of the class which takes an input molecule and can generate
+        new smirks patterns for it corresponding to the types set in the target smirks
+        list.
 
         Parameters:
-            molecule: The openforcefield molecule for which we should make the smirks patterns
-            central_bonds: An optional list of central bonds which are used with the TargetTorsions option to specify which torsions need new terms.
+            molecule: The openforcefield molecule for which we should make the smirks
+                patterns
+            central_bonds: An optional list of central bonds which are used with the
+                TargetTorsions option to specify which torsions need new terms.
 
         Returns:
             A list of new bespoke smirks parameters for the molecule.
@@ -63,23 +73,24 @@ class SmirksGenerator(BaseModel):
 
         if not self.target_smirks:
             raise SMIRKSTypeError(
-                "No smirks targets were provided so no new patterns were made, set a target and run again."
+                "No smirks targets were provided so no new patterns were made, set a "
+                "target and run again."
             )
 
         # now we need to set the forcefield
-        if isinstance(self.initial_forcefield, ForceFieldEditor):
-            ff = self.initial_forcefield
+        if isinstance(self.initial_force_field, ForceFieldEditor):
+            ff = self.initial_force_field
         else:
-            ff = ForceFieldEditor(forcefield_name=self.initial_forcefield)
+            ff = ForceFieldEditor(force_field_name=self.initial_force_field)
 
         # for each requested smirks type generate the parameters
         if self.generate_bespoke_terms:
             new_smirks = self._get_all_bespoke_smirks(
-                molecule=molecule, forcefield_editor=ff, central_bonds=central_bonds
+                molecule=molecule, force_field_editor=ff, central_bonds=central_bonds
             )
         else:
             new_smirks = self._get_all_smirks(
-                molecule=molecule, forcefield_editor=ff, central_bonds=central_bonds
+                molecule=molecule, force_field_editor=ff, central_bonds=central_bonds
             )
         # now sort the smirks into a dict
         # all_smirks = dict()
@@ -99,11 +110,12 @@ class SmirksGenerator(BaseModel):
     def _get_all_smirks(
         self,
         molecule: Molecule,
-        forcefield_editor: ForceFieldEditor,
+        force_field_editor: ForceFieldEditor,
         central_bonds: Optional[List[Tuple[int, int]]] = None,
-    ) -> Smirks:
+    ) -> List[BespokeSmirksParameter]:
         """
-        The main worker method for extracting current smirks patterns for the molecule, this will only extract parameters for the requested groups.
+        The main worker method for extracting current smirks patterns for the molecule,
+        this will only extract parameters for the requested groups.
         """
         # generate a list of all of the required parameter types
         requested_smirks = []
@@ -128,7 +140,7 @@ class SmirksGenerator(BaseModel):
             requested_smirks.extend(torsions)
 
         # now request all of these smirks from the forcefield
-        new_smirks = forcefield_editor.get_smirks_parameters(
+        new_smirks = force_field_editor.get_smirks_parameters(
             molecule=molecule, atoms=requested_smirks
         )
         return new_smirks
@@ -136,12 +148,15 @@ class SmirksGenerator(BaseModel):
     def _get_all_bespoke_smirks(
         self,
         molecule: Molecule,
-        forcefield_editor: ForceFieldEditor,
+        force_field_editor: ForceFieldEditor,
         central_bonds: Optional[List[Tuple[int, int]]] = None,
-    ) -> Smirks:
+    ) -> List[BespokeSmirksParameter]:
         """
-        The main worker method for generating new bespoke smirks, this will check which parameters are wanted and call each method.
-        The new smirks will then have any dummy values set by the initial forcefield values.
+        The main worker method for generating new bespoke smirks, this will check which
+        parameters are wanted and call each method.
+
+        The new smirks will then have any dummy values set by the initial force field
+        values.
         """
         bespoke_smirks = []
         if SmirksType.Vdw in self.target_smirks:
@@ -160,12 +175,12 @@ class SmirksGenerator(BaseModel):
             bespoke_smirks.extend(torsion_smirks)
 
         # now we need to update all smirks
-        updated_smirks = forcefield_editor.get_initial_parameters(
+        updated_smirks = force_field_editor.get_initial_parameters(
             molecule=molecule, smirks=bespoke_smirks, clear_existing=True
         )
         return updated_smirks
 
-    def _get_bespoke_atom_smirks(self, molecule: Molecule) -> List[AtomSmirks]:
+    def _get_bespoke_atom_smirks(self, molecule: Molecule) -> List[BespokeAtomSmirks]:
         """
         For the molecule generate a unique set of bespoke atom smirks.
         """
@@ -173,7 +188,7 @@ class SmirksGenerator(BaseModel):
 
         for i in range(molecule.n_atoms):
             # make new smirks pattern with dummy params
-            new_smirks = AtomSmirks(
+            new_smirks = BespokeAtomSmirks(
                 smirks=self._get_new_single_graph_smirks(atoms=(i,), molecule=molecule),
                 epsilon=0,
                 rmin_half=0,
@@ -190,14 +205,14 @@ class SmirksGenerator(BaseModel):
 
         return atom_smirks
 
-    def _get_bespoke_bond_smirks(self, molecule: Molecule) -> List[BondSmirks]:
+    def _get_bespoke_bond_smirks(self, molecule: Molecule) -> List[BespokeBondSmirks]:
         """
         For the molecule generate a unique set of bespoke bond smirks.
         """
         bond_smirks = []
         for bond in molecule.bonds:
             atoms = (bond.atom1_index, bond.atom2_index)
-            new_smirks = BondSmirks(
+            new_smirks = BespokeBondSmirks(
                 smirks=self._get_new_single_graph_smirks(
                     atoms=atoms, molecule=molecule
                 ),
@@ -216,14 +231,14 @@ class SmirksGenerator(BaseModel):
 
         return bond_smirks
 
-    def _get_bespoke_angle_smirks(self, molecule: Molecule) -> List[AngleSmirks]:
+    def _get_bespoke_angle_smirks(self, molecule: Molecule) -> List[BespokeAngleSmirks]:
         """
         For the molecule generate a unique set of bespoke angle smirks.
         """
         angle_smirks = []
         for angle in molecule.angles:
             atom_ids = tuple([atom.molecule_atom_index for atom in angle])
-            new_smirks = AngleSmirks(
+            new_smirks = BespokeAngleSmirks(
                 smirks=self._get_new_single_graph_smirks(
                     atoms=atom_ids, molecule=molecule
                 ),
@@ -244,9 +259,10 @@ class SmirksGenerator(BaseModel):
 
     def _get_bespoke_torsion_smirks(
         self, molecule: Molecule, central_bonds: Optional[List[Tuple[int, int]]] = None
-    ) -> List[TorsionSmirks]:
+    ) -> List[BespokeTorsionSmirks]:
         """
-        For the molecule generate a unique set of bespoke proper torsion smirks for the target bonds or all torsions.
+        For the molecule generate a unique set of bespoke proper torsion smirks for the
+        target bonds or all torsions.
         """
         # gather a list of torsions
         torsions = self._get_torsion_indices(
@@ -255,7 +271,7 @@ class SmirksGenerator(BaseModel):
 
         torsion_smirks = []
         for dihedral in torsions:
-            new_smirks = TorsionSmirks(
+            new_smirks = BespokeTorsionSmirks(
                 smirks=self._get_new_single_graph_smirks(
                     atoms=dihedral, molecule=molecule
                 ),

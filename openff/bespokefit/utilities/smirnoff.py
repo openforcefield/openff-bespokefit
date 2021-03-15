@@ -1,5 +1,5 @@
 """
-Tools for dealing with forcefield manipulation.
+Tools for dealing with SMIRNOFF force field manipulation.
 """
 
 from typing import Dict, Iterable, List, Tuple, Union
@@ -9,45 +9,81 @@ from openforcefield.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,
+    ImproperTorsionHandler,
     ParameterLookupError,
     ProperTorsionHandler,
     vdWHandler,
 )
 
-from openff.bespokefit.common_structures import SmirksType
-from openff.bespokefit.schema import AngleSmirks, AtomSmirks, BondSmirks, TorsionSmirks
-from openff.bespokefit.utils import smirks_from_off
+from openff.bespokefit.schema.bespoke.smirks import (
+    BespokeAngleSmirks,
+    BespokeAtomSmirks,
+    BespokeBondSmirks,
+    BespokeSmirksParameter,
+    BespokeTorsionSmirks,
+)
+from openff.bespokefit.schema.smirnoff import SmirksType
+
+
+def smirks_from_off(
+    off_smirks: Union[
+        AngleHandler.AngleType,
+        vdWHandler.vdWType,
+        BondHandler.BondType,
+        ProperTorsionHandler.ProperTorsionType,
+        ImproperTorsionHandler.ImproperTorsionType,
+    ]
+) -> BespokeSmirksParameter:
+    """Build and Bespokefit smirks parameter object from the openforcefield toolkit
+    equivalent object.
+    """
+
+    # map the off types to the bespoke types
+    _off_to_smirks = {
+        "Angle": BespokeAngleSmirks,
+        "Atom": BespokeAtomSmirks,
+        "Bond": BespokeBondSmirks,
+        "ProperTorsion": BespokeTorsionSmirks,
+        "ImproperTorsion": BespokeTorsionSmirks,
+    }
+    # build the smirks and update it
+    smirk = _off_to_smirks[off_smirks._VALENCE_TYPE].from_off_smirks(
+        off_smirk=off_smirks
+    )
+    return smirk
 
 
 class ForceFieldEditor:
-    def __init__(self, forcefield_name: str):
+    def __init__(self, force_field_name: str):
         """
         Gather the forcefield ready for manipulation.
 
         Parameters
         ----------
-        forcefield_name: str
+        force_field_name: str
             The string of the target forcefield path.
 
         Notes
         ------
-            This will always try to strip the constraints parameter handler as the FF should be unconstrained for fitting.
+            This will always try to strip the constraints parameter handler as the FF
+            should be unconstrained for fitting.
         """
-        self.forcefield = ForceField(forcefield_name, allow_cosmetic_attributes=True)
+        self.force_field = ForceField(force_field_name, allow_cosmetic_attributes=True)
 
         # try and strip a constraint handler
         try:
-            del self.forcefield._parameter_handlers["Constraints"]
+            del self.force_field._parameter_handlers["Constraints"]
         except KeyError:
             pass
 
     def add_smirks(
         self,
-        smirks: List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]],
+        smirks: List[BespokeSmirksParameter],
         parameterize: bool = True,
     ) -> None:
         """
-        Work out which type of smirks this is and add it to the forcefield, if this is not a bespoke parameter update the value in the forcefield.
+        Work out which type of smirks this is and add it to the forcefield, if this is
+        not a bespoke parameter update the value in the forcefield.
         """
 
         _smirks_conversion = {
@@ -73,7 +109,7 @@ class ForceFieldEditor:
                     new_params[smirk.type].append(smirk)
 
         for smirk_type, parameters in new_params.items():
-            current_params = self.forcefield.get_parameter_handler(
+            current_params = self.force_field.get_parameter_handler(
                 smirk_type
             ).parameters
             no_params = len(current_params)
@@ -85,7 +121,8 @@ class ForceFieldEditor:
                 try:
                     current_param = current_params[parameter.smirks]
                     smirk_data["id"] = current_param.id
-                    # update the parameter using the init to get around conditional assigment
+                    # update the parameter using the init to get around conditional
+                    # assigment
                     current_param.__init__(**smirk_data)
                 except ParameterLookupError:
                     smirk_data["id"] = _smirks_ids[smirk_type] + str(no_params + i)
@@ -98,20 +135,23 @@ class ForceFieldEditor:
         Parameters
         ----------
         molecule: off.Molecule
-            The openforcefield.topology.Molecule that should be labeled by the forcefield.
+            The openforcefield.topology.Molecule that should be labeled by the
+            forcefield.
 
         Returns
         -------
         Dict[str, str]
-            A dictionary of each parameter assigned to molecule organised by parameter handler type.
+            A dictionary of each parameter assigned to molecule organised by parameter
+            handler type.
         """
-        return self.forcefield.label_molecules(molecule.to_topology())[0]
+        return self.force_field.label_molecules(molecule.to_topology())[0]
 
     def get_smirks_parameters(
         self, molecule: off.Molecule, atoms: List[Tuple[int, ...]]
-    ) -> List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]:
+    ) -> List[BespokeSmirksParameter]:
         """
-        For a given molecule label it and get back the smirks patterns and parameters for the requested atoms.
+        For a given molecule label it and get back the smirks patterns and parameters
+        for the requested atoms.
         """
         _atoms_to_params = {
             1: SmirksType.Vdw,
@@ -138,10 +178,11 @@ class ForceFieldEditor:
 
     def update_smirks_parameters(
         self,
-        smirks: Iterable[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]],
+        smirks: Iterable[BespokeSmirksParameter],
     ) -> None:
         """
-        Take a list of input smirks parameters and update the values of the parameters using the given forcefield in place.
+        Take a list of input smirks parameters and update the values of the parameters
+        using the given forcefield in place.
 
         Parameters
         ----------
@@ -151,7 +192,7 @@ class ForceFieldEditor:
         """
 
         for smirk in smirks:
-            new_parameter = self.forcefield.get_parameter_handler(
+            new_parameter = self.force_field.get_parameter_handler(
                 smirk.type
             ).parameters[smirk.smirks]
             # now we just need to update the smirks with the new values
@@ -160,11 +201,12 @@ class ForceFieldEditor:
     def get_initial_parameters(
         self,
         molecule: off.Molecule,
-        smirks: List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]],
+        smirks: List[BespokeSmirksParameter],
         clear_existing: bool = True,
-    ) -> List[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]:
+    ) -> List[BespokeSmirksParameter]:
         """
-        Find the initial parameters assigned to the atoms in the given smirks pattern and update the values to match the forcefield.
+        Find the initial parameters assigned to the atoms in the given smirks pattern
+        and update the values to match the forcefield.
         """
         labels = self.label_molecule(molecule=molecule)
         # now find the atoms

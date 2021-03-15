@@ -3,7 +3,6 @@ BespokeFit
 Creating bespoke parameters for individual molecules.
 """
 
-# Handle versioneer
 from ._version import get_versions
 
 versions = get_versions()

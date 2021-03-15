@@ -127,3 +127,19 @@ class TaskMissMatchError(BespokeFitException):
 
     error_type = "task_miss_match_error"
     header = "Task Miss Match Error"
+
+
+class UnrecognisedKwargsError(BespokeFitException):
+
+    error_type = "unrecognised_kwargs_error"
+    header = "Unrecognised Kwargs Error"
+
+    def __init__(self, kwarg_names):
+
+        self.kwarg_names = kwarg_names
+
+        joined_kwarg_names = ", ".join(kwarg_names)
+
+        super(UnrecognisedKwargsError, self).__init__(
+            f"The {joined_kwarg_names} kwargs are unrecognised by this function."
+        )

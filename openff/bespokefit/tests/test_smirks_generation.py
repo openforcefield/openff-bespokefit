@@ -7,7 +7,7 @@ from typing import List, Tuple
 import pytest
 from openforcefield.topology import Molecule
 
-from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.force_field_tools import ForceFieldEditor
 from openff.bespokefit.smirks import SmirksGenerator, SmirksType, SMIRKSTypeError
 from openff.bespokefit.utils import get_data
 
@@ -166,7 +166,7 @@ def test_get_all_bespoke_smirks():
 
     mol = Molecule.from_smiles("CO")
 
-    all_bespoke_smirks = gen._get_all_bespoke_smirks(molecule=mol, forcefield_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
+    all_bespoke_smirks = gen._get_all_bespoke_smirks(molecule=mol, force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
     # this is a list of all bespoke smirks with real initial values
     all_matches = []
     for smirk in all_bespoke_smirks:
@@ -186,7 +186,7 @@ def test_get_all_smirks():
 
     mol = Molecule.from_smiles("CO")
 
-    all_smirks = gen._get_all_smirks(molecule=mol, forcefield_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
+    all_smirks = gen._get_all_smirks(molecule=mol, force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
     # this is a list of all of the smirks from the forcefield
     all_matches = []
     for smirk in all_smirks:

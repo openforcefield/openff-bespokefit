@@ -3,6 +3,8 @@ Test for the bespoke-fit workflow generator.
 """
 
 import pytest
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 from openforcefield.topology import Molecule
 from qcfractal.interface import FractalClient
 
@@ -20,8 +22,6 @@ from openff.bespokefit.optimizers import (
 from openff.bespokefit.targets import AbInitio_SMIRNOFF
 from openff.bespokefit.utils import get_data
 from openff.bespokefit.workflow import WorkflowFactory
-from openff.qcsubmit.results import TorsionDriveCollectionResult
-from openff.qcsubmit.testing import temp_directory
 
 bace_entries = ['[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[h])[h])[h])[h]',
                 "[h]c1c([c:1]([c:2](c(c1[h])[h])[c@:3]2(c(=o)n(c(=[n+:4]2[h])n([h])[h])c([h])([h])[h])c3(c(c3([h])[h])([h])[h])[h])[h])[h]",
@@ -32,17 +32,17 @@ bace_entries = ['[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[
     pytest.param(("bespoke.offxml", ForceFieldError), id="Local forcefield"),
     pytest.param(("smirnoff99Frosst-1.0.7.offxml", None), id="Smirnoff99Frosst installed")
 ])
-def test_workflow_forcefield_setter(forcefield):
+def test_workflow_force_field_setter(force_field):
     """
     Make sure we only accept forcefields that have been installed.
     """
-    force_file, error = forcefield
+    force_file, error = force_field
     factory = WorkflowFactory()
     if error is None:
-        factory.initial_forcefield = force_file
+        factory.initial_force_field = force_file
     else:
         with pytest.raises(ForceFieldError):
-            factory.initial_forcefield = force_file
+            factory.initial_force_field = force_file
 
 
 @pytest.mark.parametrize("optimization_data", [
@@ -210,7 +210,7 @@ def test_task_from_molecule():
     workflow.set_optimizer(optimizer=fb)
 
     opt_schema = workflow._task_from_molecule(molecule=bace, index=1)
-    assert opt_schema.initial_forcefield == workflow.initial_forcefield
+    assert opt_schema.initial_force_field == workflow.initial_force_field
     assert opt_schema.optimizer_name == fb.optimizer_name
     assert opt_schema.job_id == "bespoke_task_1"
     assert bool(opt_schema.target_smirks) is True
@@ -261,7 +261,7 @@ def test_task_from_results():
     # this should be a simple biphenyl molecule
     opt_schema = workflow._task_from_results(results=[result, ], index=1)
 
-    assert opt_schema.initial_forcefield == workflow.initial_forcefield
+    assert opt_schema.initial_force_field == workflow.initial_force_field
     assert opt_schema.optimizer_name == fb.optimizer_name
     assert opt_schema.job_id == "bespoke_task_1"
     assert bool(opt_schema.target_smirks) is True

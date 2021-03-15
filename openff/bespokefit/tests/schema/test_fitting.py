@@ -5,6 +5,8 @@ Test all parts of the fitting schema.
 from typing import List, Tuple
 
 import pytest
+from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.testing import temp_directory
 from openforcefield.topology import Molecule
 
 from openff.bespokefit.exceptions import (
@@ -24,10 +26,8 @@ from openff.bespokefit.schema import (
     TorsionTask,
 )
 from openff.bespokefit.targets import AbInitio_SMIRNOFF
-from openff.bespokefit.utils import get_data, get_molecule_cmiles
+from openff.bespokefit.utilities import get_data, get_molecule_cmiles
 from openff.bespokefit.workflow import WorkflowFactory
-from openff.qcsubmit.results import TorsionDriveCollectionResult
-from openff.qcsubmit.testing import temp_directory
 
 
 def ethane_opt_task() -> Tuple[OptimizationTask, Molecule]:
@@ -200,9 +200,9 @@ def test_fitting_add_optimizer():
     fitting = FittingSchema()
     fb = ForceBalanceOptimizer()
     fitting.add_optimizer(optimizer=fb)
-    assert fb.optimizer_name.lower() in fitting.optimizer_settings
+    assert fb.optimizer_name.lower() in fitting.optimizer
     # now try and add an optimizer which is missing
-    fitting.optimizer_settings = {}
+    fitting.optimizer = {}
     deregister_optimizer(optimizer=fb)
     with pytest.raises(OptimizerError):
         fitting.add_optimizer(optimizer=fb)

@@ -2,13 +2,6 @@ import time
 from multiprocessing import Process, Queue
 from typing import Dict, List, Optional, Tuple, Union
 
-from qcfractal.interface import FractalClient
-from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
-from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
-
-from openff.bespokefit.common_structures import Status
-from openff.bespokefit.schema import FittingSchema, OptimizationSchema
-from openff.bespokefit.utils import task_folder
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
     BasicDataset,
@@ -20,6 +13,13 @@ from openff.qcsubmit.results import (
     OptimizationCollectionResult,
     TorsionDriveCollectionResult,
 )
+from qcfractal.interface import FractalClient
+from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
+from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+
+from openff.bespokefit.common_structures import Status
+from openff.bespokefit.schema import FittingSchema, OptimizationSchema
+from openff.bespokefit.utils import task_folder
 
 
 class Executor:

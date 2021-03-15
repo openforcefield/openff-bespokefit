@@ -1,0 +1,8 @@
+$target
+name {{ name }}
+weight {{ weight }}
+
+type OptGeoTarget_SMIRNOFF
+
+writelevel 1
+$end

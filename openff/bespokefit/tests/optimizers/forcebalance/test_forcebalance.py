@@ -6,6 +6,7 @@ import os
 import shutil
 
 import pytest
+from openff.qcsubmit.testing import temp_directory
 from openforcefield.topology import Molecule
 from pydantic import ValidationError
 
@@ -16,7 +17,6 @@ from openff.bespokefit.schema import OptimizationSchema
 from openff.bespokefit.targets import AbInitio_SMIRNOFF, TorsionProfile_SMIRNOFF
 from openff.bespokefit.utils import get_data
 from openff.bespokefit.workflow import WorkflowFactory
-from openff.qcsubmit.testing import temp_directory
 
 
 def biphenyl_workflow(target) -> OptimizationSchema:

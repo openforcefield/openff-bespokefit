@@ -3,10 +3,11 @@ Test the forcefield editing tools.
 """
 
 import pytest
+from openff.qcsubmit.testing import temp_directory
 from openforcefield.topology import Molecule
 from openforcefield.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
 
-from openff.bespokefit.forcefield_tools import ForceFieldEditor
+from openff.bespokefit.force_field_tools import ForceFieldEditor
 from openff.bespokefit.schema import (
     AngleSmirks,
     AtomSmirks,
@@ -15,20 +16,19 @@ from openff.bespokefit.schema import (
     TorsionTerm,
 )
 from openff.bespokefit.utils import get_data
-from openff.qcsubmit.testing import temp_directory
 
 
-def test_loading_forcefields():
+def test_loading_force_fields():
     """
     Test that loading the forcefield always strips out any constraints.
     """
 
     # load in the initial FF with constraints
-    ff = ForceFieldEditor(forcefield_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
 
     with temp_directory():
         # write out the ff
-        ff.forcefield.to_file(filename="bespoke.offxml")
+        ff.force_field.to_file(filename="bespoke.offxml")
         # read the file and look for the constraints tag
         new_ff = ForceField("bespoke.offxml")
         assert "Constraints" not in new_ff._parameter_handlers
@@ -53,7 +53,7 @@ def test_adding_new_smirks_types(smirks):
     ff.add_smirks(smirks=[param, ], parameterize=True)
     # now make sure it was added under the correct parameter handler
     with temp_directory():
-        ff.forcefield.to_file(filename="bespoke.offxml")
+        ff.force_field.to_file(filename="bespoke.offxml")
 
         new_ff = ForceField("bespoke.offxml", allow_cosmetic_attributes=True)
         parameter = new_ff.get_parameter_handler(param.type.value).parameters[param.smirks]
@@ -69,13 +69,13 @@ def test_adding_params_parameterize_flag():
     Test adding new smirks patterns with cosmetic attributes.
     """
 
-    ff = ForceFieldEditor(forcefield_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
     # add an atom smirks for boron
     boron = AtomSmirks(smirks="[#5:1]", parameterize={"epsilon"}, atoms={(0,)}, epsilon=0.04, rmin_half=3)
     # add boron with the flag
     ff.add_smirks(smirks=[boron, ], parameterize=True)
     with temp_directory():
-        ff.forcefield.to_file(filename="boron.offxml")
+        ff.force_field.to_file(filename="boron.offxml")
 
         # this should fail if the flag was added
         with pytest.raises(SMIRNOFFSpecError):
@@ -96,13 +96,13 @@ def test_adding_params_no_flag():
     """
     Test adding new smirks patterns with out cosmetic attributes.
     """
-    ff = ForceFieldEditor(forcefield_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
     # add an atom smirks for boron
     boron = AtomSmirks(smirks="[#5:1]", parameterize={"epsilon"}, atoms={(0,)}, epsilon=0.04, rmin_half=3)
     # add boron with the flag
     ff.add_smirks(smirks=[boron, ], parameterize=False)
     with temp_directory():
-        ff.forcefield.to_file(filename="boron.offxml")
+        ff.force_field.to_file(filename="boron.offxml")
 
         boron_ff = ForceField("boron.offxml", allow_cosmetic_attributes=False)
         # now look for the parameter we added
@@ -120,7 +120,7 @@ def test_label_molecule():
     Test that labeling a molecule with the editor works.
     """
 
-    ff = ForceFieldEditor(forcefield_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
     ethane = Molecule.from_file(file_path=get_data("ethane.sdf"), file_format="sdf")
 
     labels = ff.label_molecule(molecule=ethane)
@@ -148,7 +148,7 @@ def test_updating_smirks(smirks_data):
     """
     smirks, updated_params = smirks_data
 
-    ff = ForceFieldEditor(forcefield_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
     ff.update_smirks_parameters(smirks=[smirks, ])
 
     if smirks.type.value != "ProperTorsions":

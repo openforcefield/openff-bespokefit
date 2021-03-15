@@ -29,17 +29,17 @@ def test_list_optimizers():
     assert "forcebalanceoptimizer" in optimizers
 
 
-@pytest.mark.parametrize("optimizer_settings", [
+@pytest.mark.parametrize("optimizer", [
     pytest.param(("ForceBalanceOptimizer", {"penalty_type": "L1", "job_type": "single", "convergence_step_criteria": 20}, None), id="Forcebalance normal settings"),
     pytest.param(("ForceBalanceOptimizer", {"extras": {"print_hessian": None}}, None), id="Forcebalanace extras"),
     pytest.param(("FancyOptimizer", {"optimzer": "fast"}, OptimizerError), id="Error missing optimizer")
 ])
-def test_get_optimizer_with_settings(optimizer_settings):
+def test_get_optimizer_with_settings(optimizer):
     """
     Test getting optimizers with different settings.
     The settings should be auto applied to the optimizer.
     """
-    optimzer_name, settings, error = optimizer_settings
+    optimzer_name, settings, error = optimizer
     if error is None:
         optimizer = get_optimizer(optimizer_name=optimzer_name, **settings)
         for key, value in settings.items():

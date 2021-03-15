@@ -1,0 +1,13 @@
+$target
+name {{ name }}
+weight {{ weight }}
+
+type VIBRATION_SMIRNOFF
+
+mol2 input.sdf
+pdb conf.pdb
+
+writelevel 1
+
+{%- if mode_reassignment is not none %}reassign {{ mode_reassignment }}{% endif %}
+$end

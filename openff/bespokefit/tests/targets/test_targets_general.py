@@ -3,13 +3,13 @@ Test all general target methods.
 """
 
 import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from openforcefield.topology import Molecule
 from typing_extensions import Literal
 
 from openff.bespokefit.schema import TargetSchema
 from openff.bespokefit.targets import Target
 from openff.bespokefit.utils import get_data, get_molecule_cmiles
-from openff.qcsubmit.common_structures import QCSpec
 
 
 class DummyTarget(Target):

@@ -1,0 +1,17 @@
+$target
+name {{ name }}
+weight {{ weight }}
+
+type TorsionProfile_SMIRNOFF
+
+mol2 input.sdf
+pdb conf.pdb
+coords scan.xyz
+
+writelevel 2
+
+attenuate {{ attenuate_weights | int }}
+
+energy_denom {{ energy_denominator }}
+energy_upper {{ energy_cutoff }}
+$end
