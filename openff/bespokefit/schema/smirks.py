@@ -70,7 +70,6 @@ class AngleSmirks(BaseSmirksParameter):
     )
 
     @classmethod
-
     def _expected_n_tags(cls) -> int:
         return 3
 
@@ -94,7 +93,6 @@ class ProperTorsionSmirks(BaseSmirksParameter):
     )
 
     @classmethod
-
     def _expected_n_tags(cls) -> int:
         return 4
 
@@ -117,7 +115,6 @@ class ImproperTorsionSmirks(BaseSmirksParameter):
     )
 
     @classmethod
-
     def _expected_n_tags(cls) -> int:
         return 4
 

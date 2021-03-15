@@ -57,6 +57,8 @@ class OptimizationResults(BaseOptimizationResults):
         None, description="The XML contents of the refit force field."
     )
 
+    # TODO: Store the actual molecule attributes
+
 
 class BespokeOptimizationResults(BaseOptimizationResults):
     """A class for storing the results of a bespoke force field optimization."""

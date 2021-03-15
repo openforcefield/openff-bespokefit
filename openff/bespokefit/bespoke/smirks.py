@@ -9,7 +9,6 @@ from openforcefield.topology import Molecule
 from pydantic import BaseModel, Field
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
-
 from openff.bespokefit.schema.bespoke.smirks import (
     BespokeAngleSmirks,
     BespokeAtomSmirks,

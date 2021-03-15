@@ -19,7 +19,6 @@ from openff.bespokefit.exceptions import (
     OptimizerError,
     TargetNotSetError,
 )
-
 from openff.bespokefit.fragmentation import FragmentEngine, WBOFragmenter
 from openff.bespokefit.optimizers import list_optimizers
 from openff.bespokefit.schema.bespoke import MoleculeSchema

@@ -1,5 +1,4 @@
 import abc
-
 from typing import Optional, Union
 
 from pydantic import Field, PositiveFloat, validator

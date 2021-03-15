@@ -10,6 +10,8 @@ from openff.bespokefit.utilities.pydantic import SchemaBase
 class BaseOptimizerSchema(SchemaBase, abc.ABC):
     """The base class for a model which stores the settings of an optimization engine."""
 
+    type: Literal["base"] = "base"
+
     max_iterations: PositiveInt = Field(
         10, description="The maximum number of optimization iterations to perform."
     )
