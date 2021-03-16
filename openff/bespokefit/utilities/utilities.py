@@ -1,6 +1,5 @@
 import errno
 import os
-import shutil
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -56,7 +55,8 @@ def temporary_cd(directory_path: Optional[Union[str, Path]] = None):
 
     """
 
-    directory_path = str(directory_path)
+    if isinstance(directory_path, Path):
+        directory_path = str(directory_path)
 
     if directory_path is not None and len(directory_path) == 0:
         yield
@@ -79,10 +79,6 @@ def temporary_cd(directory_path: Optional[Union[str, Path]] = None):
 
     finally:
         os.chdir(old_directory)
-
-
-def safe_rmdir(directory_path: Union[str, Path]):
-    shutil.rmtree(directory_path, ignore_errors=True)
 
 
 def get_molecule_cmiles(molecule: Molecule) -> MoleculeAttributes:

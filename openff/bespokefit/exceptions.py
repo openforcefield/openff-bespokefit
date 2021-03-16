@@ -59,7 +59,7 @@ class MissingReferenceError(BespokeFitException):
 
 class OptimizerError(BespokeFitException):
     """
-    Raised when the Optimizer can not be found.
+    Raised when the optimizer can not be found.
     """
 
     error_type = "optimizer_error"
@@ -129,17 +129,11 @@ class TaskMissMatchError(BespokeFitException):
     header = "Task Miss Match Error"
 
 
-class UnrecognisedKwargsError(BespokeFitException):
+class QCRecordMissMatchError(BespokeFitException):
+    """
+    Raised when a QC record does not contain the expected information, such as gradient
+    or hessian values.
+    """
 
-    error_type = "unrecognised_kwargs_error"
-    header = "Unrecognised Kwargs Error"
-
-    def __init__(self, kwarg_names):
-
-        self.kwarg_names = kwarg_names
-
-        joined_kwarg_names = ", ".join(kwarg_names)
-
-        super(UnrecognisedKwargsError, self).__init__(
-            f"The {joined_kwarg_names} kwargs are unrecognised by this function."
-        )
+    error_type = "qc_record_miss_match_error"
+    header = "QC Record Miss Match Error"

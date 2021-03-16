@@ -5,18 +5,18 @@ from typing import Dict, List, Type, Union
 
 from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
-from openff.bespokefit.optimizers.model import Optimizer
+from openff.bespokefit.optimizers.model import BaseOptimizer
 
-_optimizers: Dict[str, Type[Optimizer]] = {}
+_optimizers: Dict[str, Type[BaseOptimizer]] = {}
 
 
-def register_optimizer(optimizer: Type[Optimizer], replace: bool = False) -> None:
+def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) -> None:
     """
     Register a new valid optimizer with bespokefit.
 
     Parameters
     ----------
-    optimizer: Optimizer
+    optimizer: BaseOptimizer
         The optimizer class that should be registered.
     replace: bool
         If the optimizer should replace another optimizer registered with the same name.
@@ -28,11 +28,11 @@ def register_optimizer(optimizer: Type[Optimizer], replace: bool = False) -> Non
         compatible.
     """
 
-    if not issubclass(optimizer, Optimizer):
+    if not issubclass(optimizer, BaseOptimizer):
 
         raise OptimizerError(
             f"The optimizer {optimizer} could not be registered it must be a subclass "
-            f"of openff.bespokefit.optimzers.Optimizer"
+            f"of openff.bespokefit.optimzers.BaseOptimizer"
         )
 
     optimizer_name = optimizer.name().lower()
@@ -47,13 +47,15 @@ def register_optimizer(optimizer: Type[Optimizer], replace: bool = False) -> Non
     _optimizers[optimizer_name] = optimizer
 
 
-def deregister_optimizer(optimizer: Union[Optimizer, Type[Optimizer], str]) -> None:
+def deregister_optimizer(
+    optimizer: Union[BaseOptimizer, Type[BaseOptimizer], str]
+) -> None:
     """
     Remove an optimizer from the list of valid optimizers.
 
     Parameters
     ----------
-    optimizer: Union[Optimizer, str]
+    optimizer: Union[BaseOptimizer, str]
         The optimizer class or name of the class that should be removed.
     """
 
@@ -69,7 +71,7 @@ def deregister_optimizer(optimizer: Union[Optimizer, Type[Optimizer], str]) -> N
         )
 
 
-def get_optimizer(optimizer_name: str) -> Type[Optimizer]:
+def get_optimizer(optimizer_name: str) -> Type[BaseOptimizer]:
     """Get the optimizer class from the list of registered optimizers in bespokefit by
     name.
 

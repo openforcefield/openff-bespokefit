@@ -5,7 +5,7 @@ import subprocess
 from typing import Any, Dict
 
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory
-from openff.bespokefit.optimizers.model import Optimizer, OptimizerResultsType
+from openff.bespokefit.optimizers.model import BaseOptimizer, OptimizerResultsType
 from openff.bespokefit.schema.fitting import (
     BaseOptimizationSchema,
     BespokeOptimizationSchema,
@@ -23,7 +23,6 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.bespokefit.utilities import safe_rmdir
 from openff.bespokefit.utilities.provenance import (
     get_ambertools_version,
     get_openeye_versions,
@@ -31,9 +30,9 @@ from openff.bespokefit.utilities.provenance import (
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
-class ForceBalanceOptimizer(Optimizer):
+class ForceBalanceOptimizer(BaseOptimizer):
     """
-    A Optimizer class which controls the interface with ForceBalanace.
+    An optimizer class which controls the interface with ForceBalanace.
     """
 
     @classmethod
@@ -58,7 +57,7 @@ class ForceBalanceOptimizer(Optimizer):
         versions = {
             "forcebalance": forcebalance.__version__,
             "openforcefield": openforcefield.__version__,
-            **get_openeye_versions,
+            **get_openeye_versions(),
         }
 
         ambertools_version = get_ambertools_version()
@@ -81,31 +80,28 @@ class ForceBalanceOptimizer(Optimizer):
         return ForceBalanceSchema
 
     @classmethod
-    def _optimize(
-        cls, schema: BaseOptimizationSchema, keep_files: bool
-    ) -> OptimizerResultsType:
+    def _prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+        """The internal implementation of the main ``prepare`` method. The input
+        ``schema`` is assumed to have been validated before being passed to this
+        method.
+        """
 
-        print("making new fb folders in", os.getcwd())
-        print("new folder name", schema.id)
+        print("making new fb folders in", root_directory)
+        ForceBalanceInputFactory.generate(root_directory, schema)
 
-        try:
-            ForceBalanceInputFactory.generate(schema.id, schema)
+    @classmethod
+    def _optimize(cls, schema: BaseOptimizationSchema) -> OptimizerResultsType:
 
-            # now lets execute forcebalanace to fit the molecule
-            with open("log.txt", "w") as log:
+        # execute forcebalanace to fit the molecule
+        with open("log.txt", "w") as log:
 
-                print("launching forcebalance")
+            print("launching forcebalance")
 
-                subprocess.run(
-                    "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
-                )
+            subprocess.run(
+                "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
+            )
 
-                results = cls._collect_results(schema=schema)
-
-        finally:
-
-            if not keep_files:
-                safe_rmdir(schema.id)
+            results = cls._collect_results("", schema=schema)
 
         print("OPT finished in folder", os.getcwd())
         return results
@@ -138,9 +134,9 @@ class ForceBalanceOptimizer(Optimizer):
         # TODO: Should the provenance dictionary contain also any task
         #       provenance?
 
-        if isinstance(schema, BespokeOptimizationSchema):
+        force_field_editor = ForceFieldEditor(results_dictionary["forcefield"])
 
-            force_field_editor = ForceFieldEditor(results_dictionary["forcefield"])
+        if isinstance(schema, BespokeOptimizationSchema):
 
             # make a new list as smirks are updated in place
             final_smirks = copy.deepcopy(schema.target_smirks)
@@ -148,7 +144,7 @@ class ForceBalanceOptimizer(Optimizer):
 
             results = BespokeOptimizationResults(
                 input_schema=schema,
-                provenance=cls.provenance,
+                provenance=cls.provenance(),
                 status=results_dictionary["status"],
                 final_smirks=final_smirks,
             )
@@ -157,9 +153,9 @@ class ForceBalanceOptimizer(Optimizer):
 
             results = OptimizationResults(
                 input_schema=schema,
-                provenance=cls.provenance,
+                provenance=cls.provenance(),
                 status=results_dictionary["status"],
-                refit_force_field=results_dictionary["forcefield"].to_string(
+                refit_force_field=force_field_editor.force_field.to_string(
                     discard_cosmetic_attributes=True
                 ),
             )

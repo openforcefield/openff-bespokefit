@@ -31,7 +31,7 @@ class BaseSmirksParameter(SchemaBase, abc.ABC):
         raise NotImplementedError()
 
     @validator("smirks")
-    def _validate_parameterize(cls, value: str) -> str:
+    def _check_smirks(cls, value: str) -> str:
         return validate_smirks(value, cls._expected_n_tags())
 
 

@@ -2,12 +2,16 @@ import os
 from typing import Any, Dict
 
 import pytest
+from openforcefield.topology import Molecule
 from qcelemental.models import Molecule as QCMolecule
 from qcelemental.util import deserialize
 from qcportal import FractalClient
 from qcportal.models import ResultRecord, TorsionDriveRecord
 
-from openff.bespokefit.schema.fitting import OptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.smirks import ProperTorsionSmirks
 from openff.bespokefit.schema.smirnoff import ProperTorsionSettings
@@ -19,6 +23,7 @@ from openff.bespokefit.schema.targets import (
     VibrationTargetSchema,
 )
 from openff.bespokefit.utilities import get_data_file_path
+from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
 def _parse_raw_qc_record(name: str) -> Dict[str, Any]:
@@ -80,7 +85,7 @@ def general_optimization_schema(
     qc_torsion_drive_record: TorsionDriveRecord,
     qc_optimization_record: ResultRecord,
     qc_hessian_record: ResultRecord,
-    monkeypatch
+    monkeypatch,
 ):
 
     records_by_id = {
@@ -101,33 +106,45 @@ def general_optimization_schema(
         optimizer=ForceBalanceSchema(),
         targets=[
             TorsionProfileTargetSchema(
-                reference_data=ExistingQCData(
-                    record_ids=[qc_torsion_drive_record.id]
-                )
+                reference_data=ExistingQCData(record_ids=[qc_torsion_drive_record.id])
             ),
             AbInitioTargetSchema(
-                reference_data=ExistingQCData(
-                    record_ids=[qc_torsion_drive_record.id]
-                )
+                reference_data=ExistingQCData(record_ids=[qc_torsion_drive_record.id])
             ),
             VibrationTargetSchema(
-                reference_data=ExistingQCData(
-                    record_ids=[qc_hessian_record.id]
-                )
+                reference_data=ExistingQCData(record_ids=[qc_hessian_record.id])
             ),
             OptGeoTargetSchema(
-                reference_data=ExistingQCData(
-                    record_ids=[qc_optimization_record.id]
-                )
+                reference_data=ExistingQCData(record_ids=[qc_optimization_record.id])
             ),
         ],
         parameter_settings=[ProperTorsionSettings()],
         target_parameters=[
             ProperTorsionSmirks(
-                smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]",
-                attributes={"k1"}
+                smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
             )
         ],
     )
 
     return optimization_schema
+
+
+@pytest.fixture()
+def bespoke_optimization_schema() -> BespokeOptimizationSchema:
+    """Create a workflow schema which targets the rotatable bond in ethane."""
+
+    molecule = Molecule.from_file(
+        get_data_file_path(
+            os.path.join("test", "qc-datasets", "biphenyl", "biphenyl.sdf"),
+        ),
+        "sdf",
+    )
+
+    schema_factory = BespokeWorkflowFactory(
+        # turn off bespoke terms we want fast fitting
+        generate_bespoke_terms=False,
+        expand_torsion_terms=False,
+        optimizer=ForceBalanceSchema(),
+    )
+
+    return schema_factory.optimization_schema_from_molecule(molecule)

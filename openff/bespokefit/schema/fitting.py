@@ -102,7 +102,7 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     #     if target.target_name.lower() in opt.get_registered_target_names():
     #         self.targets.append(target)
     #
-    # def get_optimizer(self) -> "Optimizer":
+    # def get_optimizer(self) -> "BaseOptimizer":
     #     """
     #     Get the requested optimizer with correct settings from the optimizer list.
     #     """

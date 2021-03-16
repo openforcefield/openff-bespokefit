@@ -1,6 +1,6 @@
 import time
 from multiprocessing import Process, Queue
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
@@ -20,6 +20,9 @@ from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
 from openff.bespokefit.common_structures import Status
 from openff.bespokefit.schema import FittingSchema, OptimizationSchema
 from openff.bespokefit.utils import task_folder
+
+if TYPE_CHECKING:
+    from qcfractal import FractalServer
 
 
 class Executor:
@@ -95,7 +98,7 @@ class Executor:
         print("generating collection task queue ...")
         # generate the initial task queue of collection tasks
         self.create_input_task_queue(fitting_schema=fitting_schema)
-        print(f"task queue now contains tasks.")
+        print("task queue now contains tasks.")
 
         return self._execute(
             fitting_schema=fitting_schema, server=server, client=client
@@ -306,7 +309,7 @@ class Executor:
             # the molecule is not finished and not ready for opt error cycle again
             self.collection_queue.put(task)
 
-    def error_cycle(self, server: "FractalSever", client: FractalClient) -> None:
+    def error_cycle(self, server: "FractalServer", client: FractalClient) -> None:
         """
         For the given MoleculeSchema check that all collection tasks are running and error cycle jobs. Will also generate new collection tasks as needed
         for example hessian tasks are created when optimizations are finished.

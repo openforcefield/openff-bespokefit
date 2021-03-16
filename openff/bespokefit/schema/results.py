@@ -1,9 +1,10 @@
 import abc
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from openforcefield.topology import Molecule
 from openforcefield.typing.engines.smirnoff import ForceField
 from pydantic import Field
+from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.schema.bespoke.smirks import (

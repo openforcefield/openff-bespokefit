@@ -290,7 +290,7 @@ class BespokeTorsionTerm(SchemaBase):
         super().__init__(**data)
 
 
-class BespokeTorsionSmirks(ValidatedBespokeSmirks):
+class BespokeTorsionSmirks(BespokeSmirksSchema):
     atoms: Set[Tuple[int, int, int, int]] = set()
     type: Literal[SmirksType.ProperTorsions] = SmirksType.ProperTorsions
     terms: Dict[str, BespokeTorsionTerm] = {}

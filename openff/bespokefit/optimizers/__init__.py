@@ -1,5 +1,5 @@
 from openff.bespokefit.optimizers.base import (
-    Optimizer,
+    BaseOptimizer,
     deregister_optimizer,
     get_optimizer,
     list_optimizers,
@@ -8,7 +8,7 @@ from openff.bespokefit.optimizers.base import (
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
 
 __all__ = [
-    Optimizer,
+    BaseOptimizer,
     deregister_optimizer,
     get_optimizer,
     list_optimizers,

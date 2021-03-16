@@ -122,7 +122,7 @@ class BespokeWorkflowFactory(ClassBase):
 
         Parameters
         ----------
-        optimizer: Union[str, Optimizer]
+        optimizer: Union[str, BaseOptimizer]
             The optimizer that should be added to the workflow, targets should also be
             added before creating the fitting schema.
         """
@@ -438,9 +438,7 @@ class BespokeWorkflowFactory(ClassBase):
                     fragment=True,
                     attributes=fragment.fragment_attributes,
                     fragment_parent_mapping=fragment.fragment_parent_mapping,
-                    dihedrals=[
-                        fragment.target_dihedral,
-                    ],
+                    dihedrals=[fragment.target_dihedral],
                 )
                 task_schema.name = f"{target_schema.bespoke_task_type()}-{task_index}"
                 target_schema.reference_data.tasks.append(task_schema)

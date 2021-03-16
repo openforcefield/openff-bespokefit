@@ -1,11 +1,12 @@
 """
 Test specific fragmentation engines.
 """
-import pytest
+import os
+
 from openforcefield.topology import Molecule
 
 from openff.bespokefit.fragmentation import WBOFragmenter
-from openff.bespokefit.utils import get_data
+from openff.bespokefit.utilities import get_data_file_path
 
 
 def test_is_available():
@@ -33,14 +34,24 @@ def test_normal_fragmentation():
     # bace can be fragmented into 3 parts 2 of which are the same
     engine = WBOFragmenter()
     engine.keep_non_rotor_ring_substituents = False
-    bace = Molecule.from_file(file_path=get_data("bace_parent.sdf"), file_format="sdf")
+    bace = Molecule.from_file(
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "bace", "bace_parent.sdf")
+        ),
+        file_format="sdf",
+    )
     fragment_data = engine.fragment(molecule=bace)
     assert len(fragment_data) == 3
 
     fragments = [fragment.fragment_molecule for fragment in fragment_data]
     # make sure the fragments are correct
     for fragment in ["bace_frag1.sdf", "bace_frag2.sdf"]:
-        frag_mol = Molecule.from_file(file_path=get_data(fragment), file_format="sdf")
+        frag_mol = Molecule.from_file(
+            file_path=get_data_file_path(
+                os.path.join("test", "molecules", "bace", fragment)
+            ),
+            file_format="sdf",
+        )
         assert frag_mol in fragments
 
     # make sure all of the central bonds are different

@@ -4,6 +4,8 @@ The optimizer model abstract class.
 
 import abc
 import copy
+import os
+import shutil
 from collections import defaultdict
 from typing import Dict, Type, Union
 
@@ -15,14 +17,15 @@ from openff.bespokefit.schema.results import (
     OptimizationResults,
 )
 from openff.bespokefit.schema.targets import BaseTargetSchema
+from openff.bespokefit.utilities import temporary_cd
 
 OptimizerResultsType = Union[OptimizationResults, BespokeOptimizationResults]
 TargetSchemaType = Type[BaseTargetSchema]
 
 
-class Optimizer(abc.ABC):
+class BaseOptimizer(abc.ABC):
     """
-    This is the abstract basic Optimizer class that each optimizer should use.
+    This is the abstract basic BaseOptimizer class that each optimizer should use.
     """
 
     # this is shared across optimizers so we have to separate by optimizer
@@ -160,7 +163,7 @@ class Optimizer(abc.ABC):
 
         for target in schema.targets:
 
-            if target.type.lower() not in registered_targets:
+            if target.type.lower() in registered_targets:
                 continue
 
             raise TargetRegisterError(
@@ -169,9 +172,24 @@ class Optimizer(abc.ABC):
             )
 
     @classmethod
-    def _optimize(
-        cls, schema: BaseOptimizationSchema, keep_files
-    ) -> OptimizerResultsType:
+    @abc.abstractmethod
+    def _prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+        """The internal implementation of the main ``prepare`` method. The input
+        ``schema`` is assumed to have been validated before being passed to this
+        method.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+        """Prepares the optimization by creating any required inputs and setting up
+        the required environment."""
+
+        cls._validate_schema(schema)
+        cls._prepare(schema, root_directory)
+
+    @classmethod
+    def _optimize(cls, schema: BaseOptimizationSchema) -> OptimizerResultsType:
         """The internal implementation of the main ``optimize`` method. The input
         ``schema`` is assumed to have been validated before being passed to this
         method.
@@ -190,5 +208,23 @@ class Optimizer(abc.ABC):
         compute and optimization.
         """
 
-        cls._validate_schema(schema)
-        return cls._optimize(schema, keep_files)
+        root_directory = schema.id
+
+        if root_directory is None:
+            root_directory = "optimizer-directory"
+
+        try:
+
+            os.makedirs(root_directory, exist_ok=True)
+
+            cls.prepare(schema, root_directory)
+
+            with temporary_cd(root_directory):
+                results = cls._optimize(schema)
+
+        finally:
+
+            if not keep_files and os.path.isdir(root_directory):
+                shutil.rmtree(root_directory, ignore_errors=True)
+
+        return results

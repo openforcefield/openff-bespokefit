@@ -1,15 +1,17 @@
 """
 Test the smirks generator.
 """
-
+import os
 from typing import List, Tuple
 
 import pytest
 from openforcefield.topology import Molecule
 
-from openff.bespokefit.force_field_tools import ForceFieldEditor
-from openff.bespokefit.smirks import SmirksGenerator, SmirksType, SMIRKSTypeError
-from openff.bespokefit.utils import get_data
+from openff.bespokefit.bespoke.smirks import SmirksGenerator
+from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirnoff import SmirksType
+from openff.bespokefit.utilities import get_data_file_path
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 def all_covered(matches, molecule) -> bool:
@@ -18,7 +20,7 @@ def all_covered(matches, molecule) -> bool:
     """
     # check atoms
     for i in range(molecule.n_atoms):
-        assert (i, ) in matches
+        assert (i,) in matches
     # check bonds
     for bond in molecule.bonds:
         bond = (bond.atom1_index, bond.atom2_index)
@@ -37,7 +39,8 @@ def all_covered(matches, molecule) -> bool:
 
 def condense_matches(matches: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
     """
-    For a set of chemical environment matches condense them to a unique list of matches taking into account matches that appear forwards or backwards.
+    For a set of chemical environment matches condense them to a unique list of matches
+    taking into account matches that appear forwards or backwards.
     """
     new_matches = []
     for match in matches:
@@ -48,7 +51,7 @@ def condense_matches(matches: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
 
 def compare_matches(matches, target) -> bool:
     """
-    Make sure the matches and target macthes are the same.
+    Make sure the matches and target matches are the same.
     """
 
     for match in target:
@@ -59,8 +62,8 @@ def compare_matches(matches, target) -> bool:
 
 def test_bespoke_atom_smirks():
     """
-    Make sure we can generate bespoke atom smirks for a molecule and that they cover the correct atoms, also check all atoms have
-    a bespoke smirks.
+    Make sure we can generate bespoke atom smirks for a molecule and that they cover the
+    correct atoms, also check all atoms have a bespoke smirks.
     """
     gen = SmirksGenerator()
     mol = Molecule.from_smiles("C")
@@ -76,12 +79,13 @@ def test_bespoke_atom_smirks():
         assert set(atoms) == smirk.atoms
     # make sure all atoms have a bespoke smirks
     for i in range(mol.n_atoms):
-        assert (i, ) in all_atoms
+        assert (i,) in all_atoms
 
 
 def test_bespoke_bond_smirks():
     """
-    Make sure we can generate a bespoke bond smirks for each bond in a molecule and that every bond is covered.
+    Make sure we can generate a bespoke bond smirks for each bond in a molecule and that
+    every bond is covered.
     """
     gen = SmirksGenerator()
     mol = Molecule.from_smiles("CC")
@@ -101,7 +105,8 @@ def test_bespoke_bond_smirks():
 
 def test_bespoke_angle_smirks():
     """
-    Make sure we can generate a bespoke angle smirks for each angle, also make sure the intended atoms are covered and that every angle has a bespoke smirks.
+    Make sure we can generate a bespoke angle smirks for each angle, also make sure the
+    intended atoms are covered and that every angle has a bespoke smirks.
     """
     gen = SmirksGenerator()
     mol = Molecule.from_smiles("CC")
@@ -121,12 +126,17 @@ def test_bespoke_angle_smirks():
 
 def test_bespoke_target_torsion_smirks():
     """
-    Generate bespoke torsion smirks only for the target torsions and make sure the intended atoms are covered.
+    Generate bespoke torsion smirks only for the target torsions and make sure the
+    intended atoms are covered.
     """
     gen = SmirksGenerator()
-    mol = Molecule.from_file(get_data("OCCO.sdf"))
+    mol = Molecule.from_file(
+        get_data_file_path(os.path.join("test", "molecules", "OCCO.sdf"))
+    )
 
-    torsion_smirks = gen._get_bespoke_torsion_smirks(molecule=mol, central_bonds=[(1, 2)])
+    torsion_smirks = gen._get_bespoke_torsion_smirks(
+        molecule=mol, central_bonds=[(1, 2)]
+    )
     # there should be 3 unique smirks for this molecule
     # H-C-C-H, H-C-C-O, O-C-C-O
     assert len(torsion_smirks) == 3
@@ -137,10 +147,13 @@ def test_bespoke_target_torsion_smirks():
 
 def test_bespoke_torsion_smirks():
     """
-    Generate bespoke smirks for every torsion in the molecule, make sure that the intended atoms are covered and make sure every torsion has a bespoke smirks.
+    Generate bespoke smirks for every torsion in the molecule, make sure that the
+    intended atoms are covered and make sure every torsion has a bespoke smirks.
     """
     gen = SmirksGenerator()
-    mol = Molecule.from_file(get_data("OCCO.sdf"))
+    mol = Molecule.from_file(
+        get_data_file_path(os.path.join("test", "molecules", "OCCO.sdf"))
+    )
 
     torsion_smirks = gen._get_bespoke_torsion_smirks(molecule=mol)
     # there should be 5 unique torsions
@@ -159,14 +172,23 @@ def test_bespoke_torsion_smirks():
 
 def test_get_all_bespoke_smirks():
     """
-    Generate bespoke smirks for all parameters in a molecule, make sure they all hit the intended atoms, and every term is now bespoke.
+    Generate bespoke smirks for all parameters in a molecule, make sure they all hit the
+    intended atoms, and every term is now bespoke.
     """
     gen = SmirksGenerator()
-    gen.target_smirks = [SmirksType.Vdw, SmirksType.Bonds, SmirksType.Angles, SmirksType.ProperTorsions]
+    gen.target_smirks = [
+        SmirksType.Vdw,
+        SmirksType.Bonds,
+        SmirksType.Angles,
+        SmirksType.ProperTorsions,
+    ]
 
     mol = Molecule.from_smiles("CO")
 
-    all_bespoke_smirks = gen._get_all_bespoke_smirks(molecule=mol, force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
+    all_bespoke_smirks = gen._get_all_bespoke_smirks(
+        molecule=mol,
+        force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"),
+    )
     # this is a list of all bespoke smirks with real initial values
     all_matches = []
     for smirk in all_bespoke_smirks:
@@ -179,14 +201,23 @@ def test_get_all_bespoke_smirks():
 
 def test_get_all_smirks():
     """
-    Get the full list of smirks which cover this molecule from the forcefield, no new smirks should be generated here.
+    Get the full list of smirks which cover this molecule from the forcefield, no new
+    smirks should be generated here.
     """
     gen = SmirksGenerator()
-    gen.target_smirks = [SmirksType.Vdw, SmirksType.Bonds, SmirksType.Angles, SmirksType.ProperTorsions]
+    gen.target_smirks = [
+        SmirksType.Vdw,
+        SmirksType.Bonds,
+        SmirksType.Angles,
+        SmirksType.ProperTorsions,
+    ]
 
     mol = Molecule.from_smiles("CO")
 
-    all_smirks = gen._get_all_smirks(molecule=mol, force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"))
+    all_smirks = gen._get_all_smirks(
+        molecule=mol,
+        force_field_editor=ForceFieldEditor("openff_unconstrained-1.3.0.offxml"),
+    )
     # this is a list of all of the smirks from the forcefield
     all_matches = []
     for smirk in all_smirks:
@@ -199,7 +230,8 @@ def test_get_all_smirks():
 
 def test_no_smirks_requested():
     """
-    Make sure an error is raised if we try and generate smirks but do not request any smirks types.
+    Make sure an error is raised if we try and generate smirks but do not request any
+    smirks types.
     """
     gen = SmirksGenerator()
     gen.target_smirks = []
@@ -210,16 +242,21 @@ def test_no_smirks_requested():
         gen.generate_smirks(molecule=mol)
 
 
-@pytest.mark.parametrize("bespoke_smirks", [
-    pytest.param(True, id="Generate bespoke terms"),
-    pytest.param(False, id="Standard terms")
-])
+@pytest.mark.parametrize(
+    "bespoke_smirks",
+    [
+        pytest.param(True, id="Generate bespoke terms"),
+        pytest.param(False, id="Standard terms"),
+    ],
+)
 def test_generate_smirks(bespoke_smirks):
     """
     Test the main worker method to gather bespoke and non bespoke terms.
     """
     gen = SmirksGenerator()
-    gen.target_smirks = [SmirksType.Vdw, ]
+    gen.target_smirks = [
+        SmirksType.Vdw,
+    ]
     gen.generate_bespoke_terms = bespoke_smirks
 
     mol = Molecule.from_smiles("CC")
@@ -230,20 +267,29 @@ def test_generate_smirks(bespoke_smirks):
     assert len(types) == 1
 
 
-@pytest.mark.parametrize("bespoke_smirks", [
-    pytest.param(True, id="Generate bespoke terms"),
-    pytest.param(False, id="Standard terms")
-])
-@pytest.mark.parametrize("expand_torsions", [
-    pytest.param(True, id="Expand torsions"),
-    pytest.param(False, id="Normal torsions")
-])
+@pytest.mark.parametrize(
+    "bespoke_smirks",
+    [
+        pytest.param(True, id="Generate bespoke terms"),
+        pytest.param(False, id="Standard terms"),
+    ],
+)
+@pytest.mark.parametrize(
+    "expand_torsions",
+    [
+        pytest.param(True, id="Expand torsions"),
+        pytest.param(False, id="Normal torsions"),
+    ],
+)
 def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
     """
-    Make sure torsion terms are expanded up to 4 when requested for bespoke and standard smirks.
+    Make sure torsion terms are expanded up to 4 when requested for bespoke and standard
+    smirks.
     """
     gen = SmirksGenerator()
-    gen.target_smirks = [SmirksType.ProperTorsions, ]
+    gen.target_smirks = [
+        SmirksType.ProperTorsions,
+    ]
     gen.generate_bespoke_terms = bespoke_smirks
     gen.expand_torsion_terms = expand_torsions
 
@@ -258,5 +304,3 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
             assert len(smirk.terms) == 4
         else:
             assert len(smirk.terms) < 4
-
-
