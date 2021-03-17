@@ -5,8 +5,13 @@ workflows.
 import os
 from typing import Dict, List, Optional, Tuple, Union
 
-from openff.qcsubmit.common_structures import MoleculeAttributes
+from openff.qcsubmit.common_structures import MoleculeAttributes, ResultsConfig
 from openff.qcsubmit.datasets import ComponentResult
+from openff.qcsubmit.results import (
+    BasicCollectionResult,
+    OptimizationCollectionResult,
+    TorsionDriveCollectionResult,
+)
 from openff.qcsubmit.serializers import serialize
 from openforcefield import topology as off
 from openforcefield.typing.engines.smirnoff import get_available_force_fields
@@ -20,7 +25,7 @@ from openff.bespokefit.exceptions import (
     TargetNotSetError,
 )
 from openff.bespokefit.fragmentation import FragmentEngine, WBOFragmenter
-from openff.bespokefit.optimizers import list_optimizers
+from openff.bespokefit.optimizers import get_optimizer, list_optimizers
 from openff.bespokefit.schema.bespoke import MoleculeSchema
 from openff.bespokefit.schema.bespoke.tasks import (
     HessianTask,
@@ -28,7 +33,7 @@ from openff.bespokefit.schema.bespoke.tasks import (
     TorsionTask,
 )
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.optimizers import OptimizerSchema
+from openff.bespokefit.schema.optimizers import ForceBalanceSchema, OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
     ProperTorsionSettings,
     SmirksParameterSettings,
@@ -55,8 +60,8 @@ class BespokeWorkflowFactory(ClassBase):
         "point for optimization. The force field must be conda installed.",
     )
 
-    optimizer: Optional[OptimizerSchema] = Field(
-        None,
+    optimizer: Union[str, OptimizerSchema] = Field(
+        ForceBalanceSchema(),
         description="The optimizer that should be used with the targets already set.",
     )
 
@@ -92,7 +97,7 @@ class BespokeWorkflowFactory(ClassBase):
         description="If the optimized smirks should be bespoke to the target molecules.",
     )
 
-    fragmentation_engine: Optional[FragmentEngine] = Field(
+    fragmentation_engine: Optional[Union[WBOFragmenter, FragmentEngine]] = Field(
         WBOFragmenter(),
         description="The Fragment engine that should be used to fragment the molecule, "
         "note that if None is provided the molecules will not be fragmented. By default "
@@ -127,17 +132,9 @@ class BespokeWorkflowFactory(ClassBase):
             added before creating the fitting schema.
         """
 
-        if optimizer is None:
-            return optimizer
-
         if isinstance(optimizer, str):
             # we can check for the optimizer and attach it
-            raise NotImplementedError()
-            # return get_optimizer(optimizer.lower())
-
-        assert isinstance(
-            optimizer, OptimizerSchema
-        ), "optimizer settings must inherit from the `OptimizerSchema` class."
+            return get_optimizer(optimizer.lower())()
 
         if optimizer.type.lower() not in list_optimizers():
 
@@ -199,13 +196,9 @@ class BespokeWorkflowFactory(ClassBase):
         """
         Check that all required settings are declared before running.
         """
-        # check we have an optimizer in the pipeline
-        if self.optimizer is None:
-            raise OptimizerError(
-                "No optimizer has been set please set it using `set_optimizer`"
-            )
+
         # now check we have targets in each optimizer
-        elif not self.target_templates:
+        if len(self.target_templates) == 0:
             raise OptimizerError(
                 "There are no optimization targets in the optimization workflow."
             )
@@ -213,12 +206,12 @@ class BespokeWorkflowFactory(ClassBase):
             raise FragmenterError(
                 "There is no fragmentation engine registered for the workflow."
             )
-        elif not self.parameter_settings:
+        elif len(self.parameter_settings) == 0:
             raise TargetNotSetError(
-                "No target parameter was set, this will mean that the optimiser has "
-                "no parameters to optimize."
+                "There are no parameter settings specified which will mean that the "
+                "optimiser has no parameters to optimize."
             )
-        elif not self.target_smirks:
+        elif len(self.target_smirks) == 0:
             raise TargetNotSetError(
                 "No forcefield groups have been supplied, which means no smirks were "
                 "selected to be optimized."
@@ -384,6 +377,9 @@ class BespokeWorkflowFactory(ClassBase):
         fragmentation.
         """
 
+        # make sure all required variables have been declared
+        self._pre_run_check()
+
         # Fragment the molecule.
         fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
 
@@ -509,45 +505,46 @@ class BespokeWorkflowFactory(ClassBase):
     #             fitting_schema.add_optimization_task(schema)
     #
     #     return fitting_schema
-    #
-    # def _sort_results(
-    #     self,
-    #     results: Union[
-    #         TorsionDriveCollectionResult,
-    #         OptimizationCollectionResult,
-    #         BasicCollectionResult,
-    #     ],
-    #     combine: bool = False,
-    # ) -> List[Tuple[List, int]]:
-    #     """Sort the results into a list that can be processed into a fitting schema,
-    #     combining results when requested.
-    #     """
-    #
-    #     all_tasks = []
-    #     if combine:
-    #         # loop over the results and combine multiple results for the same molecule
-    #         # this only effects multiple torsion drives
-    #         dedup_tasks = {}
-    #         for result in results.collection.values():
-    #             # get the unique inchi key
-    #             inchi_key = result.molecule.to_inchikey(fixed_hydrogens=True)
-    #             dedup_tasks.setdefault(inchi_key, []).append(result)
-    #         # now make a list of tasks
-    #         for i, tasks in enumerate(dedup_tasks.values()):
-    #             all_tasks.append((tasks, i))
-    #     else:
-    #         for i, task in enumerate(results.collection.values()):
-    #             all_tasks.append(
-    #                 (
-    #                     [
-    #                         task,
-    #                     ],
-    #                     i,
-    #                 )
-    #             )
-    #
-    #     return all_tasks
-    #
+
+    @classmethod
+    def _sort_results(
+        cls,
+        results: Union[
+            TorsionDriveCollectionResult,
+            OptimizationCollectionResult,
+            BasicCollectionResult,
+        ],
+        combine: bool = False,
+    ) -> List[Tuple[List[ResultsConfig], int]]:
+        """Sort the results into a list that can be processed into a fitting schema,
+        combining results when requested.
+        """
+
+        all_tasks = []
+        if combine:
+            # loop over the results and combine multiple results for the same molecule
+            # this only effects multiple torsion drives
+            dedup_tasks = {}
+            for result in results.collection.values():
+                # get the unique inchi key
+                inchi_key = result.molecule.to_inchikey(fixed_hydrogens=True)
+                dedup_tasks.setdefault(inchi_key, []).append(result)
+            # now make a list of tasks
+            for i, tasks in enumerate(dedup_tasks.values()):
+                all_tasks.append((tasks, i))
+        else:
+            for i, task in enumerate(results.collection.values()):
+                all_tasks.append(
+                    (
+                        [
+                            task,
+                        ],
+                        i,
+                    )
+                )
+
+        return all_tasks
+
     # def _task_from_results(
     #     self,
     #     results: List[Union[TorsionDriveResult, OptimizationResult, BasicResult]],
