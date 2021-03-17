@@ -256,8 +256,6 @@ def test_parent_fragment_mapping(molecules):
     Test generating a parent fragment mapping.
     """
 
-    pytest.skip("seg faults")
-
     molecule1, molecule2, atom_map = molecules
     mol1 = Molecule.from_file(
         get_data_file_path(os.path.join("test", "molecules", "bace", molecule1)), "sdf"
