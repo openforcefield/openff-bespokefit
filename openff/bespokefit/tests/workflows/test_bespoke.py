@@ -14,8 +14,6 @@ from openff.bespokefit.exceptions import (
     OptimizerError,
     TargetNotSetError,
 )
-from openff.bespokefit.fragmentation import WBOFragmenter
-from openff.bespokefit.schema.bespoke import MoleculeSchema
 from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
@@ -242,72 +240,64 @@ def test_sort_results(combine):
         assert len(all_results) == 3
 
 
-# def test_task_from_results():
-#     """
-#     Test making an individual task from a set of results
-#     """
-#     # load a client and pull some results
-#     client = FractalClient()
-#     # grab a dataset with small fragments in it
-#     result = TorsionDriveCollectionResult.from_server(
-#         client=client,
-#         spec_name="default",
-#         dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
-#         final_molecule_only=True,
-#         subset=bace_entries[:1],
-#     )
-#     # grab the only result
-#     result = list(result.collection.values())[0]
-#     # set up the workflow
-#     workflow = WorkflowFactory()
-#     fb = ForceBalanceOptimizer()
-#     fb.set_optimization_target(target=AbInitio_SMIRNOFF())
-#     workflow.set_optimizer(optimizer=fb)
-#     # this should be a simple biphenyl molecule
-#     opt_schema = workflow._task_from_results(
-#         results=[
-#             result,
-#         ],
-#         index=1,
-#     )
-#
-#     assert opt_schema.initial_force_field == workflow.initial_force_field
-#     assert opt_schema.optimizer_name == fb.optimizer_name
-#     assert opt_schema.job_id == "bespoke_task_1"
-#     assert bool(opt_schema.target_smirks) is True
-#     assert opt_schema.target_parameters == workflow.target_parameters
-#     assert result.molecule == opt_schema.target_molecule.molecule
-#     assert opt_schema.n_tasks == 1
-#     assert opt_schema.n_targets == 1
-#     assert opt_schema.ready_for_fitting is True
-#
-#
-# def test_make_fitting_schema_from_results():
-#     """
-#     Test that new fitting schemas can be made from results and that all results are full
-#     """
-#     # build the workflow
-#     workflow = WorkflowFactory()
-#     fb = ForceBalanceOptimizer()
-#     fb.set_optimization_target(target=AbInitio_SMIRNOFF())
-#     workflow.set_optimizer(optimizer=fb)
-#
-#     # set up the client and load the results
-#     # load a client and pull some results
-#     client = FractalClient()
-#     # grab a dataset with small fragments in it
-#     result = TorsionDriveCollectionResult.from_server(
-#         client=client,
-#         spec_name="default",
-#         dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
-#         final_molecule_only=True,
-#         subset=bace_entries,
-#     )
-#     schema = workflow.fitting_schema_from_results(results=result, combine=True)
-#     # there should be 2 total molecules as we have combined two results
-#     assert schema.n_molecules == 2
-#     # there are a total of 3 torsiondrives
-#     assert schema.n_tasks == 3
-#     # make sure each task has results and is ready to fit
-#     for task in schema.tasks:
-#         assert task.ready_for_fitting is True
+def test_optimization_schema_from_results():
+    """
+    Test making an individual task from a set of results
+    """
+    # load a client and pull some results
+    client = FractalClient()
+    # grab a dataset with small fragments in it
+    result = TorsionDriveCollectionResult.from_server(
+        client=client,
+        spec_name="default",
+        dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
+        final_molecule_only=True,
+        subset=bace_entries[:1],
+    )
+
+    # grab the only result
+    result = list(result.collection.values())[0]
+
+    # set up the workflow
+    factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
+
+    # this should be a simple biphenyl molecule
+    opt_schema = factory._optimization_schema_from_results(results=[result], index=1)
+
+    assert opt_schema.initial_force_field == factory.initial_force_field
+    assert opt_schema.optimizer == factory.optimizer
+    assert opt_schema.id == "bespoke_task_1"
+    assert bool(opt_schema.target_smirks) is True
+    assert opt_schema.parameter_settings == factory.parameter_settings
+    assert result.molecule == opt_schema.target_molecule.molecule
+    assert opt_schema.n_tasks == 1
+    assert opt_schema.n_targets == 1
+    assert opt_schema.ready_for_fitting is True
+
+
+def test_make_fitting_schema_from_results():
+    """
+    Test that new fitting schemas can be made from results and that all results are full
+    """
+    # build the workflow
+    factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
+
+    # set up the client and load the results
+    # load a client and pull some results
+    client = FractalClient()
+    # grab a dataset with small fragments in it
+    result = TorsionDriveCollectionResult.from_server(
+        client=client,
+        spec_name="default",
+        dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
+        final_molecule_only=True,
+        subset=bace_entries,
+    )
+    schemas = factory.optimization_schemas_from_results(results=result, combine=True)
+
+    # there should be 2 total molecules / schemas as we have combined two results
+    assert len(schemas) == 2
+    # there are a total of 3 torsiondrives
+    assert schemas[0].n_tasks + schemas[1].n_tasks == 3
+    # make sure each task has results and is ready to fit
+    assert all(schema.ready_for_fitting for schema in schemas)
