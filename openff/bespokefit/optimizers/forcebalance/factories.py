@@ -3,7 +3,17 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Collection,
+    Dict,
+    Generic,
+    List,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import cmiles
 import numpy as np
@@ -23,6 +33,7 @@ from openff.bespokefit.optimizers.forcebalance.templates import (
     TorsionProfileTargetTemplate,
     VibrationTargetTemplate,
 )
+from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
@@ -40,6 +51,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+S = TypeVar("S", bound=RecordBase)
 T = TypeVar("T", bound=TargetSchema)
 
 _TARGET_SECTION_TEMPLATES = {
@@ -65,18 +77,54 @@ class _TargetFactory(Generic[T], abc.ABC):
         return template_factory.generate(target_template, target_names)
 
     @classmethod
+    def _paginated_query(
+        cls,
+        qc_client: FractalClient,
+        query_function: Callable[..., S],
+        record_ids: Collection[str],
+    ) -> List[S]:
+
+        results = {}
+
+        query_limit = qc_client.server_info["query_limit"]
+
+        paginating = True
+        page_index = 0
+
+        print(f"retrieving QC records (n={len(record_ids)})")
+
+        with tqdm(total=len(record_ids)) as progress_bar:
+
+            while paginating:
+
+                page_results = query_function(
+                    id=record_ids,
+                    limit=query_limit,
+                    skip=page_index,
+                )
+
+                results.update({result.id: result for result in page_results})
+
+                paginating = len(page_results) > 0
+                page_index += query_limit
+
+                progress_bar.update(len(page_results))
+
+        return [*results.values()]
+
+    @classmethod
     @abc.abstractmethod
-    def _retrieve_qc_record(
-        cls, qc_client: FractalClient, record_id: str
-    ) -> RecordBase:
-        """Retrieves a QC data record using the provided QC client.
+    def _retrieve_qc_records(
+        cls, qc_client: FractalClient, record_ids: Collection[str]
+    ) -> List[RecordBase]:
+        """Retrieves a set of QC data record using the provided QC client.
 
         Args:
             qc_client: The QC client to retrieve the record using.
-            record_id: The id of the record to retrieve.
+            record_ids: The ids of the record to retrieve.
 
         Returns:
-            The QC record.
+            The retrieved records.
         """
         raise NotImplementedError()
 
@@ -110,6 +158,30 @@ class _TargetFactory(Generic[T], abc.ABC):
         return off_molecule
 
     @classmethod
+    def _batch_qc_records(
+        cls, target: TargetSchema, qc_records: List[RecordBase]
+    ) -> Dict[str, RecordBase]:
+        """A function which places the input QC records into per target batches.
+
+        For most targets there will be a single record per target, however certain
+        targets (e.g. OptGeo) can perform on batches to reduce the time taken to
+        evaluate the target.
+
+        Args:
+            target: The target the inputs are being generated for.
+            qc_records: The QC records to batch
+
+        Returns:
+            A dictionary of the target name and a list of the records to include for that
+            target.
+        """
+
+        return {
+            f"{cls._target_name_prefix()}-{qc_record.id}": [qc_record]
+            for qc_record in qc_records
+        }
+
+    @classmethod
     @abc.abstractmethod
     def _generate_target(cls, target: T, qc_records: List[RecordBase]):
         """Create the required input files for a particular target.
@@ -133,30 +205,33 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         # The optimizer should have swapped out a bespoke QC data set
         # with an existing set?
-        if not isinstance(target.reference_data, ExistingQCData):
+        if isinstance(target.reference_data, ExistingQCData):
+
+            qc_client = FractalClient(target.reference_data.qcfractal_address)
+
+            qc_records = cls._retrieve_qc_records(
+                qc_client, target.reference_data.record_ids
+            )
+
+        elif isinstance(target.reference_data, BespokeQCData):
             raise NotImplementedError()
 
-        qc_client = FractalClient(target.reference_data.qcfractal_address)
+        else:
+            raise NotImplementedError()
 
-        target_names = []
+        target_batches = cls._batch_qc_records(target, qc_records)
 
-        for record_id in tqdm(target.reference_data.record_ids):
-
-            target_name = f"{cls._target_name_prefix()}-{record_id}"
+        for target_name, target_records in tqdm(target_batches.items()):
 
             tqdm.write(f"generating target directory for {target_name}")
 
             target_directory = os.path.join(root_directory, target_name)
             os.makedirs(target_directory, exist_ok=True)
 
-            qc_record = cls._retrieve_qc_record(qc_client, record_id)
-
             with temporary_cd(target_directory):
-                cls._generate_target(target, [qc_record])
+                cls._generate_target(target, target_records)
 
-            target_names.append(target_name)
-
-        return cls._generate_targets_section(target, target_names)
+        return cls._generate_targets_section(target, [*target_batches])
 
 
 class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
@@ -165,12 +240,10 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         return "ab-initio"
 
     @classmethod
-    def _retrieve_qc_record(
-        cls, qc_client: FractalClient, record_id: str
-    ) -> TorsionDriveRecord:
-
-        # noinspection PyTypeChecker
-        return qc_client.query_procedures(id=record_id)[0]
+    def _retrieve_qc_records(
+        cls, qc_client: FractalClient, record_ids: Collection[str]
+    ) -> List[TorsionDriveRecord]:
+        return cls._paginated_query(qc_client, qc_client.query_procedures, record_ids)
 
     @classmethod
     def _generate_target(cls, target: T, qc_records: List[TorsionDriveRecord]):
@@ -261,12 +334,10 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         return "vib-freq"
 
     @classmethod
-    def _retrieve_qc_record(
-        cls, qc_client: FractalClient, record_id: str
-    ) -> ResultRecord:
-
-        # noinspection PyTypeChecker
-        return qc_client.query_results(id=record_id)[0]
+    def _retrieve_qc_records(
+        cls, qc_client: FractalClient, record_ids: Collection[str]
+    ) -> List[ResultRecord]:
+        return cls._paginated_query(qc_client, qc_client.query_results, record_ids)
 
     @classmethod
     def _compute_normal_modes(
@@ -412,12 +483,29 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         return "opt-geo"
 
     @classmethod
-    def _retrieve_qc_record(
-        cls, qc_client: FractalClient, record_id: str
-    ) -> ResultRecord:
+    def _retrieve_qc_records(
+        cls, qc_client: FractalClient, record_ids: Collection[str]
+    ) -> List[ResultRecord]:
+        return cls._paginated_query(qc_client, qc_client.query_results, record_ids)
 
-        # noinspection PyTypeChecker
-        return qc_client.query_results(id=record_id)[0]
+    @classmethod
+    def _batch_qc_records(
+        cls, target: OptGeoTargetSchema, qc_records: List[RecordBase]
+    ):
+
+        # TODO: Uncomment when #16 is merged.
+        # batch_size = target.extras.get("batch_size", 50)
+        batch_size = 50
+
+        n_records = len(qc_records)
+        n_targets = (n_records + batch_size - 1) // batch_size
+
+        return {
+            f"{cls._target_name_prefix()}-batch-{target_index}": qc_records[
+                target_index * batch_size : (target_index + 1) * batch_size
+            ]
+            for target_index in range(n_targets)
+        }
 
     @classmethod
     def _generate_target(
@@ -445,58 +533,6 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         # Create the options file
         with open("optget_options.txt", "w") as file:
             file.write(OptGeoOptionsTemplate.generate(target, record_names))
-
-    @classmethod
-    def generate(
-        cls, root_directory: Union[str, Path], target: T, batch_size: int = 50
-    ):
-        """Creates the input files for a target schema in a specified directory.
-
-        Args:
-            root_directory: The root directory to create the inputs in.
-            target: The target to create the inputs for. A single target schema may map
-                to several new ForceBalance targets, typically one per QC record
-                referenced by the schema.
-            batch_size: The number of optimized geometries to include per target.
-        """
-
-        # The optimizer should have swapped out a bespoke QC data set
-        # with an existing set.
-        if not isinstance(target.reference_data, ExistingQCData):
-            raise NotImplementedError()
-
-        qc_client = FractalClient(target.reference_data.qcfractal_address)
-
-        n_records = len(target.reference_data.record_ids)
-        n_targets = (n_records + batch_size - 1) // batch_size
-
-        target_names = []
-
-        for target_index in tqdm(range(n_targets)):
-
-            target_name = f"{cls._target_name_prefix()}-batch-{target_index}"
-
-            record_ids = target.reference_data.record_ids[
-                target_index * n_targets : (target_index + 1) * n_targets
-            ]
-
-            tqdm.write(f"generating target directory for {record_ids}")
-
-            target_directory = os.path.join(root_directory, target_name)
-
-            os.makedirs(target_directory, exist_ok=True)
-
-            qc_records = [
-                cls._retrieve_qc_record(qc_client, record_id)
-                for record_id in record_ids
-            ]
-
-            with temporary_cd(target_directory):
-                cls._generate_target(target, qc_records)
-
-            target_names.append(target_name)
-
-        return cls._generate_targets_section(target, target_names)
 
 
 class ForceBalanceInputFactory:
