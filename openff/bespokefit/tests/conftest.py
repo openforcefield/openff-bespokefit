@@ -96,6 +96,10 @@ def general_optimization_schema(
 
     # Mock the QC fractal client to retrieve our pre-calculated result records.
     def mock_query(*_, **kwargs):
+
+        if kwargs["skip"] > 0:
+            return []
+
         return [records_by_id[record_id] for record_id in kwargs["id"]]
 
     monkeypatch.setattr(FractalClient, "query_results", mock_query)
