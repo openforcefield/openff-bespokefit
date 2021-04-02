@@ -3,10 +3,12 @@ name: CI
 on:
   push:
     branches:
-      - "master"
+#      - "master"
+      - "generalization-refactor"
   pull_request:
     branches:
-      - "master"
+#      - "master"
+      - "generalization-refactor"
   schedule:
     - cron: "0 0 * * *"
 
