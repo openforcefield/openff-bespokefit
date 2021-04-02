@@ -110,6 +110,15 @@ class _TargetFactory(Generic[T], abc.ABC):
 
                 progress_bar.update(len(page_results))
 
+        missing_records = {*record_ids} - {*results}
+
+        if len(missing_records) > 0:
+
+            raise QCRecordMissMatchError(
+                f"The follow QC records could not be retrieved from the server at "
+                f"{qc_client.address}: {missing_records}"
+            )
+
         return [*results.values()]
 
     @classmethod
@@ -160,7 +169,7 @@ class _TargetFactory(Generic[T], abc.ABC):
     @classmethod
     def _batch_qc_records(
         cls, target: TargetSchema, qc_records: List[RecordBase]
-    ) -> Dict[str, RecordBase]:
+    ) -> Dict[str, List[RecordBase]]:
         """A function which places the input QC records into per target batches.
 
         For most targets there will be a single record per target, however certain
