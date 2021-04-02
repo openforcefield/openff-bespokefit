@@ -1,5 +1,5 @@
 import abc
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
@@ -19,6 +19,13 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
+    )
+
+    extras: Dict[str, str] = Field(
+        {},
+        description="Extra settings to use for the target. Optimizer specific settings "
+        "(e.g. whether a target should be set to remote in ForceBalance) should be "
+        "included here.",
     )
 
     @classmethod

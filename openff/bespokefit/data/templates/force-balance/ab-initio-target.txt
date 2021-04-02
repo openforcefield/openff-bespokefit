@@ -17,4 +17,8 @@ energy_upper {{ energy_cutoff }}
 
 energy {{ fit_energy | int }}
 force {{ fit_force | int }}
+
+{%- for key, value in extras.items() %}
+{{ key }} {{ value if value is not none else "" }}
+{%- endfor %}
 $end
