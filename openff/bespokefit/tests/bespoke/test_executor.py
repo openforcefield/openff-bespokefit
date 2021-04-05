@@ -12,7 +12,9 @@ from openff.bespokefit.bespoke import Executor
 from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 
 
-@pytest.mark.xfail("failure expected until FB targets support BespokeQCData sets")
+@pytest.mark.xfail(
+    reason="failure expected until FB targets support BespokeQCData sets"
+)
 def test_optimizer_explicit(bespoke_optimization_schema):
     """
     Run the optimizer process in the main thread to make sure it works.
