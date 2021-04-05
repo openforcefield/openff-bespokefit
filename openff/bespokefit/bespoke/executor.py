@@ -1,6 +1,6 @@
 import time
 from multiprocessing import Process, Queue
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Collection, Dict, List, Optional, Tuple, Union
 
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
@@ -13,13 +13,15 @@ from openff.qcsubmit.results import (
     OptimizationCollectionResult,
     TorsionDriveCollectionResult,
 )
+from openff.qcsubmit.serializers import serialize
 from qcfractal.interface import FractalClient
 from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
 from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
 
-from openff.bespokefit.common_structures import Status
-from openff.bespokefit.schema import FittingSchema, OptimizationSchema
-from openff.bespokefit.utils import task_folder
+from openff.bespokefit.optimizers import get_optimizer
+from openff.bespokefit.schema.data import BespokeQCData
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema, Status
+from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 if TYPE_CHECKING:
     from qcfractal import FractalServer
@@ -63,25 +65,53 @@ class Executor:
         self.retries: Dict[str, int] = {}
 
     def execute(
-        self, fitting_schema: FittingSchema, client: Optional[FractalClient] = None
-    ) -> FittingSchema:
+        self,
+        *optimizations: BespokeOptimizationSchema,
+        client: Optional[FractalClient] = None,
+    ) -> List[BespokeOptimizationResults]:
         """
         Execute a fitting schema using a snowflake qcfractal server. This involves generating QCSubmit datasets and error cycling them and then launching the forcebalance optimizations.
 
 
         Parameters:
-            fitting_schema: The fitting schema that should be executed
+            optimizations: The bespoke optimization tasks that should be executed
             client: The fractal client we should connect to, if none then a snowflake will be used.
 
         Returns:
-            The completed fitting schema this will contain any collected results including errors.
+            The completed fits optimizations will contain any collected results including errors.
         """
+
+        if not all(
+            isinstance(optimization, BespokeOptimizationSchema)
+            for optimization in optimizations
+        ):
+            raise RuntimeError("Only bespoke optimization schemas can be executed.")
+
+        if len(optimizations) == 0:
+            return []
+
         # keep track of the total number of molecules to be fit
-        self.total_tasks = len(fitting_schema.tasks)
+        self.total_tasks = len(optimizations)
+
         # get the input datasets
         print("Searching for reference tasks")
-        input_datasets = fitting_schema.generate_qcsubmit_datasets()
-        if input_datasets:
+
+        input_datasets_per_type = {}
+
+        for optimization in optimizations:
+
+            for dataset in optimization.build_qcsubmit_datasets():
+
+                if dataset.dataset_type not in input_datasets_per_type:
+
+                    input_datasets_per_type[dataset.dataset_type] = dataset
+                    continue
+
+                input_datasets_per_type[dataset.dataset_type] += dataset
+
+        input_datasets = [*input_datasets_per_type.values()]
+
+        if len(input_datasets) > 0:
             print("Reference tasks found generating input datasets")
             # now generate a mapping between the hash and the dataset entry
             print("generating task map")
@@ -97,19 +127,17 @@ class Executor:
             server, client = None, None
         print("generating collection task queue ...")
         # generate the initial task queue of collection tasks
-        self.create_input_task_queue(fitting_schema=fitting_schema)
+        self.create_input_task_queue(optimizations)
         print("task queue now contains tasks.")
 
-        return self._execute(
-            fitting_schema=fitting_schema, server=server, client=client
-        )
+        return self._execute(server=server, client=client)
 
     def _execute(
         self,
-        fitting_schema: FittingSchema,
         server: Optional["FractalServer"],
         client: Optional[FractalClient],
-    ) -> FittingSchema:
+    ) -> List[BespokeOptimizationResults]:
+
         print("starting main executor ...")
         # start the error cycle process
         jobs = []
@@ -126,14 +154,14 @@ class Executor:
             job.join(timeout=5)
 
         print("starting to collect finished tasks")
+        task_results = []
+
         while True:
             # here we need to watch for results on the parent process
             print("collecting complete tasks...")
-            task = self.finished_tasks.get()
+            task_result = self.finished_tasks.get()
             print("Found a complete task")
-            fitting_schema = self.update_fitting_schema(
-                task=task, fitting_schema=fitting_schema
-            )
+            task_results.append(task_result)
             print("tasks to do ", self.total_tasks)
             self.total_tasks -= 1
             print("tasks left", self.total_tasks)
@@ -142,8 +170,11 @@ class Executor:
                 break
 
         print("all tasks done exporting to file.")
-        fitting_schema.export_schema("final_results.json.xz")
-        return fitting_schema
+        serialize(
+            {result.input_schema.id: result for result in task_results},
+            file_name="final_results.json.xz",
+        )
+        return task_results
 
     def activate_client(
         self,
@@ -175,7 +206,7 @@ class Executor:
     def generate_dataset_task_map(
         self,
         datasets: List[Union[BasicDataset, OptimizationDataset, TorsiondriveDataset]],
-    ) -> None:
+    ):
         """
         Generate mapping between all of the current tasks in the datasets and their entries updates self.
 
@@ -187,12 +218,13 @@ class Executor:
             for entry in dataset.dataset.values():
                 self.task_map[entry.attributes.task_hash] = entry.index
 
-    def create_input_task_queue(self, fitting_schema: FittingSchema) -> None:
-        """
-        Create a task for each molecule in fitting schema and enter them into the collection queue.
-        """
-        for task in fitting_schema.tasks:
-            self.collection_queue.put(task)
+    def create_input_task_queue(
+        self, optimizations: Collection[BespokeOptimizationSchema]
+    ):
+        """Enter each optimization into the collection queue."""
+
+        for optimization in optimizations:
+            self.collection_queue.put(optimization)
 
     def submit_datasets(
         self,
@@ -232,41 +264,48 @@ class Executor:
         return None, None
 
     def _error_cycle_task(
-        self, task: OptimizationSchema, client: FractalClient
+        self, task: BespokeOptimizationSchema, client: FractalClient
     ) -> None:
         """
         Specific error cycling for a given task.
         """
 
-        print("task molecule name ", task.job_id)
+        print("task molecule name ", task.id)
         # keep track of any records that should be collected
         to_collect = {"torsion1d": {}, "optimization": {}, "hessian": {}}
         # loop through each target and loop for tasks to update
         for target in task.targets:
+
+            if not isinstance(target.reference_data, BespokeQCData):
+                # Skip existing QC data sets.
+                continue
+
             # get the dataset
             dataset = client.get_collection(
-                collection_type=self._dataset_type_mapping[target.collection_workflow],
+                collection_type=self._dataset_type_mapping[target.bespoke_task_type()],
                 name=self._dataset_name,
             )
             # now update each entry
-            for entry in target.tasks:
+            for entry in target.reference_data.tasks:
                 # now for each one we want to query the archive and their status
                 task_hash = entry.get_task_hash()
                 entry_id = self.task_map[task_hash]
                 print("pulling record for ", entry_id)
                 record = self.get_record(
-                    dataset=dataset, spec=target.qc_spec, record_name=entry_id
+                    dataset=dataset,
+                    spec=target.reference_data.qc_spec,
+                    record_name=entry_id,
                 )
                 if record.status.value == "COMPLETE":
-                    collection_set = to_collect[target.collection_workflow]
-                    collection_set.setdefault(target.qc_spec.spec_name, []).append(
-                        entry_id
-                    )
+                    collection_set = to_collect[target.bespoke_task_type()]
+                    collection_set.setdefault(
+                        target.reference_data.qc_spec.spec_name, []
+                    ).append(entry_id)
                 elif record.status.value == "ERROR":
                     # save the error into the task
                     task.error_message = record.get_error()
                     print(
-                        f"The task {task.job_id} has errored with attempting restart. Error message:",
+                        f"The task {task.id} has errored with attempting restart. Error message:",
                         task.error_message,
                     )
                     # update the restart count
@@ -337,37 +376,26 @@ class Executor:
             time.sleep(20)
 
     def collect_task_results(
-        self, task: OptimizationSchema, collection_dict: Dict, client: FractalClient
+        self,
+        optimization: BespokeOptimizationSchema,
+        collection_dict: Dict,
+        client: FractalClient,
     ):
         """
         Gather the results in the collection dict and update the task with them.
         """
         results = self.collect_results(record_map=collection_dict, client=client)
         for result in results:
-            task.update_with_results(results=result)
-
-    def update_fitting_schema(
-        self, task: OptimizationSchema, fitting_schema: FittingSchema
-    ) -> FittingSchema:
-        """
-        Update the given task back into the fitting schema so we can keep track of progress.
-        Call this after any result or optimization update.
-        """
-        for i, molecule_task in enumerate(fitting_schema.tasks):
-            if task.job_id == molecule_task.job_id:
-                print("updating task")
-                # update the schema and break
-                fitting_schema.tasks[i] = task
-                return fitting_schema
+            optimization.update_with_results(results=result)
 
     def submit_new_tasks(
-        self, task: OptimizationSchema, client: FractalClient
+        self, optimization: BespokeOptimizationSchema, client: FractalClient
     ) -> Dict[str, Dict[str, int]]:
         """
         For the given molecule schema query it for new tasks to submit and either add them to qcarchive or put them in the
         local task queue.
         """
-        datasets = task.build_qcsubmit_datasets()
+        datasets = optimization.build_qcsubmit_datasets()
         # now all tasks have been put into the dataset even those running
         # remove a hash that has been seen before
         # add new tasks to the hash record
@@ -425,7 +453,7 @@ class Executor:
         self,
         task: Union[ResultRecord, OptimizationRecord, TorsionDriveRecord],
         client: FractalClient,
-    ) -> None:
+    ):
         """
         Take a record and dispatch the type of restart to be done.
         """
@@ -487,7 +515,7 @@ class Executor:
         """
         pass
 
-    def optimizer(self) -> None:
+    def optimizer(self):
         """
         Monitors the optimizer queue and runs any tasks that arrive in the list.
         """
@@ -496,41 +524,39 @@ class Executor:
         sent_tasks = 0
         while True:
             print("looking for task in queue")
-            task: OptimizationSchema = self.opt_queue.get()
-            print("found optimizer task for ", task.job_id)
-            # move into the task folder
-            with task_folder(folder_name=task.job_id):
-                # make sure it is ready for fitting
-                if task.ready_for_fitting:
-                    # now we need to set up the optimizer
-                    print("preparing to optimize")
-                    optimizer = task.get_optimizer()
-                    # remove any tasks
-                    optimizer.clear_optimization_targets()
-                    print("sending task for optimization")
-                    result = optimizer.optimize(schema=task)
-                    if result.status == Status.ConvergenceError:
-                        warnings.warn(
-                            f"The optimization {result.job_id} failed to converge the best results were still collected.",
-                            UserWarning,
-                        )
-                    # check for running QM tasks
-                    if task.get_task_map():
-                        print("putting back into collect queue")
-                        # submit to the collection queue again
-                        self.collection_queue.put(task)
-                    else:
-                        # the task is finished so send it back
-                        print("Finished task")
-                        self.finished_tasks.put(task)
-                        sent_tasks += 1
+            task: BespokeOptimizationSchema = self.opt_queue.get()
+            print("found optimizer task for ", task.id)
+
+            # make sure it is ready for fitting
+            if task.ready_for_fitting:
+                # now we need to set up the optimizer
+                print("preparing to optimize")
+                optimizer_class = get_optimizer(optimizer_name=task.optimizer.type)
+                print("sending task for optimization")
+                result = optimizer_class.optimize(schema=task)
+                if result.status == Status.ConvergenceError:
+                    warnings.warn(
+                        f"The optimization {result.input_schema.id} failed to converge "
+                        f"the best results were still collected.",
+                        UserWarning,
+                    )
+                # check for running QM tasks
+                if task.get_task_map():
+                    print("putting back into collect queue")
+                    # submit to the collection queue again
+                    self.collection_queue.put(task)
                 else:
-                    # the task has an error so fail it
+                    # the task is finished so send it back
+                    print("Finished task")
                     self.finished_tasks.put(task)
                     sent_tasks += 1
+            else:
+                # the task has an error so fail it
+                self.finished_tasks.put(task)
+                sent_tasks += 1
 
-                # kill condition
-                if sent_tasks == self.total_tasks:
-                    print("killing workers")
-                    self.collection_queue.put("END")
-                    break
+            # kill condition
+            if sent_tasks == self.total_tasks:
+                print("killing workers")
+                self.collection_queue.put("END")
+                break
