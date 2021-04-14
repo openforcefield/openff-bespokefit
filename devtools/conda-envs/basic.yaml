@@ -33,6 +33,7 @@ dependencies:
 
     ### Bespoke dependencies
   - qcengine >=0.17.0
+  - qcfractal >=0.15.4
   - openff-qcsubmit ==0.2.1
   - openeye-toolkits ==2019.10.2
   - chemper
