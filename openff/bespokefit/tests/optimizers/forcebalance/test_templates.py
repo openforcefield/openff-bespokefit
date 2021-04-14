@@ -21,7 +21,7 @@ from openff.bespokefit.schema.targets import (
     "instance, template_generator, expected_lines",
     [
         (
-            AbInitioTargetSchema(),
+            AbInitioTargetSchema(extras={"remote": "1"}),
             AbInitioTargetTemplate,
             [
                 "name tmp-name",
@@ -32,19 +32,21 @@ from openff.bespokefit.schema.targets import (
                 "energy_upper 10.0",
                 "energy 1",
                 "force 0",
+                "remote 1",
             ],
         ),
         (
-            OptGeoTargetSchema(),
+            OptGeoTargetSchema(extras={"remote": "1"}),
             OptGeoTargetTemplate,
             [
                 "name tmp-name",
                 "weight 1.0",
                 "type OptGeoTarget_SMIRNOFF",
+                "remote 1",
             ],
         ),
         (
-            TorsionProfileTargetSchema(),
+            TorsionProfileTargetSchema(extras={"remote": "1"}),
             TorsionProfileTargetTemplate,
             [
                 "name tmp-name",
@@ -53,15 +55,17 @@ from openff.bespokefit.schema.targets import (
                 "attenuate 1",
                 "energy_denom 1.0",
                 "energy_upper 10.0",
+                "remote 1",
             ],
         ),
         (
-            VibrationTargetSchema(),
+            VibrationTargetSchema(extras={"remote": "1"}),
             VibrationTargetTemplate,
             [
                 "name tmp-name",
                 "weight 1.0",
                 "type VIBRATION_SMIRNOFF",
+                "remote 1",
             ],
         ),
         (

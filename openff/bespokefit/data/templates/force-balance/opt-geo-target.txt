@@ -5,4 +5,8 @@ weight {{ weight }}
 type OptGeoTarget_SMIRNOFF
 
 writelevel 1
+
+{%- for key, value in extras.items() %}
+{{ key }} {{ value if value is not none else "" }}
+{%- endfor %}
 $end

@@ -10,4 +10,8 @@ pdb conf.pdb
 writelevel 1
 
 {%- if mode_reassignment is not none %}reassign {{ mode_reassignment }}{% endif %}
+
+{%- for key, value in extras.items() %}
+{{ key }} {{ value if value is not none else "" }}
+{%- endfor %}
 $end
