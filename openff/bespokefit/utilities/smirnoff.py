@@ -10,8 +10,9 @@ from openff.toolkit.typing.engines.smirnoff import (
     BondHandler,
     ForceField,
     ImproperTorsionHandler,
+    ParameterLookupError,
     ProperTorsionHandler,
-    vdWHandler, ParameterLookupError,
+    vdWHandler,
 )
 
 from openff.bespokefit.schema.bespoke.smirks import (
