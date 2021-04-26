@@ -4,7 +4,7 @@ Test the base and general methods of fragmentation.
 import os
 
 import pytest
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.exceptions import FragmenterError
 from openff.bespokefit.fragmentation import (

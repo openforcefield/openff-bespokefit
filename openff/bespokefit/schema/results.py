@@ -1,8 +1,8 @@
 import abc
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from openforcefield.topology import Molecule
-from openforcefield.typing.engines.smirnoff import ForceField
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
 from typing_extensions import Literal
 

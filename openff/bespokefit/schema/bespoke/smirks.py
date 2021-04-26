@@ -1,7 +1,7 @@
 import abc
 from typing import Dict, Optional, Set, Tuple, Union
 
-from openforcefield.typing.engines.smirnoff import (
+from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ImproperTorsionHandler,
@@ -103,12 +103,12 @@ class ValidatedBespokeSmirks(BespokeSmirksSchema, abc.ABC):
     def update_parameters(self, off_smirk, **kwargs) -> None:
         """
         Update the parameters of the current smirks pattern using the corresponding
-        openforcefield toolkit smirks class.
+        OpenFF toolkit smirks class.
 
         Parameters
         ----------
         off_smirk: Union[BondHandler.BondType, AngleHandler.AngleType, ProperTorsionHandler.ProperTorsionType, ImproperTorsionHandler.ImproperTorsionType, vdWHandler.vdWType]
-            The openforcefield parameter type that should be used to extract the parameters from.
+            The OpenFF SMIRNOFF parameter type that should be used to extract the parameters from.
 
         """
         raise NotImplementedError()
@@ -117,10 +117,10 @@ class ValidatedBespokeSmirks(BespokeSmirksSchema, abc.ABC):
     @abc.abstractmethod
     def from_off_smirks(cls, off_smirk):
         """
-        Create a bespokefit smirks schema from the openforcefield object version.
+        Create a bespokefit smirks schema from the OpenFF object version.
 
         Parameters:
-            off_smirk: The openforcefield parameter type that should be converted into the bespoke schema.
+            off_smirk: The OpenFF SMIRNOFF parameter type that should be converted into the bespoke schema.
         """
         raise NotImplementedError()
 
@@ -145,7 +145,7 @@ class BespokeAtomSmirks(ValidatedBespokeSmirks):
     @classmethod
     def from_off_smirks(cls, off_smirk: vdWHandler.vdWType):
         """
-        Create a bespokefit AtomSmirks schema from the openforcefield vdWType
+        Create a bespokefit AtomSmirks schema from the OpenFF ``vdWType``.
 
         Parameters:
             off_smirk: The vdW parameter type that should be converted into a bespokefit object.
@@ -156,7 +156,7 @@ class BespokeAtomSmirks(ValidatedBespokeSmirks):
 
     def update_parameters(self, off_smirk: vdWHandler.vdWType, **kwargs) -> None:
         """
-        Update the Atom smirks parameter handler using the corresponding openforcefield parameter handler.
+        Update the Atom smirks parameter handler using the corresponding OpenFF parameter handler.
 
         Parameters
         ----------
@@ -185,7 +185,7 @@ class BespokeBondSmirks(ValidatedBespokeSmirks):
     @classmethod
     def from_off_smirks(cls, off_smirk: BondHandler.BondType):
         """
-        Create a bespokefit BondSmirks schema from the openforcefield BondType.
+        Create a bespokefit BondSmirks schema from the OpenFF ``BondType``.
 
         Parameters:
              off_smirk: The bond parameter type that should be converted into a bespokefit object.
@@ -196,7 +196,7 @@ class BespokeBondSmirks(ValidatedBespokeSmirks):
 
     def update_parameters(self, off_smirk: BondHandler.BondType, **kwargs) -> None:
         """
-        Update the Bond smirks parameter handler using the corresponding openforcefield parameter handler.
+        Update the Bond smirks parameter handler using the corresponding OpenFF parameter handler.
 
         Parameters
         ----------
@@ -227,7 +227,7 @@ class BespokeAngleSmirks(ValidatedBespokeSmirks):
     @classmethod
     def from_off_smirks(cls, off_smirk: AngleHandler.AngleType):
         """
-        Create a bespokefit AngleSmirks schema from the openforcefield AngleType.
+        Create a bespokefit AngleSmirks schema from the OpenFF ``AngleType``.
 
         Parameters:
              off_smirk: The angle parameter type that should be converted into a bespokefit object.
@@ -238,7 +238,7 @@ class BespokeAngleSmirks(ValidatedBespokeSmirks):
 
     def update_parameters(self, off_smirk: AngleHandler.AngleType, **kwargs) -> None:
         """
-        Update the Angle smirks parameter handler using the corresponding openforcefield parameter handler.
+        Update the Angle smirks parameter handler using the corresponding OpenFF parameter handler.
 
         Parameters
         ----------
@@ -322,7 +322,7 @@ class BespokeTorsionSmirks(BespokeSmirksSchema):
         ],
     ):
         """
-        Create a bespokefit TorsionSmirks schema from the openforcefield Proper or Improper TorsionType.
+        Create a bespokefit TorsionSmirks schema from the OpenFF ``ProperTorsionType`` or ``ImproperTorsionType``.
 
         Parameters:
              off_smirk: The torsion parameter type that should be converted into a bespokefit object.
@@ -340,7 +340,7 @@ class BespokeTorsionSmirks(BespokeSmirksSchema):
         clear_existing: bool = True,
     ) -> None:
         """
-        Update the Torsion smirks parameter handler using the corresponding openforcefield parameter handler.
+        Update the Torsion smirks parameter handler using the corresponding OpenFF parameter handler.
 
         Parameters
         ----------

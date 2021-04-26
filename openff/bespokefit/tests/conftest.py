@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict
 
 import pytest
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from qcelemental.models import Molecule as QCMolecule
 from qcelemental.util import deserialize
 from qcportal import FractalClient

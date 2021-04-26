@@ -52,11 +52,11 @@ class ForceBalanceOptimizer(BaseOptimizer):
         Collect the provenance information for forcebalance.
         """
         import forcebalance
-        import openforcefield
+        import openff.toolkit
 
         versions = {
             "forcebalance": forcebalance.__version__,
-            "openforcefield": openforcefield.__version__,
+            "openff.toolkit": openff.toolkit.__version__,
             **get_openeye_versions(),
         }
 

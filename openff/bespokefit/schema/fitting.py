@@ -13,7 +13,7 @@ from openff.qcsubmit.results import (
     OptimizationCollectionResult,
     TorsionDriveCollectionResult,
 )
-from openforcefield.typing.engines.smirnoff import ForceField
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
 from typing_extensions import Literal
 

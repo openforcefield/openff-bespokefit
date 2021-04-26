@@ -1,5 +1,5 @@
 import abc
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal

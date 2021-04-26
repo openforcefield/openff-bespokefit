@@ -5,7 +5,7 @@ import os
 from typing import List, Tuple
 
 import pytest
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.bespoke.smirks import SmirksGenerator
 from openff.bespokefit.exceptions import SMIRKSTypeError

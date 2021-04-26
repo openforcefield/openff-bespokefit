@@ -53,12 +53,12 @@ def test_forcebalance_provenance():
     Make sure the correct forcebalance version is returned.
     """
     import forcebalance
-    import openforcefield
+    import openff.toolkit
 
     provenance = ForceBalanceOptimizer.provenance()
 
     assert provenance["forcebalance"] == forcebalance.__version__
-    assert provenance["openforcefield"] == openforcefield.__version__
+    assert provenance["openff.toolkit"] == openff.toolkit.__version__
 
 
 def test_forcebalance_available():

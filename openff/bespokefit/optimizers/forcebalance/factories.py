@@ -17,7 +17,7 @@ from typing import (
 
 import cmiles
 import numpy as np
-from openforcefield.topology import Molecule as OFFMolecule
+from openff.toolkit.topology import Molecule as OFFMolecule
 from qcportal import FractalClient
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import RecordBase, ResultRecord

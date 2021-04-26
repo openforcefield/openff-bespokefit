@@ -5,7 +5,7 @@ import os
 
 import pytest
 from openff.qcsubmit.results import TorsionDriveCollectionResult
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from simtk import unit
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError

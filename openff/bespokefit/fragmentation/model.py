@@ -5,7 +5,7 @@ import abc
 from typing import Dict, List, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from pydantic import Field
 
 from openff.bespokefit.schema.bespoke import FragmentSchema

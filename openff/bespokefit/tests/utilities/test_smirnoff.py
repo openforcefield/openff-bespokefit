@@ -5,8 +5,8 @@ import os
 
 import pytest
 from openff.qcsubmit.testing import temp_directory
-from openforcefield.topology import Molecule
-from openforcefield.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
 
 from openff.bespokefit.schema.bespoke.smirks import (
     BespokeAngleSmirks,

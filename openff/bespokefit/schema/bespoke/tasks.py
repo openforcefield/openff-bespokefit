@@ -12,7 +12,7 @@ from openff.qcsubmit.results import (
     SingleResult,
     TorsionDriveResult,
 )
-from openforcefield import topology as off
+from openff.toolkit.topology import Molecule
 from pydantic import Field, validator
 from qcelemental.models.types import Array
 from simtk import unit
@@ -74,7 +74,7 @@ class BaseFittingTask(SchemaBase, abc.ABC):
         "listed here.",
     )
 
-    def __init__(self, molecule: Optional[off.Molecule] = None, **kwargs):
+    def __init__(self, molecule: Optional[Molecule] = None, **kwargs):
         """
         Handle the unpacking of the input conformers.
         """
@@ -108,7 +108,7 @@ class BaseFittingTask(SchemaBase, abc.ABC):
         return True if self.error_message is not None else False
 
     @property
-    def graph_molecule(self) -> off.Molecule:
+    def graph_molecule(self) -> Molecule:
         """
         Create just the OpenFF graph molecule representation for the FittingSchema no
         geometry is included.
@@ -118,12 +118,12 @@ class BaseFittingTask(SchemaBase, abc.ABC):
             built and validated.
         """
 
-        return off.Molecule.from_mapped_smiles(
+        return Molecule.from_mapped_smiles(
             self.attributes.canonical_isomeric_explicit_hydrogen_mapped_smiles
         )
 
     @property
-    def initial_molecule(self) -> off.Molecule:
+    def initial_molecule(self) -> Molecule:
         """
         Create an openFF molecule representation for the FittingSchema with the input
         geometries.
@@ -192,7 +192,7 @@ class BaseFittingTask(SchemaBase, abc.ABC):
     def _remap_single_result(
         self,
         mapping: Dict[int, int],
-        new_molecule: off.Molecule,
+        new_molecule: Molecule,
         result: SingleResult,
         extras: Optional[Dict[str, Any]] = None,
     ) -> SingleResult:
@@ -298,7 +298,7 @@ class TorsionTask(BaseFittingTask):
         new_results = []
         if isinstance(results, TorsionDriveResult):
             # this is valid so work out any mapping differences and update the result
-            isomorphic, atom_map = off.Molecule.are_isomorphic(
+            isomorphic, atom_map = Molecule.are_isomorphic(
                 results.molecule, self.initial_molecule, return_atom_map=True
             )
             if isomorphic:

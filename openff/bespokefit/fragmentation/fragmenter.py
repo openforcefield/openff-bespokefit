@@ -4,7 +4,7 @@ Implement the OpenFF fragmenter package as a possible fragmentation engine.
 
 from typing import Dict, List
 
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from pydantic import Field
 from typing_extensions import Literal
 
@@ -14,7 +14,7 @@ from openff.bespokefit.fragmentation.model import FragmentData, FragmentEngine
 
 class WBOFragmenter(FragmentEngine):
     """
-    Fragment molecules using the WBO Fragmenter class of the openforcefield fragmenter
+    Fragment molecules using the WBO Fragmenter class of the OpenFF fragmenter
     module.
 
     For more information see <https://github.com/openforcefield/fragmenter>.
