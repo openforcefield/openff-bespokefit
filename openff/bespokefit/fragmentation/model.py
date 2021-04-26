@@ -2,38 +2,62 @@
 Here we implement the basic fragmentation class.
 """
 import abc
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openforcefield.topology import Molecule
+from pydantic import Field
 
-from openff.bespokefit.common_structures import FragmentData, SchemaBase
+from openff.bespokefit.schema.bespoke import FragmentSchema
+from openff.bespokefit.utilities.pydantic import ClassBase
 
 
-class FragmentEngine(SchemaBase, abc.ABC):
+class FragmentData(ClassBase):
+    """A simple dataclass that holds the relation between a parent molecule and the
+    fragment.
     """
-    The base Fragment engine class which controls the type of fragmentation that should be performed.
-    New fragmentation engines can be implemented by subclassing and registering new class.
+
+    parent_molecule: Molecule
+    parent_torsion: Tuple[int, int]
+    fragment_molecule: Molecule
+    fragment_torsion: Tuple[int, int]
+    fragment_attributes: MoleculeAttributes
+    fragment_parent_mapping: Dict[int, int]
+
+    def fragment_schema(self) -> FragmentSchema:
+        """
+        Convert to a fragment schema.
+        """
+
+        schema = FragmentSchema(
+            parent_torsion=self.parent_torsion,
+            fragment_torsion=self.fragment_torsion,
+            fragment_attributes=self.fragment_attributes,
+            fragment_parent_mapping=self.fragment_parent_mapping,
+        )
+        return schema
+
+
+class FragmentEngine(ClassBase, abc.ABC):
+    """The base Fragment engine class which controls the type of fragmentation that
+    should be performed. New fragmentation engines can be implemented by subclassing and
+    registering new class.
     """
 
-    fragmentation_engine: str
-    description: str
-
-    class Config:
-        fields = {
-            "fragmentation_engine": {
-                "description": "The name of the fragmentation engine."
-            },
-            "description": {
-                "description": "A description of the fragmentation engine and links to more info."
-            },
-        }
+    fragmentation_engine: str = Field(
+        ..., description="The name of the fragmentation engine."
+    )
+    description: str = Field(
+        ...,
+        description="A description of the fragmentation engine and links to more info.",
+    )
 
     @classmethod
     @abc.abstractmethod
     def is_available(cls) -> bool:
         """
-        This method should identify is the component can be used by checking if the dependencies are available and
-        if not returning a message on how to install them.
+        This method should identify is the component can be used by checking if the
+        dependencies are available and if not returning a message on how to install them.
 
         Returns:
             `True` if the fragmentation method can be used else `False`
@@ -44,8 +68,8 @@ class FragmentEngine(SchemaBase, abc.ABC):
     @abc.abstractmethod
     def fragment(self, molecule: Molecule) -> List[FragmentData]:
         """
-        This method should fragment the given input molecule and return the FragmentData schema which details
-        how the fragment is related to the parent.
+        This method should fragment the given input molecule and return the FragmentData
+        schema which details how the fragment is related to the parent.
         """
 
         raise NotImplementedError()
@@ -53,7 +77,8 @@ class FragmentEngine(SchemaBase, abc.ABC):
     @abc.abstractmethod
     def provenance(self) -> Dict:
         """
-        This function should detail the programs used in running this fragmentation engine and their versions.
+        This function should detail the programs used in running this fragmentation
+        engine and their versions.
         """
 
         raise NotImplementedError()
@@ -74,7 +99,8 @@ class FragmentEngine(SchemaBase, abc.ABC):
 
         Notes
         -----
-            As the MCS is used to create the mapping it will not be complete, that is some fragment atoms have no relation to the parent.
+            As the MCS is used to create the mapping it will not be complete, that is
+            some fragment atoms have no relation to the parent.
 
         Returns
         -------
@@ -102,7 +128,8 @@ class FragmentEngine(SchemaBase, abc.ABC):
     @staticmethod
     def _get_rdkit_mcs_mapping(fragment: Molecule, parent: Molecule) -> Dict[int, int]:
         """
-        Use rdkit MCS function to find the maximum mapping between the fragment and parent molecule.
+        Use rdkit MCS function to find the maximum mapping between the fragment and
+        parent molecule.
         """
 
         from rdkit import Chem

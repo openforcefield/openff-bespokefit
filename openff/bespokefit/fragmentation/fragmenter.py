@@ -1,5 +1,5 @@
 """
-Implement the openforcefield fragmenter package as a possible fragmentation engine.
+Implement the OpenFF fragmenter package as a possible fragmentation engine.
 """
 
 from typing import Dict, List
@@ -8,14 +8,15 @@ from openforcefield.topology import Molecule
 from pydantic import Field
 from typing_extensions import Literal
 
-from openff.bespokefit.common_structures import FragmentData
 from openff.bespokefit.exceptions import FragmenterError
-from openff.bespokefit.fragmentation.model import FragmentEngine
+from openff.bespokefit.fragmentation.model import FragmentData, FragmentEngine
 
 
 class WBOFragmenter(FragmentEngine):
     """
-    Fragment molecules using the WBO Fragmenter class of the openforcefield fragmenter module.
+    Fragment molecules using the WBO Fragmenter class of the openforcefield fragmenter
+    module.
+
     For more information see <https://github.com/openforcefield/fragmenter>.
     """
 
@@ -23,13 +24,17 @@ class WBOFragmenter(FragmentEngine):
     description = (
         "Fragment a molecule across all rotatable bonds using the WBO fragmenter."
     )
+
     wbo_threshold: float = Field(
         0.03,
-        description="The WBO error threshold between the parent and the fragment value, the fragmentation will stop when the difference between the fragment and parent is less than this value.",
+        description="The WBO error threshold between the parent and the fragment "
+        "value, the fragmentation will stop when the difference between the fragment "
+        "and parent is less than this value.",
     )
     keep_non_rotor_ring_substituents: bool = Field(
         True,
-        description="If any non rotor ring substituents should be kept during the fragmentation resulting in smaller fragments.",
+        description="If any non rotor ring substituents should be kept during the "
+        "fragmentation resulting in smaller fragments.",
     )
 
     @classmethod
@@ -60,11 +65,12 @@ class WBOFragmenter(FragmentEngine):
         Fragment the molecule using the WBOFragmenter.
 
         Parameters:
-            molecule: The openff molecule to be fragmented using the provided class settings
+            molecule: The openff molecule to be fragmented using the provided class
+                settings
 
         Returns:
-            A list of FragmentData schema which details how a parent molecule is related to a fragment and which bond
-            we fragmented around.
+            A list of FragmentData schema which details how a parent molecule is related
+            to a fragment and which bond we fragmented around.
 
         Raises:
             FragmenterError: If the molecule can not be fragmented.
@@ -81,6 +87,7 @@ class WBOFragmenter(FragmentEngine):
         )
 
         fragments: List[FragmentData] = []
+
         try:
             # fragment the molecule
             fragment_factory.fragment(
@@ -128,10 +135,11 @@ class WBOFragmenter(FragmentEngine):
 
         except RuntimeError:
             raise FragmenterError(
-                f"The molecule {molecule} could not be fragmented so no fitting target was made."
+                f"The molecule {molecule} could not be fragmented so no fitting target "
+                f"was made."
             )
 
-    def provenance(self) -> Dict:
+    def provenance(self) -> Dict[str, str]:
         """
         Return the provenance of the the fragmentEngine.
         """

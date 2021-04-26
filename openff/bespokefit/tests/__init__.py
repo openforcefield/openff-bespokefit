@@ -1,3 +1,8 @@
-"""
-Empty init file in case you choose a package besides PyTest such as Nose which may look for such a file
-"""
+from contextlib import contextmanager
+
+
+@contextmanager
+def does_not_raise():
+    """A helpful context manager to use inplace of a pytest raise statement
+    when no exception is expected."""
+    yield

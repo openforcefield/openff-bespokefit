@@ -19,6 +19,7 @@ dependencies:
   - pydantic ==1.7.2
   - openforcefields
   - qcengine >=0.17.0
+  - qcfractal >=0.15.4
   - forcebalance
   - openff-qcsubmit ==0.2.1
   - pyyaml

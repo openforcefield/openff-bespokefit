@@ -59,7 +59,7 @@ class MissingReferenceError(BespokeFitException):
 
 class OptimizerError(BespokeFitException):
     """
-    Raised when the Optimizer can not be found.
+    Raised when the optimizer can not be found.
     """
 
     error_type = "optimizer_error"
@@ -127,3 +127,13 @@ class TaskMissMatchError(BespokeFitException):
 
     error_type = "task_miss_match_error"
     header = "Task Miss Match Error"
+
+
+class QCRecordMissMatchError(BespokeFitException):
+    """
+    Raised when a QC record does not contain the expected information, such as gradient
+    or hessian values.
+    """
+
+    error_type = "qc_record_miss_match_error"
+    header = "QC Record Miss Match Error"

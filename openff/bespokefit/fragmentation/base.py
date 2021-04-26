@@ -7,7 +7,7 @@ from openff.bespokefit.exceptions import FragmenterError
 from openff.bespokefit.fragmentation.fragmenter import WBOFragmenter
 from openff.bespokefit.fragmentation.model import FragmentEngine
 
-fragment_engines: Dict[str, FragmentEngine] = {}
+_fragment_engines: Dict[str, FragmentEngine] = {}
 
 
 def register_fragment_engine(
@@ -18,26 +18,31 @@ def register_fragment_engine(
 
     Parameters:
         fragment_engine: The fragment engine class that should be registered.
-        replace: If the fragment engine should replace another registered with the same name.
+        replace: If the fragment engine should replace another registered with the same
+            name.
 
     Raises:
         FragmenterError
-            If the fragment engine is already registered or if the FragmentEngine object is not compatible.
+            If the fragment engine is already registered or if the FragmentEngine object
+            is not compatible.
     """
 
     if issubclass(type(fragment_engine), FragmentEngine):
         fragment_name = fragment_engine.fragmentation_engine.lower()
-        if fragment_name not in fragment_engines or (
-            fragment_name in fragment_engines and replace
+        if fragment_name not in _fragment_engines or (
+            fragment_name in _fragment_engines and replace
         ):
-            fragment_engines[fragment_name] = fragment_engine
+            _fragment_engines[fragment_name] = fragment_engine
         else:
             raise FragmenterError(
-                f"An fragmentation engine is already registered under the name {fragment_engine.fragmentation_engine}, to replace this please use the `replace=True` flag."
+                f"An fragmentation engine is already registered under the name "
+                f"{fragment_engine.fragmentation_engine}, to replace this please use "
+                f"the `replace=True` flag."
             )
     else:
         raise FragmenterError(
-            f"The optimizer {fragment_engine} could not be registered it must be a subclass of openff.bespokefit.fragmentation.FragmentEngine"
+            f"The optimizer {fragment_engine} could not be registered it must be a "
+            f"subclass of openff.bespokefit.fragmentation.FragmentEngine"
         )
 
 
@@ -46,7 +51,8 @@ def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> N
     Remove a frgamnetation engine from the list of valid fragmenters.
 
     Parameters:
-        fragment_engine: The FragmentEngine class or name of the class that should be removed.
+        fragment_engine: The FragmentEngine class or name of the class that should be
+            removed.
     """
 
     try:
@@ -54,29 +60,33 @@ def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> N
     except AttributeError:
         fragment_name = fragment_engine.lower()
 
-    fragmenter = fragment_engines.pop(fragment_name, None)
+    fragmenter = _fragment_engines.pop(fragment_name, None)
     if fragmenter is None:
         raise FragmenterError(
-            f"The fragmentation engine {fragment_engine} was not registered with bespokefit."
+            f"The fragmentation engine {fragment_engine} was not registered with "
+            f"bespokefit."
         )
 
 
 def get_fragmentation_engine(fragmentation_engine: str, **kwargs) -> FragmentEngine:
     """
-    Get the fragmentation engine class from the list of registered optimizers in bespokefit by name.
+    Get the fragmentation engine class from the list of registered optimizers in
+    bespokefit by name.
 
     Parameters:
         fragmentation_engine: The name of the fragment engine that should be fetched
-        kwargs: Any kwargs that should be passed into the fragmentation engine to initialise the object.
+        kwargs: Any kwargs that should be passed into the fragmentation engine to
+            initialise the object.
 
     Returns:
         The requested fragmentation engine matching the given fragment engine name.
     """
 
-    fragmenter = fragment_engines.get(fragmentation_engine.lower(), None)
+    fragmenter = _fragment_engines.get(fragmentation_engine.lower(), None)
     if fragmenter is None:
         raise FragmenterError(
-            f"The fragment engine {fragmentation_engine} was not registered with bespokefit."
+            f"The fragment engine {fragmentation_engine} was not registered with "
+            f"bespokefit."
         )
 
     if kwargs:
@@ -93,7 +103,7 @@ def list_fragment_engines() -> List[str]:
         A list of the fragmentation engine classes registered.
     """
 
-    return list(fragment_engines.keys())
+    return list(_fragment_engines.keys())
 
 
 # register the built in optimizers

@@ -1,0 +1,15 @@
+$global
+bond_denom {{ bond_denominator }}
+angle_denom {{ angle_denominator }}
+dihedral_denom {{ dihedral_denominator }}
+improper_denom {{ improper_denominator }}
+$end
+
+{%- for system in systems %}
+$system
+name {{ system }}
+geometry {{ system }}.xyz
+topology {{ system }}.pdb
+mol2 {{ system }}.sdf
+$end
+{%- endfor %}

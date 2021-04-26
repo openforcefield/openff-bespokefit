@@ -1,6 +1,14 @@
 name: Lint
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+#      - "master"
+      - "generalization-refactor"
+  pull_request:
+    branches:
+#      - "master"
+      - "generalization-refactor"
 
 jobs:
   build:
