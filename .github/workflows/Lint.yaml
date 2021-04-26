@@ -3,12 +3,10 @@ name: Lint
 on:
   push:
     branches:
-#      - "master"
-      - "generalization-refactor"
+      - "master"
   pull_request:
     branches:
-#      - "master"
-      - "generalization-refactor"
+      - "master"
 
 jobs:
   build:

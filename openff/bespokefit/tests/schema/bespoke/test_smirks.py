@@ -4,7 +4,7 @@ Test the smirks schema objects.
 
 import pytest
 from chemper.graphs.environment import SMIRKSParsingError
-from openforcefield.typing.engines.smirnoff import (
+from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,

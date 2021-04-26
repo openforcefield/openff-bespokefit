@@ -3,7 +3,7 @@ Test specific fragmentation engines.
 """
 import os
 
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.fragmentation import WBOFragmenter
 from openff.bespokefit.utilities import get_data_file_path

@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from qcportal.models import ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.optimizers.forcebalance.factories import (

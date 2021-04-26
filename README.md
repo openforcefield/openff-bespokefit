@@ -53,7 +53,7 @@ Here we can pass in a list of openff-toolkit molecules, each molecule will be fr
 and a unique fitting task will be generated for each molecule
 
 ```python
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 # load some molecules
 molecules = Molecule.from_file("molecules.sdf")
 

@@ -16,8 +16,8 @@ from openff.qcsubmit.results import (
     TorsionDriveResult,
 )
 from openff.qcsubmit.serializers import serialize
-from openforcefield import topology as off
-from openforcefield.typing.engines.smirnoff import get_available_force_fields
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import get_available_force_fields
 from pydantic import Field, validator
 
 from openff.bespokefit.bespoke.smirks import SmirksGenerator
@@ -104,7 +104,7 @@ class BespokeWorkflowFactory(ClassBase):
         WBOFragmenter(),
         description="The Fragment engine that should be used to fragment the molecule, "
         "note that if None is provided the molecules will not be fragmented. By default "
-        "we use the WBO fragmenter by openforcefield.",
+        "we use the WBO fragmenter by the Open Force Field Consortium.",
     )
 
     @validator("initial_force_field")
@@ -226,7 +226,7 @@ class BespokeWorkflowFactory(ClassBase):
     def _generate_fitting_task(
         cls,
         target_schema: TargetSchema,
-        molecule: off.Molecule,
+        molecule: Molecule,
         fragment: bool,
         attributes: MoleculeAttributes,
         fragment_parent_mapping: Optional[Dict[int, int]] = None,
@@ -270,7 +270,7 @@ class BespokeWorkflowFactory(ClassBase):
 
     @classmethod
     def _deduplicated_list(
-        cls, molecules: Union[off.Molecule, List[off.Molecule], str]
+        cls, molecules: Union[Molecule, List[Molecule], str]
     ) -> ComponentResult:
         """
         Create a deduplicated list of molecules based on the input type.
@@ -286,7 +286,7 @@ class BespokeWorkflowFactory(ClassBase):
             else:
                 input_directory = molecules
 
-        elif isinstance(molecules, off.Molecule):
+        elif isinstance(molecules, Molecule):
             molecule = [molecules]
         else:
             molecule = molecules
@@ -302,7 +302,7 @@ class BespokeWorkflowFactory(ClassBase):
 
     def optimization_schemas_from_molecules(
         self,
-        molecules: Union[off.Molecule, List[off.Molecule]],
+        molecules: Union[Molecule, List[Molecule]],
         processors: Optional[int] = None,
     ) -> List[BespokeOptimizationSchema]:
         """This is the main function of the workflow which takes the general fitting
@@ -374,7 +374,7 @@ class BespokeWorkflowFactory(ClassBase):
         return optimization_schemas
 
     def optimization_schema_from_molecule(
-        self, molecule: off.Molecule, index: int = 0
+        self, molecule: Molecule, index: int = 0
     ) -> BespokeOptimizationSchema:
         """Build an optimization schema from an input molecule this involves
         fragmentation.

@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.utilities import (
     get_data_file_path,

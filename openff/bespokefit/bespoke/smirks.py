@@ -5,7 +5,7 @@ Tools to help with bespoke target smirks generation
 from typing import List, Optional, Tuple, Union
 
 from chemper.graphs.single_graph import SingleGraph
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from pydantic import BaseModel, Field
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
@@ -61,7 +61,7 @@ class SmirksGenerator(BaseModel):
         list.
 
         Parameters:
-            molecule: The openforcefield molecule for which we should make the smirks
+            molecule: The OpenFF molecule for which we should make the smirks
                 patterns
             central_bonds: An optional list of central bonds which are used with the
                 TargetTorsions option to specify which torsions need new terms.

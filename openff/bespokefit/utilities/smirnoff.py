@@ -4,12 +4,13 @@ Tools for dealing with SMIRNOFF force field manipulation.
 
 from typing import Dict, Iterable, List, Tuple, Union
 
-from openforcefield import topology as off
-from openforcefield.typing.engines.smirnoff import (
+from openff.toolkit import topology as off
+from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,
     ImproperTorsionHandler,
+    ParameterLookupError,
     ProperTorsionHandler,
     vdWHandler,
 )
@@ -33,7 +34,7 @@ def smirks_from_off(
         ImproperTorsionHandler.ImproperTorsionType,
     ]
 ) -> BespokeSmirksParameter:
-    """Build and Bespokefit smirks parameter object from the openforcefield toolkit
+    """Build and Bespokefit smirks parameter object from the OpenFF toolkit
     equivalent object.
     """
 
@@ -123,7 +124,7 @@ class ForceFieldEditor:
                     # update the parameter using the init to get around conditional
                     # assigment
                     current_param.__init__(**smirk_data)
-                except IndexError:
+                except ParameterLookupError:
                     smirk_data["id"] = _smirks_ids[smirk_type] + str(no_params + i)
                     current_params.append(_smirks_conversion[smirk_type](**smirk_data))
 
@@ -133,8 +134,8 @@ class ForceFieldEditor:
 
         Parameters
         ----------
-        molecule: off.Molecule
-            The openforcefield.topology.Molecule that should be labeled by the
+        molecule: openff.toolkit.topology.Molecule
+            The molecule that should be labeled by the
             forcefield.
 
         Returns

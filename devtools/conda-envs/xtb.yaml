@@ -1,12 +1,13 @@
 name: test
+
 channels:
   - conda-forge
   - omnia
-  - omnia/label/rc
   - openeye
   - defaults
 
 dependencies:
+
     # Base depends
   - python
   - pip
@@ -15,24 +16,34 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
-  - openforcefield == 0.8.0
+
+    ### Core dependencies.
+
   - pydantic ==1.7.2
-  - openforcefields
-  - qcengine >=0.17.0
-  - qcfractal >=0.15.4
-  - forcebalance
-  - openff-qcsubmit ==0.2.1
   - pyyaml
+  - tqdm
+  - openff-toolkit-base
+  - rdkit
+  - openff-forcefields
+
+    # openff-qcsubmit needed until release
+  - qcportal
+  - torsiondrive
+  - cachetools
+    # / openff-qcsubmit
+
+    # Optional
+  - forcebalance
+  - openmmforcefields # Needed until QCSubmit makes it optional
+
+    ### Bespoke dependencies
+  - qcengine >=0.18.0
+  - qcfractal >=0.15.4
   - openeye-toolkits ==2019.10.2
   - chemper
-  - xtb-python
   - fragmenter ==0.0.7
   - basis_set_exchange
+  - xtb-python
 
-
-
-
-    # Pip-only installs
-#  - pip:
-#      - basis_set_exchange
-      #- git+git://github.com/openforcefield/fragmenter.git@0.0.7#egg=fragmenter
+  - pip:
+      - git+git://github.com/openforcefield/openff-qcsubmit.git@23a91f570d0d9557cb62b2604607a68480dcd3a0

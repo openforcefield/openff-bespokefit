@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.factories import BasicDatasetFactory
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 
 
 def get_data_file_path(relative_path: str) -> str:

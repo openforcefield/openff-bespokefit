@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
-from openforcefield.topology import Molecule
+from openff.toolkit.topology import Molecule
 from pydantic import Field
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
