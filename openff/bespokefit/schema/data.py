@@ -78,7 +78,7 @@ class BespokeQCData(SchemaBase):
             and result.method.lower() == self.qc_spec.method.lower()
             and result.basis.lower() == self.qc_spec.basis.lower()
             if result.basis is not None
-            else result.basis.lower() == self.qc_spec.basis.lower()
+            else result.basis == self.qc_spec.basis
         )
 
     def get_qcsubmit_tasks(

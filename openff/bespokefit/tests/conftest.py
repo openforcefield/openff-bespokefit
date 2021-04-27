@@ -1,5 +1,4 @@
-import os
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import pytest
 from openff.qcsubmit.results import (
@@ -11,7 +10,6 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.toolkit.topology import Molecule
-from qcelemental.util import deserialize
 from qcportal import FractalClient
 from qcportal.models import (
     ObjectId,
@@ -34,28 +32,7 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
-
-
-def _smiles_to_molecule(smiles: str) -> Molecule:
-
-    molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
-    molecule.generate_conformers(n_conformers=1)
-
-    return molecule
-
-
-def _parse_raw_qc_record(name: str) -> Dict[str, Any]:
-
-    record_path = get_data_file_path(
-        os.path.join("test", "qc-datasets", "raw", f"{name}.json")
-    )
-
-    with open(record_path) as file:
-        raw_qc_record = deserialize(file.read(), "json")
-
-    return raw_qc_record
 
 
 @pytest.fixture(scope="module")
