@@ -1,10 +1,15 @@
 import abc
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
+from openff.qcsubmit.results import (
+    BasicResultCollection,
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
+)
 from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
-from openff.bespokefit.schema.data import BespokeQCData, ExistingQCData
+from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
@@ -15,11 +20,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         1.0, description="The amount to weight the target by."
     )
 
-    reference_data: Optional[Union[BespokeQCData, ExistingQCData]] = Field(
-        None,
-        description="The reference QC data (either existing or to be generated on the "
-        "fly) to fit against.",
-    )
+    reference_data: Optional[Union[BespokeQCData, Any]]
 
     extras: Dict[str, str] = Field(
         {},
@@ -56,6 +57,14 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
 
     type: Literal["TorsionProfile"] = "TorsionProfile"
 
+    reference_data: Optional[
+        Union[BespokeQCData, TorsionDriveResultCollection]
+    ] = Field(
+        None,
+        description="The reference QC data (either existing or to be generated on the "
+        "fly) to fit against.",
+    )
+
     attenuate_weights: bool = Field(
         True, description="Whether to attenuate the weights as a function of energy."
     )
@@ -74,6 +83,14 @@ class AbInitioTargetSchema(BaseTargetSchema):
     """A model which stores information about an ab initio fitting target."""
 
     type: Literal["AbInitio"] = "AbInitio"
+
+    reference_data: Optional[
+        Union[BespokeQCData, TorsionDriveResultCollection]
+    ] = Field(
+        None,
+        description="The reference QC data (either existing or to be generated on the "
+        "fly) to fit against.",
+    )
 
     attenuate_weights: bool = Field(
         False, description="Whether to attenuate the weights as a function of energy."
@@ -97,6 +114,12 @@ class VibrationTargetSchema(BaseTargetSchema):
 
     type: Literal["Vibration"] = "Vibration"
 
+    reference_data: Optional[Union[BespokeQCData, BasicResultCollection]] = Field(
+        None,
+        description="The reference QC data (either existing or to be generated on the "
+        "fly) to fit against.",
+    )
+
     mode_reassignment: Optional[Literal["permute", "overlap"]] = Field(
         None, description="The (optional) method by which to re-assign normal modes."
     )
@@ -110,6 +133,14 @@ class OptGeoTargetSchema(BaseTargetSchema):
     """A model which stores information about an optimized geometry fitting target."""
 
     type: Literal["OptGeo"] = "OptGeo"
+
+    reference_data: Optional[
+        Union[BespokeQCData, OptimizationResultCollection]
+    ] = Field(
+        None,
+        description="The reference QC data (either existing or to be generated on the "
+        "fly) to fit against.",
+    )
 
     bond_denominator: float = Field(
         0.05,

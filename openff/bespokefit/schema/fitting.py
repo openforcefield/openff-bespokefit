@@ -1,20 +1,17 @@
 import abc
 import copy
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from openff.qcsubmit.datasets import (
     BasicDataset,
     OptimizationDataset,
     TorsiondriveDataset,
 )
-from openff.qcsubmit.results import (
-    BasicCollectionResult,
-    OptimizationCollectionResult,
-    TorsionDriveCollectionResult,
-)
+from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
+from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from typing_extensions import Literal
 
 from openff.bespokefit.schema.bespoke import MoleculeSchema
@@ -244,10 +241,8 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
 
     def update_with_results(
         self,
-        results: Union[
-            BasicCollectionResult,
-            OptimizationCollectionResult,
-            TorsionDriveCollectionResult,
+        results: List[
+            Tuple[Union[ResultRecord, OptimizationRecord, TorsionDriveRecord], Molecule]
         ],
     ):
         """

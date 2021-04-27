@@ -1,26 +1,21 @@
 import abc
+import copy
 import json
 import logging
 import os
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Collection,
-    Dict,
-    Generic,
-    List,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Dict, Generic, List, Tuple, TypeVar, Union
 
-import cmiles
 import numpy as np
+from openff.qcsubmit.results import (
+    BasicResultCollection,
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
+)
+from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
-from qcportal import FractalClient
 from qcportal.models import TorsionDriveRecord
-from qcportal.models.records import RecordBase, ResultRecord
+from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
 from tqdm import tqdm
 
@@ -38,7 +33,6 @@ from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
-    ExistingQCData,
     OptGeoTargetSchema,
     TargetSchema,
     TorsionProfileTargetSchema,
@@ -77,99 +71,9 @@ class _TargetFactory(Generic[T], abc.ABC):
         return template_factory.generate(target_template, target_names)
 
     @classmethod
-    def _paginated_query(
-        cls,
-        qc_client: FractalClient,
-        query_function: Callable[..., S],
-        record_ids: Collection[str],
-    ) -> List[S]:
-
-        results = {}
-
-        query_limit = qc_client.server_info["query_limit"]
-
-        paginating = True
-        page_index = 0
-
-        print(f"retrieving QC records (n={len(record_ids)})")
-
-        with tqdm(total=len(record_ids)) as progress_bar:
-
-            while paginating:
-
-                page_results = query_function(
-                    id=record_ids,
-                    limit=query_limit,
-                    skip=page_index,
-                )
-
-                results.update({result.id: result for result in page_results})
-
-                paginating = len(page_results) > 0
-                page_index += query_limit
-
-                progress_bar.update(len(page_results))
-
-        missing_records = {*record_ids} - {*results}
-
-        if len(missing_records) > 0:
-
-            raise QCRecordMissMatchError(
-                f"The follow QC records could not be retrieved from the server at "
-                f"{qc_client.address}: {missing_records}"
-            )
-
-        return [*results.values()]
-
-    @classmethod
-    @abc.abstractmethod
-    def _retrieve_qc_records(
-        cls, qc_client: FractalClient, record_ids: Collection[str]
-    ) -> List[RecordBase]:
-        """Retrieves a set of QC data record using the provided QC client.
-
-        Args:
-            qc_client: The QC client to retrieve the record using.
-            record_ids: The ids of the record to retrieve.
-
-        Returns:
-            The retrieved records.
-        """
-        raise NotImplementedError()
-
-    @classmethod
-    def _qc_molecule_to_off(cls, qc_molecule: "QCMolecule") -> OFFMolecule:
-
-        qc_molecule_schema = qc_molecule.dict(encoding="json")
-
-        # Try to load the molecule from stored CMILES attributes.
-        if "extras" in qc_molecule_schema and "attributes" not in qc_molecule_schema:
-            qc_molecule_schema["attributes"] = qc_molecule_schema["extras"]
-
-        if "attributes" in qc_molecule_schema:
-            off_molecule = OFFMolecule.from_qcschema(qc_molecule_schema)
-
-        # If that fails try loading the molecule using CMILES directly.
-        else:
-            off_molecule = OFFMolecule.from_rdkit(
-                cmiles.utils.load_molecule(
-                    {
-                        "symbols": qc_molecule.symbols,
-                        "connectivity": qc_molecule.connectivity,
-                        "geometry": qc_molecule.geometry.flatten(),
-                        "molecular_charge": qc_molecule.molecular_charge,
-                        "molecular_multiplicity": qc_molecule.molecular_multiplicity,
-                    },
-                    toolkit="rdkit",
-                )
-            )
-
-        return off_molecule
-
-    @classmethod
     def _batch_qc_records(
-        cls, target: TargetSchema, qc_records: List[RecordBase]
-    ) -> Dict[str, List[RecordBase]]:
+        cls, target: TargetSchema, qc_records: List[Tuple[RecordBase, Molecule]]
+    ) -> Dict[str, List[Tuple[RecordBase, Molecule]]]:
         """A function which places the input QC records into per target batches.
 
         For most targets there will be a single record per target, however certain
@@ -186,13 +90,13 @@ class _TargetFactory(Generic[T], abc.ABC):
         """
 
         return {
-            f"{cls._target_name_prefix()}-{qc_record.id}": [qc_record]
-            for qc_record in qc_records
+            f"{cls._target_name_prefix()}-{qc_record.id}": [(qc_record, molecule)]
+            for qc_record, molecule in qc_records
         }
 
     @classmethod
     @abc.abstractmethod
-    def _generate_target(cls, target: T, qc_records: List[RecordBase]):
+    def _generate_target(cls, target: T, qc_records: List[Tuple[RecordBase, Molecule]]):
         """Create the required input files for a particular target.
 
         Notes:
@@ -214,16 +118,23 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         # The optimizer should have swapped out a bespoke QC data set
         # with an existing set?
-        if isinstance(target.reference_data, ExistingQCData):
+        if isinstance(
+            target.reference_data,
+            (
+                BasicResultCollection,
+                OptimizationResultCollection,
+                TorsionDriveResultCollection,
+            ),
+        ):
 
-            qc_client = FractalClient(target.reference_data.qcfractal_address)
-
-            qc_records = cls._retrieve_qc_records(
-                qc_client, target.reference_data.record_ids
-            )
+            qc_records = target.reference_data.to_records()
 
         elif isinstance(target.reference_data, BespokeQCData):
-            raise NotImplementedError()
+
+            qc_records = [
+                (task.reference_data.record, task.reference_data.molecule)
+                for task in target.reference_data.tasks
+            ]
 
         else:
             raise NotImplementedError()
@@ -249,55 +160,56 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         return "ab-initio"
 
     @classmethod
-    def _retrieve_qc_records(
-        cls, qc_client: FractalClient, record_ids: Collection[str]
-    ) -> List[TorsionDriveRecord]:
-        return cls._paginated_query(qc_client, qc_client.query_procedures, record_ids)
-
-    @classmethod
-    def _generate_target(cls, target: T, qc_records: List[TorsionDriveRecord]):
+    def _generate_target(
+        cls, target: T, qc_records: List[Tuple[TorsionDriveRecord, Molecule]]
+    ):
 
         from forcebalance.molecule import Molecule as FBMolecule
-        from forcebalance.molecule import bohr2ang
 
         assert len(qc_records) == 1
-        qc_record = qc_records[0]
+        qc_record, off_molecule = qc_records[0]
 
         # form a Molecule object from the first torsion grid data
-        grid_molecules = qc_record.get_final_molecules()
         grid_energies = qc_record.get_final_energies()
 
-        grid_ids = sorted(grid_molecules, key=lambda x: x[0])
+        grid_conformers = {
+            tuple(json.loads(grid_id)): conformer.value_in_unit(unit.angstrom)
+            for grid_id, conformer in zip(
+                off_molecule.properties["grid_ids"], off_molecule.conformers
+            )
+        }
+
+        grid_ids = sorted(grid_energies, key=lambda x: x[0])
 
         # Create a FB molecule object from the QCData molecule.
-        qc_molecule = grid_molecules[grid_ids[0]]
-        off_molecule = cls._qc_molecule_to_off(qc_molecule)
-
         fb_molecule = FBMolecule()
         fb_molecule.Data = {
-            "elem": qc_molecule.symbols,
-            "bonds": [(bond[0], bond[1]) for bond in qc_molecule.connectivity],
-            "name": qc_molecule.name,
-            "xyzs": [
-                grid_molecules[grid_id].geometry.reshape(-1, 3) * bohr2ang
-                for grid_id in grid_ids
+            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "bonds": [
+                (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
+            "name": f"{qc_record.id}",
+            "xyzs": [grid_conformers[grid_id] for grid_id in grid_ids],
             "qm_energies": [grid_energies[grid_id] for grid_id in grid_ids],
-            "comms": [
-                f"{grid_molecules[grid_id].name} at torsion grid {grid_id}"
-                for grid_id in grid_ids
-            ],
+            "comms": [f"torsion grid {grid_id}" for grid_id in grid_ids],
         }
 
         # Write the data
         fb_molecule.write("qdata.txt")
         fb_molecule.write("scan.xyz")
 
+        off_molecule = copy.deepcopy(off_molecule)
+        off_molecule._conformers = [off_molecule.conformers[0]]
+
         off_molecule.to_file("conf.pdb", "PDB")
         off_molecule.to_file("input.sdf", "SDF")
 
         metadata = qc_record.keywords.dict()
-        metadata["torsion_grid_ids"] = grid_ids
+
+        metadata["torsion_grid_ids"] = [
+            grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
+            for grid_id in grid_ids
+        ]
 
         metadata["energy_decrease_thresh"] = None
         metadata["energy_upper_limit"] = target.energy_cutoff
@@ -317,18 +229,20 @@ class TorsionProfileTargetFactory(
     def _generate_target(
         cls,
         target: TorsionProfileTargetSchema,
-        qc_records: List[TorsionDriveRecord],
+        qc_records: List[Tuple[TorsionDriveRecord, Molecule]],
     ):
         # noinspection PyTypeChecker
         super(TorsionProfileTargetFactory, cls)._generate_target(target, qc_records)
 
-        qc_record = qc_records[0]
+        qc_record, off_molecule = qc_records[0]
 
-        grid_molecules = qc_record.get_final_molecules()
-        grid_ids = sorted(grid_molecules, key=lambda x: x[0])
+        grid_ids = sorted(off_molecule.properties["grid_ids"], key=lambda x: x[0])
 
         metadata = qc_record.keywords.dict()
-        metadata["torsion_grid_ids"] = grid_ids
+        metadata["torsion_grid_ids"] = [
+            grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
+            for grid_id in grid_ids
+        ]
 
         metadata["energy_decrease_thresh"] = None
         metadata["energy_upper_limit"] = target.energy_cutoff
@@ -341,12 +255,6 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "vib-freq"
-
-    @classmethod
-    def _retrieve_qc_records(
-        cls, qc_client: FractalClient, record_ids: Collection[str]
-    ) -> List[ResultRecord]:
-        return cls._paginated_query(qc_client, qc_client.query_results, record_ids)
 
     @classmethod
     def _compute_normal_modes(
@@ -470,20 +378,19 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
     @classmethod
     def _generate_target(
-        cls, target: VibrationTargetSchema, qc_records: List[ResultRecord]
+        cls,
+        target: VibrationTargetSchema,
+        qc_records: List[Tuple[ResultRecord, Molecule]],
     ):
 
         assert len(qc_records) == 1
-        qc_record = qc_records[0]
+        qc_record, off_molecule = qc_records[0]
 
         # form a Molecule object from the first torsion grid data
-        qc_molecule = qc_record.get_molecule()
-        off_molecule = cls._qc_molecule_to_off(qc_molecule)
-
         off_molecule.to_file("conf.pdb", "PDB")
         off_molecule.to_file("input.sdf", "SDF")
 
-        cls._create_vdata_file(qc_record, qc_molecule, off_molecule)
+        cls._create_vdata_file(qc_record, off_molecule.to_qcschema(), off_molecule)
 
 
 class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
@@ -492,19 +399,11 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         return "opt-geo"
 
     @classmethod
-    def _retrieve_qc_records(
-        cls, qc_client: FractalClient, record_ids: Collection[str]
-    ) -> List[ResultRecord]:
-        return cls._paginated_query(qc_client, qc_client.query_results, record_ids)
-
-    @classmethod
     def _batch_qc_records(
         cls, target: OptGeoTargetSchema, qc_records: List[RecordBase]
     ):
 
-        # TODO: Uncomment when #16 is merged.
-        # batch_size = target.extras.get("batch_size", 50)
-        batch_size = 50
+        batch_size = target.extras.get("batch_size", 50)
 
         n_records = len(qc_records)
         n_targets = (n_records + batch_size - 1) // batch_size
@@ -518,23 +417,23 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
 
     @classmethod
     def _generate_target(
-        cls, target: OptGeoTargetSchema, qc_records: List[ResultRecord]
+        cls,
+        target: OptGeoTargetSchema,
+        qc_records: List[Tuple[OptimizationRecord, Molecule]],
     ):
 
         record_names = []
 
-        for i, qc_record in enumerate(qc_records):
+        for i, (qc_record, off_molecule) in enumerate(qc_records):
 
             record_name = f"{qc_record.id}-{i}"
             record_names.append(record_name)
 
             # form a Molecule object from the first torsion grid data
-            qc_molecule = qc_record.get_molecule()
+            qc_molecule = off_molecule.to_qcschema()
 
             with open(f"{record_name}.xyz", "w") as file:
                 file.write(qc_molecule.to_string("xyz"))
-
-            off_molecule = cls._qc_molecule_to_off(qc_molecule)
 
             off_molecule.to_file(f"{record_name}.pdb", "PDB")
             off_molecule.to_file(f"{record_name}.sdf", "SDF")

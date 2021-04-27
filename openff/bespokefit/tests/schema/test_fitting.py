@@ -1,16 +1,15 @@
 """
 Test all parts of the fitting schema.
 """
-import os
-
+import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import TorsiondriveDataset
-from openff.qcsubmit.results import TorsionDriveCollectionResult
 
+from openff.bespokefit.exceptions import QCRecordMissMatchError
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
 )
-from openff.bespokefit.utilities import get_data_file_path
 
 
 def test_n_targets(general_optimization_schema):
@@ -52,19 +51,47 @@ def test_bespoke_fitting_force_field(bespoke_optimization_schema):
     assert "parameterize" in force_field.to_string()
 
 
-def test_bespoke_update_results_fitting_schema(bespoke_optimization_schema):
+def test_bespoke_update_results_fitting_schema(
+    bespoke_optimization_schema, qc_torsion_drive_results
+):
     """
     Make sure the fitting schema can correctly apply any results to the correct tasks.
     """
 
-    results = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(
-            os.path.join("test", "qc-datasets", "biphenyl", "biphenyl.json.xz")
-        )
+    records = qc_torsion_drive_results.to_records()
+
+    [(record, molecule)] = records
+
+    bespoke_optimization_schema.targets[0].reference_data.qc_spec = QCSpec(
+        method=record.qc_spec.method,
+        basis=record.qc_spec.basis,
+        program=record.qc_spec.program,
     )
-    bespoke_optimization_schema.update_with_results(results=results)
+
+    bespoke_optimization_schema.update_with_results(records)
     # now make sure there are no tasks left
     assert bespoke_optimization_schema.ready_for_fitting
+
+
+def test_bespoke_update_results_wrong_spec(
+    bespoke_optimization_schema, qc_torsion_drive_results
+):
+    """
+    Make sure the fitting schema can correctly apply any results to the correct tasks.
+    """
+
+    records = qc_torsion_drive_results.to_records()
+
+    [(record, molecule)] = records
+
+    bespoke_optimization_schema.targets[0].reference_data.qc_spec = QCSpec(
+        method="hf",
+        basis="6-31G",
+        program=record.qc_spec.program,
+    )
+
+    with pytest.raises(QCRecordMissMatchError):
+        bespoke_optimization_schema.update_with_results(records)
 
 
 def test_general_schema_export_roundtrip(general_optimization_schema):
