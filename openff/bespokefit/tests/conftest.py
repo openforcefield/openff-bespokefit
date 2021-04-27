@@ -175,7 +175,7 @@ def qc_hessian_results(
     )
 
     monkeypatch.setattr(
-        OptimizationResultCollection,
+        BasicResultCollection,
         "to_records",
         lambda self: [qc_hessian_record],
     )

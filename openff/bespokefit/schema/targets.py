@@ -20,7 +20,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         1.0, description="The amount to weight the target by."
     )
 
-    reference_data: Optional[Union[BespokeQCData, Any]]
+    reference_data: Optional[Union[Any, BespokeQCData]]
 
     extras: Dict[str, str] = Field(
         {},
@@ -58,7 +58,7 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
     type: Literal["TorsionProfile"] = "TorsionProfile"
 
     reference_data: Optional[
-        Union[BespokeQCData, TorsionDriveResultCollection]
+        Union[TorsionDriveResultCollection, BespokeQCData]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
@@ -85,7 +85,7 @@ class AbInitioTargetSchema(BaseTargetSchema):
     type: Literal["AbInitio"] = "AbInitio"
 
     reference_data: Optional[
-        Union[BespokeQCData, TorsionDriveResultCollection]
+        Union[TorsionDriveResultCollection, BespokeQCData]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
@@ -114,7 +114,7 @@ class VibrationTargetSchema(BaseTargetSchema):
 
     type: Literal["Vibration"] = "Vibration"
 
-    reference_data: Optional[Union[BespokeQCData, BasicResultCollection]] = Field(
+    reference_data: Optional[Union[BasicResultCollection, BespokeQCData]] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
@@ -135,7 +135,7 @@ class OptGeoTargetSchema(BaseTargetSchema):
     type: Literal["OptGeo"] = "OptGeo"
 
     reference_data: Optional[
-        Union[BespokeQCData, OptimizationResultCollection]
+        Union[OptimizationResultCollection, BespokeQCData]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
