@@ -322,10 +322,6 @@ class TorsionTask(BaseFittingTask):
                 "Molecules are the same but do not target the same dihedral."
             )
 
-        # we need to change the target dihedral to match what the result is
-        # for
-        self.dihedrals = [target_dihedral]
-
         # get the optimization results in order of the angle - we need this data later
         self.reference_data = TorsionTaskReferenceData(
             record=result_record,
