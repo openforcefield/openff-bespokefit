@@ -19,7 +19,7 @@ dependencies:
 
     ### Core dependencies.
 
-  - pydantic ==1.7.2
+  - pydantic
   - pyyaml
   - tqdm
   - openff-toolkit-base
