@@ -6,7 +6,7 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
-from qcportal.models import ResultRecord, TorsionDriveRecord
+from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
     AbInitioTargetFactory,
@@ -52,7 +52,7 @@ def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.ar
 
 @pytest.mark.parametrize("with_gradients", [False, True])
 def test_generate_ab_initio_target(
-    qc_torsion_drive_record: TorsionDriveRecord, with_gradients
+    qc_torsion_drive_record: Tuple[TorsionDriveRecord, Molecule], with_gradients
 ):
 
     with temporary_cd():
@@ -105,7 +105,9 @@ def test_generate_ab_initio_target(
         #         assert coord == data.molecule.geometry.flatten().tolist()
 
 
-def test_generate_torsion_target(qc_torsion_drive_record: TorsionDriveRecord):
+def test_generate_torsion_target(
+    qc_torsion_drive_record: Tuple[TorsionDriveRecord, Molecule]
+):
 
     with temporary_cd():
 
@@ -137,7 +139,9 @@ def test_generate_torsion_target(qc_torsion_drive_record: TorsionDriveRecord):
         assert "energy_upper_limit" in metadata
 
 
-def test_generate_optimization_target(qc_optimization_record: ResultRecord):
+def test_generate_optimization_target(
+    qc_optimization_record: Tuple[OptimizationRecord, Molecule]
+):
 
     with temporary_cd():
 
@@ -150,7 +154,7 @@ def test_generate_optimization_target(qc_optimization_record: ResultRecord):
         )
 
         for (index, extension) in itertools.product([0, 1], ["xyz", "sdf", "pdb"]):
-            assert os.path.isfile(f"{qc_optimization_record.id}-{index}.{extension}")
+            assert os.path.isfile(f"{qc_optimization_record[0].id}-{index}.{extension}")
 
         assert os.path.isfile("optget_options.txt")
 
@@ -170,7 +174,7 @@ def test_opt_geo_batching(qc_optimization_record: ResultRecord):
     assert len(target_batches["opt-geo-batch-2"]) == 20
 
 
-def test_generate_vibration_target(qc_hessian_record: ResultRecord):
+def test_generate_vibration_target(qc_hessian_record: Tuple[ResultRecord, Molecule]):
     with temporary_cd():
 
         VibrationTargetFactory._generate_target(

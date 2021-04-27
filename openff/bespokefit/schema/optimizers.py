@@ -27,6 +27,10 @@ class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
 
     type: Literal["ForceBalance"] = "ForceBalance"
 
+    job_type: Literal["optimize"] = Field(
+        "optimize", description="The mode to run force balance in."
+    )
+
     penalty_type: Literal["L1", "L2"] = Field("L2", description="The penalty type.")
 
     step_convergence_threshold: PositiveFloat = Field(

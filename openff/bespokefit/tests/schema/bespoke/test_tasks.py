@@ -4,7 +4,7 @@ Test all parts of the fitting schema.
 import os
 
 import pytest
-from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
 from simtk import unit
 
@@ -91,7 +91,7 @@ def test_making_a_fitting_task(ethane, fitting_task):
     attributes = get_molecule_cmiles(molecule=ethane)
 
     task = fitting_task(
-        molecule=ethane,
+        input_conformers=[ethane.conformers[0].value_in_unit(unit.angstrom)],
         name="test",
         attributes=attributes,
         fragment=False,
@@ -126,14 +126,24 @@ def test_fitting_entry_conformer_reshape(ethane, ethane_opt_task):
     assert ethane_opt_task.input_conformers[0].shape == (8, 3)
 
 
-def test_ready_for_fitting(ethane, ethane_opt_task):
+def test_ready_for_fitting(qc_torsion_drive_record):
     """
     Make sure that a fitting entry knows when it is ready for fitting.
     """
-    assert ethane_opt_task.collected is False
-    # now set some dummy data
-    ethane_opt_task.optimization_data = {"molecule": ethane.to_qcschema(), "id": 1}
-    assert ethane_opt_task.collected is True
+
+    record, molecule = qc_torsion_drive_record
+
+    task = TorsionTask(
+        name="mol",
+        fragment=False,
+        input_conformers=[molecule.conformers[0].value_in_unit(unit.angstrom)],
+        attributes=MoleculeAttributes.from_openff_molecule(molecule),
+        dihedrals=record.keywords.dihedrals,
+    )
+    assert task.collected is False
+
+    task.update_with_results(record, molecule)
+    assert task.collected is True
 
 
 def test_entry_ref_data(ethane_opt_task):
@@ -141,7 +151,7 @@ def test_entry_ref_data(ethane_opt_task):
     Make sure the entry knows that it does not have any reference data.
     """
     # check for reference data
-    assert ethane_opt_task.reference_data() is None
+    assert ethane_opt_task.reference_data is None
     assert ethane_opt_task.collected is False
 
 
@@ -152,8 +162,8 @@ def test_fitting_entry_equal(ethane, ethane_opt_task):
     """
     # now make a hessian task, this have the same hash as we first need an optimization
     hess_task = HessianTask(
-        molecule=ethane,
         attributes=ethane_opt_task.attributes,
+        input_conformers=[ethane.conformers[0].value_in_unit(unit.angstrom)],
         fragment=False,
         name="test2",
     )
@@ -166,8 +176,8 @@ def test_fitting_entry_not_equal(ethane, ethane_opt_task):
     """
     # now make an torsion task
     tor_task = TorsionTask(
-        molecule=ethane,
         attributes=ethane_opt_task.attributes,
+        input_conformers=[ethane.conformers[0].value_in_unit(unit.angstrom)],
         fragment=False,
         name="test3",
         dihedrals=[
@@ -177,146 +187,37 @@ def test_fitting_entry_not_equal(ethane, ethane_opt_task):
     assert ethane_opt_task != tor_task
 
 
-def test_update_results_wrong_molecule(occo):
+def test_update_results_wrong_molecule(ethane, qc_torsion_drive_record):
     """
     Make sure results are rejected when the type is wrong.
     """
-    # make a new molecule entry
-    attributes = get_molecule_cmiles(occo)
-    entry = TorsionTask(
-        name="occo",
-        molecule=occo,
+
+    task = TorsionTask(
+        name="mol",
         fragment=False,
-        attributes=attributes,
-        dihedrals=[(9, 3, 2, 1)],
-    )
-
-    # load up the ethane result
-    result = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(
-            os.path.join("test", "qc-datasets", "biphenyl", "biphenyl.json.xz")
-        )
-    )
-
-    with pytest.raises(MoleculeMissMatchError):
-        entry.update_with_results(results=list(result.collection.values())[0])
-
-
-def test_update_results_wrong_result(occo):
-    """
-    Make sure results for one molecule are not applied to another.
-    """
-    # make a new molecule entry
-
-    attributes = get_molecule_cmiles(occo)
-    entry = TorsionTask(
-        name="occo",
-        molecule=occo,
-        attributes=attributes,
-        fragment=False,
-        dihedrals=[(9, 3, 2, 1)],
-    )
-
-    # load up the ethane result
-    result = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(os.path.join("test", "qc-datasets", "occo", "occo.json"))
-    )
-
-    # now supply the correct data but wrong molecule
-    with pytest.raises(DihedralSelectionError):
-        entry.update_with_results(results=list(result.collection.values())[0])
-
-
-def test_update_molecule_remapping(occo):
-    """
-    Make sure that results are remapped when needed.
-    """
-    # make a new molecule entry
-    attributes = get_molecule_cmiles(occo)
-    entry = TorsionTask(
-        name="occo",
-        attributes=attributes,
-        fragment=False,
-        molecule=occo,
+        input_conformers=[ethane.conformers[0].value_in_unit(unit.angstrom)],
+        attributes=MoleculeAttributes.from_openff_molecule(ethane),
         dihedrals=[(0, 1, 2, 3)],
     )
 
-    result = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(os.path.join("test", "qc-datasets", "occo", "occo.json"))
-    )
+    with pytest.raises(MoleculeMissMatchError):
+        task.update_with_results(*qc_torsion_drive_record)
 
-    # update the result wih no remapping
-    entry.update_with_results(
-        results=result.collection["[h][c:2]([h])([c:3]([h])([h])[o:4][h])[o:1][h]"]
-    )
 
-    # no remapping is done here
-    # make sure the gradients are correctly applied back
-    normal_gradients = entry.reference_data()[0].gradient
+def test_update_results_wrong_result(qc_torsion_drive_record):
+    """
+    Make sure results for one molecule are not applied to another.
+    """
 
-    # now get the molecule again in the wrong order
-    can_occo = Molecule.from_file(
-        file_path=get_data_file_path(
-            os.path.join("test", "qc-datasets", "occo", "occo.sdf")
-        ),
-        file_format="sdf",
-    )
-    can_attributes = get_molecule_cmiles(molecule=can_occo)
-    can_entry = TorsionTask(
-        name="can_occo",
+    record, molecule = qc_torsion_drive_record
+
+    task = TorsionTask(
+        name="mol",
         fragment=False,
-        molecule=can_occo,
-        attributes=can_attributes,
-        dihedrals=[(2, 0, 1, 3)],
-    )
-    # update with results that need to be remapped
-    can_entry.update_with_results(
-        results=result.collection["[h][c:2]([h])([c:3]([h])([h])[o:4][h])[o:1][h]"]
+        input_conformers=[molecule.conformers[0].value_in_unit(unit.angstrom)],
+        attributes=MoleculeAttributes.from_openff_molecule(molecule),
+        dihedrals=[tuple(i + 1 for i in record.keywords.dihedrals[0])],
     )
 
-    mapped_gradients = can_entry.reference_data()[0].gradient
-
-    # now make sure they match
-    _, atom_map = Molecule.are_isomorphic(can_occo, occo, return_atom_map=True)
-    for i in range(len(normal_gradients)):
-        assert normal_gradients[i].tolist() == mapped_gradients[atom_map[i]].tolist()
-
-
-def test_update_task_results():
-    """
-    Make sure the fitting schema can correctly apply any results to the correct tasks.
-    """
-    biphenyl = Molecule.from_file(
-        get_data_file_path(
-            os.path.join("test", "qc-datasets", "biphenyl", "biphenyl.sdf"),
-        ),
-        "sdf",
-    )
-
-    schema = get_fitting_schema(biphenyl)
-    assert schema.n_tasks == 1
-
-    results = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(
-            os.path.join("test", "qc-datasets", "biphenyl", "biphenyl.json.xz")
-        )
-    )
-
-    schema.update_with_results(results=results)
-    # now make sure there are no tasks left
-    assert schema.targets[0].reference_data.ready_for_fitting
-
-
-def test_update_results_wrong_spec(occo):
-    """
-    Make sure that if we try to update with results computed with the wrong spec we raise an error.
-    """
-
-    schema = get_fitting_schema(occo)
-
-    results = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(os.path.join("test", "qc-datasets", "occo", "occo.json"))
-    )
-
-    with pytest.raises(Exception):
-        schema.update_with_results(results=results)
+    with pytest.raises(DihedralSelectionError):
+        task.update_with_results(*qc_torsion_drive_record)

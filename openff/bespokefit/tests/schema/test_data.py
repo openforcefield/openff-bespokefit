@@ -1,10 +1,17 @@
-import os
-
+import pytest
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import TorsiondriveDataset, TorsionDriveEntry
-from openff.qcsubmit.results import TorsionDriveCollectionResult
+from openff.toolkit.topology import Molecule
+from simtk import unit
 
+from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
+from openff.bespokefit.schema.bespoke.tasks import (
+    OptimizationTask,
+    TorsionTask,
+    TorsionTaskReferenceData,
+)
 from openff.bespokefit.schema.data import BespokeQCData
-from openff.bespokefit.utilities import get_data_file_path
+from openff.bespokefit.tests import does_not_raise
 
 
 def test_bespoke_data_tasks_validator(ethane_torsion_task):
@@ -17,14 +24,17 @@ def test_bespoke_data_tasks_validator(ethane_torsion_task):
     assert bespoke_data.tasks[0].name == "torsion1d-0"
 
 
-def test_bespoke_data_not_ready_for_fit(ethane_bespoke_data):
-    assert not ethane_bespoke_data.ready_for_fitting
+def test_bespoke_data_ready_for_fit(ethane_torsion_task, qc_torsion_drive_record):
 
+    assert not BespokeQCData(tasks=[ethane_torsion_task]).ready_for_fitting
 
-def test_bespoke_data_ready_for_fit(collected_ethane_torsion_task):
+    ethane_torsion_task.reference_data = TorsionTaskReferenceData(
+        cmiles=qc_torsion_drive_record[1].to_smiles(mapped=True),
+        record=qc_torsion_drive_record[0],
+        conformers={},
+    )
 
-    bespoke_data = BespokeQCData(tasks=[collected_ethane_torsion_task])
-    assert bespoke_data.ready_for_fitting
+    assert BespokeQCData(tasks=[ethane_torsion_task]).ready_for_fitting
 
 
 def test_get_qcsubmit_tasks(ethane_bespoke_data):
@@ -48,19 +58,73 @@ def test_build_qcsubmit_dataset(ethane_torsion_task):
     assert qc_data_set.n_records == 1
 
 
-def test_update_with_results(ethane_torsion_task):
+@pytest.mark.parametrize(
+    "task_molecule, task_dihedral, expected_raises",
+    [
+        (None, None, does_not_raise()),
+        (Molecule.from_smiles("CC"), None, pytest.raises(MoleculeMissMatchError)),
+        (None, [(1, 2, 3, 4)], pytest.raises(DihedralSelectionError)),
+    ],
+)
+def test_torsion_update_with_results(
+    task_molecule, task_dihedral, expected_raises, qc_torsion_drive_record
+):
 
-    # load up the ethane result
-    result = TorsionDriveCollectionResult.parse_file(
-        get_data_file_path(os.path.join("test", "qc-datasets", "occo", "occo.json"))
+    record, molecule = qc_torsion_drive_record
+
+    task_molecule = task_molecule if task_molecule is not None else molecule
+    task_dihedral = (
+        task_dihedral if task_dihedral is not None else record.keywords.dihedrals
     )
 
-    ethane_torsion_task.update_with_results(results=list(result.collection.values())[0])
+    if task_molecule.n_conformers == 0:
+        task_molecule.generate_conformers(n_conformers=1)
 
-    reference_data = ethane_torsion_task.reference_data()
+    task = TorsionTask(
+        name="occo",
+        fragment=False,
+        input_conformers=[task_molecule.conformers[0].value_in_unit(unit.angstrom)],
+        attributes=MoleculeAttributes.from_openff_molecule(task_molecule),
+        dihedrals=task_dihedral,
+    )
 
-    assert reference_data is not None
-    assert len(reference_data) == 24
+    with expected_raises:
+        task.update_with_results(record, molecule)
+
+        assert task.reference_data is not None
+        assert task.reference_data.record == record
+
+
+@pytest.mark.parametrize(
+    "task_molecule, expected_raises",
+    [
+        (None, does_not_raise()),
+        (Molecule.from_smiles("CC"), pytest.raises(MoleculeMissMatchError)),
+    ],
+)
+def test_optimization_update_with_results(
+    task_molecule, expected_raises, qc_optimization_record
+):
+
+    record, molecule = qc_optimization_record
+
+    task_molecule = task_molecule if task_molecule is not None else molecule
+
+    if task_molecule.n_conformers == 0:
+        task_molecule.generate_conformers(n_conformers=1)
+
+    task = OptimizationTask(
+        name="occo",
+        fragment=False,
+        input_conformers=[task_molecule.conformers[0].value_in_unit(unit.angstrom)],
+        attributes=MoleculeAttributes.from_openff_molecule(task_molecule),
+    )
+
+    with expected_raises:
+        task.update_with_results(record, molecule)
+
+        assert task.reference_data is not None
+        assert task.reference_data.record == record
 
 
 def test_get_task_map(ethane_bespoke_data):

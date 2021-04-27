@@ -4,9 +4,7 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
-from openff.qcsubmit.results import TorsionDriveCollectionResult
 from openff.toolkit.topology import Molecule
-from qcportal import FractalClient
 
 from openff.bespokefit.exceptions import (
     ForceFieldError,
@@ -215,89 +213,57 @@ def test_optimization_schemas_from_molecule(processors, bace):
     assert opt_schema.n_targets == 1
 
 
-@pytest.mark.parametrize(
-    "combine", [pytest.param(True, id="combine"), pytest.param(False, id="no combine")]
-)
-def test_sort_results(combine):
+@pytest.mark.parametrize("combine, n_expected", [(True, 1), (False, 2)])
+def test_sort_results(combine, n_expected, qc_torsion_drive_results):
     """
     Test sorting the results before making a fitting schema with and without combination.
     """
-    # load up the fractal client
-    client = FractalClient()
-    # grab a dataset with bace fragments in it
-    result = TorsionDriveCollectionResult.from_server(
-        client=client,
-        spec_name="default",
-        dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
-        final_molecule_only=True,
-        subset=bace_entries,
-    )
-    # now sort the results
-    all_results = BespokeWorkflowFactory._sort_results(results=result, combine=combine)
-    if combine:
-        assert len(all_results) == 2
-    else:
-        assert len(all_results) == 3
+
+    records = qc_torsion_drive_results.to_records()
+    records.append(records[0])
+
+    sorted_results = BespokeWorkflowFactory._sort_results(records, combine=combine)
+
+    assert len(sorted_results) == n_expected
 
 
-def test_optimization_schema_from_results():
+def test_optimization_schema_from_records(qc_torsion_drive_results):
     """
-    Test making an individual task from a set of results
+    Test making an individual task from a set of QC records
     """
-    # load a client and pull some results
-    client = FractalClient()
-    # grab a dataset with small fragments in it
-    result = TorsionDriveCollectionResult.from_server(
-        client=client,
-        spec_name="default",
-        dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
-        final_molecule_only=True,
-        subset=bace_entries[:1],
-    )
 
-    # grab the only result
-    result = list(result.collection.values())[0]
-
-    # set up the workflow
     factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
 
+    records = qc_torsion_drive_results.to_records()
+
     # this should be a simple biphenyl molecule
-    opt_schema = factory._optimization_schema_from_results(results=[result], index=1)
+    opt_schema = factory._optimization_schema_from_records(records=records, index=1)
+
+    [(_, molecule)] = records
 
     assert opt_schema.initial_force_field == factory.initial_force_field
     assert opt_schema.optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
     assert bool(opt_schema.target_smirks) is True
     assert opt_schema.parameter_settings == factory.parameter_settings
-    assert result.molecule == opt_schema.target_molecule.molecule
+    assert molecule == opt_schema.target_molecule.molecule
     assert opt_schema.n_tasks == 1
     assert opt_schema.n_targets == 1
     assert opt_schema.ready_for_fitting is True
 
 
-def test_make_fitting_schema_from_results():
+def test_optimization_schemas_from_results(qc_torsion_drive_results):
     """
     Test that new fitting schemas can be made from results and that all results are full
     """
-    # build the workflow
+
     factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
 
-    # set up the client and load the results
-    # load a client and pull some results
-    client = FractalClient()
-    # grab a dataset with small fragments in it
-    result = TorsionDriveCollectionResult.from_server(
-        client=client,
-        spec_name="default",
-        dataset_name="OpenFF-benchmark-ligand-fragments-v1.0",
-        final_molecule_only=True,
-        subset=bace_entries,
+    schemas = factory.optimization_schemas_from_results(
+        results=qc_torsion_drive_results, combine=True
     )
-    schemas = factory.optimization_schemas_from_results(results=result, combine=True)
 
-    # there should be 2 total molecules / schemas as we have combined two results
-    assert len(schemas) == 2
-    # there are a total of 3 torsiondrives
-    assert schemas[0].n_tasks + schemas[1].n_tasks == 3
-    # make sure each task has results and is ready to fit
+    assert len(schemas) == 1
+    assert schemas[0].n_tasks == 1
+
     assert all(schema.ready_for_fitting for schema in schemas)

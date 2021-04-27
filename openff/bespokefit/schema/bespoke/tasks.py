@@ -6,20 +6,34 @@ import numpy as np
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import DatasetEntry, OptimizationEntry, TorsionDriveEntry
 from openff.qcsubmit.factories import TorsiondriveDatasetFactory
-from openff.qcsubmit.results import (
-    BasicResult,
-    OptimizationEntryResult,
-    SingleResult,
-    TorsionDriveResult,
-)
 from openff.toolkit.topology import Molecule
 from pydantic import Field, validator
 from qcelemental.models.types import Array
+from qcportal.models import TorsionDriveRecord
+from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
 from openff.bespokefit.utilities.pydantic import SchemaBase
+
+
+class BaseReferenceData(SchemaBase, abc.ABC):
+    """The base for models which contain the reference data produced by a fitting task."""
+
+    record: RecordBase = Field(
+        ..., description="The QC record storing the outputs of the task."
+    )
+    cmiles: str = Field(
+        ...,
+        description="The CMILES description of the molecule associated with the task.",
+    )
+
+    @property
+    def molecule(self) -> Molecule:
+        """The OpenFF molecule associated with this record."""
+
+        return Molecule.from_mapped_smiles(self.cmiles, allow_undefined_stereo=True)
 
 
 class BaseFittingTask(SchemaBase, abc.ABC):
@@ -66,6 +80,10 @@ class BaseFittingTask(SchemaBase, abc.ABC):
         description="If the molecule is a fragment store the fragment to parent "
         "mapping here, to use this enter the index of the atom in the fragment to get "
         "the corresponding index of the parent atom.",
+    )
+
+    reference_data: Optional[BaseReferenceData] = Field(
+        None, description="The results of executing the task."
     )
 
     error_message: Optional[str] = Field(
@@ -168,75 +186,58 @@ class BaseFittingTask(SchemaBase, abc.ABC):
         return m.hexdigest()
 
     @abc.abstractmethod
-    def update_with_results(self, result) -> None:
+    def update_with_results(self, record: RecordBase, molecule: Molecule) -> None:
         """
         Take a results class and update the results in the schema.
         """
         raise NotImplementedError()
 
-    @abc.abstractmethod
-    def reference_data(self) -> List[SingleResult]:
-        """
-        Return the reference data ready for fitting.
-        """
-        raise NotImplementedError()
-
     @property
-    @abc.abstractmethod
     def collected(self) -> bool:
-        """
-        Return if the schema is complete and has reference data.
-        """
-        raise NotImplementedError()
-
-    def _remap_single_result(
-        self,
-        mapping: Dict[int, int],
-        new_molecule: Molecule,
-        result: SingleResult,
-        extras: Optional[Dict[str, Any]] = None,
-    ) -> SingleResult:
-        """
-        Given a single result and a mapping remap the result ordering to match the
-        fitting schema order.
-
-        Parameters:
-            mapping: The mapping between the old and new molecule.
-            new_molecule: The new molecule in the correct order.
-            result: The single result which should be remapped.
-            extras: Any extras that should be added to the result.
-        """
-        new_molecule._conformers = []
-        # re map the geometry and attach
-        new_conformer = np.zeros((new_molecule.n_atoms, 3))
-        for i in range(new_molecule.n_atoms):
-            new_conformer[mapping[i]] = result.molecule.geometry[i]
-        geometry = unit.Quantity(new_conformer, unit.bohr)
-        new_molecule.add_conformer(geometry)
-        # drop the bond order indices and just remap the gradient and hessian
-        new_gradient = np.zeros((new_molecule.n_atoms, 3))
-        for i in range(new_molecule.n_atoms):
-            new_gradient[i] = result.gradient[mapping[i]]
-
-        # #remap the hessian
-        # new_hessian = np.zeros((3 * new_molecule.n_atoms, 3 * new_molecule.n_atoms))
-        # # we need to move 3 entries at a time to keep them together
-        # for i in range(new_molecule.n_atoms):
-        #     new_hessian[i * 3: (i * 3) + 3] = result.hessian[mapping[i * 3]: mapping[(i * 3) + 3]]
-        return SingleResult(
-            molecule=new_molecule.to_qcschema(),
-            id=result.id,
-            energy=result.energy,
-            gradient=new_gradient,
-            hessian=None,
-            extras=extras,
-        )
+        return self.reference_data is not None
 
     def __eq__(self, other: "BaseFittingTask") -> bool:
         """
         Check if the job hash is the same.
         """
         return self.get_task_hash() == other.get_task_hash()
+
+
+class TorsionTaskReferenceData(BaseReferenceData):
+    """A model which stores the outputs of executing a ``TorsionTask``."""
+
+    record: TorsionDriveRecord = Field(
+        ..., description="The QC record storing the output of the torsion drive."
+    )
+
+    conformers: Dict[str, Array[float]] = Field(
+        ...,
+        description="The minimum energy conformer [bohr] associated with each grid id "
+        "stored as a flat array with shape (3 * n_atoms). The ordering of the conformer "
+        "must match the ordering specified by the ``cmiles`` field.",
+    )
+
+    @property
+    def molecule(self) -> Molecule:
+        """The OpenFF molecule associated with this record which contains the minimum
+        energy conformer at each grid id. The grid ids themselves will be stored in
+        ``molecule.properties["grid_ids"]``, such that ``molecule.conformers[i]``
+        corresponds to the minimum energy structure at grid id
+        ``molecule.properties["grid_ids"][i]``.
+        """
+
+        molecule = Molecule.from_mapped_smiles(self.cmiles, allow_undefined_stereo=True)
+
+        molecule.properties["grid_ids"] = []
+
+        for grid_id, conformer_array in self.conformers.items():
+            molecule.add_conformer(
+                conformer_array.reshape((molecule.n_atoms, 3)) * unit.bohr
+            )
+
+            molecule.properties["grid_ids"].append(grid_id)
+
+        return molecule
 
 
 class TorsionTask(BaseFittingTask):
@@ -250,8 +251,8 @@ class TorsionTask(BaseFittingTask):
         "workflow.",
     )
 
-    torsiondrive_data: Optional[List[SingleResult]] = Field(
-        None, description="The results of the torsiondrive."
+    reference_data: Optional[TorsionTaskReferenceData] = Field(
+        None, description="The results of the torsion drive."
     )
 
     @validator("dihedrals")
@@ -287,82 +288,55 @@ class TorsionTask(BaseFittingTask):
             bonds = [(dihedral[1], dihedral[2]) for dihedral in self.dihedrals]
             return bonds
 
-    def update_with_results(self, results: TorsionDriveResult) -> None:
+    def update_with_results(
+        self, result_record: TorsionDriveRecord, result_molecule: Molecule
+    ):
         """
         Take a torsiondrive result check if the molecule is the same and the same
         dihedral is targeted and apply the results.
         """
-        # keep track of if we need to remap
-        remap = False
 
-        new_results = []
-        if isinstance(results, TorsionDriveResult):
-            # this is valid so work out any mapping differences and update the result
-            isomorphic, atom_map = Molecule.are_isomorphic(
-                results.molecule, self.initial_molecule, return_atom_map=True
+        if not isinstance(result_record, TorsionDriveRecord):
+            raise TypeError("This task can only be updated with torsion drive records")
+
+        # work out any mapping differences and update the result
+        isomorphic, atom_map = Molecule.are_isomorphic(
+            result_molecule, self.initial_molecule, return_atom_map=True
+        )
+
+        if not isomorphic:
+
+            raise MoleculeMissMatchError(
+                "Molecules are not isomorphic and the results can not be transferred."
             )
-            if isomorphic:
-                # if the atom map is not the same remap the result
-                if atom_map != dict(
-                    (i, i) for i in range(self.initial_molecule.n_atoms)
-                ):
-                    remap = True
-                # work out if the result and schema target the same dihedral via central
-                # bond
-                dihedral = set(self.dihedrals[0][1:3])
-                # now map the result dihedral back
-                target_dihedral = [atom_map[i] for i in results.dihedrals[0]]
-                if not dihedral.difference(set(target_dihedral[1:3])):
-                    # we need to change the target dihedral to match what the result is
-                    # for
-                    self.dihedrals = [target_dihedral]
-                    # get the optimization results in order of the angle
-                    # we need this data later
-                    for (
-                        angle,
-                        optimization_result,
-                    ) in results.get_ordered_results():
-                        if remap:
-                            new_single_result = self._remap_single_result(
-                                mapping=atom_map,
-                                new_molecule=self.initial_molecule,
-                                result=optimization_result,
-                                extras={"dihedral_angle": angle},
-                            )
-                        else:
-                            # get a new single result with the angle in it
-                            result_dict = optimization_result.dict(
-                                exclude={"wbo", "mbo"}
-                            )
-                            result_dict["extras"] = {"dihedral_angle": angle}
-                            new_single_result = SingleResult(**result_dict)
 
-                        new_results.append(new_single_result)
-                    # set results back
-                    self.torsiondrive_data = new_results
+        # work out if the result and schema target the same dihedral via central bond
+        # noinspection PyTypeChecker
+        target_dihedral: Tuple[int, int, int, int] = tuple(
+            atom_map[i] for i in result_record.keywords.dihedrals[0]
+        )
 
-                else:
-                    raise DihedralSelectionError(
-                        "Molecules are the same but do not target the same dihedral."
-                    )
-            else:
-                raise MoleculeMissMatchError(
-                    "Molecules are not isomorphic and the results can not be "
-                    "transferred."
+        if {*self.dihedrals[0][1:3]} != {*target_dihedral[1:3]}:
+
+            raise DihedralSelectionError(
+                "Molecules are the same but do not target the same dihedral."
+            )
+
+        # we need to change the target dihedral to match what the result is
+        # for
+        self.dihedrals = [target_dihedral]
+
+        # get the optimization results in order of the angle - we need this data later
+        self.reference_data = TorsionTaskReferenceData(
+            record=result_record,
+            cmiles=result_molecule.to_smiles(True, True, True),
+            conformers={
+                grid_id: conformer.value_in_unit(unit.bohr)
+                for grid_id, conformer in zip(
+                    result_molecule.properties["grid_ids"], result_molecule.conformers
                 )
-
-    @property
-    def collected(self) -> bool:
-        """
-        Do we want some more explicit checking here?
-        """
-        return True if self.torsiondrive_data is not None else False
-
-    def reference_data(self) -> List[SingleResult]:
-        """
-        Return the reference data ready for fitting.
-        """
-        return self.torsiondrive_data
+            },
+        )
 
     def _get_task_hash(self) -> str:
         """
@@ -398,16 +372,44 @@ class TorsionTask(BaseFittingTask):
             return new_entry
 
 
+class OptimizationTaskReferenceData(BaseReferenceData):
+    """A model which stores the outputs of executing a ``OptimizationTask``."""
+
+    record: OptimizationRecord = Field(
+        ..., description="The QC record storing the output of the optimization."
+    )
+
+    conformer: Array[float] = Field(
+        ...,
+        description="The final minimum energy conformer [bohr] stored as a flat array "
+        "with shape (3 * n_atoms). The ordering of the conformer must match the "
+        "ordering specified by the ``cmiles`` field.",
+    )
+
+    @property
+    def molecule(self) -> Molecule:
+        """The OpenFF molecule associated with this record which contains the final
+        minimum energy conformer.
+        """
+
+        molecule = Molecule.from_mapped_smiles(self.cmiles, allow_undefined_stereo=True)
+
+        molecule.add_conformer(
+            self.conformer.reshape((molecule.n_atoms, 3)) * unit.bohr
+        )
+
+        return molecule
+
+
 class OptimizationTask(BaseFittingTask):
     """
     A schema detailing an optimisation fitting target.
     """
 
     task_type: Literal["optimization"] = "optimization"
-    optimization_data: Optional[SingleResult] = Field(
-        None,
-        description="The results of the optimization which contains the optimised "
-        "geometry",
+
+    reference_data: Optional[OptimizationTaskReferenceData] = Field(
+        None, description="The results of the optimization."
     )
 
     def _get_task_hash(self) -> str:
@@ -441,18 +443,47 @@ class OptimizationTask(BaseFittingTask):
         )
         return opt_entry
 
-    def update_with_results(self, result: OptimizationEntryResult) -> None:
+    def update_with_results(
+        self, result_record: OptimizationRecord, result_molecule: Molecule
+    ):
         """
         Update the results of this task with an optimization result
         """
-        raise NotImplementedError()
 
-    def reference_data(self) -> SingleResult:
-        return self.optimization_data
+        if not isinstance(result_record, OptimizationRecord):
+            raise TypeError("This task can only be updated with optimization records")
 
-    @property
-    def collected(self) -> bool:
-        return True if self.optimization_data is not None else False
+        # work out any mapping differences and update the result
+        isomorphic, atom_map = Molecule.are_isomorphic(
+            result_molecule, self.initial_molecule, return_atom_map=True
+        )
+
+        if not isomorphic:
+
+            raise MoleculeMissMatchError(
+                "Molecules are not isomorphic and the results can not be transferred."
+            )
+
+        if result_molecule.n_conformers != 1:
+
+            raise MoleculeMissMatchError(
+                "The molecule must contain the final minimum energy conformer."
+            )
+
+        # get the optimization results in order of the angle - we need this data later
+        self.reference_data = OptimizationTaskReferenceData(
+            record=result_record,
+            cmiles=result_molecule.to_smiles(True, True, True),
+            conformer=result_molecule.conformers[0].value_in_unit(unit.bohr),
+        )
+
+
+class HessianTaskReferenceData(BaseReferenceData):
+    """A model which stores the outputs of executing a ``OptimizationTask``."""
+
+    record: ResultRecord = Field(
+        ..., description="The QC record storing the output of the task."
+    )
 
 
 class HessianTask(OptimizationTask):
@@ -461,8 +492,13 @@ class HessianTask(OptimizationTask):
     """
 
     task_type: Literal["hessian"] = "hessian"
-    hessian_data: Optional[SingleResult] = Field(
-        None, description="The results of a hessian calculation."
+
+    optimization_data: Optional[OptimizationTaskReferenceData] = Field(
+        None, description="The data generated by the optimization precursor task."
+    )
+
+    reference_data: Optional[HessianTaskReferenceData] = Field(
+        None, description="The results of the optimization."
     )
 
     def _get_task_hash(self) -> str:
@@ -489,11 +525,16 @@ class HessianTask(OptimizationTask):
         """
         Make a single point entry to compute the hessian from the optimised geometry.
         """
-        from simtk import unit
 
-        molecule = self.graph_molecule
-        geometry = unit.Quantity(self.optimization_data.molecule.geometry, unit.bohr)
-        molecule.add_conformer(coordinates=geometry)
+        molecule = self.optimization_data.molecule
+
+        _, atom_map = Molecule.are_isomorphic(
+            molecule, self.graph_molecule, return_atom_map=True
+        )
+
+        # Make sure the optimization molecule has the same ordering as this record.
+        molecule.remap(atom_map)
+
         task = self.get_task_hash()
         attributes = self.attributes
         attributes.task_hash = task
@@ -510,15 +551,12 @@ class HessianTask(OptimizationTask):
         )
         return new_entry
 
-    def update_with_results(self, result: BasicResult) -> None:
+    def update_with_results(
+        self,
+        result_record: Union[ResultRecord, OptimizationRecord],
+        result_molecule: Molecule,
+    ):
         raise NotImplementedError()
-
-    def reference_data(self) -> SingleResult:
-        return self.hessian_data
-
-    @property
-    def collected(self) -> bool:
-        return True if self.hessian_data is not None else False
 
 
 FittingTask = Union[TorsionTask, OptimizationTask, HessianTask]

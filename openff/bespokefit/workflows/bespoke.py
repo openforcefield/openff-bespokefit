@@ -3,22 +3,21 @@ This is the main bespokefit workflow factory which is executed and builds the be
 workflows.
 """
 import os
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
-from openff.qcsubmit.common_structures import MoleculeAttributes, ResultsConfig
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import ComponentResult
 from openff.qcsubmit.results import (
-    BasicCollectionResult,
-    BasicResult,
-    OptimizationCollectionResult,
-    OptimizationResult,
-    TorsionDriveCollectionResult,
-    TorsionDriveResult,
+    BasicResultCollection,
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
 )
 from openff.qcsubmit.serializers import serialize
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import get_available_force_fields
 from pydantic import Field, validator
+from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.bespoke.smirks import SmirksGenerator
 from openff.bespokefit.exceptions import (
@@ -49,6 +48,13 @@ from openff.bespokefit.schema.targets import (
 )
 from openff.bespokefit.utilities import get_molecule_cmiles
 from openff.bespokefit.utilities.pydantic import ClassBase
+
+QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
+QCResultCollection = Union[
+    TorsionDriveResultCollection,
+    OptimizationResultCollection,
+    BasicResultCollection,
+]
 
 
 class BespokeWorkflowFactory(ClassBase):
@@ -448,11 +454,7 @@ class BespokeWorkflowFactory(ClassBase):
 
     def optimization_schemas_from_results(
         self,
-        results: Union[
-            TorsionDriveCollectionResult,
-            OptimizationCollectionResult,
-            BasicCollectionResult,
-        ],
+        results: QCResultCollection,
         combine: bool = False,
         processors: Optional[int] = None,
     ) -> List[BespokeOptimizationSchema]:
@@ -474,17 +476,19 @@ class BespokeWorkflowFactory(ClassBase):
         self._pre_run_check()
 
         # group the tasks if requested
-        all_tasks = self._sort_results(results=results, combine=combine)
+        sorted_records = self._sort_results(results.to_records(), combine)
 
         optimization_schemas = []
 
         # now set up a process pool to do fragmentation and create the fitting schema
         # while retaining the original fitting order
         if processors is None or processors > 1:
-            with Pool() as pool:
+            with Pool(processors) as pool:
                 schema_list = [
-                    pool.apply_async(self._optimization_schema_from_results, task)
-                    for task in all_tasks
+                    pool.apply_async(
+                        self._optimization_schema_from_records, record_batch
+                    )
+                    for record_batch in sorted_records
                 ]
                 # loop over the list and add the tasks fo the main fitting schema
                 for task in tqdm.tqdm(
@@ -497,13 +501,13 @@ class BespokeWorkflowFactory(ClassBase):
                     optimization_schemas.append(schema)
         else:
             # run with 1 processor
-            for i, task in tqdm.tqdm(
-                all_tasks,
-                total=len(all_tasks),
+            for i, record_batch in tqdm.tqdm(
+                sorted_records,
+                total=len(sorted_records),
                 ncols=80,
                 desc="Building Fitting Schema",
             ):
-                schema = self._optimization_schema_from_results(*task)
+                schema = self._optimization_schema_from_records(*record_batch)
                 optimization_schemas.append(schema)
 
         return optimization_schemas
@@ -511,45 +515,35 @@ class BespokeWorkflowFactory(ClassBase):
     @classmethod
     def _sort_results(
         cls,
-        results: Union[
-            TorsionDriveCollectionResult,
-            OptimizationCollectionResult,
-            BasicCollectionResult,
-        ],
+        records: List[Tuple[QCResultRecord, Molecule]],
         combine: bool = False,
-    ) -> List[Tuple[List[ResultsConfig], int]]:
+    ) -> List[Tuple[List[Tuple[QCResultRecord, Molecule]], int]]:
         """Sort the results into a list that can be processed into a fitting schema,
         combining results when requested.
         """
 
-        all_tasks = []
-        if combine:
-            # loop over the results and combine multiple results for the same molecule
-            # this only effects multiple torsion drives
-            dedup_tasks = {}
-            for result in results.collection.values():
-                # get the unique inchi key
-                inchi_key = result.molecule.to_inchikey(fixed_hydrogens=True)
-                dedup_tasks.setdefault(inchi_key, []).append(result)
-            # now make a list of tasks
-            for i, tasks in enumerate(dedup_tasks.values()):
-                all_tasks.append((tasks, i))
-        else:
-            for i, task in enumerate(results.collection.values()):
-                all_tasks.append(
-                    (
-                        [
-                            task,
-                        ],
-                        i,
-                    )
-                )
+        if not combine:
+            return [([record], i) for i, record in enumerate(records)]
 
-        return all_tasks
+        combined_records = []
 
-    def _optimization_schema_from_results(
+        # loop over the results and combine multiple results for the same molecule
+        # this only effects multiple torsion drives
+        per_molecule_records = defaultdict(list)
+
+        for record, molecule in records:
+
+            inchi_key = molecule.to_inchikey(fixed_hydrogens=True)
+            per_molecule_records[inchi_key].append((record, molecule))
+
+        for i, unique_records in enumerate(per_molecule_records.values()):
+            combined_records.append((unique_records, i))
+
+        return combined_records
+
+    def _optimization_schema_from_records(
         self,
-        results: List[Union[TorsionDriveResult, OptimizationResult, BasicResult]],
+        records: List[Tuple[QCResultRecord, Molecule]],
         index: int,
     ) -> BespokeOptimizationSchema:
         """
@@ -562,25 +556,39 @@ class BespokeWorkflowFactory(ClassBase):
           mostly useful for torsion drives.
         """
 
+        assert len({molecule.to_inchikey() for _, molecule in records}) == 1
+
+        molecule = records[0][1]
+
         molecule_schema = MoleculeSchema(
-            attributes=MoleculeAttributes(**results[0].attributes),
-            task_id=results[0].molecule.to_smiles(),
+            attributes=MoleculeAttributes.from_openff_molecule(molecule),
+            task_id=molecule.to_smiles(),
             fragment_data=[],
             fragmentation_engine=None,
         )
+
         opt_schema = self._build_optimization_schema(
             molecule_schema=molecule_schema, index=index
         )
+
         smirks_gen = self._get_smirks_generator()
         all_smirks = []
-        for result in results:
-            dihedrals = getattr(result, "dihedrals", None)
-            if dihedrals is not None:
-                bond = tuple([dihedrals[0][1], dihedrals[0][2]])
-            else:
-                bond = None
+
+        for record, molecule in records:
+
+            if not isinstance(record, TorsionDriveRecord):
+
+                raise NotImplementedError(
+                    "Currently only torsion drives are supported."
+                )
+
+            dihedrals = getattr(record.keywords, "dihedrals", None)
+
+            bond = None if dihedrals is None else ([dihedrals[0][1], dihedrals[0][2]])
+
+            # noinspection PyTypeChecker
             new_smirks = smirks_gen.generate_smirks(
-                molecule=result.molecule,
+                molecule=molecule,
                 central_bonds=[bond],
             )
             all_smirks.extend(new_smirks)
@@ -599,17 +607,17 @@ class BespokeWorkflowFactory(ClassBase):
 
             tasks = []
 
-            for result in results:
+            for record, molecule in records:
 
                 task_schema = self._generate_fitting_task(
                     target_schema=target_schema,
-                    molecule=result.molecule,
+                    molecule=molecule,
                     fragment=False,
-                    attributes=MoleculeAttributes(**result.attributes),
+                    attributes=MoleculeAttributes.from_openff_molecule(molecule),
                     fragment_parent_mapping=None,
-                    dihedrals=getattr(result, "dihedrals", None),
+                    dihedrals=getattr(record.keywords, "dihedrals", None),
                 )
-                task_schema.update_with_results(results=result)
+                task_schema.update_with_results(record, molecule)
                 tasks.append(task_schema)
 
             target_schema.reference_data.tasks = tasks

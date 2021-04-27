@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
@@ -9,16 +9,17 @@ from openff.qcsubmit.datasets import (
     TorsiondriveDataset,
     TorsionDriveEntry,
 )
-from openff.qcsubmit.results import (
-    BasicCollectionResult,
-    OptimizationCollectionResult,
-    TorsionDriveCollectionResult,
-)
+from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveInt, validator
 from qcelemental.models import DriverEnum
+from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from typing_extensions import Literal
 
-from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
+from openff.bespokefit.exceptions import (
+    DihedralSelectionError,
+    MoleculeMissMatchError,
+    QCRecordMissMatchError,
+)
 from openff.bespokefit.schema.bespoke.tasks import FittingTask
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
@@ -64,15 +65,20 @@ class BespokeQCData(SchemaBase):
 
         return values
 
-    def compare_qcspec(self, result) -> bool:
+    def _compare_qcspec(
+        self, result: Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
+    ) -> bool:
         """Make sure the qcspec from the results match the targeted qcspec."""
+
+        if not isinstance(result, ResultRecord):
+            result = result.qc_spec
 
         return (
             result.program.lower() == self.qc_spec.program.lower()
             and result.method.lower() == self.qc_spec.method.lower()
             and result.basis.lower() == self.qc_spec.basis.lower()
             if result.basis is not None
-            else result.basis == self.qc_spec.basis
+            else result.basis.lower() == self.qc_spec.basis.lower()
         )
 
     def get_qcsubmit_tasks(
@@ -165,10 +171,8 @@ class BespokeQCData(SchemaBase):
 
     def update_with_results(
         self,
-        results: Union[
-            BasicCollectionResult,
-            OptimizationCollectionResult,
-            TorsionDriveCollectionResult,
+        results: List[
+            Tuple[Union[ResultRecord, OptimizationRecord, TorsionDriveRecord], Molecule]
         ],
     ):
         """
@@ -178,42 +182,21 @@ class BespokeQCData(SchemaBase):
         if len(self.tasks) == 0:
             return
 
-        expected_task_type = self.tasks[0].task_type
-
-        # make sure the result type matches the collection workflow allowed types
-        if (
-            results.__class__ == TorsionDriveCollectionResult
-            and expected_task_type != "torsion1d"
-        ):
-            raise Exception("Torsion1d workflow requires torsiondrive results.")
-        elif (
-            results.__class__ != TorsionDriveCollectionResult
-            and expected_task_type == "torsion1d"
-        ):
-            raise Exception(
-                "Optimization and hessian workflows require optimization and basic "
-                "dataset results"
-            )
-        elif (
-            results.__class__ == BasicCollectionResult
-            and results.driver != expected_task_type
-        ):
-            raise Exception(
-                "Hessian results must be computed using the hessian driver."
-            )
-
         # check the QC method matches what we targeted
-        if not self.compare_qcspec(results):
-            raise Exception(
-                "The results could not be saved as the qcspec did not match"
+        if not all(self._compare_qcspec(result[0]) for result in results):
+
+            raise QCRecordMissMatchError(
+                "The results could not be saved as the QC specification did not match."
             )
 
         # we now know the specification and result type match so try and apply the
         # results
-        for result in results.collection.values():
+        for record, molecule in results:
+
             for task in self.tasks:
+
                 try:
-                    task.update_with_results(result)
+                    task.update_with_results(record, molecule)
                 except (DihedralSelectionError, MoleculeMissMatchError):
                     continue
 
@@ -227,18 +210,3 @@ class BespokeQCData(SchemaBase):
                 hash_map.setdefault(task_hash, []).append(task)
 
         return hash_map
-
-
-class ExistingQCData(SchemaBase):
-
-    type: Literal["existing"] = "existing"
-
-    record_ids: List[str] = Field(
-        ..., description="The ids of the QC records to include in the fitting target."
-    )
-
-    qcfractal_address: Optional[str] = Field(
-        "api.qcarchive.molssi.org:443",
-        description="The URL of the QCFractal server to pull the results from. By "
-        "default the main QCArchive will be used.",
-    )

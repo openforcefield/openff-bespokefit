@@ -9,14 +9,15 @@ from openff.qcsubmit.datasets import (
     TorsiondriveDataset,
 )
 from openff.qcsubmit.results import (
-    BasicCollectionResult,
-    OptimizationCollectionResult,
-    TorsionDriveCollectionResult,
+    BasicResultCollection,
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
 )
 from openff.qcsubmit.serializers import serialize
 from qcfractal.interface import FractalClient
 from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
 from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+from qcportal.models import ObjectId
 
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.data import BespokeQCData
@@ -25,6 +26,12 @@ from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 if TYPE_CHECKING:
     from qcfractal import FractalServer
+
+QCResultCollection = Union[
+    TorsionDriveResultCollection,
+    OptimizationResultCollection,
+    BasicResultCollection,
+]
 
 
 class Executor:
@@ -386,7 +393,7 @@ class Executor:
         """
         results = self.collect_results(record_map=collection_dict, client=client)
         for result in results:
-            optimization.update_with_results(results=result)
+            optimization.update_with_results(results=result.to_records())
 
     def submit_new_tasks(
         self, optimization: BespokeOptimizationSchema, client: FractalClient
@@ -417,37 +424,56 @@ class Executor:
 
     def collect_results(
         self,
-        record_map: Dict[str, Dict[str, Dict[str, List[str]]]],
+        record_map: Dict[str, Dict[str, List[str]]],
         client: FractalClient,
-    ) -> List[
-        Union[
-            BasicCollectionResult,
-            OptimizationCollectionResult,
-            TorsionDriveCollectionResult,
-        ]
-    ]:
+    ) -> List[QCResultCollection]:
         """
         For the given list of record ids per dataset type collect all of the results.
         """
         dataset_types = {
-            "hessian": BasicCollectionResult,
-            "optimization": OptimizationCollectionResult,
-            "torsion1d": TorsionDriveCollectionResult,
+            "hessian": BasicResultCollection,
+            "optimization": OptimizationResultCollection,
+            "torsion1d": TorsionDriveResultCollection,
         }
-        results = []
+
+        result_collections = []
+
         for dataset_type, records in record_map.items():
-            # get the result class
+
+            if len(records) == 0:
+                continue
+
+            # Retrieve a copy of the dataset so we can match entry indices to actual
+            # result record ids
+            qc_dataset = client.get_collection(
+                collection_type=self._dataset_type_mapping[dataset_type],
+                name=self._dataset_name,
+            )
+
             result_type = dataset_types[dataset_type.lower()]
+
             for spec_name, entries in records.items():
-                result = result_type.from_server(
+
+                results = result_type.from_server(
                     client=client,
-                    dataset_name=self._dataset_name,
-                    subset=entries,
+                    datasets=[self._dataset_name],
                     spec_name=spec_name,
                 )
-                results.append(result)
 
-        return results
+                entry_record_ids = [
+                    qc_dataset.data.records[entry].object_map[spec_name]
+                    for entry in entries
+                ]
+
+                results.entries[client.address] = [
+                    entry
+                    for entry in results.entries[client.address]
+                    if entry.record_id in entry_record_ids
+                ]
+
+                result_collections.append(results)
+
+        return result_collections
 
     def restart_archive_record(
         self,
@@ -492,7 +518,7 @@ class Executor:
             )
 
     def restart_torsiondrives(
-        self, torsiondrive_ids: List[int], client: FractalClient
+        self, torsiondrive_ids: List[ObjectId], client: FractalClient
     ) -> None:
         """
         Restart all torsiondrive records.
@@ -501,7 +527,7 @@ class Executor:
             client.modify_services("restart", procedure_id=td)
 
     def restart_optimizations(
-        self, optimization_ids: List[int], client: FractalClient
+        self, optimization_ids: List[ObjectId], client: FractalClient
     ) -> None:
         """
         Restart all optimizations.
@@ -509,7 +535,7 @@ class Executor:
         for opt in optimization_ids:
             client.modify_tasks(operation="restart", base_result=opt)
 
-    def restart_basic(self, basic_ids: List[int], client: [FractalClient]) -> None:
+    def restart_basic(self, basic_ids: List[ObjectId], client: [FractalClient]) -> None:
         """
         Restart all basic single point tasks.
         """
@@ -548,11 +574,11 @@ class Executor:
                 else:
                     # the task is finished so send it back
                     print("Finished task")
-                    self.finished_tasks.put(task)
+                    self.finished_tasks.put(result)
                     sent_tasks += 1
             else:
                 # the task has an error so fail it
-                self.finished_tasks.put(task)
+                self.finished_tasks.put(result)
                 sent_tasks += 1
 
             # kill condition

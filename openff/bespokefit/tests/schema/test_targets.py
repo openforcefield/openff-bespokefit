@@ -1,17 +1,17 @@
 import pytest
 from pydantic import ValidationError
 
-from openff.bespokefit.schema.data import BespokeQCData, ExistingQCData
+from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
 
 
-def test_check_reference_data(ethane_torsion_task):
+def test_check_reference_data(ethane_torsion_task, qc_torsion_drive_results):
 
     # Handle the case of no bespoke data
-    TorsionProfileTargetSchema(reference_data=ExistingQCData(record_ids=["1"]))
+    TorsionProfileTargetSchema(reference_data=qc_torsion_drive_results)
 
     # Handle the bespoke data case with a valid task.
     TorsionProfileTargetSchema(
