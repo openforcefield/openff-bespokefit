@@ -187,6 +187,8 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         # Create a FB molecule object from the QCData molecule.
         fb_molecule = FBMolecule()
         fb_molecule.Data = {
+            "resname": ["UNK"] * off_molecule.n_atoms,
+            "resid": [0] * off_molecule.n_atoms,
             "elem": [atom.element.symbol for atom in off_molecule.atoms],
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
@@ -203,9 +205,14 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
 
         off_molecule = copy.deepcopy(off_molecule)
         off_molecule._conformers = [off_molecule.conformers[0]]
-
-        off_molecule.to_file("conf.pdb", "PDB")
         off_molecule.to_file("input.sdf", "SDF")
+
+        # OpenFF does not map molecules into PDB well (it leads to files where Br is
+        # confused with B for example), so we use ForceBalance instead.
+        fb_molecule.Data["xyzs"] = [fb_molecule.Data["xyzs"][0]]
+        del fb_molecule.Data["qm_energies"]
+        del fb_molecule.Data["comms"]
+        fb_molecule.write("conf.pdb")
 
         metadata = qc_record.keywords.dict()
 
@@ -386,11 +393,25 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         qc_records: List[Tuple[ResultRecord, Molecule]],
     ):
 
+        from forcebalance.molecule import Molecule as FBMolecule
+
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
 
+        fb_molecule = FBMolecule()
+        fb_molecule.Data = {
+            "resname": ["UNK"] * off_molecule.n_atoms,
+            "resid": [0] * off_molecule.n_atoms,
+            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "bonds": [
+                (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
+            ],
+            "name": f"{qc_record.id}",
+            "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
+        }
+
         # form a Molecule object from the first torsion grid data
-        off_molecule.to_file("conf.pdb", "PDB")
+        fb_molecule.write("conf.pdb")
         off_molecule.to_file("input.sdf", "SDF")
 
         cls._create_vdata_file(qc_record, off_molecule.to_qcschema(), off_molecule)
@@ -425,6 +446,8 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         qc_records: List[Tuple[OptimizationRecord, Molecule]],
     ):
 
+        from forcebalance.molecule import Molecule as FBMolecule
+
         record_names = []
 
         for i, (qc_record, off_molecule) in enumerate(qc_records):
@@ -438,7 +461,19 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
             with open(f"{record_name}.xyz", "w") as file:
                 file.write(qc_molecule.to_string("xyz"))
 
-            off_molecule.to_file(f"{record_name}.pdb", "PDB")
+            fb_molecule = FBMolecule()
+            fb_molecule.Data = {
+                "resname": ["UNK"] * off_molecule.n_atoms,
+                "resid": [0] * off_molecule.n_atoms,
+                "elem": [atom.element.symbol for atom in off_molecule.atoms],
+                "bonds": [
+                    (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
+                ],
+                "name": f"{qc_record.id}",
+                "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
+            }
+
+            fb_molecule.write(f"{record_name}.pdb")
             off_molecule.to_file(f"{record_name}.sdf", "SDF")
 
         # Create the options file
