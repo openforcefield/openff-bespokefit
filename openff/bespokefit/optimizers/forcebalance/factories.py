@@ -166,6 +166,9 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
 
         from forcebalance.molecule import Molecule as FBMolecule
 
+        if isinstance(target, AbInitioTargetSchema) and target.fit_force is True:
+            raise NotImplementedError()
+
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
 
@@ -236,7 +239,7 @@ class TorsionProfileTargetFactory(
 
         qc_record, off_molecule = qc_records[0]
 
-        grid_ids = sorted(off_molecule.properties["grid_ids"], key=lambda x: x[0])
+        grid_ids = sorted(qc_record.get_final_energies(), key=lambda x: x[0])
 
         metadata = qc_record.keywords.dict()
         metadata["torsion_grid_ids"] = [
