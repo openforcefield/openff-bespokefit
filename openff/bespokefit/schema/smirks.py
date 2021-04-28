@@ -82,6 +82,8 @@ ProperTorsionAttribute = Literal[
     "k2", "k2_bondorder1", "k2_bondorder2", "periodicity2", "phase2", "idivf2",
     "k3", "k3_bondorder1", "k3_bondorder2", "periodicity3", "phase3", "idivf3",
     "k4", "k4_bondorder1", "k4_bondorder2", "periodicity4", "phase4", "idivf4",
+    "k5", "k5_bondorder1", "k5_bondorder2", "periodicity5", "phase5", "idivf5",
+    "k6", "k6_bondorder1", "k6_bondorder2", "periodicity6", "phase6", "idivf6",
 ]
 
 
