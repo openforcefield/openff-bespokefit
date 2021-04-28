@@ -106,6 +106,17 @@ class WBOFragmenter(FragmentEngine):
                 # get the fragment parent mapping
                 frag_dihedral = data["dihedral"][0][1:3]
 
+                # Add fixed-hydrogen InChIs which are now required but not exported
+                # by the old version of fragmenter.
+                data["identifiers"].update(
+                    {
+                        "fixed_hydrogen_inchi": off_frag.to_inchi(fixed_hydrogens=True),
+                        "fixed_hydrogen_inchi_key": off_frag.to_inchikey(
+                            fixed_hydrogens=True
+                        ),
+                    }
+                )
+
                 # in some cases we get one fragment back which is the parent molecule
                 # we should not work out a mapping
                 if not molecule.is_isomorphic_with(off_frag):
