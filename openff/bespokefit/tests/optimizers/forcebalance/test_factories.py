@@ -164,14 +164,14 @@ def test_opt_geo_batching(qc_optimization_record: ResultRecord):
     qc_records = [qc_optimization_record] * 120
 
     target_batches = OptGeoTargetFactory._batch_qc_records(
-        OptGeoTargetSchema(), qc_records
+        OptGeoTargetSchema(extras={"batch_size": "51"}), qc_records
     )
 
     assert len(target_batches) == 3
 
-    assert len(target_batches["opt-geo-batch-0"]) == 50
-    assert len(target_batches["opt-geo-batch-1"]) == 50
-    assert len(target_batches["opt-geo-batch-2"]) == 20
+    assert len(target_batches["opt-geo-batch-0"]) == 51
+    assert len(target_batches["opt-geo-batch-1"]) == 51
+    assert len(target_batches["opt-geo-batch-2"]) == 18
 
 
 def test_generate_vibration_target(qc_hessian_record: Tuple[ResultRecord, Molecule]):
