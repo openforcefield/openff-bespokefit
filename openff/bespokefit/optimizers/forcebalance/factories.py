@@ -477,7 +477,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
             off_molecule.to_file(f"{record_name}.sdf", "SDF")
 
         # Create the options file
-        with open("optget_options.txt", "w") as file:
+        with open("optgeo_options.txt", "w") as file:
             file.write(OptGeoOptionsTemplate.generate(target, record_names))
 
 

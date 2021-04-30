@@ -156,7 +156,7 @@ def test_generate_optimization_target(
         for (index, extension) in itertools.product([0, 1], ["xyz", "sdf", "pdb"]):
             assert os.path.isfile(f"{qc_optimization_record[0].id}-{index}.{extension}")
 
-        assert os.path.isfile("optget_options.txt")
+        assert os.path.isfile("optgeo_options.txt")
 
 
 def test_opt_geo_batching(qc_optimization_record: ResultRecord):
