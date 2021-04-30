@@ -427,7 +427,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         cls, target: OptGeoTargetSchema, qc_records: List[RecordBase]
     ):
 
-        batch_size = target.extras.get("batch_size", 50)
+        batch_size = int(target.extras.get("batch_size", 50))
 
         n_records = len(qc_records)
         n_targets = (n_records + batch_size - 1) // batch_size
