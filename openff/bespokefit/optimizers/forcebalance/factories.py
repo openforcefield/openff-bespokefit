@@ -63,9 +63,23 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
+    def _section_extras_to_exclude(cls) -> List[str]:
+        """The list of extras which may be present in a target schemas ``.extras``
+        dictionary to exclude when generating the section to add to the ``optimize.in``
+        file."""
+        return []
+
+    @classmethod
     def _generate_targets_section(cls, target_template: T, target_names: List[str]):
         """Creates the target sections which will need to be added to the main
         ForceBalance 'options.in' file."""
+
+        target_template = target_template.copy(deep=True)
+        target_template.extras = {
+            key: value
+            for key, value in target_template.extras.items()
+            if key not in cls._section_extras_to_exclude()
+        }
 
         template_factory = _TARGET_SECTION_TEMPLATES[target_template.__class__]
         return template_factory.generate(target_template, target_names)
@@ -421,6 +435,10 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "opt-geo"
+
+    @classmethod
+    def _section_extras_to_exclude(cls) -> List[str]:
+        return ["batch_size"]
 
     @classmethod
     def _batch_qc_records(

@@ -146,7 +146,7 @@ def test_generate_optimization_target(
     with temporary_cd():
 
         OptGeoTargetFactory._generate_target(
-            OptGeoTargetSchema(),
+            OptGeoTargetSchema(extras={"batch_size": "51"}),
             [
                 qc_optimization_record,
                 qc_optimization_record,
@@ -172,6 +172,18 @@ def test_opt_geo_batching(qc_optimization_record: ResultRecord):
     assert len(target_batches["opt-geo-batch-0"]) == 51
     assert len(target_batches["opt-geo-batch-1"]) == 51
     assert len(target_batches["opt-geo-batch-2"]) == 18
+
+
+def test_opt_geo_target_section():
+
+    target_schema = OptGeoTargetSchema(extras={"batch_size": "51"})
+
+    target_section = OptGeoTargetFactory._generate_targets_section(
+        target_schema, ["target-1"]
+    )
+
+    assert "batch_size" not in target_section
+    assert "batch_size" in target_schema.extras
 
 
 def test_generate_vibration_target(qc_hessian_record: Tuple[ResultRecord, Molecule]):
