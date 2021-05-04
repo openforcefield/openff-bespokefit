@@ -5,7 +5,7 @@ weight {{ weight }}
 type VIBRATION_SMIRNOFF
 
 mol2 input.sdf
-pdb conf.pdb
+coords conf.pdb
 
 writelevel 1
 
