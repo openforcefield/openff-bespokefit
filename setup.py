@@ -46,7 +46,7 @@ setup(
     # Set up the main CLI entry points
     entry_points={
         'console_scripts': [
-            'openff-bespoke=openff.bespokefit.cli:cli',
+            'openff-bespokefit=openff.bespokefit.cli:cli',
         ],
     }
 )
