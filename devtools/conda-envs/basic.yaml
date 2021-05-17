@@ -25,6 +25,7 @@ dependencies:
   - openff-toolkit-base
   - rdkit
   - openff-forcefields
+  - click
 
     # openff-qcsubmit needed until release
   - qcportal
