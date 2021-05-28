@@ -503,13 +503,13 @@ class BespokeWorkflowFactory(ClassBase):
                     optimization_schemas.append(schema)
         else:
             # run with 1 processor
-            for i, record_batch in tqdm.tqdm(
+            for record_batch, index in tqdm.tqdm(
                 sorted_records,
                 total=len(sorted_records),
                 ncols=80,
                 desc="Building Fitting Schema",
             ):
-                schema = self._optimization_schema_from_records(*record_batch)
+                schema = self._optimization_schema_from_records(record_batch, index)
                 optimization_schemas.append(schema)
 
         return optimization_schemas

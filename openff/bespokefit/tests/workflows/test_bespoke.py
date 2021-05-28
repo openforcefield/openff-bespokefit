@@ -251,7 +251,7 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
 
     schemas = factory.optimization_schemas_from_results(
-        results=qc_torsion_drive_results, combine=True
+        results=qc_torsion_drive_results, combine=True, processors=1
     )
 
     assert len(schemas) == 1
