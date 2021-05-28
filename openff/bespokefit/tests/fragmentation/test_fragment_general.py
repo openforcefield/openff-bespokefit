@@ -1,21 +1,17 @@
 """
 Test the base and general methods of fragmentation.
 """
-import os
 
 import pytest
-from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.exceptions import FragmenterError
 from openff.bespokefit.fragmentation import (
-    FragmentEngine,
     WBOFragmenter,
     deregister_fragment_engine,
     get_fragmentation_engine,
     list_fragment_engines,
     register_fragment_engine,
 )
-from openff.bespokefit.utilities import get_data_file_path
 
 
 def test_list_fragmentation_engines():

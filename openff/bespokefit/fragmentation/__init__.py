@@ -15,5 +15,6 @@ __all__ = [
     register_fragment_engine,
     WBOFragmenter,
     PfizerFragmenter,
+    FragmentEngines,
     FragmentEngine,
 ]

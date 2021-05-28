@@ -1,7 +1,6 @@
 import os
 
 import pytest
-from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 
