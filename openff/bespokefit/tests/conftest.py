@@ -213,7 +213,7 @@ def general_optimization_schema(
 
 @pytest.fixture()
 def bespoke_optimization_schema() -> BespokeOptimizationSchema:
-    """Create a workflow schema which targets the rotatable bond in ethane."""
+    """Create a workflow schema which targets the rotatable bond in biphenyl."""
 
     molecule = Molecule.from_smiles("c1ccc(cc1)c2cccc(c2)")
 

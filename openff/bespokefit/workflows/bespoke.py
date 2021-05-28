@@ -26,7 +26,7 @@ from openff.bespokefit.exceptions import (
     OptimizerError,
     TargetNotSetError,
 )
-from openff.bespokefit.fragmentation import WBOFragmenter
+from openff.bespokefit.fragmentation import FragmentEngines, WBOFragmenter
 from openff.bespokefit.optimizers import get_optimizer, list_optimizers
 from openff.bespokefit.schema.bespoke import MoleculeSchema
 from openff.bespokefit.schema.bespoke.tasks import (
@@ -46,7 +46,6 @@ from openff.bespokefit.schema.targets import (
     TargetSchema,
     TorsionProfileTargetSchema,
 )
-from openff.bespokefit.utilities import get_molecule_cmiles
 from openff.bespokefit.utilities.pydantic import ClassBase
 
 QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
@@ -106,7 +105,7 @@ class BespokeWorkflowFactory(ClassBase):
         description="If the optimized smirks should be bespoke to the target molecules.",
     )
 
-    fragmentation_engine: Optional[Union[WBOFragmenter]] = Field(
+    fragmentation_engine: Optional[FragmentEngines] = Field(
         WBOFragmenter(),
         description="The Fragment engine that should be used to fragment the molecule, "
         "note that if None is provided the molecules will not be fragmented. By default "
@@ -392,7 +391,10 @@ class BespokeWorkflowFactory(ClassBase):
         # Fragment the molecule.
         fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
 
-        attributes = get_molecule_cmiles(molecule=molecule)
+        # the parent molecule is put in canonical order by fragmenter to use the new parent
+        attributes = MoleculeAttributes.from_openff_molecule(
+            molecule=fragment_data[0].parent_molecule
+        )
         molecule_schema = MoleculeSchema(
             attributes=attributes,
             task_id=f"bespoke_task_{index}",

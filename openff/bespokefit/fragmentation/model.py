@@ -2,14 +2,17 @@
 Here we implement the basic fragmentation class.
 """
 import abc
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
-from pydantic import Field
+from typing_extensions import Literal
 
 from openff.bespokefit.schema.bespoke import FragmentSchema
 from openff.bespokefit.utilities.pydantic import ClassBase
+
+if TYPE_CHECKING:
+    from openff.fragmenter.fragment import FragmentationResult
 
 
 class FragmentData(ClassBase):
@@ -44,26 +47,38 @@ class FragmentEngine(ClassBase, abc.ABC):
     registering new class.
     """
 
-    fragmentation_engine: str = Field(
-        ..., description="The name of the fragmentation engine."
-    )
-    description: str = Field(
-        ...,
-        description="A description of the fragmentation engine and links to more info.",
-    )
+    type: Literal["FragmentEngine"] = "FragmentEngine"
 
     @classmethod
     @abc.abstractmethod
-    def is_available(cls) -> bool:
-        """
-        This method should identify is the component can be used by checking if the
-        dependencies are available and if not returning a message on how to install them.
-
-        Returns:
-            `True` if the fragmentation method can be used else `False`
-        """
+    def description(cls) -> str:
+        """A friendly description of the fragmentation engine and links to more info"""
 
         raise NotImplementedError()
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """
+        Check if fragmenter can be imported
+        """
+        from qcelemental.util import which_import
+
+        toolkit = which_import(
+            ".toolkit",
+            raise_error=True,
+            return_bool=True,
+            package="openff",
+            raise_msg="Please install via `conda install openff-toolkit -c conda-forge`.",
+        )
+        fragmenter = which_import(
+            ".fragmenter",
+            raise_error=True,
+            return_bool=True,
+            package="openff",
+            raise_msg="Please install via `conda install openff-fragmenter -c conda-forge`.",
+        )
+
+        return toolkit and fragmenter
 
     @abc.abstractmethod
     def fragment(self, molecule: Molecule) -> List[FragmentData]:
@@ -74,80 +89,80 @@ class FragmentEngine(ClassBase, abc.ABC):
 
         raise NotImplementedError()
 
-    @abc.abstractmethod
-    def provenance(self) -> Dict:
+    @classmethod
+    def build_fragment_data(cls, result: "FragmentationResult") -> List[FragmentData]:
         """
-        This function should detail the programs used in running this fragmentation
-        engine and their versions.
+        A general function to build the fragment data from the result of an openff-fragmenter job.
+
+        Note:
+            This function builds the mapping relation from map indices.
         """
+        import copy
 
-        raise NotImplementedError()
+        from openff.fragmenter.utils import get_atom_index, get_map_index
 
-    @staticmethod
-    def _get_fragment_parent_mapping(
-        fragment: Molecule, parent: Molecule
-    ) -> Dict[int, int]:
+        fragment_data = []
+        parent_mol = result.parent_molecule
+        for bond_map, fragment in result.fragments_by_bond.items():
+            fragment_mol = fragment.molecule
+            # get the index of the atoms in the fragment for the bond
+            atom1, atom2 = get_atom_index(fragment_mol, bond_map[0]), get_atom_index(
+                fragment_mol, bond_map[1]
+            )
+            # the fragment molecule has the same map indices as the parent on atoms that they both contain
+            mapping = {}
+            for i in range(fragment_mol.n_atoms):
+                try:
+                    map_idx = get_map_index(fragment_mol, i)
+                    parent_atom = get_atom_index(parent_mol, map_idx)
+                    mapping[i] = parent_atom
+                except KeyError:
+                    # the atom has no mapping so it must be missing in the parent
+                    continue
+            # now remove the atom mapping so the attributes are correct
+            del fragment_mol.properties["atom_map"]
+            fragment_data.append(
+                FragmentData(
+                    parent_molecule=copy.deepcopy(parent_mol),
+                    parent_torsion=(
+                        get_atom_index(parent_mol, bond_map[0]),
+                        get_atom_index(parent_mol, bond_map[1]),
+                    ),
+                    fragment_molecule=copy.deepcopy(fragment_mol),
+                    fragment_torsion=(atom1, atom2),
+                    fragment_attributes=MoleculeAttributes.from_openff_molecule(
+                        fragment_mol
+                    ),
+                    fragment_parent_mapping=mapping,
+                )
+            )
+        return fragment_data
+
+    @classmethod
+    def provenance(cls) -> Dict[str, str]:
         """
-        Get a mapping between two molecules of different size ie a fragment to a parent.
-
-        Parameters
-        ----------
-        fragment: off.Molecule
-            The fragment molecule that we want to map on to the parent.
-        parent: off.Molecule
-            The parent molecule the fragment was made from.
-
-        Notes
-        -----
-            As the MCS is used to create the mapping it will not be complete, that is
-            some fragment atoms have no relation to the parent.
-
-        Returns
-        -------
-        Dict[int, int]
-            A mapping between the fragment and the parent molecule.
+        Return the provenance of the the fragmentEngine.
         """
-
-        # check to see if we can do a normal mapping in the toolkit
-        isomorphic, atom_map = Molecule.are_isomorphic(
-            fragment,
-            parent,
-            return_atom_map=True,
-            aromatic_matching=False,
-            bond_order_matching=False,
-            bond_stereochemistry_matching=False,
-            atom_stereochemistry_matching=False,
+        from openff import fragmenter, toolkit
+        from openff.bespokefit.utilities.provenance import (
+            get_ambertools_version,
+            get_openeye_versions,
         )
-        if atom_map is not None:
-            return atom_map
 
+        prov = {
+            "openff-fragmenter": fragmenter.__version__,
+            "openff-toolkit": toolkit.__version__,
+        }
+
+        # check if we have openeye
+        openeye = get_openeye_versions()
+        if openeye:
+            prov.update(openeye)
         else:
-            # this molecule are different sizes so now we can use rdkit trick
-            return FragmentEngine._get_rdkit_mcs_mapping(fragment, parent)
+            # we used rdkit and AT
+            from rdkit import rdBase
 
-    @staticmethod
-    def _get_rdkit_mcs_mapping(fragment: Molecule, parent: Molecule) -> Dict[int, int]:
-        """
-        Use rdkit MCS function to find the maximum mapping between the fragment and
-        parent molecule.
-        """
+            prov["rdkit"] = rdBase.rdkitVersion
+            prov["ambertools"] = get_ambertools_version()
 
-        from rdkit import Chem
-        from rdkit.Chem import rdFMCS
-
-        parent_rdkit = parent.to_rdkit()
-        fragment_rdkit = fragment.to_rdkit()
-        mcs = rdFMCS.FindMCS(
-            [parent_rdkit, fragment_rdkit],
-            atomCompare=rdFMCS.AtomCompare.CompareElements,
-            bondCompare=rdFMCS.BondCompare.CompareAny,
-            ringMatchesRingOnly=True,
-            completeRingsOnly=True,
-        )
-        # make a new molecule from the mcs
-        match_mol = Chem.MolFromSmarts(mcs.smartsString)
-        # get the mcs parent/fragment mapping
-        matches_parent = parent_rdkit.GetSubstructMatch(match_mol)
-        matches_fragment = fragment_rdkit.GetSubstructMatch(match_mol)
-        mapping = dict(zip(matches_fragment, matches_parent))
-        return mapping
+        return prov

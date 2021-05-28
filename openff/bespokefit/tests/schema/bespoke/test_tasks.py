@@ -17,7 +17,7 @@ from openff.bespokefit.schema.bespoke.tasks import (
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import AbInitioTargetSchema
-from openff.bespokefit.utilities import get_data_file_path, get_molecule_cmiles
+from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
@@ -49,7 +49,7 @@ def ethane_opt_task(ethane) -> OptimizationTask:
     Return the ethane fitting entry.
     """
 
-    attributes = get_molecule_cmiles(molecule=ethane)
+    attributes = MoleculeAttributes.from_openff_molecule(molecule=ethane)
 
     entry = OptimizationTask(
         name="test",
@@ -88,7 +88,7 @@ def test_making_a_fitting_task(ethane, fitting_task):
     Try and a make a fitting task of each type for ethane.
     """
 
-    attributes = get_molecule_cmiles(molecule=ethane)
+    attributes = MoleculeAttributes.from_openff_molecule(molecule=ethane)
 
     task = fitting_task(
         input_conformers=[ethane.conformers[0].value_in_unit(unit.angstrom)],

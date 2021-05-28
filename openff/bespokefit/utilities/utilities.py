@@ -5,10 +5,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Union
 
-from openff.qcsubmit.common_structures import MoleculeAttributes
-from openff.qcsubmit.factories import BasicDatasetFactory
-from openff.toolkit.topology import Molecule
-
 
 def get_data_file_path(relative_path: str) -> str:
     """Get the full path to one of the files in the data directory.
@@ -79,11 +75,3 @@ def temporary_cd(directory_path: Optional[Union[str, Path]] = None):
 
     finally:
         os.chdir(old_directory)
-
-
-def get_molecule_cmiles(molecule: Molecule) -> MoleculeAttributes:
-    """
-    Generate the molecule cmiles data.
-    """
-    factory = BasicDatasetFactory()
-    return factory.create_cmiles_metadata(molecule)
