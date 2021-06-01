@@ -1,13 +1,8 @@
 import os
 
 import pytest
-from openff.toolkit.topology import Molecule
 
-from openff.bespokefit.utilities import (
-    get_data_file_path,
-    get_molecule_cmiles,
-    temporary_cd,
-)
+from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 
 
 def compare_paths(path_1: str, path_2: str) -> bool:
@@ -67,9 +62,3 @@ def test_temporary_cd():
         assert compare_paths(os.getcwd(), original_directory)
 
     assert compare_paths(os.getcwd(), original_directory)
-
-
-def test_get_molecule_cmiles():
-
-    cmiles = get_molecule_cmiles(Molecule.from_smiles("C"))
-    assert cmiles.canonical_smiles == "C"

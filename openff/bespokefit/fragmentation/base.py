@@ -4,14 +4,15 @@ Register new fragmentation methods with bespokefit
 from typing import Dict, List, Union
 
 from openff.bespokefit.exceptions import FragmenterError
-from openff.bespokefit.fragmentation.fragmenter import WBOFragmenter
+from openff.bespokefit.fragmentation.fragmenter import PfizerFragmenter, WBOFragmenter
 from openff.bespokefit.fragmentation.model import FragmentEngine
 
-_fragment_engines: Dict[str, FragmentEngine] = {}
+FragmentEngines = Union[WBOFragmenter, PfizerFragmenter]
+_fragment_engines: Dict[str, FragmentEngines] = {}
 
 
 def register_fragment_engine(
-    fragment_engine: FragmentEngine, replace: bool = False
+    fragment_engine: FragmentEngines, replace: bool = False
 ) -> None:
     """
     Register a new valid fragment engine with bespokefit.
@@ -28,7 +29,7 @@ def register_fragment_engine(
     """
 
     if issubclass(type(fragment_engine), FragmentEngine):
-        fragment_name = fragment_engine.fragmentation_engine.lower()
+        fragment_name = fragment_engine.type.lower()
         if fragment_name not in _fragment_engines or (
             fragment_name in _fragment_engines and replace
         ):
@@ -36,7 +37,7 @@ def register_fragment_engine(
         else:
             raise FragmenterError(
                 f"An fragmentation engine is already registered under the name "
-                f"{fragment_engine.fragmentation_engine}, to replace this please use "
+                f"{fragment_engine.type}, to replace this please use "
                 f"the `replace=True` flag."
             )
     else:
@@ -46,7 +47,7 @@ def register_fragment_engine(
         )
 
 
-def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> None:
+def deregister_fragment_engine(fragment_engine: Union[FragmentEngines, str]) -> None:
     """
     Remove a frgamnetation engine from the list of valid fragmenters.
 
@@ -56,7 +57,7 @@ def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> N
     """
 
     try:
-        fragment_name = fragment_engine.fragmentation_engine.lower()
+        fragment_name = fragment_engine.type.lower()
     except AttributeError:
         fragment_name = fragment_engine.lower()
 
@@ -68,7 +69,7 @@ def deregister_fragment_engine(fragment_engine: Union[FragmentEngine, str]) -> N
         )
 
 
-def get_fragmentation_engine(fragmentation_engine: str, **kwargs) -> FragmentEngine:
+def get_fragmentation_engine(fragmentation_engine: str, **kwargs) -> FragmentEngines:
     """
     Get the fragmentation engine class from the list of registered optimizers in
     bespokefit by name.
@@ -108,3 +109,4 @@ def list_fragment_engines() -> List[str]:
 
 # register the built in optimizers
 register_fragment_engine(WBOFragmenter())
+register_fragment_engine(PfizerFragmenter())

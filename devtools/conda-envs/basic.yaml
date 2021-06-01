@@ -40,10 +40,10 @@ dependencies:
     ### Bespoke dependencies
   - qcengine >=0.18.0
   - qcfractal >=0.15.4
-  - openeye-toolkits ==2019.10.2
   - chemper
-  - fragmenter ==0.0.7
+  - openeye-toolkits
   - basis_set_exchange
 
   - pip:
       - git+git://github.com/openforcefield/openff-qcsubmit.git@master
+      - git+git://github.com/openforcefield/openff-fragmenter.git@master

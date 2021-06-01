@@ -4,6 +4,7 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.exceptions import (
@@ -21,18 +22,8 @@ from openff.bespokefit.schema.targets import (
     VibrationTargetSchema,
 )
 from openff.bespokefit.tests import does_not_raise
-from openff.bespokefit.utilities import (
-    get_data_file_path,
-    get_molecule_cmiles,
-    temporary_cd,
-)
+from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
-
-bace_entries = [
-    "[h]c1c([c:1]([c:2](c(c1[h])[h])[c:3]2[c:4](c(c(c(c2[h])cl)[h])[h])[h])[h])[h]",
-    "[h]c1c([c:1]([c:2](c(c1[h])[h])[c@:3]2(c(=o)n(c(=[n+:4]2[h])n([h])[h])c([h])([h])[h])c3(c(c3([h])[h])([h])[h])[h])[h])[h]",
-    "[h]c1c(c(c(c(c1[h])[h])[c@:3]2(c(=o)n(c(=[n+:4]2[h])n([h])[h])c([h])([h])[h])[c:2]3([c:1](c3([h])[h])([h])[h])[h])[h])[h]",
-]
 
 
 @pytest.fixture()
@@ -167,7 +158,7 @@ def test_generate_fitting_task(target_schema, bace):
         target_schema=target_schema,
         molecule=molecule,
         fragment=False,
-        attributes=get_molecule_cmiles(molecule),
+        attributes=MoleculeAttributes.from_openff_molecule(molecule),
         dihedrals=[(8, 2, 1, 0)],
     )
 
@@ -260,7 +251,7 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
 
     schemas = factory.optimization_schemas_from_results(
-        results=qc_torsion_drive_results, combine=True
+        results=qc_torsion_drive_results, combine=True, processors=1
     )
 
     assert len(schemas) == 1

@@ -35,6 +35,30 @@ from openff.bespokefit.schema.targets import (
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
+@pytest.fixture(scope="function", autouse=True)
+def clear_force_balance_caches():
+    """A fixture which will clean the incredibly bug prone ``smirnoff_hack`` caches prior
+    to each test running."""
+
+    from forcebalance.smirnoff_hack import (
+        AT_TOOLKIT_CACHE_assign_partial_charges,
+        OE_TOOLKIT_CACHE_assign_partial_charges,
+        OE_TOOLKIT_CACHE_find_smarts_matches,
+        OE_TOOLKIT_CACHE_molecule_conformers,
+        RDK_TOOLKIT_CACHE_find_smarts_matches,
+        RDK_TOOLKIT_CACHE_molecule_conformers,
+        TOOLKIT_CACHE_ChemicalEnvironment_validate,
+    )
+
+    OE_TOOLKIT_CACHE_find_smarts_matches.clear()
+    RDK_TOOLKIT_CACHE_find_smarts_matches.clear()
+    TOOLKIT_CACHE_ChemicalEnvironment_validate.clear()
+    OE_TOOLKIT_CACHE_assign_partial_charges.clear()
+    AT_TOOLKIT_CACHE_assign_partial_charges.clear()
+    OE_TOOLKIT_CACHE_molecule_conformers.clear()
+    RDK_TOOLKIT_CACHE_molecule_conformers.clear()
+
+
 @pytest.fixture(scope="module")
 def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
 
@@ -188,7 +212,6 @@ def general_optimization_schema(
     qc_torsion_drive_results: TorsionDriveResultCollection,
     qc_optimization_results: OptimizationResultCollection,
     qc_hessian_results: BasicResultCollection,
-    monkeypatch,
 ):
 
     optimization_schema = OptimizationSchema(
@@ -213,7 +236,7 @@ def general_optimization_schema(
 
 @pytest.fixture()
 def bespoke_optimization_schema() -> BespokeOptimizationSchema:
-    """Create a workflow schema which targets the rotatable bond in ethane."""
+    """Create a workflow schema which targets the rotatable bond in biphenyl."""
 
     molecule = Molecule.from_smiles("c1ccc(cc1)c2cccc(c2)")
 

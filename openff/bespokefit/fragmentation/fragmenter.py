@@ -2,7 +2,7 @@
 Implement the OpenFF fragmenter package as a possible fragmentation engine.
 """
 
-from typing import Dict, List
+from typing import List
 
 from openff.toolkit.topology import Molecule
 from pydantic import Field
@@ -17,13 +17,10 @@ class WBOFragmenter(FragmentEngine):
     Fragment molecules using the WBO Fragmenter class of the OpenFF fragmenter
     module.
 
-    For more information see <https://github.com/openforcefield/fragmenter>.
+    For more information see <https://github.com/openforcefield/openff-fragmenter>.
     """
 
-    fragmentation_engine: Literal["WBOFragmenter"] = "WBOFragmenter"
-    description = (
-        "Fragment a molecule across all rotatable bonds using the WBO fragmenter."
-    )
+    type: Literal["WBOFragmenter"] = "WBOFragmenter"
 
     wbo_threshold: float = Field(
         0.03,
@@ -38,27 +35,8 @@ class WBOFragmenter(FragmentEngine):
     )
 
     @classmethod
-    def is_available(cls) -> bool:
-        """
-        Check if fragmenter can be imported
-        """
-        from qcelemental.util import which_import
-
-        openeye = which_import(
-            ".oechem",
-            raise_error=True,
-            return_bool=True,
-            package="openeye",
-            raise_msg="Please install via `conda install openeye-toolkits -c openeye`.",
-        )
-        fragmenter = which_import(
-            "fragmenter",
-            raise_error=True,
-            return_bool=True,
-            raise_msg="Please install via `conda install fragmenter -c omnia`.",
-        )
-
-        return openeye and fragmenter
+    def description(cls) -> str:
+        return "Fragment a molecule across all rotatable bonds using the WBO openff-fragmenter."
 
     def fragment(self, molecule: Molecule) -> List[FragmentData]:
         """
@@ -75,73 +53,18 @@ class WBOFragmenter(FragmentEngine):
         Raises:
             FragmenterError: If the molecule can not be fragmented.
         """
-        from fragmenter import fragment
-
-        # make sure the molecule has at least one conformer as this can cause issues
-        if molecule.n_conformers == 0:
-            molecule.generate_conformers(n_conformers=1)
+        from openff.fragmenter.fragment import WBOFragmenter
 
         # set up the fragmenter
-        fragment_factory = fragment.WBOFragmenter(
-            molecule=molecule.to_openeye(), verbose=False
+        fragment_factory = WBOFragmenter(
+            threshold=self.wbo_threshold,
+            keep_non_rotor_ring_substituents=self.keep_non_rotor_ring_substituents,
         )
-
-        fragments: List[FragmentData] = []
 
         try:
             # fragment the molecule
-            fragment_factory.fragment(
-                threshold=self.wbo_threshold,
-                keep_non_rotor_ring_substituents=self.keep_non_rotor_ring_substituents,
-            )
-            # now we work out the relation between the fragment and the parent
-            fragments_data = fragment_factory.to_torsiondrive_json()
-            # now store the data
-            for data in fragments_data.values():
-                off_frag = Molecule.from_mapped_smiles(
-                    data["identifiers"][
-                        "canonical_isomeric_explicit_hydrogen_mapped_smiles"
-                    ]
-                )
-                # get the fragment parent mapping
-                frag_dihedral = data["dihedral"][0][1:3]
-
-                # Add fixed-hydrogen InChIs which are now required but not exported
-                # by the old version of fragmenter.
-                data["identifiers"].update(
-                    {
-                        "fixed_hydrogen_inchi": off_frag.to_inchi(fixed_hydrogens=True),
-                        "fixed_hydrogen_inchi_key": off_frag.to_inchikey(
-                            fixed_hydrogens=True
-                        ),
-                    }
-                )
-
-                # in some cases we get one fragment back which is the parent molecule
-                # we should not work out a mapping
-                if not molecule.is_isomorphic_with(off_frag):
-                    mapping = self._get_fragment_parent_mapping(
-                        fragment=off_frag, parent=molecule
-                    )
-                    # get the parent torsion
-                    parent_dihedral = tuple([mapping[i] for i in frag_dihedral])
-                    parent_molecule = molecule
-                else:
-                    # reuse the current fragment data as dummy parent data
-                    mapping = dict((i, i) for i in range(molecule.n_atoms))
-                    parent_dihedral = frag_dihedral
-                    parent_molecule = off_frag
-                # this is the data we need so make the fragmnetdata
-                frag_data = FragmentData(
-                    parent_molecule=parent_molecule,
-                    parent_torsion=parent_dihedral,
-                    fragment_molecule=off_frag,
-                    fragment_torsion=frag_dihedral,
-                    fragment_attributes=data["identifiers"],
-                    fragment_parent_mapping=mapping,
-                )
-                fragments.append(frag_data)
-
+            result = fragment_factory.fragment(molecule=molecule)
+            fragments = self.build_fragment_data(result=result)
             return fragments
 
         except RuntimeError:
@@ -150,11 +73,36 @@ class WBOFragmenter(FragmentEngine):
                 f"was made."
             )
 
-    def provenance(self) -> Dict[str, str]:
-        """
-        Return the provenance of the the fragmentEngine.
-        """
-        import fragmenter
-        import openeye
 
-        return {"fragmenter": fragmenter.__version__, "openeye": openeye.__version__}
+class PfizerFragmenter(FragmentEngine):
+    """
+    Fragment molecules using the fragmentation scheme from (doi: 10.1021/acs.jcim.9b00373), implemented in
+    openff-fragmenter <https://github.com/openforcefield/openff-fragmenter>.
+    """
+
+    type: Literal["PfizerFragmenter"] = "PfizerFragmenter"
+
+    @classmethod
+    def description(cls) -> str:
+        return "Fragment a molecule across all rotatable bonds using the Pfizer scheme implemented by openff-fragmenter."
+
+    def fragment(self, molecule: Molecule) -> List[FragmentData]:
+        """
+        Fragment the input molecule acrros all rotatable bonds using the Pfizer fragmentation scheme.
+        """
+        from openff.fragmenter.fragment import PfizerFragmenter
+
+        # set up the fragmenter
+        fragment_factory = PfizerFragmenter()
+
+        try:
+            # fragment the molecule
+            result = fragment_factory.fragment(molecule=molecule)
+            fragments = self.build_fragment_data(result=result)
+            return fragments
+
+        except RuntimeError:
+            raise FragmenterError(
+                f"The molecule {molecule} could not be fragmented so no fitting target "
+                f"was made."
+            )
