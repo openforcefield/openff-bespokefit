@@ -125,6 +125,7 @@ class BespokeQCData(SchemaBase):
         if task_type == "torsion1d":
             dataset = TorsiondriveDataset(
                 dataset_name=dataset_name,
+                dataset_tagline="A bespoke QC data set",
                 qc_specifications={},
                 description=description,
                 driver=DriverEnum.gradient,
@@ -132,6 +133,7 @@ class BespokeQCData(SchemaBase):
         elif task_type == "optimization":
             dataset = OptimizationDataset(
                 dataset_name=dataset_name,
+                dataset_tagline="A bespoke QC data set",
                 qc_specifications={},
                 description=description,
                 driver=DriverEnum.gradient,
@@ -139,6 +141,7 @@ class BespokeQCData(SchemaBase):
         elif task_type == "hessian":
             dataset = BasicDataset(
                 dataset_name=dataset_name,
+                dataset_tagline="A bespoke QC data set",
                 qc_specifications={},
                 description=description,
                 driver=DriverEnum.hessian,

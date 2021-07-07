@@ -2,7 +2,6 @@ name: test
 
 channels:
   - conda-forge
-  - omnia
   - openeye
   - defaults
 
@@ -22,29 +21,23 @@ dependencies:
   - pydantic
   - pyyaml
   - tqdm
-  - openff-toolkit-base
-  - rdkit
-  - openff-forcefields
   - click
-
-    # openff-qcsubmit needed until release
-  - qcportal
-  - torsiondrive
-  - cachetools
-    # / openff-qcsubmit
+  - rdkit
+  - openff-toolkit-base
+  - openff-forcefields
+  - openff-qcsubmit
 
     # Optional
   - forcebalance
-  - openmmforcefields # Needed until QCSubmit makes it optional
+  - openff-fragmenter
+
+  - openeye-toolkits
+
+  - xtb-python
 
     ### Bespoke dependencies
   - qcengine >=0.18.0
   - qcfractal >=0.15.4
-  - openeye-toolkits
   - chemper
   - basis_set_exchange
-  - xtb-python
-
-  - pip:
-      - git+git://github.com/openforcefield/openff-qcsubmit.git@master
-      - git+git://github.com/openforcefield/openff-fragmenter.git@master
+  - torsiondrive
