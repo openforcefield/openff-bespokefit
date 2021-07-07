@@ -7,13 +7,13 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
-from openff.qcsubmit.datasets import ComponentResult
 from openff.qcsubmit.results import (
     BasicResultCollection,
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
 from openff.qcsubmit.serializers import serialize
+from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import get_available_force_fields
 from pydantic import Field, validator

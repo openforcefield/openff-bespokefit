@@ -40,3 +40,4 @@ dependencies:
   - qcfractal >=0.15.4
   - chemper
   - basis_set_exchange
+  - torsiondrive
