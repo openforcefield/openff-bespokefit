@@ -8,7 +8,6 @@ from openff.toolkit.topology import Molecule
 from pydantic import Field
 from typing_extensions import Literal
 
-from openff.bespokefit.exceptions import FragmenterError
 from openff.bespokefit.fragmentation.model import FragmentData, FragmentEngine
 
 
