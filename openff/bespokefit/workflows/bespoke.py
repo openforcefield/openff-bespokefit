@@ -69,7 +69,7 @@ class BespokeWorkflowFactory(ClassBase):
     )
 
     optimizer: Union[str, OptimizerSchema] = Field(
-        ForceBalanceSchema(),
+        ForceBalanceSchema(penalty_type="L1"),
         description="The optimizer that should be used with the targets already set.",
     )
 
@@ -391,7 +391,7 @@ class BespokeWorkflowFactory(ClassBase):
         # Fragment the molecule.
         fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
 
-        # the parent molecule is put in canonical order by fragmenter to use the new parent
+        # the parent molecule is put in canonical order by fragmenter so use the new parent
         attributes = MoleculeAttributes.from_openff_molecule(
             molecule=fragment_data[0].parent_molecule
         )
@@ -411,11 +411,8 @@ class BespokeWorkflowFactory(ClassBase):
         for fragment in fragment_data:
             # get the smirks and build the fragment schema
             fragment_schema = fragment.fragment_schema()
-            new_smirks = smirks_gen.generate_smirks(
-                molecule=fragment_schema.molecule,
-                central_bonds=[
-                    fragment.fragment_torsion,
-                ],
+            new_smirks = smirks_gen.generate_smirks_from_fragments(
+                fragment_data=fragment
             )
             all_smirks.extend(new_smirks)
             molecule_schema.add_fragment(fragment=fragment_schema)
@@ -589,9 +586,8 @@ class BespokeWorkflowFactory(ClassBase):
             bond = None if dihedrals is None else ([dihedrals[0][1], dihedrals[0][2]])
 
             # noinspection PyTypeChecker
-            new_smirks = smirks_gen.generate_smirks(
-                molecule=molecule,
-                central_bonds=[bond],
+            new_smirks = smirks_gen.generate_smirks_from_molecules(
+                molecule=molecule, central_bonds=bond
             )
             all_smirks.extend(new_smirks)
 

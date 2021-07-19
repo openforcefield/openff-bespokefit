@@ -2,7 +2,7 @@
 Here we implement the basic fragmentation class.
 """
 import abc
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
@@ -21,9 +21,9 @@ class FragmentData(ClassBase):
     """
 
     parent_molecule: Molecule
-    parent_torsion: Tuple[int, int]
+    parent_torsion: Optional[Tuple[int, int]] = None
     fragment_molecule: Molecule
-    fragment_torsion: Tuple[int, int]
+    fragment_torsion: Optional[Tuple[int, int]] = None
     fragment_attributes: MoleculeAttributes
     fragment_parent_mapping: Dict[int, int]
 
@@ -103,6 +103,8 @@ class FragmentEngine(ClassBase, abc.ABC):
 
         fragment_data = []
         parent_mol = result.parent_molecule
+        parent_mol_no_map = copy.deepcopy(parent_mol)
+        del parent_mol_no_map.properties["atom_map"]
         for bond_map, fragment in result.fragments_by_bond.items():
             fragment_mol = fragment.molecule
             # get the index of the atoms in the fragment for the bond
@@ -123,7 +125,7 @@ class FragmentEngine(ClassBase, abc.ABC):
             del fragment_mol.properties["atom_map"]
             fragment_data.append(
                 FragmentData(
-                    parent_molecule=copy.deepcopy(parent_mol),
+                    parent_molecule=parent_mol_no_map,
                     parent_torsion=(
                         get_atom_index(parent_mol, bond_map[0]),
                         get_atom_index(parent_mol, bond_map[1]),

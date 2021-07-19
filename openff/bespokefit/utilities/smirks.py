@@ -34,7 +34,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
         """
         A networkx matching function for angle smirks.
         """
-        print(atom1, atom2)
+
         if atom1["index"] == atom2["index"]:
             return True
         elif atom1["index"] > 0 and atom2["index"] > 0:
@@ -75,7 +75,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
 
     # define the general node match
     def general_match(x, y):
-        is_equal = x["_or_types"] == y["_or_types"]
+        is_equal = any([or_type in x["_or_types"] for or_type in y["_or_types"]])
         is_equal &= x["_and_types"] == y["_and_types"]
         is_equal &= x["ring"] == y["ring"]
         is_equal &= x["is_atom"] == y["is_atom"]

@@ -46,6 +46,7 @@ class Executor:
         cores_per_worker: int = 2,
         memory_per_worker: int = 10,
         max_retries: int = 3,
+        keep_files: bool = True,
     ) -> None:
         """
         Set up the executor data with dataset names and initial tasks which should be submitted.
@@ -56,6 +57,7 @@ class Executor:
             "optimization": "optimizationdataset",
             "hessian": "dataset",
         }
+        self.keep_files = keep_files
         self.max_workers = max_workers
         self.cores_per_worker = cores_per_worker
         self.memory_per_worker = memory_per_worker
@@ -109,12 +111,12 @@ class Executor:
 
             for dataset in optimization.build_qcsubmit_datasets():
 
-                if dataset.dataset_type not in input_datasets_per_type:
+                if dataset.type not in input_datasets_per_type:
 
-                    input_datasets_per_type[dataset.dataset_type] = dataset
+                    input_datasets_per_type[dataset.type] = dataset
                     continue
 
-                input_datasets_per_type[dataset.dataset_type] += dataset
+                input_datasets_per_type[dataset.type] += dataset
 
         input_datasets = [*input_datasets_per_type.values()]
 
@@ -178,7 +180,7 @@ class Executor:
 
         print("all tasks done exporting to file.")
         serialize(
-            {result.input_schema.id: result for result in task_results},
+            {result.input_schema.id: result.json(indent=2) for result in task_results},
             file_name="final_results.json.xz",
         )
         return task_results
@@ -559,7 +561,9 @@ class Executor:
                 print("preparing to optimize")
                 optimizer_class = get_optimizer(optimizer_name=task.optimizer.type)
                 print("sending task for optimization")
-                result = optimizer_class.optimize(schema=task)
+                result = optimizer_class.optimize(
+                    schema=task, keep_files=self.keep_files
+                )
                 if result.status == Status.ConvergenceError:
                     warnings.warn(
                         f"The optimization {result.input_schema.id} failed to converge "
