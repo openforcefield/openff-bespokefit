@@ -2,6 +2,7 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke
 workflows.
 """
+import logging
 import os
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
@@ -54,6 +55,8 @@ QCResultCollection = Union[
     OptimizationResultCollection,
     BasicResultCollection,
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class BespokeWorkflowFactory(ClassBase):
@@ -361,7 +364,8 @@ class BespokeWorkflowFactory(ClassBase):
                     desc="Building Fitting Schema ",
                 ):
                     schema = task.get()
-                    optimization_schemas.append(schema)
+                    if schema is not None:
+                        optimization_schemas.append(schema)
         else:
             # run with 1 processor
             for i, molecule in tqdm.tqdm(
@@ -374,13 +378,14 @@ class BespokeWorkflowFactory(ClassBase):
                 schema = self.optimization_schema_from_molecule(
                     molecule=molecule, index=i
                 )
-                optimization_schemas.append(schema)
+                if schema is not None:
+                    optimization_schemas.append(schema)
 
         return optimization_schemas
 
     def optimization_schema_from_molecule(
         self, molecule: Molecule, index: int = 0
-    ) -> BespokeOptimizationSchema:
+    ) -> Optional[BespokeOptimizationSchema]:
         """Build an optimization schema from an input molecule this involves
         fragmentation.
         """
@@ -391,6 +396,11 @@ class BespokeWorkflowFactory(ClassBase):
         # Fragment the molecule.
         fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
 
+        if not fragment_data:
+            logger.warning(
+                f"The molecule {molecule} could not be fragmented as it has no eligible rotatable bonds no fitting schema will be made."
+            )
+            return
         # the parent molecule is put in canonical order by fragmenter so use the new parent
         attributes = MoleculeAttributes.from_openff_molecule(
             molecule=fragment_data[0].parent_molecule

@@ -2,6 +2,7 @@
 Here we implement the basic fragmentation class.
 """
 import abc
+import logging
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
@@ -13,6 +14,8 @@ from openff.bespokefit.utilities.pydantic import ClassBase
 
 if TYPE_CHECKING:
     from openff.fragmenter.fragment import FragmentationResult
+
+logger = logging.getLogger(__name__)
 
 
 class FragmentData(ClassBase):
@@ -138,6 +141,52 @@ class FragmentEngine(ClassBase, abc.ABC):
                     fragment_parent_mapping=mapping,
                 )
             )
+        return fragment_data
+
+    def build_fragments_from_parent(self, molecule: Molecule) -> List[FragmentData]:
+        """
+        When a molecule can not be fragmented due to stereochemistry issues, this method can build dummy fragment data
+        for each eligible rotatable bond.
+
+        Note:
+            All possible rotatable bonds are found and deduplicated by molecule symmetry before deciding which ones should be scanned.
+        """
+        from openff.qcsubmit.workflow_components import ScanEnumerator, ScanFilter
+
+        logger.warning(
+            f"The molecule {molecule} could not be fragmented as the stereochemistry of the fragment could not be "
+            f"made to match the parent. The parent will be used as the target molecule."
+        )
+
+        scanner = ScanEnumerator()
+        # tag all possible scans
+        scanner.add_torsion_scan("[*:1]~[!$(*#*)&!D1:2]-,=;!@[!$(*#*)&!D1:3]~[*:4]")
+        result = scanner.apply(molecules=[molecule], processors=1, verbose=False)
+        # remove terminal scans
+        scan_filter = ScanFilter(
+            scans_to_exclude=["[*:1]-[CH3:2]", "[*:1]-[OH1:2]", "[*:1]-[NH2:2]"]
+        )
+        final_mol = scan_filter.apply(
+            molecules=result.molecules, processors=1, verbose=False
+        ).molecules[0]
+        # now for each one build a dummy fragment data
+        fragment_data = []
+        for torsion in final_mol.properties["dihedrals"].torsions.keys():
+            fragment_data.append(
+                FragmentData(
+                    parent_molecule=final_mol,
+                    parent_torsion=torsion,
+                    fragment_molecule=final_mol,
+                    fragment_torsion=torsion,
+                    fragment_attributes=MoleculeAttributes.from_openff_molecule(
+                        final_mol
+                    ),
+                    fragment_parent_mapping=dict(
+                        (i, i) for i in range(final_mol.n_atoms)
+                    ),
+                )
+            )
+
         return fragment_data
 
     @classmethod
