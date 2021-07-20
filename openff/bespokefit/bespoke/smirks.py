@@ -387,7 +387,8 @@ class SmirksGenerator(BaseModel):
             else:
                 # update the covered atoms
                 index = torsion_smirks.index(new_smirks)
-                torsion_smirks[index].atoms.add(torsion_group)
+                for torsion in torsion_group:
+                    torsion_smirks[index].atoms.add(torsion)
 
         return torsion_smirks
 

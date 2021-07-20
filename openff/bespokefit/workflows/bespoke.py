@@ -597,7 +597,7 @@ class BespokeWorkflowFactory(ClassBase):
 
             # noinspection PyTypeChecker
             new_smirks = smirks_gen.generate_smirks_from_molecules(
-                molecule=molecule, central_bonds=bond
+                molecule=molecule, central_bond=bond
             )
             all_smirks.extend(new_smirks)
 
