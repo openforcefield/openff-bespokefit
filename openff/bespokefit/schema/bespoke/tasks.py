@@ -8,7 +8,6 @@ from openff.qcsubmit.datasets import DatasetEntry, OptimizationEntry, TorsionDri
 from openff.qcsubmit.factories import TorsiondriveDatasetFactory
 from openff.toolkit.topology import Molecule
 from pydantic import Field, validator
-from qcelemental.models.types import Array
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
@@ -16,6 +15,7 @@ from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
 from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit.utilities.typing import Array
 
 
 class BaseReferenceData(SchemaBase, abc.ABC):
