@@ -7,6 +7,7 @@ import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
 
+from openff.bespokefit.bespoke import deserialize_schema, serialize_schema
 from openff.bespokefit.exceptions import (
     ForceFieldError,
     FragmenterError,
@@ -202,6 +203,24 @@ def test_optimization_schemas_from_molecule(processors, bace):
     assert opt_schema.target_molecule.molecule == bace
     assert opt_schema.n_tasks == 3
     assert opt_schema.n_targets == 1
+
+
+def test_bespoke_schema_serialization(bace, tmpdir):
+    """
+    Build an optimization schema and make sure we can de/serialize it.
+    """
+    with tmpdir.as_cwd():
+        factory = BespokeWorkflowFactory()
+
+        opt_schema = factory.optimization_schemas_from_molecules(
+            molecules=bace, processors=1
+        )
+        assert len(opt_schema) == 1
+
+        # try and round trip to file using compression
+        serialize_schema(schemas=opt_schema, file_name="all_schema.json.xz")
+        file_schema = deserialize_schema("all_schema.json.xz")
+        assert len(file_schema) == 1
 
 
 def test_optimization_schema_from_molecule_stereo_error():
