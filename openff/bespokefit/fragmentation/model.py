@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
+from openff.utilities.provenance import get_ambertools_version
 from typing_extensions import Literal
 
 from openff.bespokefit.schema.bespoke import FragmentSchema
@@ -144,21 +145,20 @@ class FragmentEngine(ClassBase, abc.ABC):
         Return the provenance of the the fragmentEngine.
         """
         from openff import fragmenter, toolkit
-        from openff.bespokefit.utilities.provenance import (
-            get_ambertools_version,
-            get_openeye_versions,
-        )
 
         prov = {
             "openff-fragmenter": fragmenter.__version__,
             "openff-toolkit": toolkit.__version__,
         }
 
-        # check if we have openeye
-        openeye = get_openeye_versions()
-        if openeye:
-            prov.update(openeye)
-        else:
+        try:
+
+            import openeye
+
+            prov["openeye"] = openeye.__version__
+
+        except ImportError:
+
             # we used rdkit and AT
             from rdkit import rdBase
 
