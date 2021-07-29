@@ -6,6 +6,7 @@ import os
 import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
+from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit.exceptions import (
     ForceFieldError,
@@ -22,7 +23,6 @@ from openff.bespokefit.schema.targets import (
     VibrationTargetSchema,
 )
 from openff.bespokefit.tests import does_not_raise
-from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
@@ -31,7 +31,7 @@ def bace() -> Molecule:
 
     molecule: Molecule = Molecule.from_file(
         file_path=get_data_file_path(
-            os.path.join("test", "molecules", "bace", "bace.sdf")
+            os.path.join("test", "molecules", "bace", "bace.sdf"), "openff.bespokefit"
         ),
         file_format="sdf",
     )
@@ -151,7 +151,9 @@ def test_generate_fitting_task(target_schema, bace):
     Make sure the correct fitting task is made based on the collection workflow.
     """
     molecule = Molecule.from_file(
-        file_path=get_data_file_path(os.path.join("test", "molecules", "ethanol.sdf"))
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "ethanol.sdf"), "openff.bespokefit"
+        )
     )
 
     task_schema = BespokeWorkflowFactory._generate_fitting_task(
@@ -168,7 +170,9 @@ def test_generate_fitting_task(target_schema, bace):
 @pytest.mark.parametrize(
     "molecules",
     [
-        get_data_file_path(os.path.join("test", "molecules", "ethanol.sdf")),
+        get_data_file_path(
+            os.path.join("test", "molecules", "ethanol.sdf"), "openff.bespokefit"
+        ),
         Molecule.from_smiles("C"),
         [Molecule.from_smiles("C")] * 2,
     ],

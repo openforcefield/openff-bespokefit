@@ -6,6 +6,7 @@ import os
 import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
+from openff.utilities import get_data_file_path
 from simtk import unit
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
@@ -17,7 +18,6 @@ from openff.bespokefit.schema.bespoke.tasks import (
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import AbInitioTargetSchema
-from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
@@ -25,7 +25,9 @@ from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 def ethane() -> Molecule:
 
     ethane = Molecule.from_file(
-        file_path=get_data_file_path(os.path.join("test", "molecules", "ethane.sdf")),
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "ethane.sdf"), "openff.bespokefit"
+        ),
         file_format="sdf",
     )
 
@@ -36,7 +38,9 @@ def ethane() -> Molecule:
 def occo() -> Molecule:
 
     occo = Molecule.from_file(
-        file_path=get_data_file_path(os.path.join("test", "molecules", "OCCO.sdf")),
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "OCCO.sdf"), "openff.bespokefit"
+        ),
         file_format="sdf",
     )
 

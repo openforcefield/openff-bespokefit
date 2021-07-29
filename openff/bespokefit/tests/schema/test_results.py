@@ -1,9 +1,10 @@
 import copy
 import os
 
+from openff.utilities import get_data_file_path
+
 from openff.bespokefit.schema.fitting import Status
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
@@ -12,7 +13,9 @@ def test_bespoke_get_final_force_field(bespoke_optimization_schema):
     # TODO: This should be more comprehensively tested.
 
     force_field_editor = ForceFieldEditor(
-        get_data_file_path(os.path.join("test", "force-fields", "bespoke.offxml"))
+        get_data_file_path(
+            os.path.join("test", "force-fields", "bespoke.offxml"), "openff.bespokefit"
+        )
     )
 
     final_smirks = copy.deepcopy(bespoke_optimization_schema.target_smirks)

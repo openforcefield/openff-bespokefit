@@ -9,6 +9,8 @@ import shutil
 from collections import defaultdict
 from typing import Dict, Type, Union
 
+from openff.utilities import temporary_cd
+
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import OptimizerSchema
@@ -17,7 +19,6 @@ from openff.bespokefit.schema.results import (
     OptimizationResults,
 )
 from openff.bespokefit.schema.targets import BaseTargetSchema
-from openff.bespokefit.utilities import temporary_cd
 
 OptimizerResultsType = Union[OptimizationResults, BespokeOptimizationResults]
 TargetSchemaType = Type[BaseTargetSchema]

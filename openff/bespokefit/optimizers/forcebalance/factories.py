@@ -14,6 +14,7 @@ from openff.qcsubmit.results import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
+from openff.utilities import temporary_cd
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
@@ -38,7 +39,6 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.bespokefit.utilities import temporary_cd
 
 if TYPE_CHECKING:
     from qcelemental.models import Molecule as QCMolecule

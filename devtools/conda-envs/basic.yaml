@@ -23,6 +23,7 @@ dependencies:
   - tqdm
   - click
   - rdkit
+  - openff-utilities
   - openff-toolkit-base
   - openff-forcefields
   - openff-qcsubmit

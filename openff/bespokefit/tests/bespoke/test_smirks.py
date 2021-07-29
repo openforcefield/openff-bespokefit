@@ -6,11 +6,11 @@ from typing import List, Tuple
 
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.bespoke.smirks import SmirksGenerator
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SmirksType
-from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
@@ -131,7 +131,9 @@ def test_bespoke_target_torsion_smirks():
     """
     gen = SmirksGenerator()
     mol = Molecule.from_file(
-        get_data_file_path(os.path.join("test", "molecules", "OCCO.sdf"))
+        get_data_file_path(
+            os.path.join("test", "molecules", "OCCO.sdf"), "openff.bespokefit"
+        )
     )
 
     torsion_smirks = gen._get_bespoke_torsion_smirks(
@@ -152,7 +154,9 @@ def test_bespoke_torsion_smirks():
     """
     gen = SmirksGenerator()
     mol = Molecule.from_file(
-        get_data_file_path(os.path.join("test", "molecules", "OCCO.sdf"))
+        get_data_file_path(
+            os.path.join("test", "molecules", "OCCO.sdf"), "openff.bespokefit"
+        )
     )
 
     torsion_smirks = gen._get_bespoke_torsion_smirks(molecule=mol)

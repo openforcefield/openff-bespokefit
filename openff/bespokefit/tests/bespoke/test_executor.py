@@ -2,10 +2,10 @@
 Tests for the executor class which runs and error cycles and optimizations.
 The test are set out in
 """
+from openff.utilities import temporary_cd
 from qcportal import FractalClient
 
 from openff.bespokefit.bespoke import Executor
-from openff.bespokefit.utilities import temporary_cd
 
 
 def test_optimizer_explicit(bespoke_optimization_schema, qc_torsion_drive_results):
