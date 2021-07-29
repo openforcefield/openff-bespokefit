@@ -21,8 +21,8 @@ def test_provenance():
     """
     provenance = WBOFragmenter.provenance()
     assert "openff-fragmenter" in provenance
-    assert "openeye.oequacpac" in provenance
     assert "openff-toolkit" in provenance
+    assert "openeye" in provenance
 
 
 def test_wbo_fragmentation():
