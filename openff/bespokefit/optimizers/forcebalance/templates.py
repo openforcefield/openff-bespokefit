@@ -3,6 +3,7 @@ import os
 from typing import Dict, Generic, List, Set, TypeVar
 
 from jinja2 import Template
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
@@ -12,7 +13,6 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.utilities import get_data_file_path
 
 T = TypeVar("T", bound=TargetSchema)
 
