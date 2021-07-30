@@ -2,7 +2,8 @@
 Here we implement the basic fragmentation class.
 """
 import abc
-from typing import TYPE_CHECKING, Dict, List, Tuple
+import logging
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
@@ -14,6 +15,8 @@ from openff.bespokefit.utilities.pydantic import ClassBase
 if TYPE_CHECKING:
     from openff.fragmenter.fragment import FragmentationResult
 
+logger = logging.getLogger(__name__)
+
 
 class FragmentData(ClassBase):
     """A simple dataclass that holds the relation between a parent molecule and the
@@ -21,9 +24,9 @@ class FragmentData(ClassBase):
     """
 
     parent_molecule: Molecule
-    parent_torsion: Tuple[int, int]
+    parent_torsion: Optional[Tuple[int, int]] = None
     fragment_molecule: Molecule
-    fragment_torsion: Tuple[int, int]
+    fragment_torsion: Optional[Tuple[int, int]] = None
     fragment_attributes: MoleculeAttributes
     fragment_parent_mapping: Dict[int, int]
 
@@ -103,6 +106,8 @@ class FragmentEngine(ClassBase, abc.ABC):
 
         fragment_data = []
         parent_mol = result.parent_molecule
+        parent_mol_no_map = copy.deepcopy(parent_mol)
+        del parent_mol_no_map.properties["atom_map"]
         for bond_map, fragment in result.fragments_by_bond.items():
             fragment_mol = fragment.molecule
             # get the index of the atoms in the fragment for the bond
@@ -123,7 +128,7 @@ class FragmentEngine(ClassBase, abc.ABC):
             del fragment_mol.properties["atom_map"]
             fragment_data.append(
                 FragmentData(
-                    parent_molecule=copy.deepcopy(parent_mol),
+                    parent_molecule=parent_mol_no_map,
                     parent_torsion=(
                         get_atom_index(parent_mol, bond_map[0]),
                         get_atom_index(parent_mol, bond_map[1]),
@@ -136,6 +141,46 @@ class FragmentEngine(ClassBase, abc.ABC):
                     fragment_parent_mapping=mapping,
                 )
             )
+        return fragment_data
+
+    def build_fragments_from_parent(self, molecule: Molecule) -> List[FragmentData]:
+        """
+        When a molecule can not be fragmented due to stereochemistry issues, this method can build dummy fragment data
+        for each eligible rotatable bond.
+
+        Note:
+            All possible rotatable bonds are found and deduplicated by molecule symmetry before deciding which ones should be scanned.
+        """
+        from openff.qcsubmit.workflow_components import ScanEnumerator
+
+        logger.warning(
+            f"The molecule {molecule} could not be fragmented and so the full parent will be used instead. This may result in slower fitting times."
+        )
+
+        scanner = ScanEnumerator()
+        # tag all possible scans
+        scanner.add_torsion_scan("[!#1:1]~[!$(*#*)&!D1:2]-,=;!@[!$(*#*)&!D1:3]~[!#1:4]")
+        final_mol = scanner.apply(
+            molecules=[molecule], processors=1, verbose=False
+        ).molecules[0]
+        # now for each one build a dummy fragment data
+        fragment_data = []
+        for torsion in final_mol.properties["dihedrals"].torsions.keys():
+            fragment_data.append(
+                FragmentData(
+                    parent_molecule=final_mol,
+                    parent_torsion=torsion,
+                    fragment_molecule=final_mol,
+                    fragment_torsion=torsion,
+                    fragment_attributes=MoleculeAttributes.from_openff_molecule(
+                        final_mol
+                    ),
+                    fragment_parent_mapping=dict(
+                        (i, i) for i in range(final_mol.n_atoms)
+                    ),
+                )
+            )
+
         return fragment_data
 
     @classmethod

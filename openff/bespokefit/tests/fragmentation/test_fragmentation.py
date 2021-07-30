@@ -112,6 +112,9 @@ def test_wbo_fragmentation():
     # make sure all of the central bonds are different
     torsions = set([fragment.parent_torsion for fragment in fragment_data])
     assert len(torsions) == 3
+    # make sure that each torsion id is a correct torsion in the parent molecule
+    for torsion in torsions:
+        fragment_data[0].parent_molecule.get_bond_between(*torsion)
 
 
 def test_pfizer_fragmentation():

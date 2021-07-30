@@ -2,6 +2,7 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke
 workflows.
 """
+import logging
 import os
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
@@ -55,6 +56,8 @@ QCResultCollection = Union[
     BasicResultCollection,
 ]
 
+logger = logging.getLogger(__name__)
+
 
 class BespokeWorkflowFactory(ClassBase):
     """
@@ -69,7 +72,7 @@ class BespokeWorkflowFactory(ClassBase):
     )
 
     optimizer: Union[str, OptimizerSchema] = Field(
-        ForceBalanceSchema(),
+        ForceBalanceSchema(penalty_type="L1"),
         description="The optimizer that should be used with the targets already set.",
     )
 
@@ -361,7 +364,8 @@ class BespokeWorkflowFactory(ClassBase):
                     desc="Building Fitting Schema ",
                 ):
                     schema = task.get()
-                    optimization_schemas.append(schema)
+                    if schema is not None:
+                        optimization_schemas.append(schema)
         else:
             # run with 1 processor
             for i, molecule in tqdm.tqdm(
@@ -374,13 +378,14 @@ class BespokeWorkflowFactory(ClassBase):
                 schema = self.optimization_schema_from_molecule(
                     molecule=molecule, index=i
                 )
-                optimization_schemas.append(schema)
+                if schema is not None:
+                    optimization_schemas.append(schema)
 
         return optimization_schemas
 
     def optimization_schema_from_molecule(
         self, molecule: Molecule, index: int = 0
-    ) -> BespokeOptimizationSchema:
+    ) -> Optional[BespokeOptimizationSchema]:
         """Build an optimization schema from an input molecule this involves
         fragmentation.
         """
@@ -391,7 +396,12 @@ class BespokeWorkflowFactory(ClassBase):
         # Fragment the molecule.
         fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
 
-        # the parent molecule is put in canonical order by fragmenter to use the new parent
+        if not fragment_data:
+            logger.warning(
+                f"The molecule {molecule} could not be fragmented as it has no eligible rotatable bonds no fitting schema will be made."
+            )
+            return
+        # the parent molecule is put in canonical order by fragmenter so use the new parent
         attributes = MoleculeAttributes.from_openff_molecule(
             molecule=fragment_data[0].parent_molecule
         )
@@ -411,11 +421,8 @@ class BespokeWorkflowFactory(ClassBase):
         for fragment in fragment_data:
             # get the smirks and build the fragment schema
             fragment_schema = fragment.fragment_schema()
-            new_smirks = smirks_gen.generate_smirks(
-                molecule=fragment_schema.molecule,
-                central_bonds=[
-                    fragment.fragment_torsion,
-                ],
+            new_smirks = smirks_gen.generate_smirks_from_fragments(
+                fragment_data=fragment
             )
             all_smirks.extend(new_smirks)
             molecule_schema.add_fragment(fragment=fragment_schema)
@@ -589,9 +596,8 @@ class BespokeWorkflowFactory(ClassBase):
             bond = None if dihedrals is None else ([dihedrals[0][1], dihedrals[0][2]])
 
             # noinspection PyTypeChecker
-            new_smirks = smirks_gen.generate_smirks(
-                molecule=molecule,
-                central_bonds=[bond],
+            new_smirks = smirks_gen.generate_smirks_from_molecules(
+                molecule=molecule, central_bond=bond
             )
             all_smirks.extend(new_smirks)
 

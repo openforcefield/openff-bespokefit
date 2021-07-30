@@ -8,7 +8,6 @@ from openff.toolkit.topology import Molecule
 from pydantic import Field
 from typing_extensions import Literal
 
-from openff.bespokefit.exceptions import FragmenterError
 from openff.bespokefit.fragmentation.model import FragmentData, FragmentEngine
 
 
@@ -65,13 +64,11 @@ class WBOFragmenter(FragmentEngine):
             # fragment the molecule
             result = fragment_factory.fragment(molecule=molecule)
             fragments = self.build_fragment_data(result=result)
-            return fragments
 
         except RuntimeError:
-            raise FragmenterError(
-                f"The molecule {molecule} could not be fragmented so no fitting target "
-                f"was made."
-            )
+            fragments = self.build_fragments_from_parent(molecule=molecule)
+
+        return fragments
 
 
 class PfizerFragmenter(FragmentEngine):
@@ -99,10 +96,8 @@ class PfizerFragmenter(FragmentEngine):
             # fragment the molecule
             result = fragment_factory.fragment(molecule=molecule)
             fragments = self.build_fragment_data(result=result)
-            return fragments
 
         except RuntimeError:
-            raise FragmenterError(
-                f"The molecule {molecule} could not be fragmented so no fitting target "
-                f"was made."
-            )
+            fragments = self.build_fragments_from_parent(molecule=molecule)
+
+        return fragments

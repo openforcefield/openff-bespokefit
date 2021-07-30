@@ -7,6 +7,7 @@ import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
 
+from openff.bespokefit.bespoke import deserialize_schema, serialize_schema
 from openff.bespokefit.exceptions import (
     ForceFieldError,
     FragmenterError,
@@ -202,6 +203,45 @@ def test_optimization_schemas_from_molecule(processors, bace):
     assert opt_schema.target_molecule.molecule == bace
     assert opt_schema.n_tasks == 3
     assert opt_schema.n_targets == 1
+
+
+def test_bespoke_schema_serialization(bace, tmpdir):
+    """
+    Build an optimization schema and make sure we can de/serialize it.
+    """
+    with tmpdir.as_cwd():
+        factory = BespokeWorkflowFactory()
+
+        opt_schema = factory.optimization_schemas_from_molecules(
+            molecules=bace, processors=1
+        )
+        assert len(opt_schema) == 1
+
+        # try and round trip to file using compression
+        serialize_schema(schemas=opt_schema, file_name="all_schema.json.xz")
+        file_schema = deserialize_schema("all_schema.json.xz")
+        assert len(file_schema) == 1
+
+
+def test_optimization_schema_from_molecule_stereo_error():
+    """
+    Make sure a optimization schema is still made when the input molecule can not be fragmented due to stereochemistry issues.
+    """
+
+    factory = BespokeWorkflowFactory()
+
+    mol = Molecule.from_smiles(
+        "[H][O][C]([H])([H])[C]([H])([H])[C]([H])([N]([H])[C]1=[N][C]([H])=[C]2[C](=[N]1)[N]([C]([H])([H])[H])[C](=[O])[C]([O][C]1=[C]([F])[C]([H])=[C]([F])[C]([H])=[C]1[H])=[C]2[H])[C]([H])([H])[C]([H])([H])[O][H]"
+    )
+    opt_schema = factory.optimization_schemas_from_molecules(mol, processors=1)
+    assert len(opt_schema) == 1
+    # all fragments should be the same as the input molecule
+    assert len(set(opt_schema[0].target_molecule.fragments)) == 1
+    assert (
+        opt_schema[0].target_molecule.molecule
+        == opt_schema[0].target_molecule.fragment_data[0].molecule
+    )
+    assert len(opt_schema[0].target_molecule.fragment_data) == 6
 
 
 @pytest.mark.parametrize("combine, n_expected", [(True, 1), (False, 2)])
