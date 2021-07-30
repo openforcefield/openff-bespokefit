@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import pytest
+from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.results import (
     BasicResult,
     BasicResultCollection,
@@ -19,6 +20,7 @@ from qcportal.models import (
 )
 from simtk import unit
 
+from openff.bespokefit.fragmentation.model import FragmentData
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
@@ -248,3 +250,48 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
     )
 
     return schema_factory.optimization_schema_from_molecule(molecule)
+
+
+@pytest.fixture()
+def bace_fragment_data() -> FragmentData:
+    """
+    Create a fragment data object for a bace parent and fragment.
+    """
+    molecule = Molecule.from_mapped_smiles(
+        "[H:1][c:2]1[c:3]([c:4]([c:5]([c:6]([c:7]1[H:8])[C@@:9]2([C:10](=[O:11])[N:12]([C:13](=[N+:14]2[H:15])[N:16]([H:17])[H:18])[C:19]([H:20])([H:21])[H:22])[C:23]([H:24])([H:25])[C:26]([H:27])([H:28])[H:29])[H:30])[c:31]3[c:32]([c:33]([c:34]([c:35]([c:36]3[H:37])[Cl:38])[H:39])[H:40])[H:41])[H:42]"
+    )
+    fragment = Molecule.from_mapped_smiles(
+        "[H:1][c:2]1[c:7]([c:6]([c:5]([c:4]([c:3]1[H:22])[H:21])[c:10]2[c:11]([c:12]([c:13]([c:14]([c:15]2[H:16])[Cl:17])[H:18])[H:19])[H:20])[H:9])[H:8]"
+    )
+    fragment_parent_mapping = {
+        0: 7,
+        1: 6,
+        2: 1,
+        3: 2,
+        4: 3,
+        5: 4,
+        6: 5,
+        8: 29,
+        9: 30,
+        10: 31,
+        11: 32,
+        12: 33,
+        13: 34,
+        14: 35,
+        15: 36,
+        16: 37,
+        17: 38,
+        18: 39,
+        19: 40,
+        20: 41,
+        21: 0,
+    }
+    fragment_data = FragmentData(
+        parent_molecule=molecule,
+        parent_torsion=(3, 30),
+        fragment_molecule=fragment,
+        fragment_torsion=(4, 9),
+        fragment_attributes=MoleculeAttributes.from_openff_molecule(fragment),
+        fragment_parent_mapping=fragment_parent_mapping,
+    )
+    return fragment_data

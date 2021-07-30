@@ -151,23 +151,17 @@ class FragmentEngine(ClassBase, abc.ABC):
         Note:
             All possible rotatable bonds are found and deduplicated by molecule symmetry before deciding which ones should be scanned.
         """
-        from openff.qcsubmit.workflow_components import ScanEnumerator, ScanFilter
+        from openff.qcsubmit.workflow_components import ScanEnumerator
 
         logger.warning(
-            f"The molecule {molecule} could not be fragmented as the stereochemistry of the fragment could not be "
-            f"made to match the parent. The parent will be used as the target molecule."
+            f"The molecule {molecule} could not be fragmented and so the full parent will be used instead. This may result in slower fitting times."
         )
 
         scanner = ScanEnumerator()
         # tag all possible scans
-        scanner.add_torsion_scan("[*:1]~[!$(*#*)&!D1:2]-,=;!@[!$(*#*)&!D1:3]~[*:4]")
-        result = scanner.apply(molecules=[molecule], processors=1, verbose=False)
-        # remove terminal scans
-        scan_filter = ScanFilter(
-            scans_to_exclude=["[*:1]-[CH3:2]", "[*:1]-[OH1:2]", "[*:1]-[NH2:2]"]
-        )
-        final_mol = scan_filter.apply(
-            molecules=result.molecules, processors=1, verbose=False
+        scanner.add_torsion_scan("[!#1:1]~[!$(*#*)&!D1:2]-,=;!@[!$(*#*)&!D1:3]~[!#1:4]")
+        final_mol = scanner.apply(
+            molecules=[molecule], processors=1, verbose=False
         ).molecules[0]
         # now for each one build a dummy fragment data
         fragment_data = []

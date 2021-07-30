@@ -170,7 +170,7 @@ def test_bespoke_torsion_smirks():
         assert dihedral in all_torsions or tuple(reversed(dihedral)) in all_torsions
 
 
-def test_get_all_bespoke_smirks():
+def test_get_all_bespoke_smirks_molecule():
     """
     Generate bespoke smirks for all parameters in a molecule, make sure they all hit the
     intended atoms, and every term is now bespoke.
@@ -196,6 +196,31 @@ def test_get_all_bespoke_smirks():
         all_matches.extend(atoms)
 
     assert all_covered(all_matches, mol) is True
+
+
+def test_get_all_bespoke_smirks_fragment(bace_fragment_data):
+    """
+    Generate bespoke smirks for all parameters using cluster graphs so the smirks apply to both parent and fragment.
+    """
+    gen = SmirksGenerator()
+    gen.target_smirks = [
+        SmirksType.Vdw,
+        SmirksType.Bonds,
+        SmirksType.Angles,
+        SmirksType.ProperTorsions,
+    ]
+    all_bespoke_smirks = gen.generate_smirks_from_fragments(
+        fragment_data=bace_fragment_data
+    )
+    all_matches = []
+    for smirk in all_bespoke_smirks:
+        atoms = condense_matches(
+            bace_fragment_data.fragment_molecule.chemical_environment_matches(
+                smirk.smirks
+            )
+        )
+        assert compare_matches(atoms, smirk.atoms) is True
+        all_matches.extend(atoms)
 
 
 def test_get_all_smirks():

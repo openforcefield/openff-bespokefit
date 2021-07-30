@@ -180,11 +180,9 @@ class SmirksGenerator(BaseModel):
         values.
         """
         bespoke_smirks = []
-        fragment_is_parent = True
         fragment_molecule = fragment_data.fragment_molecule
         # check if the fragment is the same as the parent, do it once for speed
-        if fragment_data.parent_molecule != fragment_molecule:
-            fragment_is_parent = False
+        fragment_is_parent = fragment_data.parent_molecule == fragment_molecule
 
         if SmirksType.Vdw in self.target_smirks:
             atom_smirks = self._get_bespoke_atom_smirks(
@@ -231,10 +229,9 @@ class SmirksGenerator(BaseModel):
             target_atoms = [atom_group]
             target_molecules = [fragment_mol]
             if not fragment_is_parent:
-                parent_atoms = [
-                    tuple(fragment_data.fragment_parent_mapping[a] for a in atom)
-                    for atom in atom_group
-                ]
+                parent_atoms = self.get_mapped_valence(
+                    fragment_data.fragment_parent_mapping, atom_group
+                )
                 target_atoms.append(parent_atoms)
                 target_molecules.append(fragment_data.parent_molecule)
 
@@ -249,13 +246,7 @@ class SmirksGenerator(BaseModel):
                 rmin_half=0,
                 atoms=atom_group,
             )
-            if new_smirks not in atom_smirks:
-                atom_smirks.append(new_smirks)
-            else:
-                # update the covered atoms
-                index = atom_smirks.index(new_smirks)
-                for a in atom_group:
-                    atom_smirks[index].atoms.add(a)
+            atom_smirks.append(new_smirks)
 
         return atom_smirks
 
@@ -277,10 +268,10 @@ class SmirksGenerator(BaseModel):
             target_molecules = [fragment_mol]
             if not fragment_is_parent:
                 # map the bonds to the parent and use both in the cluster graph
-                parent_bonds = [
-                    tuple(fragment_data.fragment_parent_mapping[i] for i in bond)
-                    for bond in bond_group
-                ]
+                parent_bonds = self.get_mapped_valence(
+                    fragment_parent_mapping=fragment_data.fragment_parent_mapping,
+                    valence_group=bond_group,
+                )
                 target_atoms.append(parent_bonds)
                 target_molecules.append(fragment_data.parent_molecule)
 
@@ -290,12 +281,7 @@ class SmirksGenerator(BaseModel):
             new_smirks = BespokeBondSmirks(
                 smirks=smirks, k=0, length=0, atoms=bond_group
             )
-            if new_smirks not in bond_smirks:
-                bond_smirks.append(new_smirks)
-            else:
-                # update the covered atoms
-                index = bond_smirks.index(new_smirks)
-                bond_smirks[index].atoms.add(bond_group)
+            bond_smirks.append(new_smirks)
 
         return bond_smirks
 
@@ -316,15 +302,14 @@ class SmirksGenerator(BaseModel):
 
         for angle_group in angle_groups:
             target_atoms = [angle_group]
-            target_molecules = [fragment_data.parent_molecule]
+            target_molecules = [fragment_mol]
             if not fragment_is_parent:
-                parent_angles = [
-                    tuple(fragment_data.fragment_parent_mapping[i] for i in angle)
-                    for angle in angle_group
-                ]
+                parent_angles = self.get_mapped_valence(
+                    fragment_parent_mapping=fragment_data.fragment_parent_mapping,
+                    valence_group=angle_group,
+                )
                 target_atoms.append(parent_angles)
                 target_molecules.append(fragment_data.parent_molecule)
-
             smirks = self._get_new_cluster_graph_smirks(
                 atoms=target_atoms, molecules=target_molecules
             )
@@ -335,12 +320,7 @@ class SmirksGenerator(BaseModel):
                 angle=0,
                 atoms=angle_group,
             )
-            if new_smirks not in angle_smirks:
-                angle_smirks.append(new_smirks)
-            else:
-                # update the covered atoms
-                index = angle_smirks.index(new_smirks)
-                angle_smirks[index].atoms.add(angle_group)
+            angle_smirks.append(new_smirks)
 
         return angle_smirks
 
@@ -382,13 +362,8 @@ class SmirksGenerator(BaseModel):
                 smirks=smirks,
                 atoms=torsion_group,
             )
-            if new_smirks not in torsion_smirks:
-                torsion_smirks.append(new_smirks)
-            else:
-                # update the covered atoms
-                index = torsion_smirks.index(new_smirks)
-                for torsion in torsion_group:
-                    torsion_smirks[index].atoms.add(torsion)
+
+            torsion_smirks.append(new_smirks)
 
         return torsion_smirks
 
@@ -536,3 +511,24 @@ class SmirksGenerator(BaseModel):
                 valence_by_symmetry[valence_symmetry_class].append(term)
 
         return valence_by_symmetry
+
+    @classmethod
+    def get_mapped_valence(
+        cls,
+        fragment_parent_mapping: Dict[int, int],
+        valence_group: List[Tuple[int, ...]],
+    ) -> List[Tuple[int, ...]]:
+        """
+        Generate a list of parent valence terms from the fragment parent mapping and a list of fragment valence terms.
+
+        Important:
+            Any terms which are missing in the parent are dropped.
+        """
+        parent_terms = []
+        for term in valence_group:
+            try:
+                parent_valence = tuple(fragment_parent_mapping[i] for i in term)
+                parent_terms.append(parent_valence)
+            except KeyError:
+                pass
+        return parent_terms
