@@ -7,6 +7,7 @@ import shutil
 import subprocess
 
 import pytest
+from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import Status
@@ -15,7 +16,6 @@ from openff.bespokefit.schema.results import (
     BespokeOptimizationResults,
     OptimizationResults,
 )
-from openff.bespokefit.utilities import get_data_file_path, temporary_cd
 
 
 @pytest.fixture()
@@ -23,7 +23,9 @@ def forcebalance_results_directory(tmpdir):
 
     # copy the file over
     shutil.copy(
-        get_data_file_path(os.path.join("test", "force-balance", "complete.out")),
+        get_data_file_path(
+            os.path.join("test", "force-balance", "complete.out"), "openff.bespokefit"
+        ),
         os.path.join(tmpdir, "optimize.out"),
     )
 
@@ -32,7 +34,9 @@ def forcebalance_results_directory(tmpdir):
     os.makedirs(results_folder, exist_ok=True)
 
     shutil.copy(
-        get_data_file_path(os.path.join("test", "force-fields", "bespoke.offxml")),
+        get_data_file_path(
+            os.path.join("test", "force-fields", "bespoke.offxml"), "openff.bespokefit"
+        ),
         os.path.join(results_folder, "force-field.offxml"),
     )
 
@@ -91,7 +95,9 @@ def test_forcebalance_read_output(output):
 
         # copy the file over
         shutil.copy(
-            get_data_file_path(os.path.join("test", "force-balance", file_name)),
+            get_data_file_path(
+                os.path.join("test", "force-balance", file_name), "openff.bespokefit"
+            ),
             "optimize.out",
         )
 

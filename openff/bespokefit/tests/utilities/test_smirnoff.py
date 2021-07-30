@@ -7,6 +7,7 @@ import pytest
 from openff.qcsubmit.testing import temp_directory
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.schema.bespoke.smirks import (
     BespokeAngleSmirks,
@@ -15,7 +16,6 @@ from openff.bespokefit.schema.bespoke.smirks import (
     BespokeTorsionSmirks,
     BespokeTorsionTerm,
 )
-from openff.bespokefit.utilities import get_data_file_path
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
@@ -191,7 +191,9 @@ def test_label_molecule():
 
     ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
     ethane = Molecule.from_file(
-        file_path=get_data_file_path(os.path.join("test", "molecules", "ethane.sdf")),
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "ethane.sdf"), "openff.bespokefit"
+        ),
         file_format="sdf",
     )
 

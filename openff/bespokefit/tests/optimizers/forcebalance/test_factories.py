@@ -6,6 +6,7 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.utilities import temporary_cd
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
@@ -22,7 +23,6 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.bespokefit.utilities import temporary_cd
 
 
 def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.array]]:

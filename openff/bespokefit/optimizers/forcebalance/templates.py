@@ -3,6 +3,7 @@ import os
 from typing import Dict, Generic, List, Set, TypeVar
 
 from jinja2 import Template
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
@@ -12,7 +13,6 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
-from openff.bespokefit.utilities import get_data_file_path
 
 T = TypeVar("T", bound=TargetSchema)
 
@@ -31,7 +31,8 @@ class BaseTargetTemplate(Generic[T]):
     def generate(cls, schema: T, target_names: List[str]) -> str:
 
         template_file_name = get_data_file_path(
-            os.path.join("templates", "force-balance", cls.template_name())
+            os.path.join("templates", "force-balance", cls.template_name()),
+            "openff.bespokefit",
         )
 
         with open(template_file_name) as file:
@@ -87,7 +88,8 @@ class OptGeoOptionsTemplate:
     def generate(cls, target: OptGeoTargetSchema, record_ids: List[str]) -> str:
 
         template_file_name = get_data_file_path(
-            os.path.join("templates", "force-balance", "opt-geo-options.txt")
+            os.path.join("templates", "force-balance", "opt-geo-options.txt"),
+            "openff.bespokefit",
         )
 
         with open(template_file_name) as file:
@@ -109,7 +111,8 @@ class InputOptionsTemplate:
     ) -> str:
 
         template_file_name = get_data_file_path(
-            os.path.join("templates", "force-balance", "optimize.txt")
+            os.path.join("templates", "force-balance", "optimize.txt"),
+            "openff.bespokefit",
         )
 
         with open(template_file_name) as file:

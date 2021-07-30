@@ -4,6 +4,8 @@ import os
 import subprocess
 from typing import Any, Dict
 
+from openff.utilities.provenance import get_ambertools_version
+
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory
 from openff.bespokefit.optimizers.model import BaseOptimizer, OptimizerResultsType
 from openff.bespokefit.schema.fitting import (
@@ -22,10 +24,6 @@ from openff.bespokefit.schema.targets import (
     OptGeoTargetSchema,
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
-)
-from openff.bespokefit.utilities.provenance import (
-    get_ambertools_version,
-    get_openeye_versions,
 )
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
@@ -57,8 +55,14 @@ class ForceBalanceOptimizer(BaseOptimizer):
         versions = {
             "forcebalance": forcebalance.__version__,
             "openff.toolkit": openff.toolkit.__version__,
-            **get_openeye_versions(),
         }
+
+        try:
+            import openeye
+
+            versions["openeye"] = openeye.__version__
+        except ImportError:
+            pass
 
         ambertools_version = get_ambertools_version()
 
