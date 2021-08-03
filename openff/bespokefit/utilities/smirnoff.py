@@ -115,6 +115,7 @@ class ForceFieldEditor:
             no_params = len(current_params)
             for i, parameter in enumerate(parameters, start=2):
                 smirk_data = parameter.to_off_smirks()
+                print(smirk_data)
                 if not parameterize:
                     del smirk_data["parameterize"]
                 # check if the parameter is new
