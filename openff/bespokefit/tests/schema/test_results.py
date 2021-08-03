@@ -2,6 +2,7 @@ import copy
 import os
 
 from openff.utilities import get_data_file_path
+from simtk import unit
 
 from openff.bespokefit.schema.fitting import Status
 from openff.bespokefit.schema.results import BespokeOptimizationResults
@@ -9,6 +10,9 @@ from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 def test_bespoke_get_final_force_field(bespoke_optimization_schema):
+    """
+    Make sure force constants bellow the drop out value are zeroed in the final force field.
+    """
 
     # TODO: This should be more comprehensively tested.
 
@@ -28,5 +32,7 @@ def test_bespoke_get_final_force_field(bespoke_optimization_schema):
         final_smirks=final_smirks,
     )
 
-    final_force_field = results.get_final_force_field(generate_bespoke_terms=False)
-    assert final_force_field is not None
+    final_force_field = results.get_final_force_field(drop_out_value=1)
+    assert final_force_field.get_parameter_handler("ProperTorsions")[
+        final_smirks[0].smirks
+    ].k1 == unit.Quantity(0, unit.kilocalorie_per_mole)
