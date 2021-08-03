@@ -101,8 +101,14 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
             print("launching forcebalance")
 
+            current_env = os.environ
+            current_env["ENABLE_FB_SMIRNOFF_CACHING"] = "false"
             subprocess.run(
-                "ForceBalance optimize.in", shell=True, stdout=log, stderr=log
+                "ForceBalance optimize.in",
+                shell=True,
+                stdout=log,
+                stderr=log,
+                env=current_env,
             )
 
             results = cls._collect_results("", schema=schema)
