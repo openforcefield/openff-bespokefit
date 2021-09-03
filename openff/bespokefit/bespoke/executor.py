@@ -139,7 +139,7 @@ class Executor:
         logger.info("Generating Bespokefit task queue")
         # generate the initial task queue of collection tasks
         self.create_input_task_queue(optimizations)
-        logger.debug(f"Queue now contains {self.collection_queue.qsize()} tasks")
+        logger.debug("Queue now contains tasks")
 
         return self._execute(server=server, client=client)
 
