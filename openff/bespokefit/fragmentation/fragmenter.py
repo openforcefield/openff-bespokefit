@@ -62,7 +62,9 @@ class WBOFragmenter(FragmentEngine):
 
         try:
             # fragment the molecule
-            result = fragment_factory.fragment(molecule=molecule)
+            result = fragment_factory.fragment(
+                molecule=molecule, target_bond_smarts=self.target_bond_smarts
+            )
             fragments = self.build_fragment_data(result=result)
 
         except RuntimeError:
@@ -94,7 +96,9 @@ class PfizerFragmenter(FragmentEngine):
 
         try:
             # fragment the molecule
-            result = fragment_factory.fragment(molecule=molecule)
+            result = fragment_factory.fragment(
+                molecule=molecule, target_bond_smarts=self.target_bond_smarts
+            )
             fragments = self.build_fragment_data(result=result)
 
         except RuntimeError:

@@ -224,7 +224,7 @@ def test_label_molecule():
                 ),
                 {
                     "length": "1.520375903275 * angstrom",
-                    "k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie",
+                    "k": "531.137373861 * angstrom**-2 * mole**-1 * kilocalorie",
                 },
             ),
             id="Bond smirks",

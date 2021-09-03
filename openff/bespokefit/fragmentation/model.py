@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
 from openff.utilities.provenance import get_ambertools_version
+from pydantic import Field
 from typing_extensions import Literal
 
 from openff.bespokefit.schema.bespoke import FragmentSchema
@@ -52,6 +53,12 @@ class FragmentEngine(ClassBase, abc.ABC):
     """
 
     type: Literal["FragmentEngine"] = "FragmentEngine"
+    target_bond_smarts: Optional[List[str]] = Field(
+        None,
+        description="An optional list of SMARTS patterns that should be used to identify"
+        "the rotatable bonds to fragment around. If ``None`` is passed this will default to all"
+        "none terminal rotatable bonds.",
+    )
 
     @classmethod
     @abc.abstractmethod

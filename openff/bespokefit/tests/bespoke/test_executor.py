@@ -2,30 +2,30 @@
 Tests for the executor class which runs and error cycles and optimizations.
 The test are set out in
 """
-from openff.utilities import temporary_cd
 from qcportal import FractalClient
 
 from openff.bespokefit.bespoke import Executor
 
 
-def test_optimizer_explicit(bespoke_optimization_schema, qc_torsion_drive_results):
+def test_optimizer_explicit(
+    tmpdir, bespoke_optimization_schema, qc_torsion_drive_results
+):
     """
     Run the optimizer process in the main thread to make sure it works.
     """
 
-    # now make the schema
-    schema = bespoke_optimization_schema
-    schema.update_with_results(results=qc_torsion_drive_results.to_records())
+    with tmpdir.as_cwd():
+        # now make the schema
+        schema = bespoke_optimization_schema
+        schema.update_with_results(results=qc_torsion_drive_results.to_records())
 
-    # now submit to the executor
-    execute = Executor()
+        # now submit to the executor
+        execute = Executor()
 
-    # we dont need the server here
-    # put a task in the opt queue then kill it
-    execute.total_tasks = 1
-    execute.opt_queue.put(schema)
-
-    with temporary_cd():
+        # we dont need the server here
+        # put a task in the opt queue then kill it
+        execute.total_tasks = 1
+        execute.opt_queue.put(schema)
 
         execute.optimizer()
 
@@ -33,10 +33,10 @@ def test_optimizer_explicit(bespoke_optimization_schema, qc_torsion_drive_result
         result_schema = execute.finished_tasks.get()
         smirks = result_schema.final_smirks
 
-    # make sure they have been updated
-    for smirk in smirks:
-        for term in smirk.terms.values():
-            assert float(term.k.split()[0]) != 1e-5
+        # make sure they have been updated
+        for smirk in smirks:
+            for term in smirk.terms.values():
+                assert float(term.k.split()[0]) != 1e-5
 
 
 # def test_full_run_xtb(fractal_compute_server):

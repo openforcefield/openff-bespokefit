@@ -393,7 +393,7 @@ def test_smirks_equal(smirks):
                     smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, length=0, k=0
                 ),
                 {
-                    "k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie",
+                    "k": "531.137373861 * angstrom**-2 * mole**-1 * kilocalorie",
                     "length": "1.520375903275 * angstrom",
                 },
             ),
