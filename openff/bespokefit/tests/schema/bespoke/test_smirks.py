@@ -419,11 +419,10 @@ def test_smirks_equal(smirks):
                     terms={"1": BespokeTorsionTerm(periodicity=1)},
                 ),
                 {
-                    "terms": {
-                        "3": BespokeTorsionTerm(
-                            periodicity=3, phase=0.0, k=0.2042684902198, idivf=1
-                        )
-                    }
+                    "periodicity": 3,
+                    "phase": 0.0,
+                    "k": 0.2042684902198,
+                    "idivf": 1,
                 },
             ),
             id="Update torsion smirks",
@@ -440,5 +439,12 @@ def test_update_parameters(smirks_data):
     # all input smirks have parameters set to 0
     off_parameter = ff.get_parameter_handler(smirk.type).parameters[smirk.smirks]
     smirk.update_parameters(off_smirk=off_parameter)
-    for param, value in result.items():
-        assert float(getattr(smirk, param).split()[0]) == pytest.approx(value)
+
+    if smirk.type.value != "ProperTorsions":
+        for param, value in result.items():
+            assert float(getattr(smirk, param).split()[0]) == pytest.approx(value)
+
+    else:
+        term = smirk.terms["3"]
+        for param, value in result.items():
+            assert float(getattr(term, param).split()[0]) == pytest.approx(value)
