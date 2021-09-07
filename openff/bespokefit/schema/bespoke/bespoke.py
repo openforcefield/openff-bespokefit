@@ -51,14 +51,16 @@ class FragmentSchema(SchemaBase):
         )
         molecule = self.molecule
 
-        # now find the first dihedral with no hydrogens,
-        # if none can be found return any
+        # now find the dihedral with the heavest termial atoms
+        target_dihedral = None
+        max_weight = 0
         for dihedral in dihedrals:
-            atoms = [molecule.atoms[i].atomic_number for i in dihedral]
-            if 1 not in atoms:
-                return dihedral
+            weight = sum([molecule.atoms[i].atomic_number for i in dihedral])
+            if weight > max_weight:
+                target_dihedral = dihedral
+                max_weight = weight
 
-        return dihedrals[0]
+        return target_dihedral
 
 
 class MoleculeSchema(SchemaBase):

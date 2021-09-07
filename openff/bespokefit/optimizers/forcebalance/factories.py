@@ -541,8 +541,6 @@ class ForceBalanceInputFactory:
                 "optimization schema which uses a force balance optimizer."
             )
 
-        print("making forcebalance file system in ", root_directory)
-
         # Create the root directory.
         os.makedirs(root_directory, exist_ok=True)
 

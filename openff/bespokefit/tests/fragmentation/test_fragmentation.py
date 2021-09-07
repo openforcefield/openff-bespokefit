@@ -1,7 +1,7 @@
 """
 Test specific fragmentation engines.
 """
-
+import pytest
 from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.fragmentation import PfizerFragmenter, WBOFragmenter
@@ -201,11 +201,31 @@ def test_pfizer_fragmentation():
     assert len(torsions) == 3
 
 
-def test_torsiondrive_fragmentation_fail():
+def test_fragmentation_fail():
     """
-    Test torsiondrive fragmentation when fragmenter can not make a fragment due to no target bonds being found.
+    Make sure no fragments are made with default settings when there are no non-terminal rotatable bonds.
     """
     engine = WBOFragmenter()
     mol = Molecule.from_smiles(smiles="BrCO")
     fragment_data = engine.fragment(molecule=mol)
     assert len(fragment_data) == 0
+
+
+@pytest.mark.parametrize(
+    "fragment_engine",
+    [
+        pytest.param(WBOFragmenter, id="WBO"),
+        pytest.param(PfizerFragmenter, id="Pfizer"),
+    ],
+)
+def test_fragmentation_target_bonds(fragment_engine):
+    """
+    Make sure we can make fragments whe we pass a new target torsion SMIRKS pattern.
+    """
+    engine = fragment_engine()
+    engine.target_bond_smarts = [
+        "[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]",
+    ]
+    mol = Molecule.from_smiles("BrCO")
+    fragment_data = engine.fragment(molecule=mol)
+    assert len(fragment_data) == 1

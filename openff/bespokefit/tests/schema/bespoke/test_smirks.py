@@ -381,8 +381,8 @@ def test_smirks_equal(smirks):
                     smirks="[#53X0-1:1]", atoms={(0,)}, epsilon=0, rmin_half=0
                 ),
                 {
-                    "epsilon": "0.0536816 * mole**-1 * kilocalorie",
-                    "rmin_half": "2.86 * angstrom",
+                    "epsilon": 0.0536816,
+                    "rmin_half": 2.86,
                 },
             ),
             id="Update atom smirks",
@@ -393,8 +393,8 @@ def test_smirks_equal(smirks):
                     smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, length=0, k=0
                 ),
                 {
-                    "k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie",
-                    "length": "1.520375903275 * angstrom",
+                    "k": 531.137373861,
+                    "length": 1.520375903275,
                 },
             ),
             id="Update bond smirks",
@@ -405,8 +405,8 @@ def test_smirks_equal(smirks):
                     smirks="[*:1]~[#6X4:2]-[*:3]", atoms={(0, 1, 2)}, angle=0, k=0
                 ),
                 {
-                    "angle": "107.6607821752 * degree",
-                    "k": "101.7373362367 * mole**-1 * radian**-2 * kilocalorie",
+                    "angle": 107.6607821752,
+                    "k": 101.7373362367,
                 },
             ),
             id="Update angle smirks",
@@ -419,11 +419,10 @@ def test_smirks_equal(smirks):
                     terms={"1": BespokeTorsionTerm(periodicity=1)},
                 ),
                 {
-                    "terms": {
-                        "3": BespokeTorsionTerm(
-                            periodicity=3, phase=0.0, k=0.2042684902198, idivf=1
-                        )
-                    }
+                    "periodicity": 3,
+                    "phase": 0.0,
+                    "k": 0.2042684902198,
+                    "idivf": 1,
                 },
             ),
             id="Update torsion smirks",
@@ -440,5 +439,12 @@ def test_update_parameters(smirks_data):
     # all input smirks have parameters set to 0
     off_parameter = ff.get_parameter_handler(smirk.type).parameters[smirk.smirks]
     smirk.update_parameters(off_smirk=off_parameter)
-    for param, value in result.items():
-        assert getattr(smirk, param) == value
+
+    if smirk.type.value != "ProperTorsions":
+        for param, value in result.items():
+            assert float(getattr(smirk, param).split()[0]) == pytest.approx(value)
+
+    else:
+        term = smirk.terms["3"]
+        for param, value in result.items():
+            assert float(getattr(term, param).split()[0]) == pytest.approx(value)

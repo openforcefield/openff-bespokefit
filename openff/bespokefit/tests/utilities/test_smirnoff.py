@@ -211,8 +211,8 @@ def test_label_molecule():
                     smirks="[#1:1]", atoms={(0,)}, epsilon=0.01, rmin_half=3
                 ),
                 {
-                    "epsilon": "0.0157 * mole**-1 * kilocalorie",
-                    "rmin_half": "0.6 * angstrom",
+                    "epsilon": 0.0157,
+                    "rmin_half": 0.6,
                 },
             ),
             id="Atom smirks",
@@ -223,8 +223,8 @@ def test_label_molecule():
                     smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, k=100, length=2
                 ),
                 {
-                    "length": "1.520375903275 * angstrom",
-                    "k": "531.1373738609999 * angstrom**-2 * mole**-1 * kilocalorie",
+                    "length": 1.520375903275,
+                    "k": 531.137373861,
                 },
             ),
             id="Bond smirks",
@@ -235,8 +235,8 @@ def test_label_molecule():
                     smirks="[*:1]~[#6X4:2]-[*:3]", atoms={(0, 1, 2)}, k=100, angle=120
                 ),
                 {
-                    "angle": "107.6607821752 * degree",
-                    "k": "101.7373362367 * mole**-1 * radian**-2 * kilocalorie",
+                    "angle": 107.6607821752,
+                    "k": 101.7373362367,
                 },
             ),
             id="Angle smirks",
@@ -249,8 +249,8 @@ def test_label_molecule():
                     terms={"3": BespokeTorsionTerm(periodicity=3)},
                 ),
                 {
-                    "k": "0.2042684902198 * mole**-1 * kilocalorie",
-                    "phase": "0.0 * degree",
+                    "k": 0.2042684902198,
+                    "phase": 0.0,
                 },
             ),
             id="Torsion smirks",
@@ -272,9 +272,9 @@ def test_updating_smirks(smirks_data):
 
     if smirks.type.value != "ProperTorsions":
         for param, value in updated_params.items():
-            assert getattr(smirks, param) == value
+            assert float(getattr(smirks, param).split()[0]) == pytest.approx(value)
 
     else:
         term = smirks.terms["3"]
         for param, value in updated_params.items():
-            assert getattr(term, param) == value
+            assert float(getattr(term, param).split()[0]) == pytest.approx(value)

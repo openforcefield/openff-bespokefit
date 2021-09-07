@@ -1,5 +1,6 @@
 import copy
 import importlib
+import logging
 import os
 import subprocess
 from typing import Any, Dict
@@ -26,6 +27,8 @@ from openff.bespokefit.schema.targets import (
     VibrationTargetSchema,
 )
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
+
+logger = logging.getLogger(__name__)
 
 
 class ForceBalanceOptimizer(BaseOptimizer):
@@ -90,7 +93,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         method.
         """
 
-        print("making new fb folders in", root_directory)
+        logger.info("making new fb folders in", root_directory)
         ForceBalanceInputFactory.generate(root_directory, schema)
 
     @classmethod
@@ -99,7 +102,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         # execute forcebalanace to fit the molecule
         with open("log.txt", "w") as log:
 
-            print("launching forcebalance")
+            logger.debug("Launching Forcebalance")
 
             current_env = os.environ
             current_env["ENABLE_FB_SMIRNOFF_CACHING"] = "false"
@@ -113,7 +116,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
             results = cls._collect_results("", schema=schema)
 
-        print("OPT finished in folder", os.getcwd())
+        logger.debug("OPT finished in folder", os.getcwd())
         return results
 
     @classmethod

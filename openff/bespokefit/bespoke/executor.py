@@ -1,3 +1,4 @@
+import logging
 import time
 from multiprocessing import Process, Queue
 from typing import TYPE_CHECKING, Collection, Dict, List, Optional, Tuple, Union
@@ -14,10 +15,10 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.qcsubmit.serializers import serialize
-from qcfractal.interface import FractalClient
-from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
-from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+from qcportal import FractalClient
 from qcportal.models import ObjectId
+from qcportal.models.records import OptimizationRecord, ResultRecord
+from qcportal.models.torsiondrive import TorsionDriveRecord
 
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.data import BespokeQCData
@@ -26,6 +27,9 @@ from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 if TYPE_CHECKING:
     from qcfractal import FractalServer
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 QCResultCollection = Union[
     TorsionDriveResultCollection,
@@ -103,7 +107,7 @@ class Executor:
         self.total_tasks = len(optimizations)
 
         # get the input datasets
-        print("Searching for reference tasks")
+        logger.info("Searching for reference tasks")
 
         input_datasets_per_type = {}
 
@@ -121,23 +125,22 @@ class Executor:
         input_datasets = [*input_datasets_per_type.values()]
 
         if len(input_datasets) > 0:
-            print("Reference tasks found generating input datasets")
+            logger.info("Reference tasks found generating input QCSubmit datasets")
             # now generate a mapping between the hash and the dataset entry
-            print("generating task map")
+            logger.debug("Generating task map")
             self.generate_dataset_task_map(datasets=input_datasets)
-            print("connecting to qcfractal")
             server, client = self.activate_client(client=client)
-            print("submitting new tasks")
+            logger.info(f"Connected to QCFractal with address {client.address}")
+            logger.info("Submitting tasks to the queue")
             responses = self.submit_datasets(datasets=input_datasets, client=client)
-            print("client response")
-            print(responses)
+            logger.info(f"The client response {responses}")
         else:
-            print("No reference tasks found... Not connecting to qcfractal")
+            logger.info("No reference tasks found. Not connecting to QCFractal")
             server, client = None, None
-        print("generating collection task queue ...")
+        logger.info("Generating Bespokefit task queue")
         # generate the initial task queue of collection tasks
         self.create_input_task_queue(optimizations)
-        print("task queue now contains tasks.")
+        logger.debug("Queue now contains tasks")
 
         return self._execute(server=server, client=client)
 
@@ -147,7 +150,7 @@ class Executor:
         client: Optional[FractalClient],
     ) -> List[BespokeOptimizationResults]:
 
-        print("starting main executor ...")
+        logger.info("Starting main executor")
         # start the error cycle process
         jobs = []
         error_p = Process(target=self.error_cycle, args=(server, client))
@@ -162,23 +165,27 @@ class Executor:
         for job in jobs:
             job.join(timeout=5)
 
-        print("starting to collect finished tasks")
+        logger.info("Waiting for finished tasks")
         task_results = []
 
         while True:
             # here we need to watch for results on the parent process
-            print("collecting complete tasks...")
             task_result = self.finished_tasks.get()
-            print("Found a complete task")
             task_results.append(task_result)
-            print("tasks to do ", self.total_tasks)
+            serialize(
+                {
+                    result.input_schema.id: result.json(indent=2)
+                    for result in task_results
+                },
+                file_name="final_results.json.xz",
+            )
             self.total_tasks -= 1
-            print("tasks left", self.total_tasks)
+            logger.info(f"Tasks left {self.total_tasks}")
             if self.total_tasks == 0:
-                print("breaking out of task updates")
+                logger.info("All tasks finished shutting down...")
                 break
 
-        print("all tasks done exporting to file.")
+        logger.info("All tasks done exporting to file.")
         serialize(
             {result.input_schema.id: result.json(indent=2) for result in task_results},
             file_name="final_results.json.xz",
@@ -205,9 +212,10 @@ class Executor:
         else:
             from qcfractal import FractalSnowflake
 
+            print("building new snowflake")
+
             # TODO fix to spin up workers with settings
             server = FractalSnowflake(max_workers=self.max_workers)
-            print(server)
             client = server.client()
 
             return server, client
@@ -279,10 +287,11 @@ class Executor:
         Specific error cycling for a given task.
         """
 
-        print("task molecule name ", task.id)
+        logger.info(f"Error cycling task with id {task.id}")
         # keep track of any records that should be collected
         to_collect = {"torsion1d": {}, "optimization": {}, "hessian": {}}
         # loop through each target and loop for tasks to update
+        restart_cap = False
         for target in task.targets:
 
             if not isinstance(target.reference_data, BespokeQCData):
@@ -299,7 +308,6 @@ class Executor:
                 # now for each one we want to query the archive and their status
                 task_hash = entry.get_task_hash()
                 entry_id = self.task_map[task_hash]
-                print("pulling record for ", entry_id)
                 record = self.get_record(
                     dataset=dataset,
                     spec=target.reference_data.qc_spec,
@@ -313,47 +321,48 @@ class Executor:
                 elif record.status.value == "ERROR":
                     # save the error into the task
                     task.error_message = record.get_error()
-                    print(
-                        f"The task {task.id} has errored with attempting restart. Error message:",
-                        task.error_message,
+                    logger.warning(
+                        f"The task {task.id} has errored, attempting restart. Error message {task.error_message}"
                     )
                     # update the restart count
                     if task_hash not in self.retries:
                         self.retries[task_hash] = 1
                     else:
                         self.retries[task_hash] += 1
-                    if self.retries[task_hash] == self.max_retires:
-                        # mark as errored
-                        task.status = Status.CollectionError
-                    else:
+                    if self.retries[task_hash] < self.max_retires:
                         # restart the job
                         self.restart_archive_record(task=record, client=client)
-                        task.status = Status.ErrorCycle
+                    else:
+                        # we have hit the restart cap so remove the task
+                        restart_cap = True
                 else:
                     # the task is incomplete let it run
                     continue
 
         # if we have values to collect update the task here
         if any(to_collect.values()):
-            print("collecting results for ", to_collect)
+            logger.info("Collecting complete QCFractal data")
             self.collect_task_results(task, to_collect, client)
 
         # now we should look for new tasks to submit
-        print("looking for new reference tasks ...")
+        logger.info("Looking for new QCFractal tasks to submit")
         if task.get_task_map():
             response = self.submit_new_tasks(task, client=client)
-            print("response of new tasks ... ", response)
+            logger.info(f"New tasks submitted with response {response}")
 
-        print("checking for optimizations to run ...")
+        logger.info("Checking for new optimization tasks")
         if task.ready_for_fitting:
             # the molecule is done pas to the opt queue to be removed
             self.opt_queue.put(task)
 
-        elif task.status == Status.CollectionError:
-            # one of the collection entries has filed so pass to opt which will fail
+        elif restart_cap:
+            # one of the collection entries has failed so pass to opt which will fail
+            logger.warning(
+                f"A task with id {task.id} has failed {self.max_retires} times and is being removed"
+            )
             self.opt_queue.put(task)
         else:
-            print("task not finished putting back into the queue.")
+            logger.info(f"Task with id {task.id} is still running")
             # the molecule is not finished and not ready for opt error cycle again
             self.collection_queue.put(task)
 
@@ -365,10 +374,10 @@ class Executor:
         """
 
         while True:
-            print("pulling task from collection queue")
+            logger.info("Searching for QCFractal task")
             task = self.collection_queue.get()
             if isinstance(task, str):
-                print("the collection queue is ending now")
+                logger.info("QCFactal queue complete")
                 # this is the kill message so kill the worker
                 # try and kill the server if it is a snowflake
                 try:
@@ -445,13 +454,6 @@ class Executor:
             if len(records) == 0:
                 continue
 
-            # Retrieve a copy of the dataset so we can match entry indices to actual
-            # result record ids
-            qc_dataset = client.get_collection(
-                collection_type=self._dataset_type_mapping[dataset_type],
-                name=self._dataset_name,
-            )
-
             result_type = dataset_types[dataset_type.lower()]
 
             for spec_name, entries in records.items():
@@ -461,17 +463,6 @@ class Executor:
                     datasets=[self._dataset_name],
                     spec_name=spec_name,
                 )
-
-                entry_record_ids = [
-                    qc_dataset.data.records[entry].object_map[spec_name]
-                    for entry in entries
-                ]
-
-                results.entries[client.address] = [
-                    entry
-                    for entry in results.entries[client.address]
-                    if entry.record_id in entry_record_ids
-                ]
 
                 result_collections.append(results)
 
@@ -486,7 +477,7 @@ class Executor:
         Take a record and dispatch the type of restart to be done.
         """
         if task.__class__ == ResultRecord:
-            print("restarting basic ...")
+            logger.debug("Restarting basic task")
             self.restart_basic(
                 [
                     task.id,
@@ -494,7 +485,7 @@ class Executor:
                 client=client,
             )
         elif task.__class__ == OptimizationRecord:
-            print("restarting optimizations ...")
+            logger.debug("Restarting optimization")
             self.restart_optimizations(
                 [
                     task.id,
@@ -502,7 +493,7 @@ class Executor:
                 client=client,
             )
         else:
-            print("restarting torsiondrives and optimizations ...")
+            logger.debug("Restarting torsiondrives and optimizations ...")
             # we need the optimization ids first
             td_opts = []
             for optimizations in task.optimization_history.values():
@@ -547,37 +538,33 @@ class Executor:
         """
         Monitors the optimizer queue and runs any tasks that arrive in the list.
         """
-        import warnings
 
         sent_tasks = 0
         while True:
-            print("looking for task in queue")
             task: BespokeOptimizationSchema = self.opt_queue.get()
-            print("found optimizer task for ", task.id)
+            logger.info(f"Found Bespokefit task with id {task.id}")
 
             # make sure it is ready for fitting
             if task.ready_for_fitting:
                 # now we need to set up the optimizer
-                print("preparing to optimize")
+                logger.debug(f"Sending task for optimization {task.id}")
                 optimizer_class = get_optimizer(optimizer_name=task.optimizer.type)
-                print("sending task for optimization")
                 result = optimizer_class.optimize(
                     schema=task, keep_files=self.keep_files
                 )
                 if result.status == Status.ConvergenceError:
-                    warnings.warn(
+                    logger.warning(
                         f"The optimization {result.input_schema.id} failed to converge "
                         f"the best results were still collected.",
-                        UserWarning,
                     )
                 # check for running QM tasks
                 if task.get_task_map():
-                    print("putting back into collect queue")
+                    logger.debug("QCFractal task found putting back into queue")
                     # submit to the collection queue again
                     self.collection_queue.put(task)
                 else:
                     # the task is finished so send it back
-                    print("Finished task")
+                    logger.info(f"Task complete with id {task.id}")
                     self.finished_tasks.put(result)
                     sent_tasks += 1
             else:
@@ -587,6 +574,6 @@ class Executor:
 
             # kill condition
             if sent_tasks == self.total_tasks:
-                print("killing workers")
+                logger.warning("Killing all workers")
                 self.collection_queue.put("END")
                 break
