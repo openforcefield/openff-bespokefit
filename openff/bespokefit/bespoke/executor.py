@@ -15,10 +15,10 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.qcsubmit.serializers import serialize
-from qcfractal.interface import FractalClient
-from qcfractal.interface.models.records import OptimizationRecord, ResultRecord
-from qcfractal.interface.models.torsiondrive import TorsionDriveRecord
+from qcportal import FractalClient
 from qcportal.models import ObjectId
+from qcportal.models.records import OptimizationRecord, ResultRecord
+from qcportal.models.torsiondrive import TorsionDriveRecord
 
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.data import BespokeQCData
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from qcfractal import FractalServer
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 QCResultCollection = Union[
     TorsionDriveResultCollection,
@@ -170,7 +171,6 @@ class Executor:
         while True:
             # here we need to watch for results on the parent process
             task_result = self.finished_tasks.get()
-            logger.info(f"Found finished task with id {task_result.id} saving results")
             task_results.append(task_result)
             serialize(
                 {
@@ -211,6 +211,8 @@ class Executor:
             return client.server_information(), client
         else:
             from qcfractal import FractalSnowflake
+
+            print("building new snowflake")
 
             # TODO fix to spin up workers with settings
             server = FractalSnowflake(max_workers=self.max_workers)
@@ -289,6 +291,7 @@ class Executor:
         # keep track of any records that should be collected
         to_collect = {"torsion1d": {}, "optimization": {}, "hessian": {}}
         # loop through each target and loop for tasks to update
+        restart_cap = False
         for target in task.targets:
 
             if not isinstance(target.reference_data, BespokeQCData):
@@ -326,13 +329,12 @@ class Executor:
                         self.retries[task_hash] = 1
                     else:
                         self.retries[task_hash] += 1
-                    if self.retries[task_hash] == self.max_retires:
-                        # mark as errored
-                        task.status = Status.CollectionError
-                    else:
+                    if self.retries[task_hash] < self.max_retires:
                         # restart the job
                         self.restart_archive_record(task=record, client=client)
-                        task.status = Status.ErrorCycle
+                    else:
+                        # we have hit the restart cap so remove the task
+                        restart_cap = True
                 else:
                     # the task is incomplete let it run
                     continue
@@ -353,10 +355,10 @@ class Executor:
             # the molecule is done pas to the opt queue to be removed
             self.opt_queue.put(task)
 
-        elif task.status == Status.CollectionError:
+        elif restart_cap:
             # one of the collection entries has failed so pass to opt which will fail
             logger.warning(
-                f"A task with id {task.id} has failed {self.retries} times and is being removed"
+                f"A task with id {task.id} has failed {self.max_retires} times and is being removed"
             )
             self.opt_queue.put(task)
         else:
@@ -452,13 +454,6 @@ class Executor:
             if len(records) == 0:
                 continue
 
-            # Retrieve a copy of the dataset so we can match entry indices to actual
-            # result record ids
-            qc_dataset = client.get_collection(
-                collection_type=self._dataset_type_mapping[dataset_type],
-                name=self._dataset_name,
-            )
-
             result_type = dataset_types[dataset_type.lower()]
 
             for spec_name, entries in records.items():
@@ -468,17 +463,6 @@ class Executor:
                     datasets=[self._dataset_name],
                     spec_name=spec_name,
                 )
-
-                entry_record_ids = [
-                    qc_dataset.data.records[entry].object_map[spec_name]
-                    for entry in entries
-                ]
-
-                results.entries[client.address] = [
-                    entry
-                    for entry in results.entries[client.address]
-                    if entry.record_id in entry_record_ids
-                ]
 
                 result_collections.append(results)
 

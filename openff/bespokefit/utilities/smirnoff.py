@@ -100,13 +100,7 @@ class ForceFieldEditor:
         }
         new_params = {}
         for smirk in smirks:
-            if smirk.type not in new_params:
-                new_params[smirk.type] = [
-                    smirk,
-                ]
-            else:
-                if smirk not in new_params[smirk.type]:
-                    new_params[smirk.type].append(smirk)
+            new_params.setdefault(smirk.type, []).append(smirk)
 
         for smirk_type, parameters in new_params.items():
             current_params = self.force_field.get_parameter_handler(
