@@ -1,7 +1,10 @@
+from typing import Any, Dict
+
 import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import TorsiondriveDataset, TorsionDriveEntry
 from openff.toolkit.topology import Molecule
+from pydantic import BaseModel, Field, ValidationError
 from simtk import unit
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
@@ -10,7 +13,7 @@ from openff.bespokefit.schema.bespoke.tasks import (
     TorsionTask,
     TorsionTaskReferenceData,
 )
-from openff.bespokefit.schema.data import BespokeQCData
+from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.tests import does_not_raise
 
 
@@ -131,3 +134,33 @@ def test_get_task_map(ethane_bespoke_data):
 
     task_map = ethane_bespoke_data.get_task_map()
     assert len(task_map) == 1
+
+
+def test_validate_local_data_entries():
+    class MockQCResult(BaseModel):
+        extras: Dict[str, Any] = Field(dict())
+
+    local_data = LocalQCData(
+        qc_records=[
+            MockQCResult(
+                extras={
+                    "canonical_isomeric_explicit_hydrogen_mapped_smiles": "[Cl:1][H:2]"
+                }
+            )
+        ]
+    )
+    assert len(local_data.qc_records) == 1
+
+    with pytest.raises(
+        ValidationError, match="canonical_isomeric_explicit_hydrogen_mapped_smiles"
+    ):
+        LocalQCData(
+            qc_records=[
+                MockQCResult(
+                    extras={
+                        "canonical_isomeric_explicit_hydrogen_mapped_smiles": "[Cl:1][H:2]"
+                    }
+                ),
+                MockQCResult(),
+            ]
+        )

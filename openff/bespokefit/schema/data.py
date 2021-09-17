@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
@@ -11,7 +11,9 @@ from openff.qcsubmit.datasets import (
 )
 from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveInt, validator
-from qcelemental.models import DriverEnum
+from pydantic.generics import GenericModel
+from qcelemental.models import AtomicResult, DriverEnum, OptimizationResult
+from qcelemental.models.procedures import TorsionDriveResult
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from typing_extensions import Literal
 
@@ -22,6 +24,8 @@ from openff.bespokefit.exceptions import (
 )
 from openff.bespokefit.schema.bespoke.tasks import FittingTask
 from openff.bespokefit.utilities.pydantic import SchemaBase
+
+QCDataType = TypeVar("QCDataType")
 
 
 class BespokeQCData(SchemaBase):
@@ -213,3 +217,26 @@ class BespokeQCData(SchemaBase):
                 hash_map.setdefault(task_hash, []).append(task)
 
         return hash_map
+
+
+class LocalQCData(GenericModel, Generic[QCDataType]):
+
+    type: Literal["local"] = "local"
+
+    qc_records: List[QCDataType] = Field(..., description="A list of local QC results.")
+
+    @validator("qc_records", each_item=True)
+    def validate(cls, v):
+
+        # This seems to be needed to stop pydantic accidentally using this validator
+        # for these other types...
+        if isinstance(v, BespokeQCData):
+            return v
+
+        assert "canonical_isomeric_explicit_hydrogen_mapped_smiles" in v.extras, (
+            "each result must contain an "
+            "`canonical_isomeric_explicit_hydrogen_mapped_smiles` "
+            "entry in the results `extras` field"
+        )
+
+        return v

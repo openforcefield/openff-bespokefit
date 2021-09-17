@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.utilities import temporary_cd
-from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
     AbInitioTargetFactory,
@@ -50,10 +49,13 @@ def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.ar
     return coords, energies, gradients
 
 
+@pytest.mark.parametrize(
+    "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
+)
 @pytest.mark.parametrize("with_gradients", [False, True])
-def test_generate_ab_initio_target(
-    qc_torsion_drive_record: Tuple[TorsionDriveRecord, Molecule], with_gradients
-):
+def test_generate_ab_initio_target(result_fixture, with_gradients, request):
+
+    qc_torsion_drive_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
 
@@ -105,9 +107,12 @@ def test_generate_ab_initio_target(
         #         assert coord == data.molecule.geometry.flatten().tolist()
 
 
-def test_generate_torsion_target(
-    qc_torsion_drive_record: Tuple[TorsionDriveRecord, Molecule]
-):
+@pytest.mark.parametrize(
+    "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
+)
+def test_generate_torsion_target(result_fixture, request):
+
+    qc_torsion_drive_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
 
@@ -139,9 +144,12 @@ def test_generate_torsion_target(
         assert "energy_upper_limit" in metadata
 
 
-def test_generate_optimization_target(
-    qc_optimization_record: Tuple[OptimizationRecord, Molecule]
-):
+@pytest.mark.parametrize(
+    "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
+)
+def test_generate_optimization_target(result_fixture, request):
+
+    qc_optimization_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
 
@@ -159,8 +167,12 @@ def test_generate_optimization_target(
         assert os.path.isfile("optgeo_options.txt")
 
 
-def test_opt_geo_batching(qc_optimization_record: ResultRecord):
+@pytest.mark.parametrize(
+    "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
+)
+def test_opt_geo_batching(result_fixture, request):
 
+    qc_optimization_record = request.getfixturevalue(result_fixture)
     qc_records = [qc_optimization_record] * 120
 
     target_batches = OptGeoTargetFactory._batch_qc_records(
@@ -186,7 +198,13 @@ def test_opt_geo_target_section():
     assert "batch_size" in target_schema.extras
 
 
-def test_generate_vibration_target(qc_hessian_record: Tuple[ResultRecord, Molecule]):
+@pytest.mark.parametrize(
+    "result_fixture", ["qc_hessian_record", "qc_hessian_qce_result"]
+)
+def test_generate_vibration_target(result_fixture, request):
+
+    qc_hessian_record = request.getfixturevalue(result_fixture)
+
     with temporary_cd():
 
         VibrationTargetFactory._generate_target(
