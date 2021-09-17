@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
 from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.datasets import (
@@ -11,6 +11,7 @@ from openff.qcsubmit.datasets import (
 )
 from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveInt, validator
+from pydantic.generics import GenericModel
 from qcelemental.models import DriverEnum
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from typing_extensions import Literal
@@ -22,6 +23,8 @@ from openff.bespokefit.exceptions import (
 )
 from openff.bespokefit.schema.bespoke.tasks import FittingTask
 from openff.bespokefit.utilities.pydantic import SchemaBase
+
+QCDataType = TypeVar("QCDataType")
 
 
 class BespokeQCData(SchemaBase):
@@ -213,3 +216,10 @@ class BespokeQCData(SchemaBase):
                 hash_map.setdefault(task_hash, []).append(task)
 
         return hash_map
+
+
+class LocalQCData(GenericModel, Generic[QCDataType]):
+
+    type: Literal["local"] = "local"
+
+    qc_records: List[QCDataType] = Field(..., description="A list of local QC results.")

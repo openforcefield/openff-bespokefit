@@ -7,9 +7,11 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from pydantic import Field, PositiveFloat, validator
+from qcelemental.models import AtomicResult
+from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from typing_extensions import Literal
 
-from openff.bespokefit.schema.data import BespokeQCData
+from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
@@ -20,7 +22,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         1.0, description="The amount to weight the target by."
     )
 
-    reference_data: Optional[Union[Any, BespokeQCData]]
+    reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData]]
 
     extras: Dict[str, str] = Field(
         {},
@@ -58,7 +60,9 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
     type: Literal["TorsionProfile"] = "TorsionProfile"
 
     reference_data: Optional[
-        Union[TorsionDriveResultCollection, BespokeQCData]
+        Union[
+            LocalQCData[TorsionDriveResult], BespokeQCData, TorsionDriveResultCollection
+        ]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
@@ -85,7 +89,9 @@ class AbInitioTargetSchema(BaseTargetSchema):
     type: Literal["AbInitio"] = "AbInitio"
 
     reference_data: Optional[
-        Union[TorsionDriveResultCollection, BespokeQCData]
+        Union[
+            LocalQCData[TorsionDriveResult], BespokeQCData, TorsionDriveResultCollection
+        ]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
@@ -114,7 +120,9 @@ class VibrationTargetSchema(BaseTargetSchema):
 
     type: Literal["Vibration"] = "Vibration"
 
-    reference_data: Optional[Union[BasicResultCollection, BespokeQCData]] = Field(
+    reference_data: Optional[
+        Union[LocalQCData[AtomicResult], BespokeQCData, BasicResultCollection]
+    ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
@@ -135,7 +143,9 @@ class OptGeoTargetSchema(BaseTargetSchema):
     type: Literal["OptGeo"] = "OptGeo"
 
     reference_data: Optional[
-        Union[OptimizationResultCollection, BespokeQCData]
+        Union[
+            LocalQCData[OptimizationResult], BespokeQCData, OptimizationResultCollection
+        ]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "

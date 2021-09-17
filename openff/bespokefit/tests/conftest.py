@@ -1,3 +1,4 @@
+import json
 from typing import Tuple
 
 import pytest
@@ -11,6 +12,14 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.toolkit.topology import Molecule
+from qcelemental.models import AtomicResult
+from qcelemental.models.common_models import Model, Provenance
+from qcelemental.models.procedures import OptimizationResult as QCOptimizationResult
+from qcelemental.models.procedures import (
+    OptimizationSpecification,
+    QCInputSpecification,
+)
+from qcelemental.models.procedures import TorsionDriveResult as QCTorsionDriveResult
 from qcportal import FractalClient
 from qcportal.models import (
     ObjectId,
@@ -109,6 +118,48 @@ def qc_torsion_drive_results(
     return collection
 
 
+@pytest.fixture()
+def qc_torsion_drive_qce_result(
+    qc_torsion_drive_record,
+) -> Tuple[QCTorsionDriveResult, Molecule]:
+
+    qc_record, molecule = qc_torsion_drive_record
+
+    qc_result = QCTorsionDriveResult(
+        keywords=qc_record.keywords,
+        extras={
+            "id": qc_record.id,
+            "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
+            ),
+        },
+        input_specification=QCInputSpecification(
+            driver=qc_record.qc_spec.driver,
+            model=Model(method=qc_record.qc_spec.method, basis=qc_record.qc_spec.basis),
+        ),
+        initial_molecule=molecule.to_qcschema(),
+        optimization_spec=OptimizationSpecification(
+            procedure=qc_record.optimization_spec.program,
+            keywords=qc_record.optimization_spec.keywords,
+        ),
+        final_energies={
+            json.dumps(key): value
+            for key, value in qc_record.get_final_energies().items()
+        },
+        final_molecules={
+            grid_id: molecule.to_qcschema(conformer=i)
+            for grid_id, i in zip(
+                molecule.properties["grid_ids"], range(len(molecule.conformers))
+            )
+        },
+        optimization_history={},
+        provenance=Provenance(creator="fixture"),
+        success=True,
+    )
+
+    return qc_result, molecule
+
+
 @pytest.fixture(scope="module")
 def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
 
@@ -155,6 +206,36 @@ def qc_optimization_results(
     )
 
     return collection
+
+
+@pytest.fixture()
+def qc_optimization_qce_result(
+    qc_optimization_record,
+) -> Tuple[QCOptimizationResult, Molecule]:
+
+    qc_record, molecule = qc_optimization_record
+
+    qc_result = QCOptimizationResult(
+        keywords=qc_record.keywords,
+        extras={
+            "id": qc_record.id,
+            "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
+            ),
+        },
+        input_specification=QCInputSpecification(
+            driver=qc_record.qc_spec.driver,
+            model=Model(method=qc_record.qc_spec.method, basis=qc_record.qc_spec.basis),
+        ),
+        initial_molecule=molecule.to_qcschema(),
+        energies=qc_record.energies,
+        final_molecule=molecule.to_qcschema(),
+        trajectory=[],
+        provenance=Provenance(creator="fixture"),
+        success=True,
+    )
+
+    return qc_result, molecule
 
 
 @pytest.fixture(scope="module")
@@ -207,6 +288,33 @@ def qc_hessian_results(
     )
 
     return collection
+
+
+@pytest.fixture()
+def qc_hessian_qce_result(
+    qc_hessian_record,
+) -> Tuple[AtomicResult, Molecule]:
+
+    qc_record, molecule = qc_hessian_record
+
+    qc_result = AtomicResult(
+        extras={
+            "id": qc_record.id,
+            "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
+            ),
+            **qc_record.extras,
+        },
+        properties=qc_record.properties,
+        molecule=molecule.to_qcschema(),
+        driver=qc_record.driver,
+        model=Model(method=qc_record.method, basis=qc_record.basis),
+        return_result=qc_record.return_result,
+        provenance=Provenance(creator="fixture"),
+        success=True,
+    )
+
+    return qc_result, molecule
 
 
 @pytest.fixture()

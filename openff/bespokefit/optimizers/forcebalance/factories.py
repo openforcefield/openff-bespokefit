@@ -15,6 +15,7 @@ from openff.qcsubmit.results import (
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.utilities import temporary_cd
+from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
@@ -29,7 +30,7 @@ from openff.bespokefit.optimizers.forcebalance.templates import (
     TorsionProfileTargetTemplate,
     VibrationTargetTemplate,
 )
-from openff.bespokefit.schema.data import BespokeQCData
+from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
@@ -41,6 +42,7 @@ from openff.bespokefit.schema.targets import (
 )
 
 if TYPE_CHECKING:
+    from qcelemental.models import AtomicResult
     from qcelemental.models import Molecule as QCMolecule
 
 logger = logging.getLogger(__name__)
@@ -103,8 +105,13 @@ class _TargetFactory(Generic[T], abc.ABC):
             target.
         """
 
+        def qc_record_id(qc_record):
+            return qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
+
         return {
-            f"{cls._target_name_prefix()}-{qc_record.id}": [(qc_record, molecule)]
+            f"{cls._target_name_prefix()}-{qc_record_id(qc_record)}": [
+                (qc_record, molecule)
+            ]
             for qc_record, molecule in qc_records
         }
 
@@ -150,6 +157,28 @@ class _TargetFactory(Generic[T], abc.ABC):
                 for task in target.reference_data.tasks
             ]
 
+        elif isinstance(target.reference_data, LocalQCData):
+
+            qc_records = []
+
+            for i, qc_result in enumerate(target.reference_data.qc_records):
+
+                qc_result = copy.deepcopy(qc_result)
+                # Assign an id to the **QCElemental** result. This is a dirty way to do
+                # this but I can't think of a cleaner way to handle it...
+                qc_result.extras["id"] = str(i)
+
+                qc_records.append(
+                    (
+                        qc_result,
+                        Molecule.from_mapped_smiles(
+                            qc_result.extras[
+                                "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+                            ]
+                        ),
+                    )
+                )
+
         else:
             raise NotImplementedError()
 
@@ -175,7 +204,11 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
 
     @classmethod
     def _generate_target(
-        cls, target: T, qc_records: List[Tuple[TorsionDriveRecord, Molecule]]
+        cls,
+        target: T,
+        qc_records: List[
+            Tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
+        ],
     ):
 
         from forcebalance.molecule import Molecule as FBMolecule
@@ -186,8 +219,20 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
 
+        qc_record_id = (
+            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
+        )
+
         # form a Molecule object from the first torsion grid data
-        grid_energies = qc_record.get_final_energies()
+        if isinstance(qc_record, TorsionDriveRecord):
+            grid_energies = qc_record.get_final_energies()
+        elif isinstance(qc_record, TorsionDriveResult):
+            grid_energies = {
+                tuple(json.loads(key)): value
+                for key, value in qc_record.final_energies.items()
+            }
+        else:
+            raise NotImplementedError()
 
         grid_conformers = {
             tuple(json.loads(grid_id)): conformer.value_in_unit(unit.angstrom)
@@ -207,7 +252,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
-            "name": f"{qc_record.id}",
+            "name": f"{qc_record_id}",
             "xyzs": [grid_conformers[grid_id] for grid_id in grid_ids],
             "qm_energies": [grid_energies[grid_id] for grid_id in grid_ids],
             "comms": [f"torsion grid {grid_id}" for grid_id in grid_ids],
@@ -253,14 +298,26 @@ class TorsionProfileTargetFactory(
     def _generate_target(
         cls,
         target: TorsionProfileTargetSchema,
-        qc_records: List[Tuple[TorsionDriveRecord, Molecule]],
+        qc_records: List[
+            Tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
+        ],
     ):
         # noinspection PyTypeChecker
         super(TorsionProfileTargetFactory, cls)._generate_target(target, qc_records)
 
         qc_record, off_molecule = qc_records[0]
 
-        grid_ids = sorted(qc_record.get_final_energies(), key=lambda x: x[0])
+        if isinstance(qc_record, TorsionDriveRecord):
+            grid_energies = qc_record.get_final_energies()
+        elif isinstance(qc_record, TorsionDriveResult):
+            grid_energies = {
+                tuple(json.loads(key)): value
+                for key, value in qc_record.final_energies.items()
+            }
+        else:
+            raise NotImplementedError()
+
+        grid_ids = sorted(grid_energies, key=lambda x: x[0])
 
         metadata = qc_record.keywords.dict()
         metadata["torsion_grid_ids"] = [
@@ -331,7 +388,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     @classmethod
     def _create_vdata_file(
         cls,
-        qc_record: ResultRecord,
+        qc_record: Union[ResultRecord, "AtomicResult"],
         qc_molecule: "QCMolecule",
         off_molecule: OFFMolecule,
     ):
@@ -347,10 +404,14 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             off_molecule: An OpenFF representation of the QC molecule.
         """
 
+        qc_record_id = (
+            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
+        )
+
         if qc_record.driver.value != "hessian" or qc_record.return_result is None:
 
             raise QCRecordMissMatchError(
-                f"The QC record with id={qc_record.id} does not contain the gradient "
+                f"The QC record with id={qc_record_id} does not contain the gradient "
                 f"information required by a vibration fitting target."
             )
 
@@ -360,7 +421,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         if np.abs(gradient).max() > 1e-3:
 
             logger.warning(
-                f"the max gradient of record={qc_record.id} is greater than 1e-3"
+                f"the max gradient of record={qc_record_id} is greater than 1e-3"
             )
 
         # Get the list of masses for the molecule to be consistent with ForceBalance
@@ -404,13 +465,16 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     def _generate_target(
         cls,
         target: VibrationTargetSchema,
-        qc_records: List[Tuple[ResultRecord, Molecule]],
+        qc_records: List[Tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
     ):
 
         from forcebalance.molecule import Molecule as FBMolecule
 
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
+        qc_record_id = (
+            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
+        )
 
         fb_molecule = FBMolecule()
         fb_molecule.Data = {
@@ -420,7 +484,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
-            "name": f"{qc_record.id}",
+            "name": f"{qc_record_id}",
             "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
         }
 
@@ -461,7 +525,9 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     def _generate_target(
         cls,
         target: OptGeoTargetSchema,
-        qc_records: List[Tuple[OptimizationRecord, Molecule]],
+        qc_records: List[
+            Tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
+        ],
     ):
 
         from forcebalance.molecule import Molecule as FBMolecule
@@ -470,7 +536,11 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
 
         for i, (qc_record, off_molecule) in enumerate(qc_records):
 
-            record_name = f"{qc_record.id}-{i}"
+            qc_record_id = (
+                qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
+            )
+
+            record_name = f"{qc_record_id}-{i}"
             record_names.append(record_name)
 
             # form a Molecule object from the first torsion grid data
@@ -487,7 +557,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
                 "bonds": [
                     (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
                 ],
-                "name": f"{qc_record.id}",
+                "name": f"{qc_record_id}",
                 "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
             }
 
