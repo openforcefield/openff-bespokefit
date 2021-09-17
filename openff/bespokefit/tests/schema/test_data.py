@@ -1,10 +1,7 @@
-from typing import Any, Dict
-
 import pytest
 from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.qcsubmit.datasets import TorsiondriveDataset, TorsionDriveEntry
 from openff.toolkit.topology import Molecule
-from pydantic import BaseModel, Field, ValidationError
 from simtk import unit
 
 from openff.bespokefit.exceptions import DihedralSelectionError, MoleculeMissMatchError
@@ -13,7 +10,7 @@ from openff.bespokefit.schema.bespoke.tasks import (
     TorsionTask,
     TorsionTaskReferenceData,
 )
-from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
+from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.tests import does_not_raise
 
 
