@@ -134,33 +134,3 @@ def test_get_task_map(ethane_bespoke_data):
 
     task_map = ethane_bespoke_data.get_task_map()
     assert len(task_map) == 1
-
-
-def test_validate_local_data_entries():
-    class MockQCResult(BaseModel):
-        extras: Dict[str, Any] = Field(dict())
-
-    local_data = LocalQCData(
-        qc_records=[
-            MockQCResult(
-                extras={
-                    "canonical_isomeric_explicit_hydrogen_mapped_smiles": "[Cl:1][H:2]"
-                }
-            )
-        ]
-    )
-    assert len(local_data.qc_records) == 1
-
-    with pytest.raises(
-        ValidationError, match="canonical_isomeric_explicit_hydrogen_mapped_smiles"
-    ):
-        LocalQCData(
-            qc_records=[
-                MockQCResult(
-                    extras={
-                        "canonical_isomeric_explicit_hydrogen_mapped_smiles": "[Cl:1][H:2]"
-                    }
-                ),
-                MockQCResult(),
-            ]
-        )

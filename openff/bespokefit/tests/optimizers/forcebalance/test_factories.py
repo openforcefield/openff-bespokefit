@@ -162,7 +162,13 @@ def test_generate_optimization_target(result_fixture, request):
         )
 
         for (index, extension) in itertools.product([0, 1], ["xyz", "sdf", "pdb"]):
-            assert os.path.isfile(f"{qc_optimization_record[0].id}-{index}.{extension}")
+
+            qc_record_id = (
+                qc_optimization_record[0].extras["id"]
+                if "id" in qc_optimization_record[0].extras
+                else qc_optimization_record[0].id
+            )
+            assert os.path.isfile(f"{qc_record_id}-{index}.{extension}")
 
         assert os.path.isfile("optgeo_options.txt")
 
