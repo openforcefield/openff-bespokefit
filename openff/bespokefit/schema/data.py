@@ -12,8 +12,7 @@ from openff.qcsubmit.datasets import (
 from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveInt, validator
 from pydantic.generics import GenericModel
-from qcelemental.models import AtomicResult, DriverEnum, OptimizationResult
-from qcelemental.models.procedures import TorsionDriveResult
+from qcelemental.models import DriverEnum
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from typing_extensions import Literal
 
@@ -224,19 +223,3 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     type: Literal["local"] = "local"
 
     qc_records: List[QCDataType] = Field(..., description="A list of local QC results.")
-
-    @validator("qc_records", each_item=True)
-    def validate(cls, v):
-
-        # This seems to be needed to stop pydantic accidentally using this validator
-        # for these other types...
-        if isinstance(v, BespokeQCData):
-            return v
-
-        assert "canonical_isomeric_explicit_hydrogen_mapped_smiles" in v.extras, (
-            "each result must contain an "
-            "`canonical_isomeric_explicit_hydrogen_mapped_smiles` "
-            "entry in the results `extras` field"
-        )
-
-        return v
