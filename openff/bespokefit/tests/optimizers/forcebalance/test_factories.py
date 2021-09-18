@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.utilities import temporary_cd
+from qcelemental.models.procedures import TorsionDriveResult
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
     AbInitioTargetFactory,
@@ -14,7 +15,9 @@ from openff.bespokefit.optimizers.forcebalance.factories import (
     OptGeoTargetFactory,
     TorsionProfileTargetFactory,
     VibrationTargetFactory,
+    _TargetFactory,
 )
+from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.fitting import OptimizationSchema
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
@@ -47,6 +50,34 @@ def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.ar
                 gradients.append(grad)
 
     return coords, energies, gradients
+
+
+@pytest.mark.parametrize(
+    "result_fixture",
+    [
+        "qc_torsion_drive_qce_result",
+        "qc_optimization_qce_result",
+        "qc_hessian_qce_result",
+    ],
+)
+def test_local_to_qc_records(result_fixture, request):
+
+    qc_result, expected_molecule = request.getfixturevalue(result_fixture)
+    assert expected_molecule.n_conformers >= 1
+
+    [(qc_record, molecule)] = _TargetFactory._local_to_qc_records(
+        LocalQCData(qc_records=[qc_result])
+    )
+
+    assert type(qc_record) == type(qc_result)
+
+    assert molecule.to_smiles() == expected_molecule.to_smiles()
+    assert molecule.n_conformers == expected_molecule.n_conformers
+
+    if isinstance(qc_result, TorsionDriveResult):
+        assert (
+            molecule.properties["grid_ids"] == expected_molecule.properties["grid_ids"]
+        )
 
 
 @pytest.mark.parametrize(

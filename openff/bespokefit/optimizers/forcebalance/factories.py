@@ -15,6 +15,7 @@ from openff.qcsubmit.results import (
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.utilities import temporary_cd
+from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
@@ -42,11 +43,11 @@ from openff.bespokefit.schema.targets import (
 )
 
 if TYPE_CHECKING:
-    from qcelemental.models import AtomicResult
     from qcelemental.models import Molecule as QCMolecule
 
 logger = logging.getLogger(__name__)
 
+R = TypeVar("R", bound=Union[AtomicResult, OptimizationResult, TorsionDriveResult])
 S = TypeVar("S", bound=RecordBase)
 T = TypeVar("T", bound=TargetSchema)
 
@@ -56,6 +57,17 @@ _TARGET_SECTION_TEMPLATES = {
     OptGeoTargetSchema: OptGeoTargetTemplate,
     VibrationTargetSchema: VibrationTargetTemplate,
 }
+
+
+def _standardize_grid_id_str(grid_id: str) -> str:
+    """Ensures a grid id is of the form '[grid_id_1, ...]' rather than 'grid_id_1' as is
+    sometimes the case when using QCEngine.
+    """
+
+    grid_id = json.loads(grid_id)
+    grid_id = [grid_id] if isinstance(grid_id, int) else grid_id
+
+    return json.dumps(grid_id)
 
 
 class _TargetFactory(Generic[T], abc.ABC):
@@ -127,6 +139,64 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
+    def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> List[Tuple[R, Molecule]]:
+        """Converts a 'local' dataset of QCEngine outputs to a list of QC records."""
+        qc_records = []
+
+        for i, qc_result in enumerate(qc_data.qc_records):
+
+            qc_result = qc_result.copy(deep=True)
+            # Assign an id to the **QCElemental** result. This is a dirty way to do
+            # this but I can't think of a cleaner way to handle it...
+            qc_result.extras["id"] = str(i)
+
+            grid_ids = None
+
+            if isinstance(qc_result, AtomicResult):
+
+                cmiles = qc_result.molecule.extras[
+                    "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+                ]
+                geometries = [qc_result.molecule.geometry]
+
+            elif isinstance(qc_result, OptimizationResult):
+
+                cmiles = qc_result.initial_molecule.extras[
+                    "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+                ]
+                geometries = [qc_result.final_molecule.geometry]
+
+            elif isinstance(qc_result, TorsionDriveResult):
+
+                cmiles = qc_result.initial_molecule.extras[
+                    "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+                ]
+
+                geometries = []
+                grid_ids = []
+
+                for grid_id, qc_molecule in qc_result.final_molecules.items():
+
+                    grid_ids.append(_standardize_grid_id_str(grid_id))
+                    geometries.append(qc_molecule.geometry)
+
+            else:
+                raise NotImplementedError()
+
+            molecule: Molecule = Molecule.from_mapped_smiles(cmiles)
+            molecule._conformers = [
+                np.array(geometry, float).reshape(-1, 3) * unit.bohr
+                for geometry in geometries
+            ]
+
+            if grid_ids is not None:
+                molecule.properties["grid_ids"] = grid_ids
+
+            qc_records.append((qc_result, molecule))
+
+        return qc_records
+
+    @classmethod
     def generate(cls, root_directory: Union[str, Path], target: T):
         """Creates the input files for a target schema in a specified directory.
 
@@ -159,25 +229,7 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         elif isinstance(target.reference_data, LocalQCData):
 
-            qc_records = []
-
-            for i, qc_result in enumerate(target.reference_data.qc_records):
-
-                qc_result = copy.deepcopy(qc_result)
-                # Assign an id to the **QCElemental** result. This is a dirty way to do
-                # this but I can't think of a cleaner way to handle it...
-                qc_result.extras["id"] = str(i)
-
-                qc_records.append(
-                    (
-                        qc_result,
-                        Molecule.from_mapped_smiles(
-                            qc_result.extras[
-                                "canonical_isomeric_explicit_hydrogen_mapped_smiles"
-                            ]
-                        ),
-                    )
-                )
+            qc_records = cls._local_to_qc_records(target.reference_data)
 
         else:
             raise NotImplementedError()
@@ -228,7 +280,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             grid_energies = qc_record.get_final_energies()
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(key)): value
+                tuple(json.loads(_standardize_grid_id_str(key))): value
                 for key, value in qc_record.final_energies.items()
             }
         else:
@@ -311,7 +363,7 @@ class TorsionProfileTargetFactory(
             grid_energies = qc_record.get_final_energies()
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(key)): value
+                tuple(json.loads(_standardize_grid_id_str(key))): value
                 for key, value in qc_record.final_energies.items()
             }
         else:
