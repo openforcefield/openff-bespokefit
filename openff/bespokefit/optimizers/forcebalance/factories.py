@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generic, List, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, Generic, List, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 from openff.qcsubmit.results import (
@@ -175,10 +175,20 @@ class _TargetFactory(Generic[T], abc.ABC):
                 geometries = []
                 grid_ids = []
 
-                for grid_id, qc_molecule in qc_result.final_molecules.items():
+                def _grid_id_key(x):
+
+                    if isinstance(x, str):
+                        x = json.loads(x)
+
+                    if isinstance(x, Sequence):
+                        x = int(x[0])
+
+                    return x
+
+                for grid_id in sorted(qc_result.final_molecules, key=_grid_id_key):
 
                     grid_ids.append(_standardize_grid_id_str(grid_id))
-                    geometries.append(qc_molecule.geometry)
+                    geometries.append(qc_result.final_molecules[grid_id].geometry)
 
             else:
                 raise NotImplementedError()
