@@ -4,25 +4,18 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
-from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
-from openff.bespokefit.bespoke import deserialize_schema, serialize_schema
 from openff.bespokefit.exceptions import (
     ForceFieldError,
     FragmenterError,
     OptimizerError,
     TargetNotSetError,
 )
-from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.targets import (
-    AbInitioTargetSchema,
-    OptGeoTargetSchema,
-    TorsionProfileTargetSchema,
-    VibrationTargetSchema,
-)
+from openff.bespokefit.schema.targets import AbInitioTargetSchema
 from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -100,7 +93,7 @@ def test_workflow_export_import():
 
     with temporary_cd():
 
-        factory.export_workflow(file_name="test.json")
+        factory.export_factory(file_name="test.json")
 
         # now read it back in
         recreated = BespokeWorkflowFactory.parse_file("test.json")
@@ -119,7 +112,7 @@ def test_workflow_export_import():
             pytest.raises(FragmenterError, match="There is no fragmentation engine"),
         ),
         (
-            dict(parameter_settings=[]),
+            dict(parameter_hyperparameters=[]),
             pytest.raises(TargetNotSetError, match="There are no parameter settings"),
         ),
         (
@@ -136,36 +129,6 @@ def test_pre_run_check(input_kwargs, expected_raises):
 
     with expected_raises:
         factory._pre_run_check()
-
-
-@pytest.mark.parametrize(
-    "target_schema",
-    [
-        TorsionProfileTargetSchema(reference_data=BespokeQCData()),
-        AbInitioTargetSchema(reference_data=BespokeQCData()),
-        VibrationTargetSchema(reference_data=BespokeQCData()),
-        OptGeoTargetSchema(reference_data=BespokeQCData()),
-    ],
-)
-def test_generate_fitting_task(target_schema, bace):
-    """
-    Make sure the correct fitting task is made based on the collection workflow.
-    """
-    molecule = Molecule.from_file(
-        file_path=get_data_file_path(
-            os.path.join("test", "molecules", "ethanol.sdf"), "openff.bespokefit"
-        )
-    )
-
-    task_schema = BespokeWorkflowFactory._generate_fitting_task(
-        target_schema=target_schema,
-        molecule=molecule,
-        fragment=False,
-        attributes=MoleculeAttributes.from_openff_molecule(molecule),
-        dihedrals=[(8, 2, 1, 0)],
-    )
-
-    assert task_schema.task_type == target_schema.bespoke_task_type()
 
 
 @pytest.mark.parametrize(
@@ -199,13 +162,13 @@ def test_optimization_schemas_from_molecule(processors, bace):
 
     opt_schema = opt_schemas[0]
 
-    assert opt_schema.initial_force_field == factory.initial_force_field
+    assert ForceField(opt_schema.initial_force_field) is not None
+
     assert opt_schema.optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_0"
-    assert bool(opt_schema.target_smirks) is True
-    assert opt_schema.parameter_settings == factory.parameter_settings
-    assert opt_schema.target_molecule.molecule == bace
-    assert opt_schema.n_tasks == 3
+    assert bool(opt_schema.parameters) is True
+    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert Molecule.from_smiles(opt_schema.smiles) == bace
     assert opt_schema.n_targets == 1
 
 
@@ -255,15 +218,14 @@ def test_optimization_schema_from_records(qc_torsion_drive_results):
 
     [(_, molecule)] = records
 
-    assert opt_schema.initial_force_field == factory.initial_force_field
+    ForceField(opt_schema.initial_force_field)
+
     assert opt_schema.optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
-    assert bool(opt_schema.target_smirks) is True
-    assert opt_schema.parameter_settings == factory.parameter_settings
-    assert molecule == opt_schema.target_molecule.molecule
-    assert opt_schema.n_tasks == 1
+    assert bool(opt_schema.parameters) is True
+    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert molecule == Molecule.from_mapped_smiles(opt_schema.smiles)
     assert opt_schema.n_targets == 1
-    assert opt_schema.ready_for_fitting is True
 
 
 def test_optimization_schemas_from_results(qc_torsion_drive_results):
@@ -278,6 +240,3 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     )
 
     assert len(schemas) == 1
-    assert schemas[0].n_tasks == 1
-
-    assert all(schema.ready_for_fitting for schema in schemas)

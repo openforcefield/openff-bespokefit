@@ -134,7 +134,7 @@
 		<Angle smirks="[*:1]~[#15:2]~[*:3]" angle="147.2207463438 * degree" k="163.2185355062 * mole**-1 * radian**-2 * kilocalorie" id="a38"/>
 	</Angles>
 	<ProperTorsions version="0.3" potential="k*(1+cos(periodicity*theta-phase))" default_idivf="auto" fractional_bondorder_method="AM1-Wiberg" fractional_bondorder_interpolation="linear">
-		<Proper smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]" periodicity1="3" phase1="0.0 * degree" id="t1" k1="0.3713592052717 * mole**-1 * kilocalorie" idivf1="1.0"/>
+		<Proper smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]" periodicity1="3" phase1="0.0 * degree" id="t1" k1="0.3723592052717 * mole**-1 * kilocalorie" idivf1="1.0"/>
 		<Proper smirks="[#6X4:1]-[#6X4:2]-[#6X4:3]-[#6X4:4]" periodicity1="3" periodicity2="2" periodicity3="1" phase1="0.0 * degree" phase2="180.0 * degree" phase3="180.0 * degree" id="t2" k1="0.1164348133257 * mole**-1 * kilocalorie" k2="0.2491194267913 * mole**-1 * kilocalorie" k3="0.295757514793 * mole**-1 * kilocalorie" idivf1="1.0" idivf2="1.0" idivf3="1.0"/>
 		<Proper smirks="[#1:1]-[#6X4:2]-[#6X4:3]-[#1:4]" periodicity1="3" phase1="0.0 * degree" id="t3" k1="0.2005394316088 * mole**-1 * kilocalorie" idivf1="1.0"/>
 		<Proper smirks="[#1:1]-[#6X4:2]-[#6X4:3]-[#6X4:4]" periodicity1="3" phase1="0.0 * degree" id="t4" k1="0.08414560911761 * mole**-1 * kilocalorie" idivf1="1.0"/>
@@ -176,8 +176,8 @@
 		<Proper smirks="[#6X4;r3:1]-;@[#6X4;r3:2]-[#6X3:3]=[#7X2:4]" periodicity1="3" periodicity2="2" periodicity3="1" phase1="0.0 * degree" phase2="180.0 * degree" phase3="180.0 * degree" id="t40" k1="-0.3973437766056 * mole**-1 * kilocalorie" k2="1.595780918938 * mole**-1 * kilocalorie" k3="0.1436787426846 * mole**-1 * kilocalorie" idivf1="1.0" idivf2="1.0" idivf3="1.0"/>
 		<Proper smirks="[#6X4;r3:1]-;@[#6X4;r3:2]-[#6X3:3]-[#8X2:4]" periodicity1="4" periodicity2="2" phase1="180.0 * degree" phase2="180.0 * degree" id="t41" k1="-0.3349398025484 * mole**-1 * kilocalorie" k2="1.465145041669 * mole**-1 * kilocalorie" idivf1="1.0" idivf2="1.0"/>
 		<Proper smirks="[#6X4;r3:1]-;@[#6X4;r3:2]-[#6X3:3]=[#8X1:4]" periodicity1="2" phase1="320.0 * degree" id="t42" k1="-0.6316097426408 * mole**-1 * kilocalorie" idivf1="1.0"/>
-		<Proper smirks="[*:1]~[#6X3:2]-[#6X3:3]~[*:4]" periodicity1="2" phase1="180.0 * degree" id="t43" k1="9.968393260781e-01 * mole**-1 * kilocalorie" idivf1="1.0" parameterize="k1"/>
-		<Proper smirks="[*:1]~[#6X3:2]:[#6X3:3]~[*:4]" periodicity1="2" phase1="180.0 * degree" id="t44" k1="3.739199932852 * mole**-1 * kilocalorie" idivf1="1.0"/>
+		<Proper smirks="[*:1]~[#6X3:2]-[#6X3:3]~[*:4]" periodicity1="2" phase1="180.0 * degree" id="t43" k1="8.968393260781e-01 * mole**-1 * kilocalorie" idivf1="1.0" parameterize="k1"/>
+		<Proper smirks="[*:1]~[#6X3:2]:[#6X3:3]~[*:4]" periodicity1="2" phase1="180.0 * degree" id="t44" k1="4.739199932852 * mole**-1 * kilocalorie" idivf1="1.0"/>
 		<Proper smirks="[*:1]-,:[#6X3:2]=[#6X3:3]-,:[*:4]" periodicity1="2" phase1="180.0 * degree" id="t45" k1="5.202617258558 * mole**-1 * kilocalorie" idivf1="1.0"/>
 		<Proper smirks="[#6X4:1]-[#6X3:2]=[#6X3:3]-[#6X4:4]" periodicity1="2" periodicity2="1" phase1="180.0 * degree" phase2="180.0 * degree" id="t46" k1="5.490071410144 * mole**-1 * kilocalorie" k2="1.882194041869 * mole**-1 * kilocalorie" idivf1="1.0" idivf2="1.0"/>
 		<Proper smirks="[*:1]~[#6X3:2]-[#6X3$(*=[#8,#16,#7]):3]~[*:4]" periodicity1="2" phase1="180.0 * degree" id="t47" k1="1.090788079768 * mole**-1 * kilocalorie" idivf1="1.0"/>

@@ -1,22 +1,15 @@
 """
-Test the forcefield editing tools.
+Test the force field editing tools.
 """
+import copy
 import os
 
-import pytest
-from openff.qcsubmit.testing import temp_directory
+import numpy as np
 from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField, SMIRNOFFSpecError
 from openff.utilities import get_data_file_path
+from simtk import unit
 
-from openff.bespokefit.schema.bespoke.smirks import (
-    BespokeAngleSmirks,
-    BespokeAtomSmirks,
-    BespokeBondSmirks,
-    BespokeTorsionSmirks,
-    BespokeTorsionTerm,
-)
-from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
 def test_loading_force_fields():
@@ -26,170 +19,45 @@ def test_loading_force_fields():
 
     # load in the initial FF with constraints
     ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
-
-    with temp_directory():
-        # write out the ff
-        ff.force_field.to_file(filename="bespoke.offxml")
-        # read the file and look for the constraints tag
-        new_ff = ForceField("bespoke.offxml")
-        assert "Constraints" not in new_ff._parameter_handlers
+    assert "Constraints" not in ff.force_field.registered_parameter_handlers
 
 
-@pytest.mark.parametrize(
-    "smirks",
-    [
-        pytest.param(
-            (
-                BespokeAtomSmirks(
-                    smirks="[#5:1]",
-                    parameterize={"rmin_half"},
-                    atoms={(0,)},
-                    epsilon=0.01,
-                    rmin_half=3,
-                ),
-                "n",
-            ),
-            id="Atom smirks",
-        ),
-        pytest.param(
-            (
-                BespokeBondSmirks(
-                    smirks="[#5:1]-[#5:2]",
-                    parameterize={"k"},
-                    atoms={(0, 1)},
-                    k=100,
-                    length=2,
-                ),
-                "b",
-            ),
-            id="Bond smirks",
-        ),
-        pytest.param(
-            (
-                BespokeAngleSmirks(
-                    smirks="[#5:1]-[#5:2]-[#1:3]",
-                    parameterize={"angle"},
-                    atoms={(0, 1, 2)},
-                    k=100,
-                    angle=120,
-                ),
-                "a",
-            ),
-            id="Angle smirks",
-        ),
-        pytest.param(
-            (
-                BespokeTorsionSmirks(
-                    smirks="[#1:1]-[#5:2]-[#5:3]-[#1:4]",
-                    parameterize={"k1"},
-                    atoms={(0, 1, 2, 3)},
-                    terms={"1": BespokeTorsionTerm(periodicity=1)},
-                ),
-                "t",
-            ),
-            id="Torsion smirks",
-        ),
-    ],
-)
-def test_adding_new_smirks_types(smirks):
-    """
-    Test adding new smirks to a forcefield with and without the parameterize flag.
-    """
-
-    param, param_id = smirks
-    ff = ForceFieldEditor("openff-1.0.0.offxml")
-    # now make some new smirks pattern
-    ff.add_smirks(smirks=[param], parameterize=True)
-    # now make sure it was added under the correct parameter handler
-    with temp_directory():
-        ff.force_field.to_file(filename="bespoke.offxml")
-
-        new_ff = ForceField("bespoke.offxml", allow_cosmetic_attributes=True)
-        parameter = new_ff.get_parameter_handler(param.type.value).parameters[
-            param.smirks
-        ]
-        param_dict = parameter.__dict__
-        assert param_dict["_cosmetic_attribs"] == ["parameterize"]
-        assert set(param_dict["_parameterize"].split()) == param.parameterize
-        # make sure the id is correct
-        assert param_id in parameter.id
-
-
-def test_adding_params_parameterize_flag():
-    """
-    Test adding new smirks patterns with cosmetic attributes.
-    """
+def test_adding_new_smirks_types():
+    """Test adding new smirks to a force field."""
 
     ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
-    # add an atom smirks for boron
-    boron = BespokeAtomSmirks(
-        smirks="[#5:1]",
-        parameterize={"epsilon"},
-        atoms={(0,)},
-        epsilon=0.04,
-        rmin_half=3,
+
+    existing_parameter = copy.deepcopy(ff.force_field["vdW"].parameters["[#6X2:1]"])
+    existing_parameter.rmin_half *= 2.0
+
+    new_parameter = copy.deepcopy(existing_parameter)
+    new_parameter.smirks = "[#30:1]"
+    new_parameter.rmin_half = 123.0 * unit.angstrom
+    assert new_parameter.smirks not in ff.force_field["vdW"].parameters
+
+    updated_parameters = ff.add_parameters([existing_parameter, new_parameter])
+    assert len(updated_parameters) == 2
+
+    assert new_parameter.smirks in ff.force_field["vdW"].parameters
+    assert np.isclose(
+        ff.force_field["vdW"]
+        .parameters[new_parameter.smirks]
+        .rmin_half.value_in_unit(unit.angstrom),
+        123.0,
     )
-    # add boron with the flag
-    ff.add_smirks(
-        smirks=[
-            boron,
-        ],
-        parameterize=True,
+    assert np.isclose(
+        ff.force_field["vdW"]
+        .parameters[existing_parameter.smirks]
+        .rmin_half.value_in_unit(unit.angstrom),
+        existing_parameter.rmin_half.value_in_unit(unit.angstrom),
     )
-    with temp_directory():
-        ff.force_field.to_file(filename="boron.offxml")
-
-        # this should fail if the flag was added
-        with pytest.raises(SMIRNOFFSpecError):
-            _ = ForceField("boron.offxml", allow_cosmetic_attributes=False)
-
-        boron_ff = ForceField("boron.offxml", allow_cosmetic_attributes=True)
-        # now look for the parameter we added
-        boron_param = boron_ff.get_parameter_handler("vdW").parameters["[#5:1]"]
-        # now make sure it has the param flag
-        param_dict = boron_param.__dict__
-        assert param_dict["_cosmetic_attribs"] == ["parameterize"]
-        assert param_dict["_parameterize"] == "epsilon"
-
-
-def test_adding_params_no_flag():
-    """
-    Test adding new smirks patterns with out cosmetic attributes.
-    """
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
-    # add an atom smirks for boron
-    boron = BespokeAtomSmirks(
-        smirks="[#5:1]",
-        parameterize={"epsilon"},
-        atoms={(0,)},
-        epsilon=0.04,
-        rmin_half=3,
-    )
-    # add boron with the flag
-    ff.add_smirks(
-        smirks=[
-            boron,
-        ],
-        parameterize=False,
-    )
-    with temp_directory():
-        ff.force_field.to_file(filename="boron.offxml")
-
-        boron_ff = ForceField("boron.offxml", allow_cosmetic_attributes=False)
-        # now look for the parameter we added
-        boron_param = boron_ff.get_parameter_handler("vdW").parameters["[#5:1]"]
-        # now make sure it has the param flag
-        param_dict = boron_param.__dict__
-        assert param_dict["_cosmetic_attribs"] == []
-        assert "_parameterize" not in param_dict
 
 
 def test_label_molecule():
-    """
-    Test that labeling a molecule with the editor works.
-    """
+    """Test that labeling a molecule with the editor works."""
 
     ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+
     ethane = Molecule.from_file(
         file_path=get_data_file_path(
             os.path.join("test", "molecules", "ethane.sdf"), "openff.bespokefit"
@@ -198,83 +66,81 @@ def test_label_molecule():
     )
 
     labels = ff.label_molecule(molecule=ethane)
+
     for param_type in ["Bonds", "Angles", "ProperTorsions", "ImproperTorsions", "vdW"]:
         assert param_type in labels
 
 
-@pytest.mark.parametrize(
-    "smirks_data",
-    [
-        pytest.param(
-            (
-                BespokeAtomSmirks(
-                    smirks="[#1:1]", atoms={(0,)}, epsilon=0.01, rmin_half=3
-                ),
-                {
-                    "epsilon": 0.0157,
-                    "rmin_half": 0.6,
-                },
-            ),
-            id="Atom smirks",
-        ),
-        pytest.param(
-            (
-                BespokeBondSmirks(
-                    smirks="[#6X4:1]-[#6X4:2]", atoms={(0, 1)}, k=100, length=2
-                ),
-                {
-                    "length": 1.520375903275,
-                    "k": 531.137373861,
-                },
-            ),
-            id="Bond smirks",
-        ),
-        pytest.param(
-            (
-                BespokeAngleSmirks(
-                    smirks="[*:1]~[#6X4:2]-[*:3]", atoms={(0, 1, 2)}, k=100, angle=120
-                ),
-                {
-                    "angle": 107.6607821752,
-                    "k": 101.7373362367,
-                },
-            ),
-            id="Angle smirks",
-        ),
-        pytest.param(
-            (
-                BespokeTorsionSmirks(
-                    smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]",
-                    atoms={(0, 1, 2, 3)},
-                    terms={"3": BespokeTorsionTerm(periodicity=3)},
-                ),
-                {
-                    "k": 0.2042684902198,
-                    "phase": 0.0,
-                },
-            ),
-            id="Torsion smirks",
-        ),
-    ],
-)
-def test_updating_smirks(smirks_data):
-    """
-    Test that each smirks type can be updated from a given force field file.
-    """
-    smirks, updated_params = smirks_data
+def test_get_parameters():
 
     ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
-    ff.update_smirks_parameters(
-        smirks=[
-            smirks,
-        ]
+    molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
+
+    parameters = ff.get_parameters(
+        molecule,
+        [
+            (0,),
+            (1,),
+            (2,),
+            (3,),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (0, 1, 2),
+            (1, 2, 3),
+            (0, 1, 2, 3),
+        ],
     )
 
-    if smirks.type.value != "ProperTorsions":
-        for param, value in updated_params.items():
-            assert float(getattr(smirks, param).split()[0]) == pytest.approx(value)
+    assert len(parameters) == 6
 
-    else:
-        term = smirks.terms["3"]
-        for param, value in updated_params.items():
-            assert float(getattr(term, param).split()[0]) == pytest.approx(value)
+    assert {parameter.smirks for parameter in parameters} == {
+        "[#1:1]-[#6X2]",
+        "[#6X2:1]",
+        "[#6X2:1]-[#1:2]",
+        "[#6X2:1]#[#6X2:2]",
+        "[*:1]~[#6X2:2]~[*:3]",
+        "[*:1]-[*:2]#[*:3]-[*:4]",
+    }
+
+
+def test_get_initial_parameters():
+
+    molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
+    smirks = {
+        SMIRKSType.Vdw: ["[#6:1]"],
+        SMIRKSType.Bonds: ["[#6:1]~[#6:2]", "[#17:1]-[#1:2]"],
+        SMIRKSType.Angles: ["[*:1]~[#6:2]~[#6:3]"],
+        SMIRKSType.ProperTorsions: ["[#1:1]~[#6:2]~[#6:3]~[#1:4]"],
+    }
+
+    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+
+    initial_parameters = {
+        parameter.smirks: parameter
+        for parameter in ff.get_initial_parameters(molecule, smirks)
+    }
+
+    expected_values = {
+        "[#6:1]": ("vdW", "[#6X2:1]"),
+        "[#6:1]~[#6:2]": ("Bonds", "[#6X2:1]#[#6X2:2]"),
+        "[*:1]~[#6:2]~[#6:3]": ("Angles", "[*:1]~[#6X2:2]~[*:3]"),
+        "[#1:1]~[#6:2]~[#6:3]~[#1:4]": ("ProperTorsions", "[*:1]-[*:2]#[*:3]-[*:4]"),
+    }
+
+    assert len(initial_parameters) == len(expected_values)
+
+    for new_smirks, (handler_type, old_smirks) in expected_values.items():
+
+        new_parameter = initial_parameters[new_smirks].to_dict()
+        old_parameter = ff.force_field[handler_type].parameters[old_smirks].to_dict()
+
+        for key in new_parameter:
+
+            if not isinstance(new_parameter[key], unit.Quantity):
+                continue
+
+            new_value = new_parameter[key].value_in_unit(old_parameter[key].unit)
+            old_value = old_parameter[key].value_in_unit(old_parameter[key].unit)
+
+            assert np.isclose(new_value, old_value)

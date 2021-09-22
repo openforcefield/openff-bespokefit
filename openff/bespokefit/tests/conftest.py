@@ -2,7 +2,7 @@ import json
 from typing import Tuple
 
 import pytest
-from openff.qcsubmit.common_structures import MoleculeAttributes
+from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.qcsubmit.results import (
     BasicResult,
     BasicResultCollection,
@@ -29,14 +29,15 @@ from qcportal.models import (
 )
 from simtk import unit
 
-from openff.bespokefit.fragmentation.model import FragmentData
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
 )
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.smirks import ProperTorsionSmirks
-from openff.bespokefit.schema.smirnoff import ProperTorsionSettings
+from openff.bespokefit.schema.smirnoff import (
+    ProperTorsionHyperparameters,
+    ProperTorsionSMIRKS,
+)
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
     OptGeoTargetSchema,
@@ -333,9 +334,9 @@ def general_optimization_schema(
             VibrationTargetSchema(reference_data=qc_hessian_results),
             OptGeoTargetSchema(reference_data=qc_optimization_results),
         ],
-        parameter_settings=[ProperTorsionSettings()],
-        target_parameters=[
-            ProperTorsionSmirks(
+        parameter_hyperparameters=[ProperTorsionHyperparameters()],
+        parameters=[
+            ProperTorsionSMIRKS(
                 smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
             )
         ],
@@ -361,45 +362,24 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
 
 
 @pytest.fixture()
-def bace_fragment_data() -> FragmentData:
+def bace_fragment_data() -> FragmentationResult:
     """
     Create a fragment data object for a bace parent and fragment.
     """
-    molecule = Molecule.from_mapped_smiles(
-        "[H:1][c:2]1[c:3]([c:4]([c:5]([c:6]([c:7]1[H:8])[C@@:9]2([C:10](=[O:11])[N:12]([C:13](=[N+:14]2[H:15])[N:16]([H:17])[H:18])[C:19]([H:20])([H:21])[H:22])[C:23]([H:24])([H:25])[C:26]([H:27])([H:28])[H:29])[H:30])[c:31]3[c:32]([c:33]([c:34]([c:35]([c:36]3[H:37])[Cl:38])[H:39])[H:40])[H:41])[H:42]"
+
+    return FragmentationResult(
+        parent_smiles="[H:24][c:1]1[c:3]([c:9]([c:7]([c:11]([c:5]1[H:28])[C@@:15]2("
+        "[C:13](=[O:22])[N:19]([C:14](=[N+:20]2[H:40])[N:21]([H:41])[H:42])[C:17]"
+        "([H:35])([H:36])[H:37])[C:18]([H:38])([H:39])[C:16]([H:32])([H:33])[H:34])"
+        "[H:30])[c:10]3[c:4]([c:2]([c:6]([c:12]([c:8]3[H:31])[Cl:23])[H:29])[H:25])"
+        "[H:27])[H:26]",
+        fragments=[
+            Fragment(
+                smiles="[H:28][c:5]1[c:1]([c:3]([c:9]([c:7]([c:11]1[H])[H:30])[c:10]2"
+                "[c:4]([c:2]([c:6]([c:12]([c:8]2[H:31])[H])[H:29])[H:25])[H:27])[H:26])"
+                "[H:24]",
+                bond_indices=(9, 10),
+            )
+        ],
+        provenance={},
     )
-    fragment = Molecule.from_mapped_smiles(
-        "[H:1][c:2]1[c:7]([c:6]([c:5]([c:4]([c:3]1[H:22])[H:21])[c:10]2[c:11]([c:12]([c:13]([c:14]([c:15]2[H:16])[Cl:17])[H:18])[H:19])[H:20])[H:9])[H:8]"
-    )
-    fragment_parent_mapping = {
-        0: 7,
-        1: 6,
-        2: 1,
-        3: 2,
-        4: 3,
-        5: 4,
-        6: 5,
-        8: 29,
-        9: 30,
-        10: 31,
-        11: 32,
-        12: 33,
-        13: 34,
-        14: 35,
-        15: 36,
-        16: 37,
-        17: 38,
-        18: 39,
-        19: 40,
-        20: 41,
-        21: 0,
-    }
-    fragment_data = FragmentData(
-        parent_molecule=molecule,
-        parent_torsion=(3, 30),
-        fragment_molecule=fragment,
-        fragment_torsion=(4, 9),
-        fragment_attributes=MoleculeAttributes.from_openff_molecule(fragment),
-        fragment_parent_mapping=fragment_parent_mapping,
-    )
-    return fragment_data

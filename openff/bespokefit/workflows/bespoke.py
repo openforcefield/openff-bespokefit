@@ -5,9 +5,10 @@ workflows.
 import logging
 import os
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
-from openff.qcsubmit.common_structures import MoleculeAttributes
+from openff.fragmenter.fragment import WBOFragmenter
+from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.results import (
     BasicResultCollection,
     OptimizationResultCollection,
@@ -16,38 +17,48 @@ from openff.qcsubmit.results import (
 from openff.qcsubmit.serializers import serialize
 from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import get_available_force_fields
+from openff.toolkit.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ProperTorsionHandler,
+    get_available_force_fields,
+    vdWHandler,
+)
 from pydantic import Field, validator
+from qcelemental.models.common_models import Model
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
-from openff.bespokefit.bespoke.smirks import SmirksGenerator
 from openff.bespokefit.exceptions import (
     ForceFieldError,
     FragmenterError,
     OptimizerError,
     TargetNotSetError,
 )
-from openff.bespokefit.fragmentation import FragmentEngines, WBOFragmenter
+from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.optimizers import get_optimizer, list_optimizers
-from openff.bespokefit.schema.bespoke import MoleculeSchema
-from openff.bespokefit.schema.bespoke.tasks import (
-    HessianTask,
-    OptimizationTask,
-    TorsionTask,
-)
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema, OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
-    ProperTorsionSettings,
-    SmirksParameterSettings,
-    SmirksType,
+    AngleSMIRKS,
+    BondSMIRKS,
+    ProperTorsionHyperparameters,
+    ProperTorsionSMIRKS,
+    SMIRNOFFHyperparameters,
+    VdWSMIRKS,
 )
 from openff.bespokefit.schema.targets import (
     BespokeQCData,
     TargetSchema,
     TorsionProfileTargetSchema,
 )
+from openff.bespokefit.schema.tasks import (
+    HessianTaskSpec,
+    OptimizationTaskSpec,
+    Torsion1DTaskSpec,
+)
 from openff.bespokefit.utilities.pydantic import ClassBase
+from openff.bespokefit.utilities.smirks import SMIRKSGenerator, SMIRKSType
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
 QCResultCollection = Union[
@@ -56,12 +67,11 @@ QCResultCollection = Union[
     BasicResultCollection,
 ]
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class BespokeWorkflowFactory(ClassBase):
-    """
-    The bespokefit workflow factory which is a template of the settings that will be
+    """The bespokefit workflow factory which is a template of the settings that will be
     used to generate the specific fitting schema for each molecule.
     """
 
@@ -83,17 +93,17 @@ class BespokeWorkflowFactory(ClassBase):
         "automatically populated by this factory.",
     )
 
-    parameter_settings: List[SmirksParameterSettings] = Field(
+    parameter_hyperparameters: List[SMIRNOFFHyperparameters] = Field(
         [
-            ProperTorsionSettings(),
+            ProperTorsionHyperparameters(),
         ],
         description="The settings which describe how types of parameters, e.g. the "
         "force constant of a bond parameter, should be restrained during the "
         "optimisation such as through the inclusion of harmonic priors.",
     )
-    target_smirks: List[SmirksType] = Field(
+    target_smirks: List[SMIRKSType] = Field(
         [
-            SmirksType.ProperTorsions,
+            SMIRKSType.ProperTorsions,
         ],
         description="The list of parameters the new smirks patterns should be made for.",
     )
@@ -108,7 +118,7 @@ class BespokeWorkflowFactory(ClassBase):
         description="If the optimized smirks should be bespoke to the target molecules.",
     )
 
-    fragmentation_engine: Optional[FragmentEngines] = Field(
+    fragmentation_engine: Optional[FragmentationEngine] = Field(
         WBOFragmenter(),
         description="The Fragment engine that should be used to fragment the molecule, "
         "note that if None is provided the molecules will not be fragmented. By default "
@@ -156,43 +166,9 @@ class BespokeWorkflowFactory(ClassBase):
 
         return optimizer
 
-    # @classmethod
-    # def parse_file(
-    #     cls,
-    #     path,
-    #     *,
-    #     content_type: str = None,
-    #     encoding: str = "utf8",
-    #     proto=None,
-    #     allow_pickle: bool = False,
-    # ) -> "BespokeWorkflowFactory":
-    #     """
-    #     Here we overwrite the parse function to work with json and yaml and to unpack
-    #     the workflow.
-    #     """
-    #     data = deserialize(file_name=path)
-    #     optimizer = data.pop("optimizer")
-    #     fragmentation_engine = data.pop("fragmentation_engine")
-    #     if fragmentation_engine is not None:
-    #         fragmenter = get_fragmentation_engine(**fragmentation_engine)
-    #     else:
-    #         fragmenter = None
-    #     workflow = cls.parse_obj(data)
-    #     # set the fragmentation engine
-    #     workflow.fragmentation_engine = fragmenter
-    #     # now we need to re init the optimizer and the targets
-    #     opt_targets = optimizer.pop("optimization_targets")
-    #     opt_engine = get_optimizer(**optimizer)
-    #     opt_engine.clear_optimization_targets()
-    #     for target in opt_targets:
-    #         opt_engine.set_optimization_target(target=target["name"], **target)
-    #     workflow.optimizer = opt_engine
-    #
-    #     return workflow
-
-    def export_workflow(self, file_name: str) -> None:
+    def export_factory(self, file_name: str) -> None:
         """
-        Export the workflow to yaml or json file.
+        Export the factory to yaml or json file.
 
         Parameters
         ----------
@@ -217,7 +193,7 @@ class BespokeWorkflowFactory(ClassBase):
             raise FragmenterError(
                 "There is no fragmentation engine registered for the workflow."
             )
-        elif len(self.parameter_settings) == 0:
+        elif len(self.parameter_hyperparameters) == 0:
             raise TargetNotSetError(
                 "There are no parameter settings specified which will mean that the "
                 "optimiser has no parameters to optimize."
@@ -229,52 +205,6 @@ class BespokeWorkflowFactory(ClassBase):
             )
         else:
             return
-
-    @classmethod
-    def _generate_fitting_task(
-        cls,
-        target_schema: TargetSchema,
-        molecule: Molecule,
-        fragment: bool,
-        attributes: MoleculeAttributes,
-        fragment_parent_mapping: Optional[Dict[int, int]] = None,
-        dihedrals: Optional[List[Tuple[int, int, int, int]]] = None,
-    ) -> Union[TorsionTask, OptimizationTask, HessianTask]:
-        """
-        For the given collection workflow generate a task schema for the input molecule.
-        """
-        if molecule.n_conformers < target_schema.reference_data.target_conformers:
-
-            molecule.generate_conformers(
-                n_conformers=target_schema.reference_data.target_conformers,
-                clear_existing=False,
-            )
-
-        collection_workflow = target_schema.bespoke_task_type()
-
-        # build a dict of the data
-        data = dict(
-            name=collection_workflow,
-            attributes=attributes,
-            provenance={},
-            fragment=fragment,
-            fragment_parent_mapping=fragment_parent_mapping,
-            molecule=molecule,
-            dihedrals=dihedrals,
-        )
-
-        if collection_workflow == "torsion1d":
-            task = TorsionTask(**data)
-        elif collection_workflow == "optimization":
-            task = OptimizationTask(**data)
-        elif collection_workflow == "hessian":
-            task = HessianTask(**data)
-        else:
-            raise NotImplementedError(
-                f"The collection workflow `{collection_workflow}` is not supported."
-            )
-
-        return task
 
     @classmethod
     def _deduplicated_list(
@@ -393,71 +323,8 @@ class BespokeWorkflowFactory(ClassBase):
         # make sure all required variables have been declared
         self._pre_run_check()
 
-        # Fragment the molecule.
-        fragment_data = self.fragmentation_engine.fragment(molecule=molecule)
-
-        if not fragment_data:
-            logger.warning(
-                f"The molecule {molecule} could not be fragmented as it has no eligible rotatable bonds no fitting schema will be made."
-            )
-            return
-        # the parent molecule is put in canonical order by fragmenter so use the new parent
-        attributes = MoleculeAttributes.from_openff_molecule(
-            molecule=fragment_data[0].parent_molecule
-        )
-        molecule_schema = MoleculeSchema(
-            attributes=attributes,
-            task_id=f"bespoke_task_{index}",
-            fragment_data=[],
-            fragmentation_engine=self.fragmentation_engine.dict(),
-        )
-
         # Build the optimization schema
-        opt_schema = self._build_optimization_schema(
-            molecule_schema=molecule_schema, index=index
-        )
-        smirks_gen = self._get_smirks_generator()
-        all_smirks = []
-        for fragment in fragment_data:
-            # get the smirks and build the fragment schema
-            fragment_schema = fragment.fragment_schema()
-            new_smirks = smirks_gen.generate_smirks_from_fragments(
-                fragment_data=fragment
-            )
-            all_smirks.extend(new_smirks)
-            molecule_schema.add_fragment(fragment=fragment_schema)
-
-        # finish the optimization schema
-        opt_schema.target_molecule = molecule_schema
-        opt_schema.target_smirks = all_smirks
-
-        # now loop over the targets and build the reference tasks
-        opt_schema.targets = []
-
-        for target_template in self.target_templates:
-
-            target_schema = target_template.copy(deep=True)
-
-            if target_schema.reference_data is None:
-                target_schema.reference_data = BespokeQCData()
-
-            # Clear the task list in case the user tried to provide some.
-            target_schema.reference_data.tasks = []
-
-            for task_index, fragment in enumerate(molecule_schema.fragment_data):
-
-                task_schema = self._generate_fitting_task(
-                    target_schema=target_schema,
-                    molecule=fragment.molecule,
-                    fragment=True,
-                    attributes=fragment.fragment_attributes,
-                    fragment_parent_mapping=fragment.fragment_parent_mapping,
-                    dihedrals=[fragment.target_dihedral],
-                )
-                task_schema.name = f"{target_schema.bespoke_task_type()}-{task_index}"
-                target_schema.reference_data.tasks.append(task_schema)
-
-            opt_schema.targets.append(target_schema)
+        opt_schema = self._build_optimization_schema(molecule=molecule, index=index)
 
         return opt_schema
 
@@ -565,79 +432,54 @@ class BespokeWorkflowFactory(ClassBase):
           mostly useful for torsion drives.
         """
 
-        assert len({molecule.to_inchikey() for _, molecule in records}) == 1
+        raise NotImplementedError()
 
-        molecule = records[0][1]
+        # assert len({molecule.to_inchikey() for _, molecule in records}) == 1
+        #
+        # molecule = records[0][1]
+        #
+        # opt_schema = self._build_optimization_schema(
+        #     molecule=molecule, index=index
+        # )
+        #
+        # smirks_gen = self._get_smirks_generator()
+        # all_smirks = []
+        #
+        # for record, molecule in records:
+        #
+        #     if not isinstance(record, TorsionDriveRecord):
+        #
+        #         raise NotImplementedError(
+        #             "Currently only torsion drives are supported."
+        #         )
+        #
+        #     dihedrals = getattr(record.keywords, "dihedrals", None)
+        #
+        #     bond = None if dihedrals is None else ([dihedrals[0][1], dihedrals[0][2]])
+        #
+        #     # noinspection PyTypeChecker
+        #     new_smirks = smirks_gen.generate_smirks_from_molecule(
+        #         molecule=molecule, central_bond=bond
+        #     )
+        #     all_smirks.extend(new_smirks)
+        #
+        # # finish the optimization schema
+        # opt_schema.target_molecule = molecule_schema
+        # opt_schema.target_smirks = all_smirks
+        #
+        # # now loop over the targets and build the reference tasks
+        # for target_template in self.target_templates:
+        #
+        #     target_schema = target_template.copy(deep=True)
+        #     # TODO: populate local data
+        #
+        # return opt_schema
 
-        molecule_schema = MoleculeSchema(
-            attributes=MoleculeAttributes.from_openff_molecule(molecule),
-            task_id=molecule.to_smiles(),
-            fragment_data=[],
-            fragmentation_engine=None,
-        )
-
-        opt_schema = self._build_optimization_schema(
-            molecule_schema=molecule_schema, index=index
-        )
-
-        smirks_gen = self._get_smirks_generator()
-        all_smirks = []
-
-        for record, molecule in records:
-
-            if not isinstance(record, TorsionDriveRecord):
-
-                raise NotImplementedError(
-                    "Currently only torsion drives are supported."
-                )
-
-            dihedrals = getattr(record.keywords, "dihedrals", None)
-
-            bond = None if dihedrals is None else ([dihedrals[0][1], dihedrals[0][2]])
-
-            # noinspection PyTypeChecker
-            new_smirks = smirks_gen.generate_smirks_from_molecules(
-                molecule=molecule, central_bond=bond
-            )
-            all_smirks.extend(new_smirks)
-
-        # finish the optimization schema
-        opt_schema.target_molecule = molecule_schema
-        opt_schema.target_smirks = all_smirks
-
-        # now loop over the targets and build the reference tasks
-        for target_template in self.target_templates:
-
-            target_schema = target_template.copy(deep=True)
-
-            if target_schema.reference_data is None:
-                target_schema.reference_data = BespokeQCData()
-
-            tasks = []
-
-            for record, molecule in records:
-
-                task_schema = self._generate_fitting_task(
-                    target_schema=target_schema,
-                    molecule=molecule,
-                    fragment=False,
-                    attributes=MoleculeAttributes.from_openff_molecule(molecule),
-                    fragment_parent_mapping=None,
-                    dihedrals=getattr(record.keywords, "dihedrals", None),
-                )
-                task_schema.update_with_results(record, molecule)
-                tasks.append(task_schema)
-
-            target_schema.reference_data.tasks = tasks
-            opt_schema.targets.append(target_schema)
-
-        return opt_schema
-
-    def _get_smirks_generator(self) -> SmirksGenerator:
+    def _get_smirks_generator(self) -> SMIRKSGenerator:
         """
         Build a smirks generator from the set of inputs.
         """
-        smirks_gen = SmirksGenerator(
+        smirks_gen = SMIRKSGenerator(
             initial_force_field=self.initial_force_field,
             generate_bespoke_terms=self.generate_bespoke_terms,
             expand_torsion_terms=self.expand_torsion_terms,
@@ -646,16 +488,80 @@ class BespokeWorkflowFactory(ClassBase):
         return smirks_gen
 
     def _build_optimization_schema(
-        self, molecule_schema: MoleculeSchema, index: int
+        self,
+        molecule: Molecule,
+        index: int,
     ) -> BespokeOptimizationSchema:
-        """
-        For a given molecule schema build an optimization schema.
-        """
+        """For a given molecule schema build an optimization schema."""
+
+        task_type_to_spec = {
+            "torsion1d": Torsion1DTaskSpec,
+            "optimization": OptimizationTaskSpec,
+            "hessian": HessianTaskSpec,
+        }
+        default_qc_spec = QCSpec()
+
+        # Determine the bespoke parameters to be trained.
+        smirks_gen = self._get_smirks_generator()
+
+        bespoke_parameters = smirks_gen.generate_smirks_from_molecule(molecule)
+
+        force_field_editor = ForceFieldEditor(self.initial_force_field)
+        bespoke_parameters = force_field_editor.add_parameters(bespoke_parameters)
+
+        parameters = []
+
+        for bespoke_parameter in bespoke_parameters:
+
+            if isinstance(bespoke_parameter, vdWHandler.vdWType):
+                parameter = VdWSMIRKS(
+                    smirks=bespoke_parameter.smirks, attributes={"epsilon", "sigma"}
+                )
+            elif isinstance(bespoke_parameter, BondHandler.BondType):
+                parameter = BondSMIRKS(
+                    smirks=bespoke_parameter.smirks, attributes={"k", "length"}
+                )
+            elif isinstance(bespoke_parameter, AngleHandler.AngleType):
+                parameter = AngleSMIRKS(
+                    smirks=bespoke_parameter.smirks, attributes={"k", "length"}
+                )
+            elif isinstance(bespoke_parameter, ProperTorsionHandler.ProperTorsionType):
+                parameter = ProperTorsionSMIRKS(
+                    smirks=bespoke_parameter.smirks,
+                    attributes={f"k{i + 1}" for i in range(len(bespoke_parameter.k))},
+                )
+            else:
+                raise NotImplementedError()
+
+            parameters.append(parameter)
+
+        # Populate the targets
+        targets = []
+
+        for target_template in self.target_templates:
+
+            target_schema = target_template.copy(deep=True)
+
+            if target_schema.reference_data is None:
+
+                target_schema.reference_data = BespokeQCData(
+                    spec=task_type_to_spec[target_schema.bespoke_task_type()](
+                        model=Model(
+                            method=default_qc_spec.method, basis=default_qc_spec.basis
+                        ),
+                        program=default_qc_spec.program,
+                    )
+                )
+
+            targets.append(target_schema)
+
         schema = BespokeOptimizationSchema(
-            initial_force_field=self.initial_force_field,
-            optimizer=self.optimizer,
-            parameter_settings=self.parameter_settings,
             id=f"bespoke_task_{index}",
-            target_molecule=molecule_schema,
+            smiles=molecule.to_smiles(mapped=True),
+            initial_force_field=force_field_editor.force_field.to_string(),
+            optimizer=self.optimizer,
+            parameters=parameters,
+            parameter_hyperparameters=self.parameter_hyperparameters,
+            targets=targets,
         )
         return schema

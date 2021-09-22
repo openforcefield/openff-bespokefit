@@ -1,105 +1,225 @@
 import abc
-from enum import Enum
-from typing import Tuple, Union
+from typing import Dict, Set, Union
 
-from pydantic import BaseModel, PositiveFloat
+from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
-
-class SmirksType(str, Enum):
-    Bonds = "Bonds"
-    Angles = "Angles"
-    ProperTorsions = "ProperTorsions"
-    ImproperTorsions = "ImproperTorsions"
-    Vdw = "vdW"
+from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit.utilities.smirks import validate_smirks
 
 
-class ParameterSettings(BaseModel, abc.ABC):
+class BaseSMIRKSParameter(SchemaBase, abc.ABC):
+    """
+    This schema identifies new smirks patterns and the corresponding atoms they should
+    be applied to.
+    """
+
+    type: Literal["base"] = "base"
+
+    smirks: str = Field(
+        ...,
+        description="The SMIRKS pattern that defines which chemical environment the "
+        "parameter should be applied to.",
+    )
+
+    attributes: Set[str] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
+
+    @classmethod
+    @abc.abstractmethod
+    def _expected_n_tags(cls) -> int:
+        raise NotImplementedError()
+
+    @validator("smirks")
+    def _check_smirks(cls, value: str) -> str:
+        return validate_smirks(value, cls._expected_n_tags())
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.__hash__() == other.__hash__()
+
+    def __ne__(self, other):
+        assert not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.type, self.smirks, tuple(self.attributes)))
+
+
+class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
     """A data class to track how the target will effect the target parameters and the
     prior values/ starting values.
     """
 
-    parameter_type: SmirksType
-    parameter_subtype: str
+    type: Literal["base"] = "base"
 
-    target: str
-    prior: PositiveFloat
+    priors: Dict[str, PositiveFloat] = Field(..., description="")
 
-    class Config:
-        validate_assignment = True
-
-    def get_prior(self) -> Tuple[str, PositiveFloat]:
-        """Construct a ForceBalance style prior string."""
-
-        prior_string = f"{self.parameter_type}/{self.parameter_subtype}/{self.target}"
-        return prior_string, self.prior
+    @classmethod
+    @abc.abstractmethod
+    def offxml_tag(cls) -> str:
+        """The OFFXML tag that wraps this parameter type."""
+        raise NotImplementedError()
 
 
-class ImproperTorsionSettings(ParameterSettings):
+class VdWSMIRKS(BaseSMIRKSParameter):
 
-    parameter_type: SmirksType = SmirksType.ImproperTorsions
-    parameter_subtype: Literal["Improper"] = "Improper"
-    target: Literal["k"] = "k"
-    prior: PositiveFloat = 6.0
+    type: Literal["vdW"] = "vdW"
 
+    attributes: Set[Literal["epsilon", "sigma"]] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
 
-class ProperTorsionSettings(ParameterSettings):
-
-    parameter_type: SmirksType = SmirksType.ProperTorsions
-    parameter_subtype: Literal["Proper"] = "Proper"
-    target: Literal["k"] = "k"
-    prior: PositiveFloat = 6.0
+    @classmethod
+    def _expected_n_tags(cls) -> int:
+        return 1
 
 
-class BondLengthSettings(ParameterSettings):
+class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
-    parameter_type: Literal[SmirksType.Bonds] = SmirksType.Bonds
-    parameter_subtype: Literal["Bond"] = "Bond"
-    target: Literal["length"] = "length"
-    prior: PositiveFloat = 0.1
+    type: Literal["vdW"] = "vdW"
 
+    priors: Dict[Literal["epsilon", "rmin_half"], PositiveFloat] = Field(
+        {"epsilon": 0.1, "rmin_half": 0.1}, description=""
+    )
 
-class BondForceSettings(BondLengthSettings):
-
-    target: Literal["k"] = "k"
-    prior: PositiveFloat = 100
-
-
-class AngleAngleSettings(ParameterSettings):
-
-    parameter_type: Literal[SmirksType.Angles] = SmirksType.Angles
-    parameter_subtype: Literal["Angle"] = "Angle"
-    target: Literal["angle"] = "angle"
-    prior: PositiveFloat = 10.0
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Atom"
 
 
-class AngleForceSettings(AngleAngleSettings):
+class BondSMIRKS(BaseSMIRKSParameter):
 
-    target: Literal["k"] = "k"
-    prior: PositiveFloat = 10.0
+    type: Literal["Bonds"] = "Bonds"
 
+    attributes: Set[Literal["k", "length"]] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
 
-class VdwEpsilonSettings(ParameterSettings):
-
-    parameter_type: Literal[SmirksType.Vdw] = SmirksType.Vdw
-    parameter_subtype: Literal["Atom"] = "Atom"
-    target: Literal["epsilon"] = "epsilon"
-    prior: PositiveFloat = 0.1
-
-
-class VdwRminHalfSettings(VdwEpsilonSettings):
-
-    target: Literal["rmin_half"] = "rmin_half"
-    prior: PositiveFloat = 0.1
+    @classmethod
+    def _expected_n_tags(cls) -> int:
+        return 2
 
 
-# define a useful type
-SmirksParameterSettings = Union[
-    ProperTorsionSettings,
-    BondLengthSettings,
-    BondForceSettings,
-    AngleForceSettings,
-    AngleAngleSettings,
-    VdwEpsilonSettings,
-    VdwRminHalfSettings,
+class BondHyperparameters(BaseSMIRKSHyperparameters):
+
+    type: Literal["Bonds"] = "Bonds"
+
+    priors: Dict[Literal["k", "length"], PositiveFloat] = Field(
+        {"k": 100.0, "length": 0.1}, description=""
+    )
+
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Bond"
+
+
+class AngleSMIRKS(BaseSMIRKSParameter):
+
+    type: Literal["Angles"] = "Angles"
+
+    attributes: Set[Literal["k", "angle"]] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
+
+    @classmethod
+    def _expected_n_tags(cls) -> int:
+        return 3
+
+
+class AngleHyperparameters(BaseSMIRKSHyperparameters):
+
+    type: Literal["Angles"] = "Angles"
+
+    priors: Dict[Literal["k", "length"], PositiveFloat] = Field(
+        {"k": 10.0, "angle": 10.0}, description=""
+    )
+
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Angle"
+
+
+# TODO: This can likely be more cleanly handled by a pydantic regex type.
+# fmt: off
+ProperTorsionAttribute = Literal[
+    "k", "k1_bondorder", "k1_bondorder", "periodicity", "phase", "idivf",
+    "k1", "k1_bondorder1", "k1_bondorder2", "periodicity1", "phase1", "idivf1",
+    "k2", "k2_bondorder1", "k2_bondorder2", "periodicity2", "phase2", "idivf2",
+    "k3", "k3_bondorder1", "k3_bondorder2", "periodicity3", "phase3", "idivf3",
+    "k4", "k4_bondorder1", "k4_bondorder2", "periodicity4", "phase4", "idivf4",
+    "k5", "k5_bondorder1", "k5_bondorder2", "periodicity5", "phase5", "idivf5",
+    "k6", "k6_bondorder1", "k6_bondorder2", "periodicity6", "phase6", "idivf6",
+]
+
+
+class ProperTorsionSMIRKS(BaseSMIRKSParameter):
+
+    type: Literal["ProperTorsions"] = "ProperTorsions"
+
+    attributes: Set[Literal[ProperTorsionAttribute]] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
+
+    @classmethod
+    def _expected_n_tags(cls) -> int:
+        return 4
+
+
+class ProperTorsionHyperparameters(BaseSMIRKSHyperparameters):
+
+    type: Literal["ProperTorsions"] = "ProperTorsions"
+
+    priors: Dict[ProperTorsionAttribute, PositiveFloat] = Field(
+        {"k": 6.0}, description=""
+    )
+
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Proper"
+
+
+# fmt: off
+ImproperTorsionAttribute = Literal[
+    "k*", "periodicity*", "phase*", "idivf*",
+    "k1", "periodicity1", "phase1", "idivf1",
+    "k2", "periodicity2", "phase2", "idivf2",
+    "k3", "periodicity3", "phase3", "idivf3",
+    "k4", "periodicity4", "phase4", "idivf4",
+]
+
+
+class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
+    type: Literal["ImproperTorsions"] = "ImproperTorsions"
+
+    attributes: Set[Literal[ImproperTorsionAttribute]] = Field(
+        ..., description="The attributes of the parameter which should be optimized."
+    )
+
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Improper"
+
+    @classmethod
+    def _expected_n_tags(cls) -> int:
+        return 4
+
+
+class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
+
+    type: Literal["ImproperTorsions"] = "ImproperTorsions"
+
+    priors: Dict[ProperTorsionAttribute, PositiveFloat] = Field(
+        {"k": 6.0}, description=""
+    )
+
+
+SMIRNOFFParameter = Union[
+    VdWSMIRKS, BondSMIRKS, AngleSMIRKS, ProperTorsionSMIRKS, ImproperTorsionSMIRKS
+]
+SMIRNOFFHyperparameters = Union[
+    ProperTorsionHyperparameters,
+    BondHyperparameters,
+    AngleHyperparameters,
+    VdWHyperparameters,
+    ImproperTorsionHyperparameters,
 ]

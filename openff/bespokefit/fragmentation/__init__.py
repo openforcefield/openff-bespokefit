@@ -1,20 +1,15 @@
 from openff.bespokefit.fragmentation.base import (
-    FragmentEngines,
-    deregister_fragment_engine,
+    FragmentationEngine,
+    deregister_fragmentation_engine,
     get_fragmentation_engine,
-    list_fragment_engines,
-    register_fragment_engine,
+    list_fragmentation_engines,
+    register_fragmentation_engine,
 )
-from openff.bespokefit.fragmentation.fragmenter import PfizerFragmenter, WBOFragmenter
-from openff.bespokefit.fragmentation.model import FragmentEngine
 
 __all__ = [
-    deregister_fragment_engine,
-    get_fragmentation_engine,
-    list_fragment_engines,
-    register_fragment_engine,
-    WBOFragmenter,
-    PfizerFragmenter,
-    FragmentEngines,
-    FragmentEngine,
+    "FragmentationEngine",
+    "deregister_fragmentation_engine",
+    "get_fragmentation_engine",
+    "list_fragmentation_engines",
+    "register_fragmentation_engine",
 ]

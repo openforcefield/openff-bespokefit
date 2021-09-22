@@ -6,12 +6,17 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from pydantic import Field, PositiveFloat, validator
+from pydantic import Field, PositiveFloat
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from typing_extensions import Literal
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
+from openff.bespokefit.schema.tasks import (
+    HessianTaskSpec,
+    OptimizationTaskSpec,
+    Torsion1DTaskSpec,
+)
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
@@ -22,7 +27,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         1.0, description="The amount to weight the target by."
     )
 
-    reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData]]
+    reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData[Any]]]
 
     extras: Dict[str, str] = Field(
         {},
@@ -41,18 +46,6 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         """
         raise NotImplementedError
 
-    @validator("reference_data")
-    def _check_reference_data(cls, value):
-
-        if not isinstance(value, BespokeQCData):
-            return value
-
-        assert all(
-            task.task_type == cls.bespoke_task_type() for task in value.tasks
-        ), f"all tasks must be of {cls.bespoke_task_type()} type"
-
-        return value
-
 
 class TorsionProfileTargetSchema(BaseTargetSchema):
     """A model which stores information about a torsion profile fitting target."""
@@ -61,7 +54,9 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
 
     reference_data: Optional[
         Union[
-            LocalQCData[TorsionDriveResult], BespokeQCData, TorsionDriveResultCollection
+            LocalQCData[TorsionDriveResult],
+            BespokeQCData[Torsion1DTaskSpec],
+            TorsionDriveResultCollection,
         ]
     ] = Field(
         None,
@@ -90,7 +85,9 @@ class AbInitioTargetSchema(BaseTargetSchema):
 
     reference_data: Optional[
         Union[
-            LocalQCData[TorsionDriveResult], BespokeQCData, TorsionDriveResultCollection
+            LocalQCData[TorsionDriveResult],
+            BespokeQCData[Torsion1DTaskSpec],
+            TorsionDriveResultCollection,
         ]
     ] = Field(
         None,
@@ -121,7 +118,11 @@ class VibrationTargetSchema(BaseTargetSchema):
     type: Literal["Vibration"] = "Vibration"
 
     reference_data: Optional[
-        Union[LocalQCData[AtomicResult], BespokeQCData, BasicResultCollection]
+        Union[
+            LocalQCData[AtomicResult],
+            BespokeQCData[HessianTaskSpec],
+            BasicResultCollection,
+        ]
     ] = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
@@ -144,7 +145,9 @@ class OptGeoTargetSchema(BaseTargetSchema):
 
     reference_data: Optional[
         Union[
-            LocalQCData[OptimizationResult], BespokeQCData, OptimizationResultCollection
+            LocalQCData[OptimizationResult],
+            BespokeQCData[OptimizationTaskSpec],
+            OptimizationResultCollection,
         ]
     ] = Field(
         None,
