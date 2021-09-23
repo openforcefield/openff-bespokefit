@@ -1,7 +1,4 @@
 from celery.result import AsyncResult
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.fragmenter.fragment import WBOFragmenter
 
 from openff.bespokefit.executor.services.optimizer import worker
@@ -10,6 +7,9 @@ from openff.bespokefit.executor.services.optimizer.models import (
     OptimizerPOSTBody,
     OptimizerPOSTResponse,
 )
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.optimizers import ForceBalanceSchema
+from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 

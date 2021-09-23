@@ -2,7 +2,6 @@ from typing import List
 
 import qcengine
 import redis
-from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 from openff.toolkit.topology import Molecule
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import DriverEnum
@@ -19,6 +18,7 @@ from qcelemental.util import serialize
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
 redis_connection = redis.Redis(
     host=settings.BEFLOW_REDIS_ADDRESS,

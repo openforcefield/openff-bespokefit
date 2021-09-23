@@ -1,13 +1,16 @@
 import pickle
 
 import pytest
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.fragmenter.fragment import WBOFragmenter
 
 from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
-from openff.bespokefit.executor.services.coordinator.stages import FragmentationStage, QCGenerationStage
+from openff.bespokefit.executor.services.coordinator.stages import (
+    FragmentationStage,
+    QCGenerationStage,
+)
 from openff.bespokefit.executor.services.coordinator.worker import _cycle
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 
 
 async def mock_enter(self, task):

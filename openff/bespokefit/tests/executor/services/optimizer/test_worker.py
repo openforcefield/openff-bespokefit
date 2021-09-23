@@ -1,12 +1,12 @@
 import json
 
+from openff.fragmenter.fragment import WBOFragmenter
+
+from openff.bespokefit.executor.services.optimizer import worker
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.fragmenter.fragment import WBOFragmenter
-
-from openff.bespokefit.executor.services.optimizer import worker
 
 
 def test_optimize(monkeypatch):

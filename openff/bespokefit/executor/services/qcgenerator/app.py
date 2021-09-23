@@ -3,7 +3,6 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from pydantic import parse_obj_as
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
@@ -16,7 +15,11 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTResponse,
 )
 from openff.bespokefit.executor.utilities.celery import get_task_information
-from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG, smiles_to_image
+from openff.bespokefit.executor.utilities.depiction import (
+    IMAGE_UNAVAILABLE_SVG,
+    smiles_to_image,
+)
+from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 
 router = APIRouter()
 

@@ -8,7 +8,6 @@ from typing import Optional
 
 import celery
 import requests
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.utilities import temporary_cd
 
 from openff.bespokefit.executor.services import settings
@@ -21,6 +20,7 @@ from openff.bespokefit.executor.services.gateway import launch as launch_gateway
 from openff.bespokefit.executor.services.gateway import wait_for_gateway
 from openff.bespokefit.executor.utilities.celery import spawn_worker
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 _logger = logging.getLogger(__name__)
 

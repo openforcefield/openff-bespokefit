@@ -3,7 +3,6 @@ from typing import List
 import numpy
 import pytest
 from celery.result import AsyncResult
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from openff.toolkit.topology import Molecule
 from pydantic import parse_raw_as
 from qcelemental.models import AtomicResult, AtomicResultProperties, DriverEnum
@@ -16,6 +15,7 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
 )
+from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 

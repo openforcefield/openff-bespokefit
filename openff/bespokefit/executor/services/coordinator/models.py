@@ -1,10 +1,10 @@
 from typing import List, Optional
 
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from pydantic import BaseModel, Field
 
 from openff.bespokefit.executor.services.coordinator.stages import StageType
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 
 class CoordinatorGETStageStatus(BaseModel):

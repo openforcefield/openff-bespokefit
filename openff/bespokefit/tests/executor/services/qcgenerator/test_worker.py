@@ -1,12 +1,12 @@
 import json
 
 import pytest
-from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 from openff.toolkit.topology import Molecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 
 from openff.bespokefit.executor.services.qcgenerator import worker
+from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
 
 def test_compute_torsion_drive():

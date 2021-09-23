@@ -1,10 +1,10 @@
 from typing import Optional
 
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
 from pydantic import BaseModel, Field
 
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 
 class OptimizerBaseResponse(BaseModel):

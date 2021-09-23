@@ -4,7 +4,6 @@ import celery
 import pytest
 from celery import shared_task
 
-from openff.bespokefit.tests.executor.mocking.celery import mock_celery_result
 from openff.bespokefit.executor.utilities.celery import (
     _spawn_worker,
     configure_celery_app,
@@ -12,6 +11,7 @@ from openff.bespokefit.executor.utilities.celery import (
     get_task_information,
     spawn_worker,
 )
+from openff.bespokefit.tests.executor.mocking.celery import mock_celery_result
 
 
 @shared_task

@@ -5,15 +5,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import httpx
 from chemper.graphs.cluster_graph import ClusterGraph
-from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS, SMIRNOFFParameter
-from openff.bespokefit.schema.tasks import Torsion1DTask
-from openff.bespokefit.utilities.molecule import (
-    get_atom_symmetries,
-    group_valence_by_symmetry,
-)
 from openff.fragmenter.fragment import FragmentationResult
 from openff.fragmenter.utils import get_map_index
 from openff.toolkit.topology import Molecule
@@ -41,6 +32,15 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTResponse,
 )
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.results import BespokeOptimizationResults
+from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS, SMIRNOFFParameter
+from openff.bespokefit.schema.tasks import Torsion1DTask
+from openff.bespokefit.utilities.molecule import (
+    get_atom_symmetries,
+    group_valence_by_symmetry,
+)
 
 if TYPE_CHECKING:
     from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
@@ -461,7 +461,7 @@ class OptimizationStage(_Stage):
         # TODO: Move these methods onto the celery worker.
         try:
             await self._regenerate_parameters(fragmentation_stage, input_schema)
-        except BaseException as e:
+        except BaseException as e:  # lgtm [py/catch-base-exception]
 
             self.status = "errored"
             self.error = json.dumps(
@@ -477,7 +477,7 @@ class OptimizationStage(_Stage):
 
         try:
             await self._inject_bespoke_qc_data(qc_generation_stage, input_schema)
-        except BaseException as e:
+        except BaseException as e:  # lgtm [py/catch-base-exception]
 
             self.status = "errored"
             self.error = json.dumps(
