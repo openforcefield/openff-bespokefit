@@ -1,4 +1,3 @@
-import copy
 import importlib
 import logging
 import os
@@ -9,11 +8,11 @@ from openff.utilities.provenance import get_ambertools_version
 
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory
 from openff.bespokefit.optimizers.model import BaseOptimizer, OptimizerResultsType
+from openff.bespokefit.schema import Error
 from openff.bespokefit.schema.fitting import (
     BaseOptimizationSchema,
     BespokeOptimizationSchema,
     OptimizationSchema,
-    Status,
 )
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import (
@@ -28,12 +27,12 @@ from openff.bespokefit.schema.targets import (
 )
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ForceBalanceOptimizer(BaseOptimizer):
     """
-    An optimizer class which controls the interface with ForceBalanace.
+    An optimizer class which controls the interface with ForceBalance.
     """
 
     @classmethod
@@ -93,7 +92,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         method.
         """
 
-        logger.info("making new fb folders in", root_directory)
+        _logger.info(f"making new fb folders in {root_directory}")
         ForceBalanceInputFactory.generate(root_directory, schema)
 
     @classmethod
@@ -102,7 +101,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         # execute forcebalanace to fit the molecule
         with open("log.txt", "w") as log:
 
-            logger.debug("Launching Forcebalance")
+            _logger.debug("Launching Forcebalance")
 
             current_env = os.environ
             current_env["ENABLE_FB_SMIRNOFF_CACHING"] = "false"
@@ -116,7 +115,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
             results = cls._collect_results("", schema=schema)
 
-        logger.debug("OPT finished in folder", os.getcwd())
+        _logger.debug("OPT finished in folder", os.getcwd())
         return results
 
     @classmethod
@@ -151,15 +150,14 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
         if isinstance(schema, BespokeOptimizationSchema):
 
-            # make a new list as smirks are updated in place
-            final_smirks = copy.deepcopy(schema.target_smirks)
-            force_field_editor.update_smirks_parameters(smirks=final_smirks)
-
             results = BespokeOptimizationResults(
                 input_schema=schema,
                 provenance=cls.provenance(),
                 status=results_dictionary["status"],
-                final_smirks=final_smirks,
+                error=results_dictionary["error"],
+                refit_force_field=force_field_editor.force_field.to_string(
+                    discard_cosmetic_attributes=True
+                ),
             )
 
         elif isinstance(schema, OptimizationSchema):
@@ -168,6 +166,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
                 input_schema=schema,
                 provenance=cls.provenance(),
                 status=results_dictionary["status"],
+                error=results_dictionary["error"],
                 refit_force_field=force_field_editor.force_field.to_string(
                     discard_cosmetic_attributes=True
                 ),
@@ -195,26 +194,35 @@ class ForceBalanceOptimizer(BaseOptimizer):
             path to the optimized forcefield.
         """
 
-        result = {}
+        result = {"error": None}
 
         with open(os.path.join(root_directory, "optimize.out")) as log:
 
             for line in log.readlines():
-                if "optimization converged" in line.lower():
-                    # optimization finished correctly
-                    result["status"] = Status.Complete
-                    break
-                elif "convergence failure" in line.lower():
-                    # did not converge
-                    result["status"] = Status.ConvergenceError
-                    break
-            else:
-                # still running?
-                result["status"] = Status.Optimizing
 
-        # now we need the path to optimised forcefield
+                if "optimization converged" in line.lower():
+
+                    result["status"] = "success"
+                    break
+
+                elif "convergence failure" in line.lower():
+
+                    result["status"] = "errored"
+
+                    result["error"] = Error(
+                        type="ConvergenceFailure",
+                        message="The optimization failed to converge.",
+                    )
+
+                    break
+
+            else:
+
+                result["status"] = "running"
+
         force_field_dir = os.path.join(root_directory, "result", "optimize")
         result["forcefield"] = os.path.join(force_field_dir, "force-field.offxml")
+
         return result
 
 

@@ -45,7 +45,7 @@ from openff.bespokefit.schema.targets import (
 if TYPE_CHECKING:
     from qcelemental.models import Molecule as QCMolecule
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 R = TypeVar("R", bound=Union[AtomicResult, OptimizationResult, TorsionDriveResult])
 S = TypeVar("S", bound=RecordBase)
@@ -482,7 +482,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
         if np.abs(gradient).max() > 1e-3:
 
-            logger.warning(
+            _logger.warning(
                 f"the max gradient of record={qc_record_id} is greater than 1e-3"
             )
 
@@ -698,8 +698,14 @@ class ForceBalanceInputFactory:
             priors = {
                 name: value
                 for name, value in [
-                    target_parameter.get_prior()
-                    for target_parameter in optimization_schema.parameter_settings
+                    (
+                        f"{hyperparameter.type}/"
+                        f"{hyperparameter.offxml_tag()}/"
+                        f"{attribute}",
+                        prior,
+                    )
+                    for hyperparameter in optimization_schema.parameter_hyperparameters
+                    for attribute, prior in hyperparameter.priors.items()
                 ]
             }
 

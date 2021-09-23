@@ -23,3 +23,4 @@ class ClassBase(SchemaBase):
     class Config:
 
         arbitrary_types_allowed = True
+        validate_assignment = True

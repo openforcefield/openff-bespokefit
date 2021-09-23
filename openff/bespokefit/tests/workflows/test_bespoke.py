@@ -4,25 +4,20 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
-from openff.qcsubmit.common_structures import MoleculeAttributes
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
+from pydantic import ValidationError
 
-from openff.bespokefit.bespoke import deserialize_schema, serialize_schema
 from openff.bespokefit.exceptions import (
-    ForceFieldError,
     FragmenterError,
     OptimizerError,
     TargetNotSetError,
 )
 from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.targets import (
-    AbInitioTargetSchema,
-    OptGeoTargetSchema,
-    TorsionProfileTargetSchema,
-    VibrationTargetSchema,
-)
+from openff.bespokefit.schema.targets import AbInitioTargetSchema
+from openff.bespokefit.schema.tasks import Torsion1DTaskSpec
 from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -45,23 +40,23 @@ def bace() -> Molecule:
     [
         pytest.param(("openff-1.0.0.offxml", does_not_raise()), id="Parsley 1.0.0"),
         pytest.param(
-            ("bespoke.offxml", pytest.raises(ForceFieldError)), id="Local forcefield"
+            (ForceField("openff-1.0.0.offxml").to_string(), does_not_raise()),
+            id="Local Force Field",
         ),
         pytest.param(
-            ("smirnoff99Frosst-1.0.7.offxml", does_not_raise()),
-            id="Smirnoff99Frosst installed",
+            ("BAD STRING", pytest.raises(IOError, match="Parsing failed")),
+            id="Invalid FF",
         ),
     ],
 )
 def test_check_force_field(force_field):
-    """
-    Make sure we only accept forcefields that have been installed.
-    """
-    force_file, expected_raises = force_field
+    """Make sure we only accept force fields that have been installed."""
+
+    force_field, expected_raises = force_field
 
     # Test the init validation
     with expected_raises:
-        BespokeWorkflowFactory(initial_force_field=force_file)
+        BespokeWorkflowFactory(initial_force_field=force_field)
 
 
 @pytest.mark.parametrize(
@@ -88,23 +83,14 @@ def test_check_optimizer(optimization_data):
         assert factory.optimizer is not None
 
 
-def test_workflow_export_import():
-    """
-    Test exporting and importing a workflow.
-    """
+def test_check_target_torsion_smirks():
 
-    factory = BespokeWorkflowFactory(
-        optimizer=ForceBalanceSchema(),
-        target_templates=[AbInitioTargetSchema()],
-    )
+    # Check the trivial case
+    factory = BespokeWorkflowFactory(target_torsion_smirks=["[*:1]~[*:2]"])
+    assert factory.target_torsion_smirks == ["[*:1]~[*:2]"]
 
-    with temporary_cd():
-
-        factory.export_workflow(file_name="test.json")
-
-        # now read it back in
-        recreated = BespokeWorkflowFactory.parse_file("test.json")
-        assert factory.dict() == recreated.dict()
+    with pytest.raises(ValidationError, match="target_torsion_smirks"):
+        BespokeWorkflowFactory(target_torsion_smirks=["[*:1]~[*:2]~[*:3]"])
 
 
 @pytest.mark.parametrize(
@@ -119,7 +105,7 @@ def test_workflow_export_import():
             pytest.raises(FragmenterError, match="There is no fragmentation engine"),
         ),
         (
-            dict(parameter_settings=[]),
+            dict(parameter_hyperparameters=[]),
             pytest.raises(TargetNotSetError, match="There are no parameter settings"),
         ),
         (
@@ -138,34 +124,21 @@ def test_pre_run_check(input_kwargs, expected_raises):
         factory._pre_run_check()
 
 
-@pytest.mark.parametrize(
-    "target_schema",
-    [
-        TorsionProfileTargetSchema(reference_data=BespokeQCData()),
-        AbInitioTargetSchema(reference_data=BespokeQCData()),
-        VibrationTargetSchema(reference_data=BespokeQCData()),
-        OptGeoTargetSchema(reference_data=BespokeQCData()),
-    ],
-)
-def test_generate_fitting_task(target_schema, bace):
-    """
-    Make sure the correct fitting task is made based on the collection workflow.
-    """
-    molecule = Molecule.from_file(
-        file_path=get_data_file_path(
-            os.path.join("test", "molecules", "ethanol.sdf"), "openff.bespokefit"
-        )
+def test_export_factory():
+    """Test exporting and importing a workflow."""
+
+    factory = BespokeWorkflowFactory(
+        optimizer=ForceBalanceSchema(),
+        target_templates=[AbInitioTargetSchema()],
     )
 
-    task_schema = BespokeWorkflowFactory._generate_fitting_task(
-        target_schema=target_schema,
-        molecule=molecule,
-        fragment=False,
-        attributes=MoleculeAttributes.from_openff_molecule(molecule),
-        dihedrals=[(8, 2, 1, 0)],
-    )
+    with temporary_cd():
 
-    assert task_schema.task_type == target_schema.bespoke_task_type()
+        factory.export_factory(file_name="test.json")
+
+        # now read it back in
+        recreated = BespokeWorkflowFactory.parse_file("test.json")
+        assert factory.dict() == recreated.dict()
 
 
 @pytest.mark.parametrize(
@@ -184,51 +157,53 @@ def test_deduplicated_list(molecules):
     assert deduplicated.n_molecules == 1
 
 
-@pytest.mark.parametrize("processors", [1, 2])
-def test_optimization_schemas_from_molecule(processors, bace):
+@pytest.mark.parametrize(
+    "func_name",
+    [
+        "optimization_schemas_from_molecules",
+        "optimization_schema_from_molecule",
+    ],
+)
+def test_optimization_schemas_from_molecule(func_name):
     """
     Test the workflow function which makes the optimization schema from a molecule
     """
 
     factory = BespokeWorkflowFactory()
+    factory_func = getattr(factory, func_name)
 
-    opt_schemas = factory.optimization_schemas_from_molecules(
-        molecules=bace, processors=processors
+    molecule: Molecule = Molecule.from_smiles("c1ccc(cc1)c2ccccc2")
+
+    opt_schema = factory_func(molecule)
+
+    if func_name == "optimization_schemas_from_molecules":
+
+        assert len(opt_schema) == 1
+        opt_schema = opt_schema[0]
+
+    assert len(opt_schema.parameters) == 1
+    expected_matches = molecule.chemical_environment_matches(
+        "[*:1]~[#6:2]-[#6:3]~[*:4]"
     )
-    assert len(opt_schemas) == 1
+    actual_matches = molecule.chemical_environment_matches(
+        opt_schema.parameters[0].smirks
+    )
+    assert {*actual_matches} == {*expected_matches}
 
-    opt_schema = opt_schemas[0]
+    force_field = ForceField(opt_schema.initial_force_field)
+    assert opt_schema.parameters[0].smirks in force_field["ProperTorsions"].parameters
 
-    assert opt_schema.initial_force_field == factory.initial_force_field
     assert opt_schema.optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_0"
-    assert bool(opt_schema.target_smirks) is True
-    assert opt_schema.parameter_settings == factory.parameter_settings
-    assert opt_schema.target_molecule.molecule == bace
-    assert opt_schema.n_tasks == 3
+    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert Molecule.from_smiles(opt_schema.smiles) == molecule
     assert opt_schema.n_targets == 1
-
-
-def test_bespoke_schema_serialization(bace, tmpdir):
-    """
-    Build an optimization schema and make sure we can de/serialize it.
-    """
-    with tmpdir.as_cwd():
-        factory = BespokeWorkflowFactory()
-
-        opt_schema = factory.optimization_schemas_from_molecules(
-            molecules=bace, processors=1
-        )
-        assert len(opt_schema) == 1
-
-        # try and round trip to file using compression
-        serialize_schema(schemas=opt_schema, file_name="all_schema.json.xz")
-        file_schema = deserialize_schema("all_schema.json.xz")
-        assert len(file_schema) == 1
+    assert isinstance(opt_schema.targets[0].reference_data, BespokeQCData)
+    assert isinstance(opt_schema.targets[0].reference_data.spec, Torsion1DTaskSpec)
 
 
 @pytest.mark.parametrize("combine, n_expected", [(True, 1), (False, 2)])
-def test_sort_results(combine, n_expected, qc_torsion_drive_results):
+def test_group_records(combine, n_expected, qc_torsion_drive_results):
     """
     Test sorting the results before making a fitting schema with and without combination.
     """
@@ -236,7 +211,7 @@ def test_sort_results(combine, n_expected, qc_torsion_drive_results):
     records = qc_torsion_drive_results.to_records()
     records.append(records[0])
 
-    sorted_results = BespokeWorkflowFactory._sort_results(records, combine=combine)
+    sorted_results = BespokeWorkflowFactory._group_records(records, combine=combine)
 
     assert len(sorted_results) == n_expected
 
@@ -255,15 +230,14 @@ def test_optimization_schema_from_records(qc_torsion_drive_results):
 
     [(_, molecule)] = records
 
-    assert opt_schema.initial_force_field == factory.initial_force_field
+    ForceField(opt_schema.initial_force_field)
+
     assert opt_schema.optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
-    assert bool(opt_schema.target_smirks) is True
-    assert opt_schema.parameter_settings == factory.parameter_settings
-    assert molecule == opt_schema.target_molecule.molecule
-    assert opt_schema.n_tasks == 1
+    assert bool(opt_schema.parameters) is True
+    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert molecule == Molecule.from_mapped_smiles(opt_schema.smiles)
     assert opt_schema.n_targets == 1
-    assert opt_schema.ready_for_fitting is True
 
 
 def test_optimization_schemas_from_results(qc_torsion_drive_results):
@@ -278,6 +252,3 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     )
 
     assert len(schemas) == 1
-    assert schemas[0].n_tasks == 1
-
-    assert all(schema.ready_for_fitting for schema in schemas)

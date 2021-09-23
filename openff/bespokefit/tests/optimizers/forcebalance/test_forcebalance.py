@@ -6,11 +6,12 @@ import os
 import shutil
 import subprocess
 
+import numpy as np
 import pytest
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
-from openff.bespokefit.schema.fitting import Status
+from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import (
     BespokeOptimizationResults,
@@ -80,20 +81,21 @@ def test_forcebalance_schema_class():
 @pytest.mark.parametrize(
     "output",
     [
-        pytest.param(("complete.out", Status.Complete), id="Complete run"),
-        pytest.param(("error.out", Status.ConvergenceError), id="Convergence error"),
-        pytest.param(("running.out", Status.Optimizing), id="Running "),
+        pytest.param(("complete.out", "success", None), id="Complete run"),
+        pytest.param(
+            ("error.out", "errored", "ConvergenceFailure"), id="Convergence error"
+        ),
+        pytest.param(("running.out", "running", None), id="Running "),
     ],
 )
 def test_forcebalance_read_output(output):
-    """
-    Test reading the output of a forcebalance run.
-    """
-    file_name, status = output
+    """Test reading the output of a forcebalance run."""
+
+    file_name, status, error_type = output
 
     with temporary_cd():
 
-        # copy the file over
+        # copy the output file over
         shutil.copy(
             get_data_file_path(
                 os.path.join("test", "force-balance", file_name), "openff.bespokefit"
@@ -111,50 +113,49 @@ def test_forcebalance_read_output(output):
         result = ForceBalanceOptimizer._read_output("")
 
         assert result["status"] == status
+
+        if error_type is None:
+            assert result["error"] is None
+        else:
+            assert result["error"].type == error_type
+
         assert "force-field.offxml" in result["forcefield"]
 
 
+@pytest.mark.parametrize(
+    "input_schema_fixture, expected_type",
+    [
+        ("bespoke_optimization_schema", BespokeOptimizationResults),
+        ("general_optimization_schema", OptimizationResults),
+    ],
+)
 def test_forcebalance_collect_general_results(
-    forcebalance_results_directory, general_optimization_schema
+    input_schema_fixture, expected_type, forcebalance_results_directory, request
 ):
+    """Test trying to collect results that have been successful and updated the
+    parameters.
     """
-    Test trying to collect results that have been successful and updated the parameters.
-    """
+
+    input_schema: BaseOptimizationSchema = request.getfixturevalue(input_schema_fixture)
 
     results = ForceBalanceOptimizer._collect_results(
-        forcebalance_results_directory, schema=general_optimization_schema
+        forcebalance_results_directory, schema=input_schema
     )
 
-    assert isinstance(results, OptimizationResults)
+    assert isinstance(results, expected_type)
 
+    initial_values = input_schema.initial_parameter_values
+    refit_values = results.refit_parameter_values
 
-def test_forcebalance_collect_bespoke_results(
-    forcebalance_results_directory, bespoke_optimization_schema
-):
-    """
-    Test trying to collect results that have been successful and updated the parameters.
-    """
+    for parameter_smirks in initial_values:
 
-    # first make sure the target smirks are set to the default value
-    target_smirks = bespoke_optimization_schema.target_smirks
+        initial_value = initial_values[parameter_smirks]
+        refit_value = refit_values[parameter_smirks]
 
-    for smirk in target_smirks:
-        for param in smirk.terms.values():
-            # starting value
-            assert param.k == "1.048715180139 * mole**-1 * kilocalorie"
+        refit_value = refit_value.value_in_unit(initial_value.unit)
+        initial_value = initial_value.value_in_unit(initial_value.unit)
 
-    results = ForceBalanceOptimizer._collect_results(
-        forcebalance_results_directory, schema=bespoke_optimization_schema
-    )
-
-    assert isinstance(results, BespokeOptimizationResults)
-
-    # make sure the smirks have been updated
-    new_smirks = results.final_smirks
-
-    for smirk in new_smirks:
-        for param in smirk.terms.values():
-            assert param.k != "1.048715180139 * mole**-1 * kilocalorie"
+        assert not np.isclose(initial_value, refit_value)
 
 
 def test_forcebalance_optimize(
@@ -167,32 +168,4 @@ def test_forcebalance_optimize(
     with temporary_cd(str(forcebalance_results_directory)):
         results = ForceBalanceOptimizer._optimize(general_optimization_schema)
 
-    assert results.status == Status.Complete
-
-
-# @pytest.mark.parametrize("optimization_target", [
-#     pytest.param(AbInitio_SMIRNOFF, id="AbInitio_SMIRNOFF"),
-#     pytest.param(TorsionProfile_SMIRNOFF, id="TorsionProfile_SMIRNOFF"),
-# ])
-# def test_forcebalance_optimize(optimization_target):
-#     """
-#     Test running the full optimization stage for a simple biphenyl system using
-#     different targets.
-#     The data has been extracted from qcarchive.
-#     """
-#     from openff.qcsubmit.results import TorsionDriveCollectionResult
-#     workflow = biphenyl_workflow(target=optimization_target)
-#     with temp_directory():
-#         # load the computed results and add them to the workflow
-#         torsiondrive_result = TorsionDriveCollectionResult.parse_file(
-#             get_data("biphenyl.json.xz")
-#         )
-#         workflow.update_with_results(results=torsiondrive_result)
-#         # setup the optimizer
-#         fb = ForceBalanceOptimizer()
-#         result = fb.optimize(schema=workflow)
-#         assert result.status == Status.Complete
-#         new_smirks = result.target_smirks
-#         for smirk in new_smirks:
-#             for param in smirk.terms.values():
-#                 assert param.k != "1e-05 * mole**-1 * kilocalorie"
+    assert results.status == "success"

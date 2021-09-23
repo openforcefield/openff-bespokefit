@@ -1,9 +1,11 @@
 """
 Tools for dealing with SMIRNOFF force field manipulation.
 """
+import copy
+from enum import Enum
+from typing import Dict, List, Tuple
 
-from typing import Dict, Iterable, List, Tuple, Union
-
+import numpy as np
 from openff.toolkit import topology as off
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
@@ -11,223 +13,184 @@ from openff.toolkit.typing.engines.smirnoff import (
     ForceField,
     ImproperTorsionHandler,
     ParameterLookupError,
+    ParameterType,
     ProperTorsionHandler,
     vdWHandler,
 )
 
-from openff.bespokefit.schema.bespoke.smirks import (
-    BespokeAngleSmirks,
-    BespokeAtomSmirks,
-    BespokeBondSmirks,
-    BespokeSmirksParameter,
-    BespokeTorsionSmirks,
-)
-from openff.bespokefit.schema.smirnoff import SmirksType
+_PARAMETER_TYPE_TO_HANDLER = {
+    vdWHandler.vdWType: "vdW",
+    BondHandler.BondType: "Bonds",
+    AngleHandler.AngleType: "Angles",
+    ProperTorsionHandler.ProperTorsionType: "ProperTorsions",
+    ImproperTorsionHandler.ImproperTorsionType: "ImproperTorsions",
+}
 
 
-def smirks_from_off(
-    off_smirks: Union[
-        AngleHandler.AngleType,
-        vdWHandler.vdWType,
-        BondHandler.BondType,
-        ProperTorsionHandler.ProperTorsionType,
-        ImproperTorsionHandler.ImproperTorsionType,
-    ]
-) -> BespokeSmirksParameter:
-    """Build and Bespokefit smirks parameter object from the OpenFF toolkit
-    equivalent object.
-    """
-
-    # map the off types to the bespoke types
-    _off_to_smirks = {
-        "Angle": BespokeAngleSmirks,
-        "Atom": BespokeAtomSmirks,
-        "Bond": BespokeBondSmirks,
-        "ProperTorsion": BespokeTorsionSmirks,
-        "ImproperTorsion": BespokeTorsionSmirks,
-    }
-    # build the smirks and update it
-    smirk = _off_to_smirks[off_smirks._VALENCE_TYPE].from_off_smirks(
-        off_smirk=off_smirks
-    )
-    return smirk
+class SMIRKSType(str, Enum):
+    Bonds = "Bonds"
+    Angles = "Angles"
+    ProperTorsions = "ProperTorsions"
+    ImproperTorsions = "ImproperTorsions"
+    Vdw = "vdW"
 
 
 class ForceFieldEditor:
     def __init__(self, force_field_name: str):
         """
-        Gather the forcefield ready for manipulation.
 
-        Parameters
-        ----------
-        force_field_name: str
-            The string of the target forcefield path.
+        Args:
+            force_field_name: A path to a serialized SMIRNOFF force field or the
+                contents of an OFFXML serialized SMIRNOFF force field.
 
         Notes
-        ------
-            This will always try to strip the constraints parameter handler as the FF
-            should be unconstrained for fitting.
+            * This will always try to strip the constraints parameter handler as the FF
+              should be unconstrained for fitting.
         """
+
         self.force_field = ForceField(force_field_name, allow_cosmetic_attributes=True)
 
-        # try and strip a constraint handler
         try:
-            del self.force_field._parameter_handlers["Constraints"]
+            # try and strip a constraint handler
+            self.force_field.deregister_parameter_handler("Constraints")
         except KeyError:
             pass
 
-    def add_smirks(
-        self,
-        smirks: List[BespokeSmirksParameter],
-        parameterize: bool = True,
-    ) -> None:
+    def add_parameters(self, parameters: List[ParameterType]) -> List[ParameterType]:
         """
         Work out which type of smirks this is and add it to the forcefield, if this is
         not a bespoke parameter update the value in the forcefield.
         """
 
-        _smirks_conversion = {
-            SmirksType.Bonds: BondHandler.BondType,
-            SmirksType.Angles: AngleHandler.AngleType,
-            SmirksType.ProperTorsions: ProperTorsionHandler.ProperTorsionType,
-            SmirksType.Vdw: vdWHandler.vdWType,
-        }
         _smirks_ids = {
-            SmirksType.Bonds: "b",
-            SmirksType.Angles: "a",
-            SmirksType.ProperTorsions: "t",
-            SmirksType.Vdw: "n",
+            BondHandler.BondType: "b",
+            AngleHandler.AngleType: "a",
+            ProperTorsionHandler.ProperTorsionType: "t",
+            vdWHandler.vdWType: "n",
         }
-        new_params = {}
-        for smirk in smirks:
-            new_params.setdefault(smirk.type, []).append(smirk)
 
-        for smirk_type, parameters in new_params.items():
-            current_params = self.force_field.get_parameter_handler(
-                smirk_type
-            ).parameters
-            no_params = len(current_params)
-            for i, parameter in enumerate(parameters, start=2):
-                smirk_data = parameter.to_off_smirks()
-                if not parameterize:
-                    del smirk_data["parameterize"]
-                # check if the parameter is new
+        parameters_by_handler = dict()
+
+        for parameter in parameters:
+
+            handler_type = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
+            parameters_by_handler.setdefault(handler_type, []).append(parameter)
+
+        added_parameters = []
+
+        for handler_type, handler_parameters in parameters_by_handler.items():
+
+            current_params = self.force_field[handler_type].parameters
+            n_params = len(current_params)
+
+            for i, parameter in enumerate(handler_parameters, start=2):
+
+                parameter_data = parameter.to_dict()
+
                 try:
-                    current_param = current_params[parameter.smirks]
-                    smirk_data["id"] = current_param.id
+                    current_param = current_params[parameter_data["smirks"]]
+                    parameter_data["id"] = current_param.id
                     # update the parameter using the init to get around conditional
                     # assigment
-                    current_param.__init__(**smirk_data)
+                    current_param.__init__(**parameter_data)
                 except ParameterLookupError:
-                    smirk_data["id"] = _smirks_ids[smirk_type] + str(no_params + i)
-                    current_params.append(_smirks_conversion[smirk_type](**smirk_data))
+                    parameter_data["id"] = _smirks_ids[parameter.__class__] + str(
+                        n_params + i
+                    )
 
-    def label_molecule(self, molecule: off.Molecule) -> Dict[str, str]:
+                    current_param = parameter.__class__(**parameter_data)
+                    current_params.append(current_param)
+
+                added_parameters.append(current_param)
+
+        return added_parameters
+
+    def label_molecule(
+        self, molecule: off.Molecule
+    ) -> Dict[str, Dict[Tuple[int, ...], ParameterType]]:
         """
         Type the molecule with the forcefield and return a molecule parameter dictionary.
 
-        Parameters
-        ----------
-        molecule: openff.toolkit.topology.Molecule
-            The molecule that should be labeled by the
-            forcefield.
+        Args:
+            molecule: The molecule that should be labeled by the force field.
 
-        Returns
-        -------
-        Dict[str, str]
+        Returns:
             A dictionary of each parameter assigned to molecule organised by parameter
             handler type.
         """
         return self.force_field.label_molecules(molecule.to_topology())[0]
 
-    def get_smirks_parameters(
+    def get_parameters(
         self, molecule: off.Molecule, atoms: List[Tuple[int, ...]]
-    ) -> List[BespokeSmirksParameter]:
+    ) -> List[ParameterType]:
         """
         For a given molecule label it and get back the smirks patterns and parameters
         for the requested atoms.
         """
         _atoms_to_params = {
-            1: SmirksType.Vdw,
-            2: SmirksType.Bonds,
-            3: SmirksType.Angles,
-            4: SmirksType.ProperTorsions,
+            1: SMIRKSType.Vdw,
+            2: SMIRKSType.Bonds,
+            3: SMIRKSType.Angles,
+            4: SMIRKSType.ProperTorsions,
         }
-        smirks = []
+
+        off_params = {}
+
         labels = self.label_molecule(molecule=molecule)
+
         for atom_ids in atoms:
             # work out the parameter type from the length of the tuple
             smirk_class = _atoms_to_params[len(atom_ids)]
             # now we can get the handler type using the smirk type
             off_param = labels[smirk_class.value][atom_ids]
-            smirk = smirks_from_off(off_smirks=off_param)
-            smirk.atoms.add(atom_ids)
-            if smirk not in smirks:
-                smirks.append(smirk)
-            else:
-                # update the covered atoms
-                index = smirks.index(smirk)
-                smirks[index].atoms.add(atom_ids)
-        return smirks
 
-    def update_smirks_parameters(
-        self,
-        smirks: Iterable[BespokeSmirksParameter],
-    ) -> None:
-        """
-        Take a list of input smirks parameters and update the values of the parameters
-        using the given forcefield in place.
+            off_params[(off_param.__class__, off_param.smirks)] = off_param
 
-        Parameters
-        ----------
-        smirks : Iterable[Union[AtomSmirks, AngleSmirks, BondSmirks, TorsionSmirks]]
-            An iterable containing smirks schemas that are to be updated.
-
-        """
-
-        for smirk in smirks:
-            new_parameter = self.force_field.get_parameter_handler(
-                smirk.type
-            ).parameters[smirk.smirks]
-            # now we just need to update the smirks with the new values
-            smirk.update_parameters(off_smirk=new_parameter)
+        return [*off_params.values()]
 
     def get_initial_parameters(
         self,
         molecule: off.Molecule,
-        smirks: List[BespokeSmirksParameter],
-        clear_existing: bool = True,
-    ) -> List[BespokeSmirksParameter]:
+        smirks: Dict[SMIRKSType, List[str]],
+    ) -> List[ParameterType]:
         """
-        Find the initial parameters assigned to the atoms in the given smirks pattern
-        and update the values to match the forcefield.
+        Find the initial parameters assigned to the atoms in the given smirks patterns
+        and update the values to match the force field.
         """
         labels = self.label_molecule(molecule=molecule)
+
+        initial_parameters = []
+
         # now find the atoms
-        for smirk in smirks:
-            parameters = labels[smirk.type]
-            if smirk.type == SmirksType.ProperTorsions:
-                # here we can combine multiple parameter types
-                # TODO is this needed?
-                openff_params = []
-                for atoms in smirk.atoms:
-                    param = parameters[atoms]
-                    openff_params.append(param)
+        for smirks_type, smirks_patterns in smirks.items():
 
-                # now check if they are different types
-                types = set([param.id for param in openff_params])
+            for smirks_pattern in smirks_patterns:
+                matches = molecule.chemical_environment_matches(smirks_pattern)
 
-                # now update the parameter
-                smirk.update_parameters(
-                    off_smirk=openff_params[0], clear_existing=clear_existing
-                )
-                # if there is more than expand the k terms
-                if len(types) > 1:
-                    for param in openff_params[1:]:
-                        smirk.update_parameters(param, clear_existing=False)
-            else:
-                atoms = list(smirk.atoms)[0]
-                param = parameters[atoms]
-                smirk.update_parameters(off_smirk=param, clear_existing=True)
+                if len(matches) == 0:
+                    continue
 
-        return smirks
+                parameters = labels[smirks_type.value]
+
+                if smirks_type == SMIRKSType.ProperTorsions:
+
+                    # here we can combine multiple parameter types
+                    # TODO is this needed?
+                    openff_params = [parameters[match] for match in matches]
+
+                    n_terms = [len(param.k) for param in openff_params]
+
+                    # Choose the torsion parameter that has the most k values as the
+                    # starting point.
+                    match = matches[np.argmax(n_terms)]
+
+                else:
+
+                    match = matches[0]
+
+                initial_parameter = copy.deepcopy(parameters[match])
+                initial_parameter.smirks = smirks_pattern
+
+                initial_parameters.append(initial_parameter)
+
+        return initial_parameters
