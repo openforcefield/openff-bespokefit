@@ -1,6 +1,14 @@
 import abc
 from typing import Dict, Set, Union
 
+from openff.toolkit.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ImproperTorsionHandler,
+    ParameterType,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
@@ -34,6 +42,11 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
     @validator("smirks")
     def _check_smirks(cls, value: str) -> str:
         return validate_smirks(value, cls._expected_n_tags())
+
+    @classmethod
+    @abc.abstractmethod
+    def from_smirnoff(cls, parameter: ParameterType):
+        """Creates a version of this class from a SMIRNOFF parameter"""
 
     def __eq__(self, other):
         return type(self) == type(other) and self.__hash__() == other.__hash__()
@@ -73,6 +86,10 @@ class VdWSMIRKS(BaseSMIRKSParameter):
     def _expected_n_tags(cls) -> int:
         return 1
 
+    @classmethod
+    def from_smirnoff(cls, parameter: vdWHandler.vdWType) -> "VdWSMIRKS":
+        return cls(smirks=parameter.smirks, attributes={"epsilon", "sigma"})
+
 
 class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
@@ -99,6 +116,10 @@ class BondSMIRKS(BaseSMIRKSParameter):
     def _expected_n_tags(cls) -> int:
         return 2
 
+    @classmethod
+    def from_smirnoff(cls, parameter: BondHandler.BondType) -> "BondSMIRKS":
+        return cls(smirks=parameter.smirks, attributes={"k", "length"})
+
 
 class BondHyperparameters(BaseSMIRKSHyperparameters):
 
@@ -124,6 +145,10 @@ class AngleSMIRKS(BaseSMIRKSParameter):
     @classmethod
     def _expected_n_tags(cls) -> int:
         return 3
+
+    @classmethod
+    def from_smirnoff(cls, parameter: AngleHandler.AngleType) -> "AngleSMIRKS":
+        return cls(smirks=parameter.smirks, attributes={"k", "angle"})
 
 
 class AngleHyperparameters(BaseSMIRKSHyperparameters):
@@ -164,6 +189,16 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
     def _expected_n_tags(cls) -> int:
         return 4
 
+    @classmethod
+    def from_smirnoff(
+        cls, parameter: ProperTorsionHandler.ProperTorsionType
+    ) -> "ProperTorsionSMIRKS":
+
+        return cls(
+            smirks=parameter.smirks,
+            attributes={f"k{i + 1}" for i in range(len(parameter.k))}
+        )
+
 
 class ProperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
@@ -196,12 +231,14 @@ class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
     )
 
     @classmethod
-    def offxml_tag(cls) -> str:
-        return "Improper"
-
-    @classmethod
     def _expected_n_tags(cls) -> int:
         return 4
+
+    @classmethod
+    def from_smirnoff(
+        cls, parameter: ImproperTorsionHandler.ImproperTorsionType
+    ) -> "ImproperTorsionSMIRKS":
+        raise NotImplementedError()
 
 
 class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
@@ -211,6 +248,10 @@ class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
     priors: Dict[ProperTorsionAttribute, PositiveFloat] = Field(
         {"k": 6.0}, description=""
     )
+
+    @classmethod
+    def offxml_tag(cls) -> str:
+        return "Improper"
 
 
 SMIRNOFFParameter = Union[

@@ -14,7 +14,6 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.utilities.pydantic import SchemaBase
-from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 class BaseOptimizationSchema(SchemaBase, abc.ABC):
@@ -79,21 +78,6 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
             for attribute in parameter.attributes
         }
 
-    @abc.abstractmethod
-    def get_fitting_force_field(self) -> ForceField:
-        """Returns the force field object to be fit, complete with cosmetic attributes
-        which specify the parameters to be refit.
-        """
-        raise NotImplementedError()
-
-
-class OptimizationSchema(BaseOptimizationSchema):
-    """The schema for a general optimization that does not require bespoke stages such
-    as fragmentation of bespoke QC calculations.
-    """
-
-    type: Literal["general"] = "general"
-
     def get_fitting_force_field(self) -> ForceField:
         """Returns the force field object to be fit, complete with cosmetic attributes
         which specify the parameters to be refit.
@@ -117,6 +101,14 @@ class OptimizationSchema(BaseOptimizationSchema):
         return force_field
 
 
+class OptimizationSchema(BaseOptimizationSchema):
+    """The schema for a general optimization that does not require bespoke stages such
+    as fragmentation of bespoke QC calculations.
+    """
+
+    type: Literal["general"] = "general"
+
+
 class BespokeOptimizationSchema(BaseOptimizationSchema):
     """A schema which encodes how a bespoke force field should be created for a specific
     molecule."""
@@ -128,45 +120,3 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         description="The SMILES representation of the molecule to generate bespoke "
         "parameters for.",
     )
-
-    # def _parameterize_smirks(self) -> List[BespokeSMIRKSParameter]:
-    #     """For the set of target smirks use the parameter targets to tag the values
-    #     which should be optimized.
-    #
-    #     For example a BondSMIRKS with a parameter target of BondLength will have length
-    #     set to be parameterized.
-    #     """
-    #     target_smirks = copy.deepcopy(self.target_smirks)
-    #
-    #     for target_parameter in self.parameter_hyperparameters:
-    #
-    #         for smirk in target_smirks:
-    #
-    #             if (
-    #                 target_parameter.parameter_type == smirk.type
-    #                 and target_parameter.parameter_type == SMIRKSType.ProperTorsions
-    #             ):
-    #
-    #                 smirk.parameterize = [
-    #                     f"k{i}" for i, _ in enumerate(smirk.terms, start=1)
-    #                 ]
-    #
-    #             elif target_parameter.parameter_type == smirk.type:
-    #                 smirk.parameterize.add(target_parameter.target)
-    #
-    #     return target_smirks
-
-    def get_fitting_force_field(self) -> ForceField:
-        """Take the initial force field and edit it to add the new terms and return the
-        OpenFF FF object.
-        """
-
-        # get all of the new target smirks
-        target_smirks = self._parameterize_smirks()
-
-        ff = ForceFieldEditor(self.initial_force_field)
-        ff.add_smirks(target_smirks, parameterize=True)
-
-        # if there are any parameters from a different optimization stage add them here
-        # without parameterize tags
-        return ff.force_field

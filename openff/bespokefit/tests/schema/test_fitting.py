@@ -13,7 +13,7 @@ def test_n_targets(general_optimization_schema):
     assert general_optimization_schema.n_targets == expected_n_targets
 
 
-def test_general_fitting_force_field(general_optimization_schema):
+def test_get_fitting_force_field(general_optimization_schema):
 
     target_parameter = general_optimization_schema.parameters[0]
 
@@ -24,12 +24,6 @@ def test_general_fitting_force_field(general_optimization_schema):
 
     assert parameter.attribute_is_cosmetic("parameterize")
     assert parameter._parameterize == "k1"
-
-
-def test_bespoke_fitting_force_field(bespoke_optimization_schema):
-
-    force_field = bespoke_optimization_schema.get_fitting_force_field()
-    assert "parameterize" in force_field.to_string()
 
 
 def test_general_schema_export_roundtrip(general_optimization_schema):
