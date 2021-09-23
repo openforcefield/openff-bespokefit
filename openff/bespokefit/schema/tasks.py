@@ -1,8 +1,9 @@
 import abc
-from typing import Literal, Tuple
+from typing import Tuple
 
 from pydantic import BaseModel, Field, conint
 from qcelemental.models.common_models import Model
+from typing_extensions import Literal
 
 
 class OptimizationSpec(BaseModel):

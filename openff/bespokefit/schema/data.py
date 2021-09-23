@@ -1,5 +1,4 @@
-import typing
-from typing import Generic, List, Tuple, TypeVar
+from typing import Generic, List, Tuple, TypeVar, overload
 
 import numpy as np
 from openff.toolkit.topology import Molecule
@@ -93,21 +92,21 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
         )
 
     @classmethod
-    @typing.overload
+    @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[TorsionDriveRecord, Molecule]]
     ) -> "LocalQCData[TorsionDriveResult]":
         ...
 
     @classmethod
-    @typing.overload
+    @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[OptimizationRecord, Molecule]]
     ) -> "LocalQCData[OptimizationResult]":
         ...
 
     @classmethod
-    @typing.overload
+    @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[ResultRecord, Molecule]]
     ) -> "LocalQCData[AtomicResult]":
