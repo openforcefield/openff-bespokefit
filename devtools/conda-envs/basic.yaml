@@ -11,13 +11,9 @@ dependencies:
   - python
   - pip
 
-    # Testing
-  - pytest
-  - pytest-cov
-  - codecov
-
     ### Core dependencies.
 
+  - numpy
   - pydantic
   - pyyaml
   - tqdm
@@ -31,16 +27,34 @@ dependencies:
 
     # Optional
   - forcebalance=1.8.1
-  - openff-fragmenter>=0.1.2
+  - openff-fragmenter-base>=0.1.2
 
   - openeye-toolkits
 
     ### Bespoke dependencies
+
   - qcengine >=0.18.0
   - qcfractal >=0.15.4
   - chemper
   - basis_set_exchange
+  - geometric
   - torsiondrive
+
+    # Executor
+  - uvicorn
+  - fastapi
+  - celery
+  - httpx
+  - redis
+  - redis-py
+
+    ### Testing
+
+  - pytest
+  - pytest-cov
+  - pytest-asyncio
+  - pytest-celery
+  - codecov
 
   - pip:
       - git+git://github.com/MolSSI/QCEngine.git  # Needed until release with TD made.
