@@ -1,16 +1,12 @@
-from collections import Callable
 from multiprocessing import Pool
-from typing import Any, Collection, Optional, Tuple, TypeVar
+from typing import Optional
 
 from tqdm import tqdm
 
-_T = TypeVar("_T")
-_S = TypeVar("_S")
-
 
 def apply_async(
-    func: Callable[..., Any],
-    iterable: Collection[Tuple[Any, ...]],
+    func,
+    iterable,
     n_processes: Optional[int] = 1,
     verbose: bool = False,
     description: Optional[str] = None,

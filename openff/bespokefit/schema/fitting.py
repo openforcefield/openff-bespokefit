@@ -1,11 +1,13 @@
 import abc
 from typing import Dict, List, Optional
 
+from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
 from simtk import unit
 from typing_extensions import Literal
 
+from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.schema.optimizers import OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
     BaseSMIRKSParameter,
@@ -119,4 +121,10 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         ...,
         description="The SMILES representation of the molecule to generate bespoke "
         "parameters for.",
+    )
+
+    fragmentation_engine: Optional[FragmentationEngine] = Field(
+        WBOFragmenter(),
+        description="The fragmentation engine that should be used to fragment the "
+        "molecule. If no engine is provided the molecules will not be fragmented.",
     )

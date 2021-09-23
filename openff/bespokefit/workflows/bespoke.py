@@ -556,5 +556,6 @@ class BespokeWorkflowFactory(ClassBase):
             parameters=parameters,
             parameter_hyperparameters=self.parameter_hyperparameters,
             targets=targets,
+            fragmentation_engine=self.fragmentation_engine,
         )
         return schema
