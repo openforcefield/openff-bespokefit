@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from openff.bespokefit.executor.services.coordinator.stages import StageType
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 
 class CoordinatorGETStageStatus(BaseModel):
@@ -24,11 +25,17 @@ class CoordinatorGETStageStatus(BaseModel):
         if isinstance(stage_ids, str):
             stage_ids = [stage_ids]
         elif isinstance(stage_ids, dict):
-            stage_ids = [
-                stage_id
-                for dict_values in stage_ids.values()
-                for stage_id in dict_values
-            ]
+            stage_ids = sorted(
+                {
+                    stage_id
+                    for dict_values in stage_ids.values()
+                    for stage_id in dict_values
+                }
+            )
+        elif stage_ids is None:
+            pass
+        else:
+            raise NotImplementedError()
 
         return CoordinatorGETStageStatus(
             stage_type=stage.type,
@@ -48,24 +55,31 @@ class CoordinatorGETResponse(BaseModel):
 
     stages: List[CoordinatorGETStageStatus] = Field(..., description="")
 
+    results: Optional[BespokeOptimizationResults] = Field(None, description="")
+
     @classmethod
     def from_task(cls, task: "CoordinatorTask"):
 
         stages = [
-            CoordinatorGETStageStatus.from_stage(stage)
-            for stage in task.pending_stages + task.completed_stages
+            *task.pending_stages,
+            *([] if task.running_stage is None else [task.running_stage]),
+            *task.completed_stages,
         ]
+        stages_by_type = {stage.type: stage for stage in stages}
 
-        if task.running_stage is not None:
-            stages.insert(
-                len(task.pending_stages),
-                CoordinatorGETStageStatus.from_stage(task.running_stage),
-            )
+        stage_responses = [
+            CoordinatorGETStageStatus.from_stage(stage) for stage in stages
+        ]
 
         return CoordinatorGETResponse(
             optimization_id=task.id,
             smiles=task.input_schema.smiles,
-            stages=stages,
+            stages=stage_responses,
+            results=(
+                None
+                if "optimization" not in stages_by_type
+                else stages_by_type["optimization"].result
+            ),
         )
 
 
@@ -99,10 +113,17 @@ class CoordinatorTask(BaseModel):
     @property
     def status(self) -> Status:
 
+        if (
+            self.running_stage is None
+            and len(self.completed_stages) == 0
+            and len(self.pending_stages) > 0
+        ):
+            return "waiting"
+
+        if self.running_stage is not None or len(self.pending_stages) > 0:
+            return "running"
+
         if any(stage.status == "errored" for stage in self.completed_stages):
             return "errored"
-
-        if len(self.pending_stages) > 0 or self.running_stage is not None:
-            return "running"
 
         return "success"

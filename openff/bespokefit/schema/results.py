@@ -24,7 +24,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         None, description="The schema defining the input to the optimization."
     )
     provenance: Dict[str, str] = Field(
-        ..., description="The versions of the software used to generate the results."
+        {}, description="The versions of the software used to generate the results."
     )
 
     status: Status = Field("waiting", description="The status of the optimization.")
