@@ -5,9 +5,10 @@ from openff.fragmenter.fragment import (
     PfizerFragmenter,
     WBOFragmenter,
 )
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class FragmenterBaseResponse(BaseModel):

@@ -1,12 +1,13 @@
 from typing import Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from qcelemental.models import AtomicResult, FailedOperation, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
+from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class QCGeneratorBaseResponse(BaseModel):
