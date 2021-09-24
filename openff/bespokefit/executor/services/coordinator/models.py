@@ -120,10 +120,10 @@ class CoordinatorTask(BaseModel):
         ):
             return "waiting"
 
-        if self.running_stage is not None or len(self.pending_stages) > 0:
-            return "running"
-
         if any(stage.status == "errored" for stage in self.completed_stages):
             return "errored"
+
+        if self.running_stage is not None or len(self.pending_stages) > 0:
+            return "running"
 
         return "success"
