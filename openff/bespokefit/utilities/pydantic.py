@@ -1,7 +1,14 @@
 """A set of common utilities and types useful for building pydantic models.
 """
 import numpy as np
-from pydantic import BaseModel
+import pydantic
+
+
+class BaseModel(pydantic.BaseModel):
+    """The base model from which all data models within the package should inherit."""
+
+    class Config:
+        json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}
 
 
 class SchemaBase(BaseModel):
@@ -11,8 +18,6 @@ class SchemaBase(BaseModel):
 
         allow_mutation = True
         validate_assignment = True
-
-        json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}
 
 
 class ClassBase(SchemaBase):
