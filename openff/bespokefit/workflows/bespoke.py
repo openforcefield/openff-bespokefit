@@ -146,6 +146,15 @@ class BespokeWorkflowFactory(ClassBase):
         "we use the WBO fragmenter by the Open Force Field Consortium.",
     )
 
+    default_qc_specs: List[QCSpec] = Field(
+        default_factory=lambda: [QCSpec()],
+        description="The default specification (e.g. method, basis) to use when "
+        "performing any new QC calculations. If multiple specs are provided, each spec "
+        "will be considered in order until one is found that i) is available based on "
+        "the installed dependencies, and ii) is compatable with the molecule of "
+        "interest.",
+    )
+
     @validator("initial_force_field")
     def _check_force_field(cls, force_field: str) -> str:
         """Check that the force field is available via the toolkit."""
@@ -484,6 +493,17 @@ class BespokeWorkflowFactory(ClassBase):
         )
         return smirks_gen
 
+    def _select_qc_spec(self, molecule: Molecule) -> QCSpec:
+        """Attempts to select a QC spec for a given molecule from the defaults list."""
+
+        if len(self.default_qc_specs) != 1:
+
+            raise NotImplementedError(
+                "Currently only a single default QC spec must be specified."
+            )
+
+        return self.default_qc_specs[0]
+
     def _build_optimization_schema(
         self,
         molecule: Molecule,
@@ -521,7 +541,7 @@ class BespokeWorkflowFactory(ClassBase):
             "optimization": OptimizationTaskSpec,
             "hessian": HessianTaskSpec,
         }
-        default_qc_spec = QCSpec()
+        default_qc_spec = self._select_qc_spec(molecule)
 
         local_qc_data = {} if local_qc_data is None else local_qc_data
 

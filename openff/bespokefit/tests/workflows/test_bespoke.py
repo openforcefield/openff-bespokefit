@@ -4,6 +4,7 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
@@ -252,3 +253,11 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     )
 
     assert len(schemas) == 1
+
+
+def test_select_qc_spec():
+
+    default_qc_spec = QCSpec(program="rdkit", method="uff", basis=None)
+
+    factory = BespokeWorkflowFactory(default_qc_specs=[default_qc_spec])
+    assert factory._select_qc_spec(Molecule.from_smiles("C")) == default_qc_spec
