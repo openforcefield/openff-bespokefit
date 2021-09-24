@@ -55,6 +55,7 @@ dependencies:
   - pytest-asyncio
   - pytest-celery
   - codecov
+  - requests-mock
 
   - pip:
       - git+git://github.com/MolSSI/QCEngine.git  # Needed until release with TD made.

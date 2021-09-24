@@ -4,7 +4,7 @@ import logging
 import multiprocessing
 import os
 import time
-from typing import Optional
+from typing import Optional, Union
 
 import celery
 import requests
@@ -26,14 +26,34 @@ _logger = logging.getLogger(__name__)
 
 
 class BespokeExecutor:
+    """The main class for generating a bespoke set of parameters for molecules based on
+    bespoke optimization schemas.
+    """
+
     def __init__(
         self,
         n_fragmenter_workers: int = 0,
         n_qc_compute_workers: int = 0,
         n_optimizer_workers: int = 0,
-        directory: str = "bespoke-executor",
+        directory: Optional[str] = "bespoke-executor",
         launch_redis_if_unavailable: bool = True,
     ):
+        """
+
+        Args:
+            n_fragmenter_workers: The number of workers that should be launched to
+                handle the fragmentation of molecules prior to the generation of QC
+                data.
+            n_qc_compute_workers: The number of workers that should be launched to
+                handle the generation of any QC data.
+            n_optimizer_workers: The number of workers that should be launched to
+                handle the optimization of the bespoke parameters against any input QC
+                data.
+            directory: The direction to run in. If ``None``, the executor will run in
+                a temporary directory.
+            launch_redis_if_unavailable: Whether to launch a redis server if an already
+                running one cannot be found.
+        """
 
         self._n_fragmenter_workers = n_fragmenter_workers
         self._n_qc_compute_workers = n_qc_compute_workers
@@ -48,6 +68,7 @@ class BespokeExecutor:
         self._gateway_process: Optional[multiprocessing.Process] = None
 
     def _launch_redis(self):
+        """Launches a redis server if an existing one cannot be found."""
 
         if self._launch_redis_if_unavailable and not is_redis_available(
             host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
@@ -57,6 +78,7 @@ class BespokeExecutor:
             launch_redis(settings.BEFLOW_REDIS_PORT, redis_log_file, redis_log_file)
 
     def _launch_workers(self):
+        """Launches any service workers if requested."""
 
         for import_path, n_workers in {
             (settings.BEFLOW_FRAGMENTER_WORKER, self._n_fragmenter_workers),
@@ -71,6 +93,11 @@ class BespokeExecutor:
             spawn_worker(worker_app, concurrency=n_workers)
 
     def start(self, asynchronous=False):
+        """Launch the executor, allowing it to receive and run bespoke optimizations.
+
+        Args:
+            asynchronous: Whether to run the executor asynchronously.
+        """
 
         if self._started:
             raise RuntimeError("This executor is already running.")
@@ -99,9 +126,10 @@ class BespokeExecutor:
             launch_gateway(self._directory)
 
     def stop(self):
+        """Stop the executor from running and clean ip any associated processes."""
 
         if not self._started:
-            raise ValueError("The executor is not running.")
+            raise RuntimeError("The executor is not running.")
 
         self._started = False
 
@@ -112,31 +140,56 @@ class BespokeExecutor:
 
     def submit(self, input_schema: BespokeOptimizationSchema) -> str:
 
-        assert self._started, "the executor is not running"
+        if not self._started:
+            raise RuntimeError("The executor is not running.")
 
         request = requests.post(
-            "http://127.0.0.1:8000/api/v1/optimization",
+            (
+                f"http://127.0.0.1:"
+                f"{settings.BEFLOW_GATEWAY_PORT}"
+                f"{settings.BEFLOW_API_V1_STR}/"
+                f"{settings.BEFLOW_COORDINATOR_PREFIX}"
+            ),
             data=CoordinatorPOSTBody(input_schema=input_schema).json(),
         )
+        request.raise_for_status()
 
         return CoordinatorPOSTResponse.parse_raw(request.text).optimization_id
 
     def wait_until_complete(
-        self, optimization_id: str, frequency: int = 10
+        self, optimization_id: str, frequency: Union[float, int] = 10
     ) -> CoordinatorGETResponse:
+        """Wait for a specified optimization to complete and return the results.
+
+        Args:
+            optimization_id: The unique id of the optimization to wait for.
+            frequency: The frequency (seconds) with which to check if the optimization
+                has completed.
+
+        Returns:
+            The output of running the optimization.
+        """
+
+        if not self._started:
+            raise RuntimeError("The executor is not running.")
 
         while True:
 
             try:
 
                 request = requests.get(
-                    f"http://127.0.0.1:8000/api/v1/optimization/{optimization_id}"
+                    (
+                        f"http://127.0.0.1:"
+                        f"{settings.BEFLOW_GATEWAY_PORT}"
+                        f"{settings.BEFLOW_API_V1_STR}/"
+                        f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+                        f"{optimization_id}"
+                    )
                 )
                 request.raise_for_status()
 
                 response = CoordinatorGETResponse.parse_raw(request.text)
 
-                # TODO: Return the actual result
                 if all(
                     stage.stage_status == "success" for stage in response.stages
                 ) or any(stage.stage_status == "errored" for stage in response.stages):

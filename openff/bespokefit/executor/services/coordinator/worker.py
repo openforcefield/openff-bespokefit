@@ -34,12 +34,18 @@ async def _cycle():
             task.running_stage = task.pending_stages.pop(0)
             await task.running_stage.enter(task)
 
-            print(f"[task id={task_id}] starting {task.running_stage.type} stage")
-
         stage_status = task.running_stage.status
         await task.running_stage.update()
 
+        task_state_message = (
+            f"[task id={task_id}] transitioned from {task_status} -> " f"{task.status}"
+        )
+
         if stage_status != task.running_stage.status:
+
+            if task.status != task_status and stage_status == "waiting":
+                print(task_state_message)
+
             print(
                 f"[task id={task_id}] {task.running_stage.type} transitioned from "
                 f"{stage_status} -> {task.running_stage.status}"
@@ -49,11 +55,8 @@ async def _cycle():
             task.completed_stages.append(task.running_stage)
             task.running_stage = None
 
-        if task.status != task_status:
-            print(
-                f"[task id={task_id}] transitioned from {task_status} -> "
-                f"{task.status}"
-            )
+        if task.status != task_status and task_status != "waiting":
+            print(task_state_message)
 
         redis_connection.set(task_id, pickle.dumps(task.dict()))
 
