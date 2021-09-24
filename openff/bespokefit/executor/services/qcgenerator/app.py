@@ -9,6 +9,7 @@ from qcengine.procedures.torsiondrive import TorsionDriveResult
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.qcgenerator import worker
+from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task
 from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorGETResponse,
     QCGeneratorPOSTBody,
@@ -19,7 +20,6 @@ from openff.bespokefit.executor.utilities.depiction import (
     IMAGE_UNAVAILABLE_SVG,
     smiles_to_image,
 )
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 
 router = APIRouter()
 
@@ -60,21 +60,10 @@ def get_qc_result(qc_calc_id: str, results: bool = True) -> QCGeneratorGETRespon
 @router.post("/" + settings.BEFLOW_QC_COMPUTE_PREFIX)
 def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
 
-    if isinstance(body.input_schema, Torsion1DTask):
-        compute = worker.compute_torsion_drive
-    elif isinstance(body.input_schema, OptimizationTask):
-        compute = worker.compute_optimization
-    elif isinstance(body.input_schema, HessianTask):
-        compute = worker.compute_hessian
-    else:
-        raise NotImplementedError()
-
-    task = compute.delay(task_json=body.input_schema.json())
-
-    worker.redis_connection.hset("qcgenerator:types", task.id, body.input_schema.type)
+    task_id = cached_compute_task(body.input_schema, worker.redis_connection)
 
     return QCGeneratorPOSTResponse(
-        qc_calc_id=task.id, qc_calc_type=body.input_schema.type
+        qc_calc_id=task_id, qc_calc_type=body.input_schema.type
     )
 
 

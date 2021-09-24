@@ -6,7 +6,7 @@ from celery.result import AsyncResult
 
 
 def mock_celery_task(
-    worker_module: ModuleType, function_name: str, monkeypatch
+    worker_module: ModuleType, function_name: str, monkeypatch, task_id: str = "1"
 ) -> Dict[str, Any]:
 
     submitted_task_kwargs: Dict[str, Any] = {}
@@ -14,7 +14,7 @@ def mock_celery_task(
     def _mock_celery_task_delay(**kwargs):
 
         submitted_task_kwargs.update(kwargs)
-        return namedtuple("MockReturn", "id")("1")
+        return namedtuple("MockReturn", "id")(task_id)
 
     def _mock_celery_task():
         pass
