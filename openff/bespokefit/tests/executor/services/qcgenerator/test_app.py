@@ -10,6 +10,7 @@ from qcelemental.models.common_models import Model, Provenance
 
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.app import _retrieve_qc_result
+from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
 from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorGETResponse,
     QCGeneratorPOSTBody,
@@ -154,7 +155,7 @@ def test_post_qc_result(
     )
     request.raise_for_status()
 
-    assert submitted_task_kwargs["task_json"] == task.json()
+    assert submitted_task_kwargs["task_json"] == _canonicalize_task(task).json()
     assert redis_connection.hget("qcgenerator:types", "1").decode() == task.type
 
     result = QCGeneratorPOSTResponse.parse_raw(request.text)

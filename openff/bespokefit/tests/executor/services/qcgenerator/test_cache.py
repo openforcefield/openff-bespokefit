@@ -2,9 +2,26 @@ import pytest
 from qcelemental.models.common_models import Model
 
 from openff.bespokefit.executor.services.qcgenerator import worker
-from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task
+from openff.bespokefit.executor.services.qcgenerator.cache import (
+    _canonicalize_task,
+    cached_compute_task,
+)
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
+
+
+def test_canonicalize_torsion_task():
+
+    original_task = Torsion1DTask(
+        smiles="[H:1][C:2]([H:3])([H:4])[O:5][H:6]",
+        central_bond=(2, 5),
+        program="rdkit",
+        model=Model(method="uff", basis=None),
+    )
+    canonical_task = _canonicalize_task(original_task)
+
+    assert canonical_task.smiles == "[H][C:1]([H])([H])[O:2][H]"
+    assert canonical_task.central_bond == (1, 2)
 
 
 @pytest.mark.parametrize(
