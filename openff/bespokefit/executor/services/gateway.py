@@ -1,6 +1,7 @@
 import importlib
 import os
 import time
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from typing import Optional
 
 import requests
@@ -57,19 +58,35 @@ api_router.include_router(
 app.include_router(api_router)
 
 
-def launch(directory: Optional[str] = None):
+@contextmanager
+def _output_redirect(log_file: Optional[str] = None):
+
+    if log_file is None:
+        yield
+        return
+
+    with open(log_file, "a") as file:
+        with redirect_stdout(file):
+            with redirect_stderr(file):
+
+                yield
+
+
+def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
 
     if directory is not None and len(directory) > 0:
         os.makedirs(directory, exist_ok=True)
 
     with temporary_cd(directory):
 
-        uvicorn.run(
-            "openff.bespokefit.executor.services.gateway:app",
-            host="0.0.0.0",
-            port=settings.BEFLOW_GATEWAY_PORT,
-            log_level=settings.BEFLOW_GATEWAY_LOG_LEVEL,
-        )
+        with _output_redirect(log_file):
+
+            uvicorn.run(
+                "openff.bespokefit.executor.services.gateway:app",
+                host="0.0.0.0",
+                port=settings.BEFLOW_GATEWAY_PORT,
+                log_level=settings.BEFLOW_GATEWAY_LOG_LEVEL,
+            )
 
 
 def wait_for_gateway(n_retries: int = 40):

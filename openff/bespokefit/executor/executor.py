@@ -115,7 +115,10 @@ class BespokeExecutor:
         if asynchronous:
 
             self._gateway_process = multiprocessing.Process(
-                target=functools.partial(launch_gateway, self._directory), daemon=True
+                target=functools.partial(
+                    launch_gateway, directory=self._directory, log_file="gateway.log"
+                ),
+                daemon=True,
             )
             self._gateway_process.start()
 
