@@ -28,7 +28,7 @@ redis_connection = redis.Redis(
 celery_app = configure_celery_app("qcgenerator", redis_connection)
 
 
-@celery_app.task
+@celery_app.task(acks_late=True)
 def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     """Runs a torsion drive using QCEngine."""
 

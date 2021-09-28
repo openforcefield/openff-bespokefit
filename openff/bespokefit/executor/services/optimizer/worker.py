@@ -17,14 +17,15 @@ redis_connection = redis.Redis(
 celery_app = configure_celery_app("optimizer", redis_connection)
 
 
-@celery_app.task
-def optimize(optimization_input_json: str) -> str:
+@celery_app.task(bind=True, acks_late=True)
+def optimize(self, optimization_input_json: str) -> str:
 
     input_schema = parse_raw_as(
         Union[BespokeOptimizationSchema], optimization_input_json
     )
+    input_schema.id = self.request.id
 
     optimizer = get_optimizer(input_schema.optimizer.type)
-    result = optimizer.optimize(input_schema, keep_files=True)
+    result = optimizer.optimize(input_schema, keep_files=False)
 
     return serialize(result, encoding="json")
