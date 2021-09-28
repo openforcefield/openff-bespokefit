@@ -28,8 +28,32 @@ from openff.bespokefit.executor.utilities.depiction import smiles_to_image
 router = APIRouter()
 
 _logger = logging.getLogger(__name__)
-
 _worker_task: Optional[asyncio.Future] = None
+
+
+def _get_optimizations(optimization_id: str) -> CoordinatorGETResponse:
+
+    task_pickle = worker.redis_connection.get(optimization_id)
+
+    if task_pickle is None:
+        raise HTTPException(status_code=404, detail=f"{optimization_id} not found")
+
+    task = CoordinatorTask.parse_obj(pickle.loads(task_pickle))
+    return CoordinatorGETResponse.from_task(task)
+
+
+@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "s")
+def get_optimizations(skip: int = 0, limit: int = 1000) -> List[CoordinatorGETResponse]:
+    """Retrieves all bespoke optimizations that have been submitted to this server."""
+
+    optimization_ids = worker.redis_connection.zrange(
+        "coordinator:optimizations", skip * limit, (skip + 1) * limit - 1
+    )
+    response = [
+        _get_optimizations(optimization_id) for optimization_id in optimization_ids
+    ]
+
+    return response
 
 
 @router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}")
@@ -37,16 +61,7 @@ def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     """Retrieves a bespoke optimization that has been submitted to this server
     using its unique id."""
 
-    task_pickle = worker.redis_connection.get(
-        f"coordinator:optimization:{optimization_id}"
-    )
-
-    if task_pickle is None:
-        raise HTTPException(status_code=404, detail=f"{optimization_id} not found")
-
-    task = CoordinatorTask.parse_obj(pickle.loads(task_pickle))
-
-    return CoordinatorGETResponse.from_task(task)
+    return _get_optimizations(optimization_id)
 
 
 @router.post("/" + settings.BEFLOW_COORDINATOR_PREFIX)
@@ -77,29 +92,6 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
     worker.redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
 
     return CoordinatorPOSTResponse(optimization_id=task_id)
-
-
-@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "s")
-def get_optimizations(skip: int = 0, limit: int = 10) -> List[CoordinatorGETResponse]:
-    """Retrieves all bespoke optimizations that have been submitted to this server."""
-
-    optimization_keys = worker.redis_connection.zrange(
-        "coordinator:optimizations", skip * limit, (skip + 1) * limit - 1
-    )
-
-    response = []
-
-    for optimization_key in optimization_keys:
-
-        task_pickle = worker.redis_connection.get(optimization_key)
-
-        if task_pickle is None:
-            raise HTTPException(status_code=404, detail=f"{optimization_key} not found")
-
-        task = CoordinatorTask.parse_obj(pickle.loads(task_pickle))
-        response.append(CoordinatorGETResponse.from_task(task))
-
-    return response
 
 
 @router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}/image")
