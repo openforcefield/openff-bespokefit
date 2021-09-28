@@ -154,7 +154,7 @@ class BespokeExecutor:
         )
         request.raise_for_status()
 
-        return CoordinatorPOSTResponse.parse_raw(request.text).optimization_id
+        return CoordinatorPOSTResponse.parse_raw(request.text).id
 
     def wait_until_complete(
         self, optimization_id: str, frequency: Union[float, int] = 10
@@ -190,9 +190,9 @@ class BespokeExecutor:
 
                 response = CoordinatorGETResponse.parse_raw(request.text)
 
-                if all(
-                    stage.stage_status == "success" for stage in response.stages
-                ) or any(stage.stage_status == "errored" for stage in response.stages):
+                if all(stage.status == "success" for stage in response.stages) or any(
+                    stage.status == "errored" for stage in response.stages
+                ):
 
                     return response
 
