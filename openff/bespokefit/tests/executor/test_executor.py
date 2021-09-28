@@ -120,7 +120,7 @@ def test_stop_not_started():
 
 def test_submit(bespoke_optimization_schema):
 
-    expected = CoordinatorPOSTResponse(optimization_id="mock-id")
+    expected = CoordinatorPOSTResponse(id="mock-id", href="")
 
     with requests_mock.Mocker() as m:
 
@@ -138,7 +138,7 @@ def test_submit(bespoke_optimization_schema):
         executor._started = True
 
         result = executor.submit(bespoke_optimization_schema)
-        assert result == expected.optimization_id
+        assert result == expected.id
 
 
 def test_submit_not_started(bespoke_optimization_schema):
@@ -153,23 +153,23 @@ def test_submit_not_started(bespoke_optimization_schema):
 def test_wait_until_complete(expected_stage_status):
 
     mock_response = CoordinatorGETResponse(
-        optimization_id="mock-id",
+        id="mock-id",
+        href="",
         stages=[
             CoordinatorGETStageStatus(
-                stage_type="fragmentation",
-                stage_status="running",
-                stage_error=None,
-                stage_ids=None,
+                type="fragmentation",
+                status="running",
+                error=None,
+                results=None,
             )
         ],
-        smiles="C",
     )
 
     def mock_callback(request, context):
         context.status_code = 200
 
         return_value = mock_response.json()
-        mock_response.stages[0].stage_status = expected_stage_status
+        mock_response.stages[0].status = expected_stage_status
 
         return return_value
 
@@ -181,7 +181,7 @@ def test_wait_until_complete(expected_stage_status):
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
                 f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
-                f"{mock_response.optimization_id}"
+                f"{mock_response.id}"
             ),
             text=mock_callback,
         )
@@ -189,12 +189,10 @@ def test_wait_until_complete(expected_stage_status):
         executor = BespokeExecutor()
         executor._started = True
 
-        response = executor.wait_until_complete(
-            mock_response.optimization_id, frequency=0.1
-        )
+        response = executor.wait_until_complete(mock_response.id, frequency=0.1)
 
         assert isinstance(response, CoordinatorGETResponse)
-        assert response.stages[0].stage_status == expected_stage_status
+        assert response.stages[0].status == expected_stage_status
 
 
 def test_wait_until_complete_not_started(bespoke_optimization_schema):
