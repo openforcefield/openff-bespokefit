@@ -83,7 +83,7 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
             f"{settings.BEFLOW_GATEWAY_PORT}"
             f"{settings.BEFLOW_API_V1_STR}/"
             f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
-        )
+        ),
     )
 
 
