@@ -76,7 +76,15 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
     worker.redis_connection.set(task_key, pickle.dumps(task.dict()))
     worker.redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
 
-    return CoordinatorPOSTResponse(optimization_id=task_id)
+    return CoordinatorPOSTResponse(
+        id=task_id,
+        href=(
+            f"http://127.0.0.1:"
+            f"{settings.BEFLOW_GATEWAY_PORT}"
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
+        )
+    )
 
 
 @router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "s")
