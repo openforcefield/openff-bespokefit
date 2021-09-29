@@ -31,26 +31,35 @@ _logger = logging.getLogger(__name__)
 _worker_task: Optional[asyncio.Future] = None
 
 
-def _get_optimizations(optimization_id: str) -> CoordinatorGETResponse:
+def _get_task(
+    optimization_id: Optional[str] = None, optimization_key: Optional[str] = None
+) -> CoordinatorTask:
 
-    task_pickle = worker.redis_connection.get(optimization_id)
+    assert (optimization_id is None or optimization_key is None) and (
+        optimization_id is not None or optimization_key is not None
+    ), "the key and id are mutually exclusive arguments"
+
+    if optimization_id is not None:
+        optimization_key = f"coordinator:optimization:{optimization_id}"
+
+    task_pickle = worker.redis_connection.get(optimization_key)
 
     if task_pickle is None:
-        raise HTTPException(status_code=404, detail=f"{optimization_id} not found")
+        raise HTTPException(status_code=404, detail=f"{optimization_key} not found")
 
-    task = CoordinatorTask.parse_obj(pickle.loads(task_pickle))
-    return CoordinatorGETResponse.from_task(task)
+    return CoordinatorTask.parse_obj(pickle.loads(task_pickle))
 
 
 @router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "s")
 def get_optimizations(skip: int = 0, limit: int = 1000) -> List[CoordinatorGETResponse]:
     """Retrieves all bespoke optimizations that have been submitted to this server."""
 
-    optimization_ids = worker.redis_connection.zrange(
+    optimization_keys = worker.redis_connection.zrange(
         "coordinator:optimizations", skip * limit, (skip + 1) * limit - 1
     )
     response = [
-        _get_optimizations(optimization_id) for optimization_id in optimization_ids
+        CoordinatorGETResponse.from_task(_get_task(optimization_key=optimization_key))
+        for optimization_key in optimization_keys
     ]
 
     return response
@@ -61,7 +70,7 @@ def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     """Retrieves a bespoke optimization that has been submitted to this server
     using its unique id."""
 
-    return _get_optimizations(optimization_id)
+    return CoordinatorGETResponse.from_task(_get_task(optimization_id=optimization_id))
 
 
 @router.post("/" + settings.BEFLOW_COORDINATOR_PREFIX)
@@ -75,9 +84,11 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
         molecule.properties.pop("atom_map", None)
 
         body.input_schema.smiles = molecule.to_smiles(mapped=True)
-    except BaseException:
-        # TODO: Custom exception handling rather than 500 error. 400 / 402?
-        raise
+    except BaseException as e:
+
+        raise HTTPException(
+            status_code=400, detail="molecule could not be understood"
+        ) from e
 
     task_id = worker.redis_connection.incr("coordinator:id-counter")
     task_key = f"coordinator:optimization:{task_id}"
@@ -87,6 +98,7 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
         input_schema=body.input_schema,
         pending_stages=[FragmentationStage(), QCGenerationStage(), OptimizationStage()],
     )
+    task.input_schema.id = task_id
 
     worker.redis_connection.set(task_key, pickle.dumps(task.dict()))
     worker.redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
@@ -107,14 +119,7 @@ async def get_molecule_image(optimization_id: str):
     """Render the molecule associated with a particular bespoke optimization to an
     SVG file."""
 
-    task_pickle = worker.redis_connection.get(
-        f"coordinator:optimization:{optimization_id}"
-    )
-
-    if task_pickle is None:
-        raise HTTPException(status_code=404, detail=f"{optimization_id} not found")
-
-    task = CoordinatorTask.parse_obj(pickle.loads(task_pickle))
+    task = _get_task(optimization_id=optimization_id)
 
     svg_content = smiles_to_image(urllib.parse.unquote(task.input_schema.smiles))
     svg_response = Response(svg_content, media_type="image/svg+xml")

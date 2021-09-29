@@ -149,4 +149,7 @@ class CoordinatorTask(BaseModel):
         if self.running_stage is not None or len(self.pending_stages) > 0:
             return "running"
 
-        return "success"
+        if all(stage.status == "success" for stage in self.completed_stages):
+            return "success"
+
+        raise NotImplementedError()

@@ -7,6 +7,12 @@ from openff.toolkit.topology import Molecule
 from pydantic import parse_raw_as
 from qcelemental.models import AtomicResult, AtomicResultProperties, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
+from qcelemental.models.procedures import (
+    OptimizationSpecification,
+    QCInputSpecification,
+    TDKeywords,
+    TorsionDriveResult,
+)
 
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.app import _retrieve_qc_result
@@ -15,6 +21,7 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
 )
+from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
@@ -33,6 +40,27 @@ def mock_atomic_result() -> AtomicResult:
         success=True,
         provenance=Provenance(creator="pytest"),
         properties=AtomicResultProperties(),
+    )
+
+
+@pytest.fixture()
+def mock_torsion_drive_result() -> TorsionDriveResult:
+
+    molecule: Molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][H:4]")
+    molecule.generate_conformers(n_conformers=1)
+
+    return TorsionDriveResult(
+        keywords=TDKeywords(dihedrals=[(0, 1, 2, 3)], grid_spacing=[15]),
+        input_specification=QCInputSpecification(
+            model=Model(method="rdkit", basis=None), driver=DriverEnum.gradient
+        ),
+        initial_molecule=molecule.to_qcschema(),
+        optimization_spec=OptimizationSpecification(procedure="geometric"),
+        final_energies={"[180]": 1.0},
+        final_molecules={"[180]": molecule.to_qcschema()},
+        optimization_history={},
+        success=True,
+        provenance=Provenance(creator="pytest"),
     )
 
 
@@ -193,3 +221,54 @@ def test_get_qc_results(
         assert (result.qc_calc_result is not None) == include_result
         assert result.qc_calc_type == "hessian"
         assert result.qc_calc_id == f"{i + 1}"
+
+
+def test_get_molecule_image_atomic_result(
+    qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
+):
+    monkeypatch.setattr(
+        AsyncResult,
+        "_get_task_meta",
+        lambda self: {"status": "SUCCESS", "result": mock_atomic_result.json()},
+    )
+    redis_connection.hset("qcgenerator:types", "1", "hessian")
+
+    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+    request.raise_for_status()
+
+    assert "<svg" in request.text
+    assert request.headers["content-type"] == "image/svg+xml"
+
+
+def test_get_molecule_image_torsion_drive(
+    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+):
+
+    monkeypatch.setattr(
+        AsyncResult,
+        "_get_task_meta",
+        lambda self: {"status": "SUCCESS", "result": mock_torsion_drive_result.json()},
+    )
+    redis_connection.hset("qcgenerator:types", "1", "torsion1d")
+
+    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+    request.raise_for_status()
+
+    assert "<svg" in request.text
+    assert request.headers["content-type"] == "image/svg+xml"
+
+
+def test_get_molecule_image_pending(
+    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+):
+    monkeypatch.setattr(
+        AsyncResult,
+        "_get_task_meta",
+        lambda self: {"status": "PENDING"},
+    )
+
+    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+    request.raise_for_status()
+
+    assert request.text == IMAGE_UNAVAILABLE_SVG
+    assert request.headers["content-type"] == "image/svg+xml"
