@@ -127,35 +127,35 @@ async def get_molecule_image(optimization_id: str):
     return svg_response
 
 
-@router.on_event("startup")
-def startup():
-    main_loop = asyncio.get_event_loop()
-
-    global _worker_task
-    _worker_task = asyncio.ensure_future(worker.cycle(), loop=main_loop)
-
-    def _handle_task_result(task: asyncio.Task) -> None:
-
-        # noinspection PyBroadException
-        try:
-            task.result()
-
-        except asyncio.CancelledError:
-            pass
-
-        except Exception:
-
-            _logger.exception(
-                "Exception raised by the main loop. This should never happen."
-            )
-
-            os.kill(os.getpid(), signal.SIGINT)
-
-    _worker_task.add_done_callback(_handle_task_result)
-
-
-@router.on_event("shutdown")
-def shutdown():
-
-    if _worker_task is not None:
-        _worker_task.cancel()
+# @router.on_event("startup")
+# def startup():
+#     main_loop = asyncio.get_event_loop()
+#
+#     global _worker_task
+#     _worker_task = asyncio.ensure_future(worker.cycle(), loop=main_loop)
+#
+#     def _handle_task_result(task: asyncio.Task) -> None:
+#
+#         # noinspection PyBroadException
+#         try:
+#             task.result()
+#
+#         except asyncio.CancelledError:
+#             pass
+#
+#         except Exception:
+#
+#             _logger.exception(
+#                 "Exception raised by the main loop. This should never happen."
+#             )
+#
+#             os.kill(os.getpid(), signal.SIGINT)
+#
+#     _worker_task.add_done_callback(_handle_task_result)
+#
+#
+# @router.on_event("shutdown")
+# def shutdown():
+#
+#     if _worker_task is not None:
+#         _worker_task.cancel()

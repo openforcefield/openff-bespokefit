@@ -14,18 +14,7 @@ def coordinator_client() -> TestClient:
     mock_app = FastAPI(title="coordinator")
     mock_app.include_router(app.router)
 
-    old_cycle = worker.cycle
-
-    async def mock_cycle():
-        return
-
-    worker.cycle = mock_cycle
-
-    try:
-        yield TestClient(mock_app)
-
-    finally:
-        worker.cycle = old_cycle
+    return TestClient(mock_app)
 
 
 @pytest.fixture(scope="module", autouse=True)
