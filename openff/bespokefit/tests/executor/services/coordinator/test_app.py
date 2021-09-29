@@ -123,16 +123,16 @@ def _mock_task(
 #
 #     assert request.status_code == 400
 #     assert "molecule could not be understood" in request.text
-#
-#
-# # def test_get_molecule_image(
-# #     coordinator_client, redis_connection, bespoke_optimization_schema
-# # ):
-# #
-# #     _mock_task("1", bespoke_optimization_schema, redis_connection)
-# #
-# #     request = coordinator_client.get("/optimization/1/image")
-# #     request.raise_for_status()
-# #
-# #     assert "<svg" in request.text
-# #     assert request.headers["content-type"] == "image/svg+xml"
+
+
+def test_get_molecule_image(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("1", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/1/image")
+    request.raise_for_status()
+
+    assert "<svg" in request.text
+    assert request.headers["content-type"] == "image/svg+xml"
