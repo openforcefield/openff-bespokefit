@@ -15,7 +15,7 @@ redis_connection = redis.Redis(
 celery_app = configure_celery_app("fragmenter", redis_connection)
 
 
-@celery_app.task
+@celery_app.task(acks_late=True)
 def fragment(cmiles: str, fragmenter_json: str, target_bond_smarts: List[str]) -> str:
 
     from openff.toolkit.topology import Molecule

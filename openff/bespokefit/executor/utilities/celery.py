@@ -49,6 +49,7 @@ def configure_celery_app(
 
     celery_app.conf.task_track_started = True
     celery_app.conf.task_default_queue = app_name
+    celery_app.conf.broker_transport_options = {"visibility_timeout": 1000000}
 
     return celery_app
 

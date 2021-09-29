@@ -45,7 +45,7 @@ dependencies:
   - fastapi
   - celery
   - httpx
-  - redis
+  - redis-server
   - redis-py
 
     ### Testing
