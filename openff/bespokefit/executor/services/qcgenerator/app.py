@@ -95,7 +95,7 @@ def get_qc_result_molecule_image(qc_calc_id: str):
         highlight_atoms = (
             None
             if isinstance(qc_result, OptimizationResult)
-            else tuple(i + 1 for i in qc_result.keywords["dihedrals"][0])
+            else tuple(i + 1 for i in qc_result.keywords.dihedrals[0])
         )
 
         svg_content = smiles_to_image(

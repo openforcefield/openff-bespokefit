@@ -264,7 +264,7 @@ def test_get_molecule_image_pending(
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
-        lambda self: {"status": "PENDING"},
+        lambda self: {"status": "PENDING", "result": None},
     )
 
     request = qcgenerator_client.get("/qc-calc/1/image/molecule")
