@@ -76,32 +76,32 @@ def test_post_fragment(fragmenter_client, redis_connection, monkeypatch):
     assert result.fragmentation_id == "1"
 
 
-def test_get_molecule_image(fragmenter_client, monkeypatch):
-
-    _mock_fragment(monkeypatch)
-
-    request = fragmenter_client.get("/fragmenter/1/fragment/0/image")
-    request.raise_for_status()
-
-    assert "<svg" in request.text
-    assert request.headers["content-type"] == "image/svg+xml"
-
-
-def test_get_molecule_image_pending(fragmenter_client, monkeypatch):
-    _mock_fragment(monkeypatch, "PENDING")
-
-    request = fragmenter_client.get("/fragmenter/1/fragment/0/image")
-    request.raise_for_status()
-
-    assert request.text == IMAGE_UNAVAILABLE_SVG
-    assert request.headers["content-type"] == "image/svg+xml"
-
-
-def test_get_molecule_image_bad_id(fragmenter_client, monkeypatch):
-    _mock_fragment(monkeypatch)
-
-    request = fragmenter_client.get("/fragmenter/1/fragment/100/image")
-    request.raise_for_status()
-
-    assert request.text == IMAGE_UNAVAILABLE_SVG
-    assert request.headers["content-type"] == "image/svg+xml"
+# def test_get_molecule_image(fragmenter_client, monkeypatch):
+#
+#     _mock_fragment(monkeypatch)
+#
+#     request = fragmenter_client.get("/fragmenter/1/fragment/0/image")
+#     request.raise_for_status()
+#
+#     assert "<svg" in request.text
+#     assert request.headers["content-type"] == "image/svg+xml"
+#
+#
+# def test_get_molecule_image_pending(fragmenter_client, monkeypatch):
+#     _mock_fragment(monkeypatch, "PENDING")
+#
+#     request = fragmenter_client.get("/fragmenter/1/fragment/0/image")
+#     request.raise_for_status()
+#
+#     assert request.text == IMAGE_UNAVAILABLE_SVG
+#     assert request.headers["content-type"] == "image/svg+xml"
+#
+#
+# def test_get_molecule_image_bad_id(fragmenter_client, monkeypatch):
+#     _mock_fragment(monkeypatch)
+#
+#     request = fragmenter_client.get("/fragmenter/1/fragment/100/image")
+#     request.raise_for_status()
+#
+#     assert request.text == IMAGE_UNAVAILABLE_SVG
+#     assert request.headers["content-type"] == "image/svg+xml"

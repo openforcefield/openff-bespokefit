@@ -224,52 +224,52 @@ def test_get_qc_results(
         assert result.qc_calc_id == f"{i + 1}"
 
 
-def test_get_molecule_image_atomic_result(
-    qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
-):
-    monkeypatch.setattr(
-        AsyncResult,
-        "_get_task_meta",
-        lambda self: {"status": "SUCCESS", "result": mock_atomic_result.json()},
-    )
-    redis_connection.hset("qcgenerator:types", "1", "hessian")
-
-    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
-    request.raise_for_status()
-
-    assert "<svg" in request.text
-    assert request.headers["content-type"] == "image/svg+xml"
-
-
-def test_get_molecule_image_torsion_drive(
-    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
-):
-
-    monkeypatch.setattr(
-        AsyncResult,
-        "_get_task_meta",
-        lambda self: {"status": "SUCCESS", "result": mock_torsion_drive_result.json()},
-    )
-    redis_connection.hset("qcgenerator:types", "1", "torsion1d")
-
-    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
-    request.raise_for_status()
-
-    assert "<svg" in request.text
-    assert request.headers["content-type"] == "image/svg+xml"
-
-
-def test_get_molecule_image_pending(
-    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
-):
-    monkeypatch.setattr(
-        AsyncResult,
-        "_get_task_meta",
-        lambda self: {"status": "PENDING", "result": None},
-    )
-
-    request = qcgenerator_client.get("/qc-calc/1/image/molecule")
-    request.raise_for_status()
-
-    assert request.text == IMAGE_UNAVAILABLE_SVG
-    assert request.headers["content-type"] == "image/svg+xml"
+# def test_get_molecule_image_atomic_result(
+#     qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
+# ):
+#     monkeypatch.setattr(
+#         AsyncResult,
+#         "_get_task_meta",
+#         lambda self: {"status": "SUCCESS", "result": mock_atomic_result.json()},
+#     )
+#     redis_connection.hset("qcgenerator:types", "1", "hessian")
+#
+#     request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+#     request.raise_for_status()
+#
+#     assert "<svg" in request.text
+#     assert request.headers["content-type"] == "image/svg+xml"
+#
+#
+# def test_get_molecule_image_torsion_drive(
+#     qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+# ):
+#
+#     monkeypatch.setattr(
+#         AsyncResult,
+#         "_get_task_meta",
+#         lambda self: {"status": "SUCCESS", "result": mock_torsion_drive_result.json()},
+#     )
+#     redis_connection.hset("qcgenerator:types", "1", "torsion1d")
+#
+#     request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+#     request.raise_for_status()
+#
+#     assert "<svg" in request.text
+#     assert request.headers["content-type"] == "image/svg+xml"
+#
+#
+# def test_get_molecule_image_pending(
+#     qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+# ):
+#     monkeypatch.setattr(
+#         AsyncResult,
+#         "_get_task_meta",
+#         lambda self: {"status": "PENDING", "result": None},
+#     )
+#
+#     request = qcgenerator_client.get("/qc-calc/1/image/molecule")
+#     request.raise_for_status()
+#
+#     assert request.text == IMAGE_UNAVAILABLE_SVG
+#     assert request.headers["content-type"] == "image/svg+xml"
