@@ -33,6 +33,80 @@ def get_atom_symmetries(molecule: Molecule) -> List[int]:
         return _rd_get_atom_symmetries(molecule)
 
 
+def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
+
+    from openeye import oechem
+
+    oe_mol: oechem.OEMol = molecule.to_openeye()
+
+    atom: oechem.OEAtomBase
+
+    for i, atom in enumerate(oe_mol.GetAtoms()):
+        atom.SetMapIdx(i + 1)
+
+    oechem.OECanonicalOrderAtoms(oe_mol)
+
+    atom_mapping = {
+        (atom.GetMapIdx() - 1): i for i, atom in enumerate(oe_mol.GetAtoms())
+    }
+
+    return [atom_mapping[i] for i in range(molecule.n_atoms)]
+
+
+def _rd_canonical_atom_order(molecule: Molecule) -> List[int]:
+
+    from rdkit import Chem
+
+    rd_mol = molecule.to_rdkit()
+    return list(Chem.CanonicalRankAtoms(rd_mol, breakTies=True))
+
+
+def canonical_order_atoms(molecule: Molecule):
+    """Canonically order the atoms in the molecule in a way that preserves any existing
+    atom maps.
+
+    Args:
+        molecule: The input molecule
+
+    Returns:
+        The input molecule with canonically-indexed atoms and bonds.
+    """
+
+    try:
+        atom_order = _oe_canonical_atom_order(molecule)
+    except (ImportError, ModuleNotFoundError):
+        atom_order = _rd_canonical_atom_order(molecule)
+
+    n_heavy_atoms = sum(1 for atom in molecule.atoms if atom.atomic_number != 1)
+    n_hydrogen = molecule.n_atoms - n_heavy_atoms
+
+    hydrogen_indices = sorted(
+        atom_order[i] for i, a in enumerate(molecule.atoms) if a.atomic_number == 1
+    )
+
+    if n_hydrogen > 0 and hydrogen_indices == list(range(n_hydrogen)):
+
+        # Reorder the hydrogen atoms to the end if the molecule if they are placed at
+        # the beginning by default.
+        atom_order = [
+            atom_order[i] + (-n_hydrogen if atom.atomic_number != 1 else n_heavy_atoms)
+            for i, atom in enumerate(molecule.atoms)
+        ]
+
+    # make an atom mapping from the atom_order and remap the molecule
+    atom_map = {i: rank for i, rank in enumerate(atom_order)}
+
+    molecule = molecule.remap(atom_map, current_to_new=True)
+
+    if "atom_map" in molecule.properties:
+
+        molecule.properties["atom_map"] = {
+            atom_map[i]: j for i, j in molecule.properties["atom_map"].items()
+        }
+
+    return molecule
+
+
 def get_torsion_indices(
     molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
 ) -> List[Tuple[int, int, int, int]]:
