@@ -58,7 +58,7 @@ def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
 
     result = FragmentationResult.parse_obj(task_info["result"])
 
-    if 0 > fragment_id >= len(result.fragments):
+    if fragment_id < 0 or fragment_id >= len(result.fragments):
         return Response(IMAGE_UNAVAILABLE_SVG, media_type="image/svg+xml")
 
     fragment = result.fragments[fragment_id]
