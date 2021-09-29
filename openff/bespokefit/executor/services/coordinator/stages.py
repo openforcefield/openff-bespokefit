@@ -9,7 +9,7 @@ from openff.fragmenter.fragment import FragmentationResult
 from openff.fragmenter.utils import get_map_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import BaseModel, Field, parse_raw_as
+from pydantic import Field, parse_raw_as
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
@@ -41,6 +41,7 @@ from openff.bespokefit.utilities.molecule import (
     get_atom_symmetries,
     group_valence_by_symmetry,
 )
+from openff.bespokefit.utilities.pydantic import BaseModel
 
 if TYPE_CHECKING:
     from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
