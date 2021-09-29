@@ -1,30 +1,30 @@
-# import pickle
-# from typing import List
-#
-# import pytest
-# import redis
-# from pydantic import parse_raw_as
-# from requests import HTTPError
-#
-# from openff.bespokefit.executor.services.coordinator.models import (
-#     CoordinatorGETResponse,
-#     CoordinatorPOSTBody,
-#     CoordinatorTask,
-# )
-# from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-#
-#
-# def _mock_task(
-#     task_id: str, input_schema: BespokeOptimizationSchema, redis_connection: redis.Redis
-# ):
-#
-#     task = CoordinatorTask(id=task_id, input_schema=input_schema, pending_stages=[])
-#     task_key = f"coordinator:optimization:{task_id}"
-#
-#     redis_connection.set(task_key, pickle.dumps(task.dict()))
-#     redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
-#
-#
+import pickle
+from typing import List
+
+import pytest
+import redis
+from pydantic import parse_raw_as
+from requests import HTTPError
+
+from openff.bespokefit.executor.services.coordinator.models import (
+    CoordinatorGETResponse,
+    CoordinatorPOSTBody,
+    CoordinatorTask,
+)
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+
+
+def _mock_task(
+    task_id: str, input_schema: BespokeOptimizationSchema, redis_connection: redis.Redis
+):
+
+    task = CoordinatorTask(id=task_id, input_schema=input_schema, pending_stages=[])
+    task_key = f"coordinator:optimization:{task_id}"
+
+    redis_connection.set(task_key, pickle.dumps(task.dict()))
+    redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
+
+
 # @pytest.mark.parametrize(
 #     "skip, limit, expected_ids",
 #     [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
