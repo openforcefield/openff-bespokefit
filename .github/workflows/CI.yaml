@@ -32,7 +32,6 @@ jobs:
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
-      PYTHONFAULTHANDLER: 1
 
     steps:
       - uses: actions/checkout@v2.3.4
@@ -72,7 +71,6 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          echo $PYTHONFAULTHANDLER
           pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
 
       - name: Codecov
