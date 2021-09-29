@@ -1,7 +1,9 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import Literal
+
+from openff.bespokefit.utilities.pydantic import BaseModel
 
 Status = Literal["waiting", "running", "errored", "success"]
 
