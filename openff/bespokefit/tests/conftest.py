@@ -345,7 +345,7 @@ def general_optimization_schema(
     return optimization_schema
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def bespoke_optimization_schema() -> BespokeOptimizationSchema:
     """Create a workflow schema which targets the rotatable bond in biphenyl."""
 
