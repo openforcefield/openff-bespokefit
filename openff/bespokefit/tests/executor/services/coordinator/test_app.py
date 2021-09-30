@@ -25,31 +25,31 @@ def _mock_task(
     redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
 
 
-# @pytest.mark.parametrize(
-#     "skip, limit, expected_ids",
-#     [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
-# )
-# def test_get_optimizations(
-#     skip,
-#     limit,
-#     expected_ids,
-#     coordinator_client,
-#     redis_connection,
-#     bespoke_optimization_schema,
-# ):
-#
-#     for task_id in ["1", "2", "3"]:
-#         _mock_task(task_id, bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get(f"/optimizations?skip={skip}&limit={limit}")
-#     request.raise_for_status()
-#
-#     results = parse_raw_as(List[CoordinatorGETResponse], request.text)
-#
-#     assert len(results) == len(expected_ids)
-#     assert {result.id for result in results} == expected_ids
-#
-#
+@pytest.mark.parametrize(
+    "skip, limit, expected_ids",
+    [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
+)
+def test_get_optimizations(
+    skip,
+    limit,
+    expected_ids,
+    coordinator_client,
+    redis_connection,
+    bespoke_optimization_schema,
+):
+
+    for task_id in ["1", "2", "3"]:
+        _mock_task(task_id, bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get(f"/optimizations?skip={skip}&limit={limit}")
+    request.raise_for_status()
+
+    results = parse_raw_as(List[CoordinatorGETResponse], request.text)
+
+    assert len(results) == len(expected_ids)
+    assert {result.id for result in results} == expected_ids
+
+
 # def test_get_optimization(
 #     coordinator_client, redis_connection, bespoke_optimization_schema
 # ):
