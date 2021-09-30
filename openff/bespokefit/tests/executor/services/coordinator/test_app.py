@@ -50,21 +50,21 @@ def test_get_optimizations(
     assert {result.id for result in results} == expected_ids
 
 
-# def test_get_optimization(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#
-#     _mock_task("2", bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get("/optimization/2")
-#     request.raise_for_status()
-#
-#     results = CoordinatorGETResponse.parse_raw(request.text)
-#     assert results.id == "2"
-#
-#     with pytest.raises(HTTPError, match="404"):
-#         request = coordinator_client.get("/optimization/1")
-#         request.raise_for_status()
+def test_get_optimization(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("2", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/2")
+    request.raise_for_status()
+
+    results = CoordinatorGETResponse.parse_raw(request.text)
+    assert results.id == "2"
+
+    with pytest.raises(HTTPError, match="404"):
+        request = coordinator_client.get("/optimization/1")
+        request.raise_for_status()
 
 
 def test_post_optimization(
@@ -110,29 +110,29 @@ def test_post_optimization(
     ]
 
 
-# def test_post_optimization_error(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#     bespoke_optimization_schema = bespoke_optimization_schema.copy(deep=True)
-#     bespoke_optimization_schema.smiles = "C(F)(Cl)(Br)"
-#
-#     request = coordinator_client.post(
-#         "/optimization",
-#         data=CoordinatorPOSTBody(input_schema=bespoke_optimization_schema).json(),
-#     )
-#
-#     assert request.status_code == 400
-#     assert "molecule could not be understood" in request.text
-#
-#
-# def test_get_molecule_image(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#
-#     _mock_task("1", bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get("/optimization/1/image")
-#     request.raise_for_status()
-#
-#     assert "<svg" in request.text
-#     assert request.headers["content-type"] == "image/svg+xml"
+def test_post_optimization_error(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+    bespoke_optimization_schema = bespoke_optimization_schema.copy(deep=True)
+    bespoke_optimization_schema.smiles = "C(F)(Cl)(Br)"
+
+    request = coordinator_client.post(
+        "/optimization",
+        data=CoordinatorPOSTBody(input_schema=bespoke_optimization_schema).json(),
+    )
+
+    assert request.status_code == 400
+    assert "molecule could not be understood" in request.text
+
+
+def test_get_molecule_image(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("1", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/1/image")
+    request.raise_for_status()
+
+    assert "<svg" in request.text
+    assert request.headers["content-type"] == "image/svg+xml"
