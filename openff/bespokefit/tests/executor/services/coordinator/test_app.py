@@ -50,23 +50,23 @@ def test_get_optimizations(
     assert {result.id for result in results} == expected_ids
 
 
-# def test_get_optimization(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#
-#     _mock_task("2", bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get("/optimization/2")
-#     request.raise_for_status()
-#
-#     results = CoordinatorGETResponse.parse_raw(request.text)
-#     assert results.id == "2"
-#
-#     with pytest.raises(HTTPError, match="404"):
-#         request = coordinator_client.get("/optimization/1")
-#         request.raise_for_status()
-#
-#
+def test_get_optimization(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("2", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/2")
+    request.raise_for_status()
+
+    results = CoordinatorGETResponse.parse_raw(request.text)
+    assert results.id == "2"
+
+    with pytest.raises(HTTPError, match="404"):
+        request = coordinator_client.get("/optimization/1")
+        request.raise_for_status()
+
+
 # def test_post_optimization(
 #     coordinator_client, redis_connection, bespoke_optimization_schema
 # ):
