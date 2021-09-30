@@ -25,46 +25,46 @@ def _mock_task(
     redis_connection.zadd("coordinator:optimizations", {task_key: task_id})
 
 
-# @pytest.mark.parametrize(
-#     "skip, limit, expected_ids",
-#     [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
-# )
-# def test_get_optimizations(
-#     skip,
-#     limit,
-#     expected_ids,
-#     coordinator_client,
-#     redis_connection,
-#     bespoke_optimization_schema,
-# ):
-#
-#     for task_id in ["1", "2", "3"]:
-#         _mock_task(task_id, bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get(f"/optimizations?skip={skip}&limit={limit}")
-#     request.raise_for_status()
-#
-#     results = parse_raw_as(List[CoordinatorGETResponse], request.text)
-#
-#     assert len(results) == len(expected_ids)
-#     assert {result.id for result in results} == expected_ids
-#
-#
-# def test_get_optimization(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#
-#     _mock_task("2", bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get("/optimization/2")
-#     request.raise_for_status()
-#
-#     results = CoordinatorGETResponse.parse_raw(request.text)
-#     assert results.id == "2"
-#
-#     with pytest.raises(HTTPError, match="404"):
-#         request = coordinator_client.get("/optimization/1")
-#         request.raise_for_status()
+@pytest.mark.parametrize(
+    "skip, limit, expected_ids",
+    [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
+)
+def test_get_optimizations(
+    skip,
+    limit,
+    expected_ids,
+    coordinator_client,
+    redis_connection,
+    bespoke_optimization_schema,
+):
+
+    for task_id in ["1", "2", "3"]:
+        _mock_task(task_id, bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get(f"/optimizations?skip={skip}&limit={limit}")
+    request.raise_for_status()
+
+    results = parse_raw_as(List[CoordinatorGETResponse], request.text)
+
+    assert len(results) == len(expected_ids)
+    assert {result.id for result in results} == expected_ids
+
+
+def test_get_optimization(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("2", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/2")
+    request.raise_for_status()
+
+    results = CoordinatorGETResponse.parse_raw(request.text)
+    assert results.id == "2"
+
+    with pytest.raises(HTTPError, match="404"):
+        request = coordinator_client.get("/optimization/1")
+        request.raise_for_status()
 
 
 def test_post_optimization(
@@ -125,14 +125,14 @@ def test_post_optimization_error(
     assert "molecule could not be understood" in request.text
 
 
-# def test_get_molecule_image(
-#     coordinator_client, redis_connection, bespoke_optimization_schema
-# ):
-#
-#     _mock_task("1", bespoke_optimization_schema, redis_connection)
-#
-#     request = coordinator_client.get("/optimization/1/image")
-#     request.raise_for_status()
-#
-#     assert "<svg" in request.text
-#     assert request.headers["content-type"] == "image/svg+xml"
+def test_get_molecule_image(
+    coordinator_client, redis_connection, bespoke_optimization_schema
+):
+
+    _mock_task("1", bespoke_optimization_schema, redis_connection)
+
+    request = coordinator_client.get("/optimization/1/image")
+    request.raise_for_status()
+
+    assert "<svg" in request.text
+    assert request.headers["content-type"] == "image/svg+xml"
