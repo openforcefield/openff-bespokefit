@@ -71,15 +71,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          ulimit -c unlimited
-          python -m pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
-          ls
-
-      - name: Upload core dumps
-        uses: actions/upload-artifact@master
-        with:
-          name: crashes
-          path: /cores
+          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0
