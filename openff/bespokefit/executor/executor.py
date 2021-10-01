@@ -249,7 +249,7 @@ def wait_until_complete(
 
     else:
 
-        console.log(f"[ERROR] {str(error)}")
+        console.log(f"[[red]ERROR[/red]] {str(error)}")
         return None
 
     stage_messages = {
@@ -267,7 +267,7 @@ def wait_until_complete(
             )
 
         if stage_error is not None:
-            console.log(f"[ERROR] {str(stage_error)}")
+            console.log(f"[[red]ERROR[/red]] {str(stage_error)}")
             return None
 
         if stage is None:
@@ -285,7 +285,7 @@ def wait_until_complete(
     final_response, error = _query_coordinator(optimization_href)
 
     if error is not None:
-        console.log(f"[ERROR] {str(error)}")
+        console.log(f"[[red]ERROR[/red]] {str(error)}")
         return None
 
     return final_response

@@ -19,6 +19,7 @@ dependencies:
   - tqdm
   - rich
   - click
+  - click-option-group
   - rdkit
   - openff-utilities
   - openff-toolkit-base >=0.10.0

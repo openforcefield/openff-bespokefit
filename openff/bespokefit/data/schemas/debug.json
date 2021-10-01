@@ -1,0 +1,103 @@
+{
+  "initial_force_field": "openff-2.0.0.offxml",
+  "optimizer": {
+    "type": "ForceBalance",
+    "max_iterations": 1,
+    "job_type": "optimize",
+    "penalty_type": "L1",
+    "step_convergence_threshold": 0.01,
+    "objective_convergence_threshold": 0.01,
+    "gradient_convergence_threshold": 0.01,
+    "n_criteria": 2,
+    "eigenvalue_lower_bound": 0.01,
+    "finite_difference_h": 0.01,
+    "penalty_additive": 1.0,
+    "initial_trust_radius": -0.25,
+    "minimum_trust_radius": 0.05,
+    "error_tolerance": 1.0,
+    "adaptive_factor": 0.2,
+    "adaptive_damping": 1.0,
+    "normalize_weights": false,
+    "extras": {}
+  },
+  "target_templates": [
+    {
+      "weight": 1.0,
+      "reference_data": null,
+      "extras": {},
+      "type": "TorsionProfile",
+      "attenuate_weights": true,
+      "energy_denominator": 1.0,
+      "energy_cutoff": 10.0
+    }
+  ],
+  "parameter_hyperparameters": [
+    {
+      "type": "ProperTorsions",
+      "priors": {
+        "k": 6.0
+      }
+    }
+  ],
+  "target_torsion_smirks": [
+    "[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"
+  ],
+  "target_smirks": [
+    "ProperTorsions"
+  ],
+  "expand_torsion_terms": false,
+  "generate_bespoke_terms": false,
+  "fragmentation_engine": {
+    "functional_groups": {
+      "hydrazine": "[NX3:1][NX3:2]",
+      "hydrazone": "[NX3:1][NX2:2]",
+      "nitric_oxide": "[N:1]-[O:2]",
+      "amide": "[#7:1][#6:2](=[#8:3])",
+      "amide_n": "[#7:1][#6:2](-[O-:3])",
+      "amide_2": "[NX3:1][CX3:2](=[OX1:3])[NX3:4]",
+      "aldehyde": "[CX3H1:1](=[O:2])[#6:3]",
+      "sulfoxide_1": "[#16X3:1]=[OX1:2]",
+      "sulfoxide_2": "[#16X3+:1][OX1-:2]",
+      "sulfonyl": "[#16X4:1](=[OX1:2])=[OX1:3]",
+      "sulfinic_acid": "[#16X3:1](=[OX1:2])[OX2H,OX1H0-:3]",
+      "sulfinamide": "[#16X4:1](=[OX1:2])(=[OX1:3])([NX3R0:4])",
+      "sulfonic_acid": "[#16X4:1](=[OX1:2])(=[OX1:3])[OX2H,OX1H0-:4]",
+      "phosphine_oxide": "[PX4:1](=[OX1:2])([#6:3])([#6:4])([#6:5])",
+      "phosphonate": "[P:1](=[OX1:2])([OX2H,OX1-:3])([OX2H,OX1-:4])",
+      "phosphate": "[PX4:1](=[OX1:2])([#8:3])([#8:4])([#8:5])",
+      "carboxylic_acid": "[CX3:1](=[O:2])[OX1H0-,OX2H1:3]",
+      "nitro_1": "[NX3+:1](=[O:2])[O-:3]",
+      "nitro_2": "[NX3:1](=[O:2])=[O:3]",
+      "ester": "[CX3:1](=[O:2])[OX2H0:3]",
+      "tri_halide": "[#6:1]([F,Cl,I,Br:2])([F,Cl,I,Br:3])([F,Cl,I,Br:4])"
+    },
+    "scheme": "WBO",
+    "wbo_options": {
+      "method": "am1-wiberg-elf10",
+      "max_conformers": 800,
+      "rms_threshold": 1.0
+    },
+    "threshold": 0.03,
+    "heuristic": "path_length",
+    "keep_non_rotor_ring_substituents": false
+  },
+  "default_qc_specs": [
+    {
+      "method": "uff",
+      "basis": null,
+      "program": "rdkit",
+      "spec_name": "default",
+      "spec_description": "Standard OpenFF optimization quantum chemistry specification.",
+      "store_wavefunction": "none",
+      "implicit_solvent": null,
+      "maxiter": 200,
+      "scf_properties": [
+        "dipole",
+        "quadrupole",
+        "wiberg_lowdin_indices",
+        "mayer_indices"
+      ],
+      "keywords": null
+    }
+  ]
+}
