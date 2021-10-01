@@ -41,10 +41,14 @@ async def _cycle():
         task_state_message = f"[task id={task_id}] transitioned from {{0}} -> {{1}}"
 
         if task.status != task_status and task_status == "waiting":
-            print(task_state_message, flush=True)
+            print(task_state_message.format(task_status, task.status), flush=True)
 
         if stage_status != task.running_stage.status:
-            print(task_state_message.format(task_status, task.status), flush=True)
+            print(
+                f"[task id={task_id}] {task.running_stage.type} transitioned from "
+                f"{stage_status} -> {task.running_stage.status}",
+                flush=True,
+            )
 
         if task.running_stage.status in {"success", "errored"}:
             task.completed_stages.append(task.running_stage)
