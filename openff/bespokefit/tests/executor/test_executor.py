@@ -6,7 +6,7 @@ import pytest
 import requests_mock
 from rich import get_console
 
-from openff.bespokefit.executor.executor import BespokeExecutor
+from openff.bespokefit.executor import BespokeExecutor, wait_until_complete
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
@@ -182,6 +182,8 @@ def test_submit_not_started(bespoke_optimization_schema):
 @pytest.mark.parametrize("status_code", [200, 404])
 def test_query_coordinator(status_code: int):
 
+    from openff.bespokefit.executor.executor import _query_coordinator
+
     mock_response = CoordinatorGETResponse(
         id="mock-id",
         href="",
@@ -207,7 +209,7 @@ def test_query_coordinator(status_code: int):
     with requests_mock.Mocker() as m:
 
         m.get(mock_href, text=mock_callback)
-        response, error = BespokeExecutor._query_coordinator(mock_href)
+        response, error = _query_coordinator(mock_href)
 
     assert (response is None) == (status_code == 404)
     assert (error is None) == (status_code == 200)
@@ -220,6 +222,8 @@ def test_query_coordinator(status_code: int):
 
 @pytest.mark.parametrize("status", ["success", "errored"])
 def test_wait_for_stage(status):
+
+    from openff.bespokefit.executor.executor import _wait_for_stage
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
@@ -256,9 +260,7 @@ def test_wait_for_stage(status):
 
         m.get(mock_href, text=mock_callback)
 
-        response, error = BespokeExecutor._wait_for_stage(
-            mock_href, "fragmentation", frequency=0.01
-        )
+        response, error = _wait_for_stage(mock_href, "fragmentation", frequency=0.01)
 
     assert error is None
     assert response is not None
@@ -273,6 +275,8 @@ def test_wait_for_stage(status):
 
 def test_wait_for_error():
 
+    from openff.bespokefit.executor.executor import _wait_for_stage
+
     mock_href = (
         f"http://127.0.0.1:"
         f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -284,9 +288,7 @@ def test_wait_for_error():
 
         m.get(mock_href, text="missing", status_code=404)
 
-        response, error = BespokeExecutor._wait_for_stage(
-            mock_href, "fragmentation", frequency=0.01
-        )
+        response, error = _wait_for_stage(mock_href, "fragmentation", frequency=0.01)
 
     assert error is not None
     assert response is None
@@ -307,18 +309,17 @@ def test_wait_until_complete_initial_error():
 
         m.get(mock_href, text="missing", status_code=404)
 
-        executor = BespokeExecutor()
-        executor._started = True
-
         # Make sure we're resilient to missing requests / the server being doing.
         with get_console().capture() as capture:
-            response = executor.wait_until_complete("1")
+            response = wait_until_complete("1")
 
     assert response is None
     assert "404" in capture.get()
 
 
 def test_wait_until_complete_final_error(monkeypatch):
+
+    from openff.bespokefit.executor import executor as executor_module
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
@@ -343,7 +344,7 @@ def test_wait_until_complete_final_error(monkeypatch):
         )
 
     monkeypatch.setattr(
-        BespokeExecutor,
+        executor_module,
         "_wait_for_stage",
         lambda *_: (
             CoordinatorGETStageStatus(
@@ -352,13 +353,10 @@ def test_wait_until_complete_final_error(monkeypatch):
             None,
         ),
     )
-    monkeypatch.setattr(BespokeExecutor, "_query_coordinator", mock_query_coordinator)
-
-    executor = BespokeExecutor()
-    executor._started = True
+    monkeypatch.setattr(executor_module, "_query_coordinator", mock_query_coordinator)
 
     with get_console().capture() as capture:
-        response = executor.wait_until_complete("1")
+        response = wait_until_complete("1")
 
     assert n_mock_requests == 2
     assert response is None
@@ -369,17 +367,16 @@ def test_wait_until_complete_final_error(monkeypatch):
 @pytest.mark.parametrize("stage_error", [None, RuntimeError("mock-error")])
 def test_wait_until_complete_stage_uncaught_error(stage_error, monkeypatch):
 
+    from openff.bespokefit.executor import executor as executor_module
+
     monkeypatch.setattr(
-        BespokeExecutor, "_wait_for_stage", lambda *_: (None, stage_error)
+        executor_module, "_wait_for_stage", lambda *_: (None, stage_error)
     )
 
     with mock_get_response() as mock_response:
 
-        executor = BespokeExecutor()
-        executor._started = True
-
         with get_console().capture() as capture:
-            response = executor.wait_until_complete(mock_response.id)
+            response = wait_until_complete(mock_response.id)
 
     assert response is None
 
@@ -391,8 +388,10 @@ def test_wait_until_complete_stage_uncaught_error(stage_error, monkeypatch):
 
 def test_wait_until_complete_stage_error(monkeypatch):
 
+    from openff.bespokefit.executor import executor as executor_module
+
     monkeypatch.setattr(
-        BespokeExecutor,
+        executor_module,
         "_wait_for_stage",
         lambda *_: (
             CoordinatorGETStageStatus(
@@ -404,11 +403,8 @@ def test_wait_until_complete_stage_error(monkeypatch):
 
     with mock_get_response() as mock_response:
 
-        executor = BespokeExecutor()
-        executor._started = True
-
         with get_console().capture() as capture:
-            response = executor.wait_until_complete(mock_response.id)
+            response = wait_until_complete(mock_response.id)
 
     assert "fragmentation failed" in capture.get()
 
@@ -420,22 +416,10 @@ def test_wait_until_complete_stage_error(monkeypatch):
 def test_wait_until_complete():
 
     with mock_get_response("success") as mock_response:
-
-        executor = BespokeExecutor()
-        executor._started = True
-
-        response = executor.wait_until_complete(mock_response.id, frequency=0.1)
+        response = wait_until_complete(mock_response.id, frequency=0.1)
 
     assert isinstance(response, CoordinatorGETResponse)
     assert response.stages[0].status == "success"
-
-
-def test_wait_until_complete_not_started(bespoke_optimization_schema):
-
-    executor = BespokeExecutor()
-
-    with pytest.raises(RuntimeError, match="The executor is not running."):
-        executor.wait_until_complete("mock-id")
 
 
 def test_enter_exit(tmpdir):
