@@ -167,128 +167,125 @@ class BespokeExecutor:
 
         return CoordinatorPOSTResponse.parse_raw(request.text)
 
-    @staticmethod
-    def _query_coordinator(
-        optimization_href: str,
-    ) -> Tuple[Optional[CoordinatorGETResponse], Optional[BaseException]]:
-
-        response = None
-        error = None
-
-        try:
-
-            coordinator_request = requests.get(optimization_href)
-            coordinator_request.raise_for_status()
-
-            response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
-
-        except (ConnectionError, HTTPError) as e:
-            error = e
-
-        return None if error is not None else response, error
-
-    @staticmethod
-    def _wait_for_stage(
-        optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
-    ) -> Tuple[Optional[CoordinatorGETStageStatus], Optional[BaseException]]:
-
-        try:
-
-            while True:
-
-                response, error = BespokeExecutor._query_coordinator(optimization_href)
-
-                if error is not None:
-                    return None, error
-
-                stage = {stage.type: stage for stage in response.stages}[stage_type]
-
-                if stage.status in ["errored", "success"]:
-                    break
-
-                time.sleep(frequency)
-
-        except KeyboardInterrupt:
-            return None, None
-
-        return None if error is not None else stage, error
-
-    def wait_until_complete(
-        self,
-        optimization_id: str,
-        console: Optional["rich.Console"] = None,
-        frequency: Union[int, float] = 5,
-    ) -> Optional[CoordinatorGETResponse]:
-        """Wait for a specified optimization to complete and return the results.
-
-        Args:
-            optimization_id: The unique id of the optimization to wait for.
-            console: The console to print to.
-            frequency: The frequency (seconds) with which to poll the status of the
-                optimization.
-
-        Returns:
-            The output of running the optimization.
-        """
-
-        if not self._started:
-            raise RuntimeError("The executor is not running.")
-
-        console = console if console is not None else rich.get_console()
-
-        optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
-
-        initial_response, error = self._query_coordinator(optimization_href)
-
-        if initial_response is not None:
-            stage_types = [stage.type for stage in initial_response.stages]
-
-        else:
-
-            console.log(f"[ERROR] {str(error)}")
-            return None
-
-        stage_messages = {
-            "fragmentation": "fragmenting the molecule",
-            "qc-generation": "generating bespoke QC data",
-            "optimization": "optimizing the parameters",
-        }
-
-        for stage_type in stage_types:
-
-            with console.status(stage_messages[stage_type]):
-
-                stage, stage_error = self._wait_for_stage(
-                    optimization_href, stage_type, frequency
-                )
-
-            if stage_error is not None:
-                console.log(f"[ERROR] {str(stage_error)}")
-                return None
-
-            if stage is None:
-                return None
-
-            if stage.status == "errored":
-
-                console.print(f"[[red]x[/red]] {stage_type} failed")
-                console.print(Padding(stage.error, (1, 0, 0, 1)))
-
-                break
-
-            console.print(f"[[green]✓[/green]] {stage_type} successful")
-
-        final_response, error = self._query_coordinator(optimization_href)
-
-        if error is not None:
-            console.log(f"[ERROR] {str(error)}")
-            return None
-
-        return final_response
-
     def __enter__(self):
         self.start(asynchronous=True)
         return self
 
     def __exit__(self, *args):
         self.stop()
+
+
+def _query_coordinator(
+    optimization_href: str,
+) -> Tuple[Optional[CoordinatorGETResponse], Optional[BaseException]]:
+
+    response = None
+    error = None
+
+    try:
+
+        coordinator_request = requests.get(optimization_href)
+        coordinator_request.raise_for_status()
+
+        response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
+
+    except (ConnectionError, HTTPError) as e:
+        error = e
+
+    return None if error is not None else response, error
+
+
+def _wait_for_stage(
+    optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
+) -> Tuple[Optional[CoordinatorGETStageStatus], Optional[BaseException]]:
+
+    try:
+
+        while True:
+
+            response, error = _query_coordinator(optimization_href)
+
+            if error is not None:
+                return None, error
+
+            stage = {stage.type: stage for stage in response.stages}[stage_type]
+
+            if stage.status in ["errored", "success"]:
+                break
+
+            time.sleep(frequency)
+
+    except KeyboardInterrupt:
+        return None, None
+
+    return None if error is not None else stage, error
+
+
+def wait_until_complete(
+    optimization_id: str,
+    console: Optional["rich.Console"] = None,
+    frequency: Union[int, float] = 5,
+) -> Optional[CoordinatorGETResponse]:
+    """Wait for a specified optimization to complete and return the results.
+
+    Args:
+        optimization_id: The unique id of the optimization to wait for.
+        console: The console to print to.
+        frequency: The frequency (seconds) with which to poll the status of the
+            optimization.
+
+    Returns:
+        The output of running the optimization.
+    """
+
+    console = console if console is not None else rich.get_console()
+
+    optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
+
+    initial_response, error = _query_coordinator(optimization_href)
+
+    if initial_response is not None:
+        stage_types = [stage.type for stage in initial_response.stages]
+
+    else:
+
+        console.log(f"[ERROR] {str(error)}")
+        return None
+
+    stage_messages = {
+        "fragmentation": "fragmenting the molecule",
+        "qc-generation": "generating bespoke QC data",
+        "optimization": "optimizing the parameters",
+    }
+
+    for stage_type in stage_types:
+
+        with console.status(stage_messages[stage_type]):
+
+            stage, stage_error = _wait_for_stage(
+                optimization_href, stage_type, frequency
+            )
+
+        if stage_error is not None:
+            console.log(f"[ERROR] {str(stage_error)}")
+            return None
+
+        if stage is None:
+            return None
+
+        if stage.status == "errored":
+
+            console.print(f"[[red]x[/red]] {stage_type} failed")
+            console.print(Padding(stage.error, (1, 0, 0, 1)))
+
+            break
+
+        console.print(f"[[green]✓[/green]] {stage_type} successful")
+
+    final_response, error = _query_coordinator(optimization_href)
+
+    if error is not None:
+        console.log(f"[ERROR] {str(error)}")
+        return None
+
+    return final_response
