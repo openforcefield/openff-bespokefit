@@ -4,15 +4,19 @@ import logging
 import multiprocessing
 import os
 import time
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import celery
 import requests
+import rich
 from openff.utilities import temporary_cd
+from requests import HTTPError
+from rich.padding import Padding
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
+    CoordinatorGETStageStatus,
     CoordinatorPOSTBody,
     CoordinatorPOSTResponse,
 )
@@ -23,6 +27,16 @@ from openff.bespokefit.executor.utilities.redis import is_redis_available, launc
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 _logger = logging.getLogger(__name__)
+
+
+def _base_endpoint():
+    return (
+        f"http://127.0.0.1:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}/"
+    )
+
+
+def _coordinator_endpoint():
+    return f"{_base_endpoint()}{settings.BEFLOW_COORDINATOR_PREFIX}"
 
 
 class BespokeExecutor:
@@ -73,7 +87,6 @@ class BespokeExecutor:
         if self._launch_redis_if_unavailable and not is_redis_available(
             host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
         ):
-
             redis_log_file = open("redis.log", "w")
             launch_redis(settings.BEFLOW_REDIS_PORT, redis_log_file, redis_log_file)
 
@@ -85,7 +98,6 @@ class BespokeExecutor:
             (settings.BEFLOW_QC_COMPUTE_WORKER, self._n_qc_compute_workers),
             (settings.BEFLOW_OPTIMIZER_WORKER, self._n_optimizer_workers),
         }:
-
             worker_module = importlib.import_module(import_path)
             worker_app = getattr(worker_module, "celery_app")
 
@@ -137,37 +149,83 @@ class BespokeExecutor:
         self._started = False
 
         if self._gateway_process is not None and self._gateway_process.is_alive():
-
             self._gateway_process.terminate()
             self._gateway_process.join()
 
-    def submit(self, input_schema: BespokeOptimizationSchema) -> str:
+    def submit(
+        self, input_schema: BespokeOptimizationSchema
+    ) -> CoordinatorPOSTResponse:
 
         if not self._started:
             raise RuntimeError("The executor is not running.")
 
         request = requests.post(
-            (
-                f"http://127.0.0.1:"
-                f"{settings.BEFLOW_GATEWAY_PORT}"
-                f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_COORDINATOR_PREFIX}"
-            ),
+            _coordinator_endpoint(),
             data=CoordinatorPOSTBody(input_schema=input_schema).json(),
         )
         request.raise_for_status()
 
-        return CoordinatorPOSTResponse.parse_raw(request.text).id
+        return CoordinatorPOSTResponse.parse_raw(request.text)
+
+    @staticmethod
+    def _query_coordinator(
+        optimization_href: str,
+    ) -> Tuple[Optional[CoordinatorGETResponse], Optional[BaseException]]:
+
+        response = None
+        error = None
+
+        try:
+
+            coordinator_request = requests.get(optimization_href)
+            coordinator_request.raise_for_status()
+
+            response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
+
+        except (ConnectionError, HTTPError) as e:
+            error = e
+
+        return None if error is not None else response, error
+
+    @staticmethod
+    def _wait_for_stage(
+        optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
+    ) -> Tuple[Optional[CoordinatorGETStageStatus], Optional[BaseException]]:
+
+        try:
+
+            while True:
+
+                response, error = BespokeExecutor._query_coordinator(optimization_href)
+
+                if error is not None:
+                    return None, error
+
+                stage = {stage.type: stage for stage in response.stages}[stage_type]
+
+                if stage.status in ["errored", "success"]:
+                    break
+
+                time.sleep(frequency)
+
+        except KeyboardInterrupt:
+            return None, None
+
+        return None if error is not None else stage, error
 
     def wait_until_complete(
-        self, optimization_id: str, frequency: Union[float, int] = 10
-    ) -> CoordinatorGETResponse:
+        self,
+        optimization_id: str,
+        console: Optional["rich.Console"] = None,
+        frequency: Union[int, float] = 5,
+    ) -> Optional[CoordinatorGETResponse]:
         """Wait for a specified optimization to complete and return the results.
 
         Args:
             optimization_id: The unique id of the optimization to wait for.
-            frequency: The frequency (seconds) with which to check if the optimization
-                has completed.
+            console: The console to print to.
+            frequency: The frequency (seconds) with which to poll the status of the
+                optimization.
 
         Returns:
             The output of running the optimization.
@@ -176,33 +234,57 @@ class BespokeExecutor:
         if not self._started:
             raise RuntimeError("The executor is not running.")
 
-        while True:
+        console = console if console is not None else rich.get_console()
 
-            try:
+        optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
 
-                request = requests.get(
-                    (
-                        f"http://127.0.0.1:"
-                        f"{settings.BEFLOW_GATEWAY_PORT}"
-                        f"{settings.BEFLOW_API_V1_STR}/"
-                        f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
-                        f"{optimization_id}"
-                    )
+        initial_response, error = self._query_coordinator(optimization_href)
+
+        if initial_response is not None:
+            stage_types = [stage.type for stage in initial_response.stages]
+
+        else:
+
+            console.log(f"[ERROR] {str(error)}")
+            return None
+
+        stage_messages = {
+            "fragmentation": "fragmenting the molecule",
+            "qc-generation": "generating bespoke QC data",
+            "optimization": "optimizing the parameters",
+        }
+
+        for stage_type in stage_types:
+
+            with console.status(stage_messages[stage_type]):
+
+                stage, stage_error = self._wait_for_stage(
+                    optimization_href, stage_type, frequency
                 )
-                request.raise_for_status()
 
-                response = CoordinatorGETResponse.parse_raw(request.text)
+            if stage_error is not None:
+                console.log(f"[ERROR] {str(stage_error)}")
+                return None
 
-                if all(stage.status == "success" for stage in response.stages) or any(
-                    stage.status == "errored" for stage in response.stages
-                ):
+            if stage is None:
+                return None
 
-                    return response
+            if stage.status == "errored":
 
-                time.sleep(frequency)
+                console.print(f"[[red]x[/red]] {stage_type} failed")
+                console.print(Padding(stage.error, (1, 0, 0, 1)))
 
-            except KeyboardInterrupt:
                 break
+
+            console.print(f"[[green]✓[/green]] {stage_type} successful")
+
+        final_response, error = self._query_coordinator(optimization_href)
+
+        if error is not None:
+            console.log(f"[ERROR] {str(error)}")
+            return None
+
+        return final_response
 
     def __enter__(self):
         self.start(asynchronous=True)

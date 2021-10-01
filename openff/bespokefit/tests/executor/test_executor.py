@@ -1,8 +1,10 @@
 import importlib
 import os.path
+from contextlib import contextmanager
 
 import pytest
 import requests_mock
+from rich import get_console
 
 from openff.bespokefit.executor.executor import BespokeExecutor
 from openff.bespokefit.executor.services import settings
@@ -11,6 +13,34 @@ from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETStageStatus,
     CoordinatorPOSTResponse,
 )
+
+
+@contextmanager
+def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
+
+    mock_id = "mock-id"
+
+    mock_href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+        f"{mock_id}"
+    )
+    mock_response = CoordinatorGETResponse(
+        id=mock_id,
+        href=mock_href,
+        stages=[
+            CoordinatorGETStageStatus(
+                type="fragmentation", status=stage_status, error=None, results=None
+            )
+        ],
+    )
+
+    with requests_mock.Mocker() as m:
+
+        m.get(mock_href, text=mock_response.json())
+        yield mock_response
 
 
 def test_init():
@@ -138,7 +168,7 @@ def test_submit(bespoke_optimization_schema):
         executor._started = True
 
         result = executor.submit(bespoke_optimization_schema)
-        assert result == expected.id
+        assert result.id == expected.id
 
 
 def test_submit_not_started(bespoke_optimization_schema):
@@ -149,50 +179,255 @@ def test_submit_not_started(bespoke_optimization_schema):
         executor.submit(bespoke_optimization_schema)
 
 
-@pytest.mark.parametrize("expected_stage_status", ["success", "errored"])
-def test_wait_until_complete(expected_stage_status):
+@pytest.mark.parametrize("status_code", [200, 404])
+def test_query_coordinator(status_code: int):
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
         href="",
         stages=[
             CoordinatorGETStageStatus(
-                type="fragmentation",
-                status="running",
-                error=None,
-                results=None,
+                type="fragmentation", status="running", error=None, results=None
             )
         ],
     )
 
     def mock_callback(request, context):
-        context.status_code = 200
+        context.status_code = status_code
+        return mock_response.json()
 
-        return_value = mock_response.json()
-        mock_response.stages[0].status = expected_stage_status
-
-        return return_value
+    mock_href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+        f"{mock_response.id}"
+    )
 
     with requests_mock.Mocker() as m:
 
-        m.get(
-            (
-                f"http://127.0.0.1:"
-                f"{settings.BEFLOW_GATEWAY_PORT}"
-                f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
-                f"{mock_response.id}"
-            ),
-            text=mock_callback,
+        m.get(mock_href, text=mock_callback)
+        response, error = BespokeExecutor._query_coordinator(mock_href)
+
+    assert (response is None) == (status_code == 404)
+    assert (error is None) == (status_code == 200)
+
+    if status_code == 404:
+        assert "404" in str(error)
+    else:
+        assert response.json() == mock_response.json()
+
+
+@pytest.mark.parametrize("status", ["success", "errored"])
+def test_wait_for_stage(status):
+
+    mock_response = CoordinatorGETResponse(
+        id="mock-id",
+        href="",
+        stages=[
+            CoordinatorGETStageStatus(
+                type="fragmentation", status="running", error=None, results=None
+            )
+        ],
+    )
+
+    n_requests = 0
+
+    def mock_callback(request, context):
+        context.status_code = 200
+
+        response_json = mock_response.json()
+        mock_response.stages[0].status = status
+
+        nonlocal n_requests
+        n_requests += 1
+
+        return response_json
+
+    mock_href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+        f"{mock_response.id}"
+    )
+
+    with requests_mock.Mocker() as m:
+
+        m.get(mock_href, text=mock_callback)
+
+        response, error = BespokeExecutor._wait_for_stage(
+            mock_href, "fragmentation", frequency=0.01
         )
+
+    assert error is None
+    assert response is not None
+
+    assert n_requests == 2
+
+    assert response.status == status
+    assert response.error is None
+    assert response.type == "fragmentation"
+    assert response.results is None
+
+
+def test_wait_for_error():
+
+    mock_href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/1"
+    )
+
+    with requests_mock.Mocker() as m:
+
+        m.get(mock_href, text="missing", status_code=404)
+
+        response, error = BespokeExecutor._wait_for_stage(
+            mock_href, "fragmentation", frequency=0.01
+        )
+
+    assert error is not None
+    assert response is None
+
+    assert "404" in str(error)
+
+
+def test_wait_until_complete_initial_error():
+
+    mock_href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/1"
+    )
+
+    with requests_mock.Mocker() as m:
+
+        m.get(mock_href, text="missing", status_code=404)
+
+        executor = BespokeExecutor()
+        executor._started = True
+
+        # Make sure we're resilient to missing requests / the server being doing.
+        with get_console().capture() as capture:
+            response = executor.wait_until_complete("1")
+
+    assert response is None
+    assert "404" in capture.get()
+
+
+def test_wait_until_complete_final_error(monkeypatch):
+
+    mock_response = CoordinatorGETResponse(
+        id="mock-id",
+        href="",
+        stages=[
+            CoordinatorGETStageStatus(
+                type="fragmentation", status="running", error=None, results=None
+            )
+        ],
+    )
+    n_mock_requests = 0
+
+    def mock_query_coordinator(*_):
+
+        nonlocal n_mock_requests
+        n_mock_requests += 1
+
+        return (
+            (mock_response, None)
+            if n_mock_requests == 1
+            else (None, RuntimeError("mock-error"))
+        )
+
+    monkeypatch.setattr(
+        BespokeExecutor,
+        "_wait_for_stage",
+        lambda *_: (
+            CoordinatorGETStageStatus(
+                type="fragmentation", error=None, results=None, status="success"
+            ),
+            None,
+        ),
+    )
+    monkeypatch.setattr(BespokeExecutor, "_query_coordinator", mock_query_coordinator)
+
+    executor = BespokeExecutor()
+    executor._started = True
+
+    with get_console().capture() as capture:
+        response = executor.wait_until_complete("1")
+
+    assert n_mock_requests == 2
+    assert response is None
+    assert "fragmentation successful" in capture.get()
+    assert "mock-error" in capture.get()
+
+
+@pytest.mark.parametrize("stage_error", [None, RuntimeError("mock-error")])
+def test_wait_until_complete_stage_uncaught_error(stage_error, monkeypatch):
+
+    monkeypatch.setattr(
+        BespokeExecutor, "_wait_for_stage", lambda *_: (None, stage_error)
+    )
+
+    with mock_get_response() as mock_response:
+
+        executor = BespokeExecutor()
+        executor._started = True
+
+        with get_console().capture() as capture:
+            response = executor.wait_until_complete(mock_response.id)
+
+    assert response is None
+
+    if stage_error is None:
+        assert response is None
+    else:
+        assert "mock-error" in capture.get()
+
+
+def test_wait_until_complete_stage_error(monkeypatch):
+
+    monkeypatch.setattr(
+        BespokeExecutor,
+        "_wait_for_stage",
+        lambda *_: (
+            CoordinatorGETStageStatus(
+                type="fragmentation", error="mock-error", results=None, status="errored"
+            ),
+            None,
+        ),
+    )
+
+    with mock_get_response() as mock_response:
+
+        executor = BespokeExecutor()
+        executor._started = True
+
+        with get_console().capture() as capture:
+            response = executor.wait_until_complete(mock_response.id)
+
+    assert "fragmentation failed" in capture.get()
+
+    assert response is not None
+    # Because we're just mocking a GET response we can't check on the stage status here
+    assert isinstance(response, CoordinatorGETResponse)
+
+
+def test_wait_until_complete():
+
+    with mock_get_response("success") as mock_response:
 
         executor = BespokeExecutor()
         executor._started = True
 
         response = executor.wait_until_complete(mock_response.id, frequency=0.1)
 
-        assert isinstance(response, CoordinatorGETResponse)
-        assert response.stages[0].status == expected_stage_status
+    assert isinstance(response, CoordinatorGETResponse)
+    assert response.stages[0].status == "success"
 
 
 def test_wait_until_complete_not_started(bespoke_optimization_schema):
