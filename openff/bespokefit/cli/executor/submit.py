@@ -106,7 +106,7 @@ def _submit(
 
         molecule = Molecule.from_file(input_file_path)
 
-        if not isinstance(molecule, Molecule):
+        if not isinstance(molecule, Molecule) or "." in molecule.to_smiles():
 
             console.print(
                 "[[red]ERROR[/red]] only one molecule can currently be submitted at "

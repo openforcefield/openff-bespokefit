@@ -2,7 +2,6 @@ from typing import Optional
 
 import click
 import rich
-from click_option_group import optgroup
 from rich import pretty
 from rich.padding import Padding
 

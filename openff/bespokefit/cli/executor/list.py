@@ -1,9 +1,6 @@
-from typing import List
-
 import click
 import requests
 import rich
-from pydantic import parse_raw_as
 from rich import pretty
 from rich.padding import Padding
 
@@ -21,14 +18,14 @@ def list_cli():
 
     from openff.bespokefit.executor.services import settings
     from openff.bespokefit.executor.services.coordinator.models import (
-        CoordinatorGETResponse,
+        CoordinatorGETPageResponse,
     )
 
     href = (
         f"http://127.0.0.1:"
         f"{settings.BEFLOW_GATEWAY_PORT}"
         f"{settings.BEFLOW_API_V1_STR}/"
-        f"{settings.BEFLOW_COORDINATOR_PREFIX}s"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}"
     )
 
     try:
@@ -43,8 +40,8 @@ def list_cli():
         )
         return
 
-    responses = parse_raw_as(List[CoordinatorGETResponse], request.content)
-    response_ids = [response.id for response in responses]
+    response = CoordinatorGETPageResponse.parse_raw(request.content)
+    response_ids = [item.id for item in response.contents]
 
     if len(response_ids) == 0:
         console.print("No optimizations were found.")

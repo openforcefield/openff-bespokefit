@@ -16,7 +16,7 @@ def launch_options(
     n_fragmenter_workers: Optional[int] = None,
     n_qc_compute_workers: Optional[int] = None,
     n_optimizer_workers: Optional[int] = None,
-    launch_redis_if_unavailable: Optional[bool] = True
+    launch_redis_if_unavailable: Optional[bool] = True,
 ):
 
     return [
@@ -27,7 +27,7 @@ def launch_options(
             help="The directory to store any working and log files in",
             required=True,
             default=directory,
-            show_default=directory is not None
+            show_default=directory is not None,
         ),
         optgroup.group("Worker configuration"),
         optgroup.option(
@@ -37,7 +37,7 @@ def launch_options(
             help="The number of fragmentation workers to spawn",
             required=n_fragmenter_workers is None,
             default=n_fragmenter_workers,
-            show_default=n_fragmenter_workers is not None
+            show_default=n_fragmenter_workers is not None,
         ),
         optgroup.option(
             "--n-qc-compute",
@@ -46,7 +46,7 @@ def launch_options(
             help="The number of QC compute workers to spawn",
             required=n_qc_compute_workers is None,
             default=n_qc_compute_workers,
-            show_default=n_qc_compute_workers is not None
+            show_default=n_qc_compute_workers is not None,
         ),
         optgroup.option(
             "--n-optimizer",
@@ -55,7 +55,7 @@ def launch_options(
             help="The number of optimizer workers to spawn",
             required=n_optimizer_workers is None,
             default=n_optimizer_workers,
-            show_default=n_optimizer_workers is not None
+            show_default=n_optimizer_workers is not None,
         ),
         optgroup.group("Storage configuration"),
         optgroup.option(
@@ -65,7 +65,7 @@ def launch_options(
             "found.",
             required=launch_redis_if_unavailable is None,
             default=launch_redis_if_unavailable,
-            show_default=launch_redis_if_unavailable is not None
+            show_default=launch_redis_if_unavailable is not None,
         ),
     ]
 

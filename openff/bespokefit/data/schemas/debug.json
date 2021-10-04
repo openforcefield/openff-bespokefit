@@ -12,7 +12,7 @@
     "eigenvalue_lower_bound": 0.01,
     "finite_difference_h": 0.01,
     "penalty_additive": 1.0,
-    "initial_trust_radius": -0.25,
+    "initial_trust_radius": 0.25,
     "minimum_trust_radius": 0.05,
     "error_tolerance": 1.0,
     "adaptive_factor": 0.2,
