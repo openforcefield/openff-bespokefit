@@ -14,10 +14,10 @@ def test_default_routes_loaded():
     assert all(
         route in found_routes
         for route in [
-            "/api/v1/fragmenter",
-            "/api/v1/optimizer",
-            "/api/v1/qc-calc",
-            "/api/v1/optimization",
+            "/api/v1/tasks",
+            "/api/v1/fragmentations",
+            "/api/v1/optimizations",
+            "/api/v1/qc-calcs",
         ]
     )
 

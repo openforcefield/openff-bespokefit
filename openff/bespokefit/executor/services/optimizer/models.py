@@ -2,47 +2,25 @@ from typing import Optional
 
 from pydantic import Field
 
+from openff.bespokefit.executor.services.models import Link
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.utilities.pydantic import BaseModel
 
 
-class OptimizerBaseResponse(BaseModel):
+class OptimizerGETResponse(Link):
+    """The object model returned by a GET request."""
 
-    optimization_id: str = Field(
-        ..., description="The ID associated with the optimization."
-    )
+    status: Status = Field("waiting", description="The status of the optimization.")
 
-
-class OptimizerGETStatusResponse(BaseModel):
-
-    optimization_status: Status = Field(
-        "waiting", description="The status of the optimization."
-    )
-
-
-class OptimizerGETResultResponse(BaseModel):
-
-    optimization_result: Optional[BespokeOptimizationResults] = Field(
+    result: Optional[BespokeOptimizationResults] = Field(
         ..., description="The result of the optimization if any was produced."
     )
 
-
-class OptimizerGETErrorResponse(BaseModel):
-
-    optimization_error: Optional[str] = Field(
+    error: Optional[str] = Field(
         ..., description="The error raised while optimizing if any."
     )
-
-
-class OptimizerGETResponse(
-    OptimizerBaseResponse,
-    OptimizerGETStatusResponse,
-    OptimizerGETResultResponse,
-    OptimizerGETErrorResponse,
-):
-    """The object model returned by a GET request."""
 
 
 class OptimizerPOSTBody(BaseModel):
@@ -53,5 +31,5 @@ class OptimizerPOSTBody(BaseModel):
     )
 
 
-class OptimizerPOSTResponse(OptimizerBaseResponse):
+class OptimizerPOSTResponse(Link):
     """The object model returned by a POST request."""

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from openff.fragmenter.fragment import (
     FragmentationResult,
@@ -7,45 +7,27 @@ from openff.fragmenter.fragment import (
 )
 from pydantic import Field
 
+from openff.bespokefit.executor.services.models import Link
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.utilities.pydantic import BaseModel
 
 
-class FragmenterBaseResponse(BaseModel):
+class FragmenterGETResponse(Link):
+    """The object model returned by a GET request."""
 
-    fragmentation_id: str = Field(
-        ..., description="The ID associated with the fragmentation."
-    )
+    status: Status = Field("waiting", description="The status of the fragmentation.")
 
-
-class FragmenterGETStatusResponse(BaseModel):
-
-    fragmentation_status: Status = Field(
-        "waiting", description="The status of the fragmentation."
-    )
-
-
-class FragmenterGETResultResponse(BaseModel):
-
-    fragmentation_result: Optional[FragmentationResult] = Field(
+    result: Optional[FragmentationResult] = Field(
         ..., description="The result of the fragmentation if any was produced."
     )
 
-
-class FragmenterGETErrorResponse(BaseModel):
-
-    fragmentation_error: Optional[str] = Field(
+    error: Optional[str] = Field(
         ..., description="The error raised while fragmenting if any."
     )
 
-
-class FragmenterGETResponse(
-    FragmenterBaseResponse,
-    FragmenterGETStatusResponse,
-    FragmenterGETResultResponse,
-    FragmenterGETErrorResponse,
-):
-    """The object model returned by a GET request."""
+    links: Dict[str, str] = Field(
+        {}, description="Links to resources associated with the model.", alias="_links"
+    )
 
 
 class FragmenterPOSTBody(BaseModel):
@@ -67,5 +49,5 @@ class FragmenterPOSTBody(BaseModel):
     )
 
 
-class FragmenterPOSTResponse(FragmenterBaseResponse):
+class FragmenterPOSTResponse(Link):
     """The object model returned by a POST request."""

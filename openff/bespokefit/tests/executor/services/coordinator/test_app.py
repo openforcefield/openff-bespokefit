@@ -1,14 +1,14 @@
 import pickle
-from typing import List
 
 import pytest
 import redis
-from pydantic import parse_raw_as
 from requests import HTTPError
 
 from openff.bespokefit.executor.services.coordinator.models import (
+    CoordinatorGETPageResponse,
     CoordinatorGETResponse,
     CoordinatorPOSTBody,
+    CoordinatorPOSTResponse,
     CoordinatorTask,
 )
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
@@ -26,13 +26,19 @@ def _mock_task(
 
 
 @pytest.mark.parametrize(
-    "skip, limit, expected_ids",
-    [(0, 3, {"1", "2", "3"}), (0, 2, {"1", "2"}), (1, 1, {"2"})],
+    "skip, limit, expected_ids, prev_link, next_link",
+    [
+        (0, 3, {"1", "2", "3"}, None, None),
+        (0, 2, {"1", "2"}, None, "/api/v1/tasks?skip=2&limit=2"),
+        (1, 1, {"2"}, "/api/v1/tasks?skip=0&limit=1", "/api/v1/tasks?skip=2&limit=1"),
+    ],
 )
 def test_get_optimizations(
     skip,
     limit,
     expected_ids,
+    prev_link,
+    next_link,
     coordinator_client,
     redis_connection,
     bespoke_optimization_schema,
@@ -41,13 +47,18 @@ def test_get_optimizations(
     for task_id in ["1", "2", "3"]:
         _mock_task(task_id, bespoke_optimization_schema, redis_connection)
 
-    request = coordinator_client.get(f"/optimizations?skip={skip}&limit={limit}")
+    redis_connection.set("coordinator:id-counter", 4)
+
+    request = coordinator_client.get(f"/tasks?skip={skip}&limit={limit}")
     request.raise_for_status()
 
-    results = parse_raw_as(List[CoordinatorGETResponse], request.text)
+    response = CoordinatorGETPageResponse.parse_raw(request.text)
 
-    assert len(results) == len(expected_ids)
-    assert {result.id for result in results} == expected_ids
+    assert response.prev == prev_link
+    assert response.next == next_link
+
+    assert len(response.contents) == len(expected_ids)
+    assert {task.id for task in response.contents} == expected_ids
 
 
 def test_get_optimization(
@@ -56,14 +67,15 @@ def test_get_optimization(
 
     _mock_task("2", bespoke_optimization_schema, redis_connection)
 
-    request = coordinator_client.get("/optimization/2")
+    request = coordinator_client.get("/tasks/2")
     request.raise_for_status()
 
     results = CoordinatorGETResponse.parse_raw(request.text)
     assert results.id == "2"
+    assert results.self == "/api/v1/tasks/2"
 
     with pytest.raises(HTTPError, match="404"):
-        request = coordinator_client.get("/optimization/1")
+        request = coordinator_client.get("/tasks/1")
         request.raise_for_status()
 
 
@@ -77,10 +89,14 @@ def test_post_optimization(
     assert len(redis_connection.keys("*")) == 0
 
     request = coordinator_client.post(
-        "/optimization",
+        "/tasks",
         data=CoordinatorPOSTBody(input_schema=bespoke_optimization_schema).json(),
     )
     request.raise_for_status()
+
+    response = CoordinatorPOSTResponse.parse_raw(request.text)
+    assert response.id == "1"
+    assert response.self == "/api/v1/tasks/1"
 
     assert b"coordinator:optimizations" in redis_connection.keys("*")
 
@@ -117,7 +133,7 @@ def test_post_optimization_error(
     bespoke_optimization_schema.smiles = "C(F)(Cl)(Br)"
 
     request = coordinator_client.post(
-        "/optimization",
+        "/tasks",
         data=CoordinatorPOSTBody(input_schema=bespoke_optimization_schema).json(),
     )
 
@@ -131,7 +147,7 @@ def test_get_molecule_image(
 
     _mock_task("1", bespoke_optimization_schema, redis_connection)
 
-    request = coordinator_client.get("/optimization/1/image")
+    request = coordinator_client.get("/tasks/1/image")
     request.raise_for_status()
 
     assert "<svg" in request.text

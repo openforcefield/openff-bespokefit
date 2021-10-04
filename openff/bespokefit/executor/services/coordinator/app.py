@@ -4,7 +4,7 @@ import os
 import pickle
 import signal
 import urllib.parse
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -13,6 +13,7 @@ from openff.toolkit.topology import Molecule
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator import worker
 from openff.bespokefit.executor.services.coordinator.models import (
+    CoordinatorGETPageResponse,
     CoordinatorGETResponse,
     CoordinatorPOSTBody,
     CoordinatorPOSTResponse,
@@ -23,12 +24,17 @@ from openff.bespokefit.executor.services.coordinator.stages import (
     OptimizationStage,
     QCGenerationStage,
 )
+from openff.bespokefit.executor.services.models import Link
 from openff.bespokefit.executor.utilities.depiction import smiles_to_image
 
 router = APIRouter()
 
 _logger = logging.getLogger(__name__)
 _worker_task: Optional[asyncio.Future] = None
+
+__GET_TASK_IMAGE_ENDPOINT = (
+    "/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}/image"
+)
 
 
 def _get_task(
@@ -50,19 +56,56 @@ def _get_task(
     return CoordinatorTask.parse_obj(pickle.loads(task_pickle))
 
 
-@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "s")
-def get_optimizations(skip: int = 0, limit: int = 1000) -> List[CoordinatorGETResponse]:
+@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX)
+def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageResponse:
     """Retrieves all bespoke optimizations that have been submitted to this server."""
+
+    n_optimizations = worker.redis_connection.zcount(
+        "coordinator:optimizations", 0, 999999999
+    )
 
     optimization_keys = worker.redis_connection.zrange(
         "coordinator:optimizations", skip * limit, (skip + 1) * limit - 1
     )
-    response = [
-        CoordinatorGETResponse.from_task(_get_task(optimization_key=optimization_key))
+    optimization_ids = [
+        optimization_key.decode().split(":")[-1]
         for optimization_key in optimization_keys
     ]
 
-    return response
+    contents = [
+        Link(
+            self=(
+                f"{settings.BEFLOW_API_V1_STR}/"
+                f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+                f"{optimization_id}"
+            ),
+            id=optimization_id,
+        )
+        for optimization_id in optimization_ids
+    ]
+
+    prev_index = max(0, skip - limit)
+    next_index = min(n_optimizations, skip + limit)
+
+    return CoordinatorGETPageResponse(
+        self=(
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={skip}&limit={limit}"
+        ),
+        prev=None
+        if prev_index >= skip
+        else (
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={prev_index}&limit={limit}"
+        ),
+        next=None
+        if (next_index <= skip or next_index == n_optimizations)
+        else (
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={next_index}&limit={limit}"
+        ),
+        contents=contents,
+    )
 
 
 @router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}")
@@ -70,7 +113,17 @@ def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     """Retrieves a bespoke optimization that has been submitted to this server
     using its unique id."""
 
-    return CoordinatorGETResponse.from_task(_get_task(optimization_id=optimization_id))
+    response = CoordinatorGETResponse.from_task(
+        _get_task(optimization_id=optimization_id)
+    )
+    response.links = {
+        "image": (
+            settings.BEFLOW_API_V1_STR
+            + __GET_TASK_IMAGE_ENDPOINT.format(optimization_id=optimization_id)
+        )
+    }
+
+    return response
 
 
 @router.post("/" + settings.BEFLOW_COORDINATOR_PREFIX)
@@ -105,16 +158,14 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
 
     return CoordinatorPOSTResponse(
         id=task_id,
-        href=(
-            f"http://127.0.0.1:"
-            f"{settings.BEFLOW_GATEWAY_PORT}"
+        self=(
             f"{settings.BEFLOW_API_V1_STR}/"
             f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
         ),
     )
 
 
-@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}/image")
+@router.get(__GET_TASK_IMAGE_ENDPOINT)
 async def get_molecule_image(optimization_id: str):
     """Render the molecule associated with a particular bespoke optimization to an
     SVG file."""

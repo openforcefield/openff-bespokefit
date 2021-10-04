@@ -25,17 +25,18 @@ def test_get_optimize(optimizer_client, redis_connection, monkeypatch):
         lambda self: {"status": "SUCCESS", "result": mock_optimization_result.json()},
     )
 
-    request = optimizer_client.get("/optimizer/1")
+    request = optimizer_client.get("/optimizations/1")
     request.raise_for_status()
 
     result = OptimizerGETResponse.parse_raw(request.text)
 
-    assert result.optimization_status == "success"
-    assert result.optimization_result is not None
-    assert result.optimization_id == "1"
+    assert result.status == "success"
+    assert result.result is not None
+    assert result.id == "1"
+    assert result.self == "/api/v1/optimizations/1"
 
-    assert result.optimization_result.status == mock_optimization_result.status
-    assert result.optimization_result.provenance == mock_optimization_result.provenance
+    assert result.result.status == mock_optimization_result.status
+    assert result.result.provenance == mock_optimization_result.provenance
 
 
 def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
@@ -53,7 +54,7 @@ def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
     )
 
     request = optimizer_client.post(
-        "/optimizer", data=OptimizerPOSTBody(input_schema=input_schema).json()
+        "/optimizations", data=OptimizerPOSTBody(input_schema=input_schema).json()
     )
     request.raise_for_status()
 
@@ -62,4 +63,5 @@ def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
     assert submitted_task_kwargs["optimization_input_json"] == input_schema.json()
 
     result = OptimizerPOSTResponse.parse_raw(request.text)
-    assert result.optimization_id == "1"
+    assert result.id == "1"
+    assert result.self == "/api/v1/optimizations/1"

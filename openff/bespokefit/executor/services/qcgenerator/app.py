@@ -11,6 +11,7 @@ from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task
 from openff.bespokefit.executor.services.qcgenerator.models import (
+    QCGeneratorGETPageResponse,
     QCGeneratorGETResponse,
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
@@ -23,6 +24,11 @@ from openff.bespokefit.executor.utilities.depiction import (
 
 router = APIRouter()
 
+__GET_ENDPOINT = "/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}"
+__GET_IMAGE_ENDPOINT = (
+    "/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}/image/molecule"
+)
+
 
 def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETResponse:
 
@@ -33,28 +39,45 @@ def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETRespons
     # serializable we need to work with plain dicts of primitive types here.
     # noinspection PyTypeChecker
     return {
-        "qc_calc_id": qc_calc_id,
-        "qc_calc_status": qc_task_info["status"],
-        "qc_calc_type": qc_calc_type.decode(),
-        "qc_calc_result": None if not results else qc_task_info["result"],
-        "qc_calc_error": json.dumps(qc_task_info["error"]),
+        "id": qc_calc_id,
+        "self": settings.BEFLOW_API_V1_STR
+        + __GET_ENDPOINT.format(qc_calc_id=qc_calc_id),
+        "status": qc_task_info["status"],
+        "type": qc_calc_type.decode(),
+        "result": None if not results else qc_task_info["result"],
+        "error": json.dumps(qc_task_info["error"]),
+        "_links": {
+            "image": (
+                settings.BEFLOW_API_V1_STR
+                + __GET_IMAGE_ENDPOINT.format(qc_calc_id=qc_calc_id)
+            )
+        },
     }
 
 
-@router.get("/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "s")
+@router.get("/" + settings.BEFLOW_QC_COMPUTE_PREFIX)
 def get_qc_results(
     ids: Optional[List[str]] = Query(None), results: bool = True
-) -> List[QCGeneratorGETResponse]:
+) -> QCGeneratorGETPageResponse:
 
     if ids is None:
         raise NotImplementedError()
 
-    return [_retrieve_qc_result(qc_calc_id, results) for qc_calc_id in ids]
+    response = QCGeneratorGETPageResponse(
+        self="/" + settings.BEFLOW_QC_COMPUTE_PREFIX,
+        prev=None,
+        next=None,
+        contents=[_retrieve_qc_result(qc_calc_id, results) for qc_calc_id in ids],
+    )
+
+    return response
 
 
-@router.get("/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}")
+@router.get(__GET_ENDPOINT)
 def get_qc_result(qc_calc_id: str, results: bool = True) -> QCGeneratorGETResponse:
-    return _retrieve_qc_result(qc_calc_id, results)
+
+    response = _retrieve_qc_result(qc_calc_id, results)
+    return response
 
 
 @router.post("/" + settings.BEFLOW_QC_COMPUTE_PREFIX)
@@ -63,11 +86,12 @@ def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
     task_id = cached_compute_task(body.input_schema, worker.redis_connection)
 
     return QCGeneratorPOSTResponse(
-        qc_calc_id=task_id, qc_calc_type=body.input_schema.type
+        id=task_id,
+        self=settings.BEFLOW_API_V1_STR + __GET_ENDPOINT.format(qc_calc_id=task_id),
     )
 
 
-@router.get("/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}/image/molecule")
+@router.get(__GET_IMAGE_ENDPOINT)
 def get_qc_result_molecule_image(qc_calc_id: str):
 
     task_info = get_task_information(worker.celery_app, qc_calc_id)

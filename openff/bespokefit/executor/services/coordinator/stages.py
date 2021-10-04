@@ -9,7 +9,7 @@ from openff.fragmenter.fragment import FragmentationResult
 from openff.fragmenter.utils import get_map_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import Field, parse_raw_as
+from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
@@ -27,7 +27,7 @@ from openff.bespokefit.executor.services.optimizer.models import (
     OptimizerPOSTResponse,
 )
 from openff.bespokefit.executor.services.qcgenerator.models import (
-    QCGeneratorGETResponse,
+    QCGeneratorGETPageResponse,
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
 )
@@ -136,7 +136,7 @@ class FragmentationStage(_Stage):
 
         post_response = FragmenterPOSTResponse.parse_raw(contents)
 
-        self.id = post_response.fragmentation_id
+        self.id = post_response.id
 
     async def update(self):
 
@@ -163,10 +163,10 @@ class FragmentationStage(_Stage):
 
         get_response = FragmenterGETResponse.parse_raw(contents)
 
-        self.result = get_response.fragmentation_result
+        self.result = get_response.result
 
-        self.error = get_response.fragmentation_error
-        self.status = get_response.fragmentation_status
+        self.error = get_response.error
+        self.status = get_response.status
 
 
 class QCGenerationStage(_Stage):
@@ -236,7 +236,7 @@ class QCGenerationStage(_Stage):
                         return
 
                     response = QCGeneratorPOSTResponse.parse_raw(raw_response.text)
-                    qc_calc_ids[i].add(response.qc_calc_id)
+                    qc_calc_ids[i].add(response.id)
 
         self.ids = {i: sorted(ids) for i, ids in qc_calc_ids.items()}
 
@@ -253,7 +253,7 @@ class QCGenerationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}s?ids={id_query}"
+                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}?ids={id_query}"
             )
             contents = raw_response.text
 
@@ -264,14 +264,14 @@ class QCGenerationStage(_Stage):
 
                 return
 
-        get_responses = parse_raw_as(List[QCGeneratorGETResponse], contents)
+        get_responses = QCGeneratorGETPageResponse.parse_raw(contents).contents
 
-        statuses = {get_response.qc_calc_status for get_response in get_responses}
+        statuses = {get_response.status for get_response in get_responses}
 
         errors = [
-            json.loads(get_response.qc_calc_error)
+            json.loads(get_response.error)
             for get_response in get_responses
-            if get_response.qc_calc_error is not None
+            if get_response.error is not None
         ]
 
         self.error = json.dumps(errors)
@@ -288,8 +288,7 @@ class QCGenerationStage(_Stage):
             self.status = "success"
 
             self.results = {
-                get_response.qc_calc_id: get_response.qc_calc_result
-                for get_response in get_responses
+                get_response.id: get_response.result for get_response in get_responses
             }
 
 
@@ -508,7 +507,7 @@ class OptimizationStage(_Stage):
                 return
 
             response = OptimizerPOSTResponse.parse_raw(raw_response.text)
-            self.id = response.optimization_id
+            self.id = response.id
 
     async def update(self):
 
@@ -534,9 +533,9 @@ class OptimizationStage(_Stage):
 
         get_response = OptimizerGETResponse.parse_raw(contents)
 
-        self.result = get_response.optimization_result
-        self.error = get_response.optimization_error
-        self.status = get_response.optimization_status
+        self.result = get_response.result
+        self.error = get_response.error
+        self.status = get_response.status
 
 
 StageType = Union[FragmentationStage, QCGenerationStage, OptimizationStage]

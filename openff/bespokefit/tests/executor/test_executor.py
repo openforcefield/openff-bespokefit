@@ -29,7 +29,7 @@ def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
     )
     mock_response = CoordinatorGETResponse(
         id=mock_id,
-        href=mock_href,
+        self=mock_href,
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status=stage_status, error=None, results=None
@@ -150,7 +150,7 @@ def test_stop_not_started():
 
 def test_submit(bespoke_optimization_schema):
 
-    expected = CoordinatorPOSTResponse(id="mock-id", href="")
+    expected = CoordinatorPOSTResponse(id="mock-id", self="")
 
     with requests_mock.Mocker() as m:
 
@@ -186,7 +186,7 @@ def test_query_coordinator(status_code: int):
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
-        href="",
+        self="",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status="running", error=None, results=None
@@ -227,7 +227,7 @@ def test_wait_for_stage(status):
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
-        href="",
+        self="",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status="running", error=None, results=None
@@ -323,7 +323,7 @@ def test_wait_until_complete_final_error(monkeypatch):
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
-        href="",
+        self="",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status="running", error=None, results=None
