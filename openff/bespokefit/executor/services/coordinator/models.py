@@ -1,14 +1,18 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.stages import StageType
-from openff.bespokefit.executor.services.models import Link
+from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.utilities.pydantic import BaseModel
+
+
+class CoordinatorGETPageResponse(PaginatedCollection[Link]):
+    """"""
 
 
 class CoordinatorGETStageStatus(BaseModel):
@@ -44,11 +48,7 @@ class CoordinatorGETStageStatus(BaseModel):
         else:
             raise NotImplementedError()
 
-        base_endpoint = (
-            f"http://127.0.0.1:"
-            f"{settings.BEFLOW_GATEWAY_PORT}"
-            f"{settings.BEFLOW_API_V1_STR}/"
-        )
+        base_endpoint = f"{settings.BEFLOW_API_V1_STR}/"
 
         endpoints = {
             "fragmentation": f"{base_endpoint}{settings.BEFLOW_FRAGMENTER_PREFIX}/",
@@ -63,7 +63,7 @@ class CoordinatorGETStageStatus(BaseModel):
             results=None
             if stage_ids is None
             else [
-                Link(id=stage_id, href=f"{endpoints[stage.type]}{stage_id}")
+                Link(id=stage_id, self=f"{endpoints[stage.type]}{stage_id}")
                 for stage_id in stage_ids
             ],
         )
@@ -76,6 +76,10 @@ class CoordinatorGETResponse(Link):
     )
     results: Optional[BespokeOptimizationResults] = Field(
         None, description="The output of the bespoke optimization."
+    )
+
+    links: Dict[str, str] = Field(
+        {}, description="Links to resources associated with the model.", alias="_links"
     )
 
     @classmethod
@@ -94,9 +98,7 @@ class CoordinatorGETResponse(Link):
 
         return CoordinatorGETResponse(
             id=task.id,
-            href=(
-                f"http://127.0.0.1:"
-                f"{settings.BEFLOW_GATEWAY_PORT}"
+            self=(
                 f"{settings.BEFLOW_API_V1_STR}/"
                 f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
             ),

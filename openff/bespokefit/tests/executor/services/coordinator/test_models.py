@@ -58,9 +58,7 @@ def mock_task(
                 type="fragmentation",
                 status="success",
                 error=None,
-                results=[
-                    Link(id="123", href="http://127.0.0.1:8000/api/v1/fragmenter/123")
-                ],
+                results=[Link(id="123", self="/api/v1/fragmentations/123")],
             ),
         ),
         (
@@ -74,8 +72,8 @@ def mock_task(
                 status="errored",
                 error="mock-stage-error",
                 results=[
-                    Link(id="123", href="http://127.0.0.1:8000/api/v1/qc-calc/123"),
-                    Link(id="321", href="http://127.0.0.1:8000/api/v1/qc-calc/321"),
+                    Link(id="123", self="/api/v1/qc-calcs/123"),
+                    Link(id="321", self="/api/v1/qc-calcs/321"),
                 ],
             ),
         ),
@@ -102,7 +100,7 @@ def test_get_status_from_stage(stage, expected):
             mock_task(pending_stages, running_stage, completed_stages),
             CoordinatorGETResponse(
                 id="mock-task-id",
-                href="",
+                self="",
                 stages=[],
                 results=results,
             ),

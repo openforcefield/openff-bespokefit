@@ -17,17 +17,38 @@ from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
 
 router = APIRouter()
 
+__GET_ENDPOINT = "/" + settings.BEFLOW_FRAGMENTER_PREFIX + "/{fragmentation_id}"
+__GET_FRAGMENT_IMAGE_ENDPOINT = (
+    "/"
+    + settings.BEFLOW_FRAGMENTER_PREFIX
+    + "/{fragmentation_id}/fragment/{fragment_id}/image"
+)
 
-@router.get("/" + settings.BEFLOW_FRAGMENTER_PREFIX + "/{fragmentation_id}")
+
+@router.get(__GET_ENDPOINT)
 def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
 
     task_info = get_task_information(worker.celery_app, fragmentation_id)
+    task_result = task_info["result"]
 
     return FragmenterGETResponse(
-        fragmentation_id=fragmentation_id,
-        fragmentation_status=task_info["status"],
-        fragmentation_result=task_info["result"],
-        fragmentation_error=json.dumps(task_info["error"]),
+        id=fragmentation_id,
+        self=settings.BEFLOW_API_V1_STR
+        + __GET_ENDPOINT.format(fragmentation_id=fragmentation_id),
+        status=task_info["status"],
+        result=task_result,
+        error=json.dumps(task_info["error"]),
+        _links={
+            f"fragment-{i}-image": (
+                settings.BEFLOW_API_V1_STR
+                + __GET_FRAGMENT_IMAGE_ENDPOINT.format(
+                    fragmentation_id=fragmentation_id, fragment_id=i
+                )
+            )
+            for i, fragment in enumerate(
+                [] if task_result is None else task_result["fragments"]
+            )
+        },
     )
 
 
@@ -41,14 +62,14 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
         fragmenter_json=body.fragmenter.json(),
         target_bond_smarts=body.target_bond_smarts,
     )
-    return FragmenterPOSTResponse(fragmentation_id=task.id)
+    return FragmenterPOSTResponse(
+        id=task.id,
+        self=settings.BEFLOW_API_V1_STR
+        + __GET_ENDPOINT.format(fragmentation_id=task.id),
+    )
 
 
-@router.get(
-    "/"
-    + settings.BEFLOW_FRAGMENTER_PREFIX
-    + "/{fragmentation_id}/fragment/{fragment_id}/image"
-)
+@router.get(__GET_FRAGMENT_IMAGE_ENDPOINT)
 def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
 
     task_info = get_task_information(worker.celery_app, fragmentation_id)
