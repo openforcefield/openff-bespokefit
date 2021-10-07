@@ -131,11 +131,15 @@ def test_start_stop(tmpdir):
     assert executor._started is True
     assert executor._gateway_process.is_alive()
 
+    gateway_pid = executor._gateway_process.pid
+
     dir_found = os.path.isdir(os.path.join(tmpdir, "mock-exe-dir"))
 
     executor.stop()
     assert executor._started is False
-    assert not executor._gateway_process.is_alive()
+
+    with pytest.raises(OSError):
+        os.kill(gateway_pid, 0)
 
     assert dir_found
 
@@ -435,11 +439,15 @@ def test_enter_exit(tmpdir):
     with executor:
 
         assert executor._started is True
+
         assert executor._gateway_process.is_alive()
+        gateway_pid = executor._gateway_process.pid
 
         dir_found = os.path.isdir(os.path.join(tmpdir, "mock-exe-dir"))
 
     assert executor._started is False
-    assert not executor._gateway_process.is_alive()
+
+    with pytest.raises(OSError):
+        os.kill(gateway_pid, 0)
 
     assert dir_found

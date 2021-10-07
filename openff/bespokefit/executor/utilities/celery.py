@@ -61,11 +61,14 @@ def _spawn_worker(celery_app, concurrency: int = 1):
         loglevel="INFO",
         logfile=f"celery-{celery_app.main}.log",
         quiet=True,
+        hostname=celery_app.main,
     )
     worker.start()
 
 
-def spawn_worker(celery_app, concurrency: int = 1, asynchronous: bool = True):
+def spawn_worker(
+    celery_app, concurrency: int = 1, asynchronous: bool = True
+) -> Optional[multiprocessing.Process]:
 
     if concurrency < 1:
         return
@@ -76,6 +79,8 @@ def spawn_worker(celery_app, concurrency: int = 1, asynchronous: bool = True):
             target=_spawn_worker, args=(celery_app, concurrency), daemon=True
         )
         worker_process.start()
+
+        return worker_process
 
     else:
 
