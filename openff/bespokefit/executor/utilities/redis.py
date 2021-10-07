@@ -1,5 +1,6 @@
 import atexit
 import functools
+import os
 import shlex
 import shutil
 import subprocess
@@ -35,7 +36,8 @@ def launch_redis(
     stdout_file: Optional[Union[IO, int]] = None,
     directory: Optional[str] = None,
     persistent: bool = True,
-):
+    terminate_at_exit: bool = True,
+) -> subprocess.Popen:
 
     redis_server_path = shutil.which("redis-server")
 
@@ -69,9 +71,14 @@ def launch_redis(
         )
 
     redis_process = subprocess.Popen(
-        shlex.split(redis_command), stderr=stderr_file, stdout=stdout_file
+        shlex.split(redis_command),
+        stderr=stderr_file,
+        stdout=stdout_file,
+        preexec_fn=os.setpgrp,
     )
-    atexit.register(functools.partial(_cleanup_redis, redis_process))
+
+    if terminate_at_exit:
+        atexit.register(functools.partial(_cleanup_redis, redis_process))
 
     timeout = True
 

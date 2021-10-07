@@ -1,10 +1,12 @@
+import atexit
 import functools
 import importlib
 import logging
 import multiprocessing
 import os
+import subprocess
 import time
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import celery
 import requests
@@ -80,6 +82,33 @@ class BespokeExecutor:
         self._started = False
 
         self._gateway_process: Optional[multiprocessing.Process] = None
+        self._redis_process: Optional[subprocess.Popen] = None
+
+        self._worker_processes: List[multiprocessing.Process] = []
+
+    def _cleanup_processes(self):
+
+        for worker_process in self._worker_processes:
+
+            if not worker_process.is_alive():
+                continue
+
+            worker_process.terminate()
+            worker_process.join()
+
+        self._worker_processes = []
+
+        if self._gateway_process is not None and self._gateway_process.is_alive():
+
+            self._gateway_process.terminate()
+            self._gateway_process.join()
+            self._gateway_process = None
+
+        if self._redis_process is not None and self._redis_process.poll() is None:
+
+            self._redis_process.terminate()
+            self._redis_process.wait()
+            self._redis_process = None
 
     def _launch_redis(self):
         """Launches a redis server if an existing one cannot be found."""
@@ -88,7 +117,13 @@ class BespokeExecutor:
             host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
         ):
             redis_log_file = open("redis.log", "w")
-            launch_redis(settings.BEFLOW_REDIS_PORT, redis_log_file, redis_log_file)
+
+            self._redis_process = launch_redis(
+                settings.BEFLOW_REDIS_PORT,
+                redis_log_file,
+                redis_log_file,
+                terminate_at_exit=False,
+            )
 
     def _launch_workers(self):
         """Launches any service workers if requested."""
@@ -98,11 +133,18 @@ class BespokeExecutor:
             (settings.BEFLOW_QC_COMPUTE_WORKER, self._n_qc_compute_workers),
             (settings.BEFLOW_OPTIMIZER_WORKER, self._n_optimizer_workers),
         }:
+
+            if n_workers == 0:
+                continue
+
             worker_module = importlib.import_module(import_path)
             worker_app = getattr(worker_module, "celery_app")
 
             assert isinstance(worker_app, celery.Celery), "workers must be celery based"
-            spawn_worker(worker_app, concurrency=n_workers)
+
+            self._worker_processes.append(
+                spawn_worker(worker_app, concurrency=n_workers)
+            )
 
     def start(self, asynchronous=False):
         """Launch the executor, allowing it to receive and run bespoke optimizations.
@@ -118,6 +160,8 @@ class BespokeExecutor:
 
         if self._directory is not None and len(self._directory) > 0:
             os.makedirs(self._directory, exist_ok=True)
+
+        atexit.register(self._cleanup_processes)
 
         with temporary_cd(self._directory):
 
@@ -147,10 +191,9 @@ class BespokeExecutor:
             raise RuntimeError("The executor is not running.")
 
         self._started = False
+        self._cleanup_processes()
 
-        if self._gateway_process is not None and self._gateway_process.is_alive():
-            self._gateway_process.terminate()
-            self._gateway_process.join()
+        atexit.unregister(self._cleanup_processes)
 
     def submit(
         self, input_schema: BespokeOptimizationSchema
