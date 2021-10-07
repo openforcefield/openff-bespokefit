@@ -31,7 +31,7 @@ def launch_options(
         ),
         optgroup.group("Worker configuration"),
         optgroup.option(
-            "--n-fragmenter",
+            "--n-fragmenter-workers",
             "n_fragmenter_workers",
             type=click.INT,
             help="The number of fragmentation workers to spawn",
@@ -40,7 +40,7 @@ def launch_options(
             show_default=n_fragmenter_workers is not None,
         ),
         optgroup.option(
-            "--n-qc-compute",
+            "--n-qc-compute-workers",
             "n_qc_compute_workers",
             type=click.INT,
             help="The number of QC compute workers to spawn",
@@ -49,7 +49,7 @@ def launch_options(
             show_default=n_qc_compute_workers is not None,
         ),
         optgroup.option(
-            "--n-optimizer",
+            "--n-optimizer-workers",
             "n_optimizer_workers",
             type=click.INT,
             help="The number of optimizer workers to spawn",

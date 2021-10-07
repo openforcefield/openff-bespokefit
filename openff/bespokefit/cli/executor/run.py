@@ -59,6 +59,9 @@ def _run_cli(
             spec_file_name,
         )
 
+        if response is None:
+            return
+
         console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
         results = wait_until_complete(response.id)
