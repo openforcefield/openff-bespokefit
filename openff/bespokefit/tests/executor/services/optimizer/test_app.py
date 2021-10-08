@@ -7,22 +7,25 @@ from openff.bespokefit.executor.services.optimizer.models import (
     OptimizerPOSTBody,
     OptimizerPOSTResponse,
 )
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationStageSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
-def test_get_optimize(optimizer_client, redis_connection, monkeypatch):
-
-    mock_optimization_result = BespokeOptimizationResults(
-        provenance={}, status="running"
-    )
+def test_get_optimize(
+    bespoke_optimization_results, optimizer_client, redis_connection, monkeypatch
+):
 
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
-        lambda self: {"status": "SUCCESS", "result": mock_optimization_result.json()},
+        lambda self: {
+            "status": "SUCCESS",
+            "result": bespoke_optimization_results.json(),
+        },
     )
 
     request = optimizer_client.get("/optimizations/1")
@@ -35,8 +38,11 @@ def test_get_optimize(optimizer_client, redis_connection, monkeypatch):
     assert result.id == "1"
     assert result.self == "/api/v1/optimizations/1"
 
-    assert result.result.status == mock_optimization_result.status
-    assert result.result.provenance == mock_optimization_result.provenance
+    assert result.result.status == bespoke_optimization_results.status
+    assert (
+        result.result.stages[0].provenance
+        == bespoke_optimization_results.stages[0].provenance
+    )
 
 
 def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
@@ -46,11 +52,15 @@ def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
     input_schema = BespokeOptimizationSchema(
         smiles="CC",
         initial_force_field="openff-2.0.0.offxml",
-        parameters=[],
-        parameter_hyperparameters=[],
+        stages=[
+            OptimizationStageSchema(
+                parameters=[],
+                parameter_hyperparameters=[],
+                targets=[],
+                optimizer=ForceBalanceSchema(max_iterations=1),
+            )
+        ],
         fragmentation_engine=WBOFragmenter(),
-        targets=[],
-        optimizer=ForceBalanceSchema(max_iterations=1),
     )
 
     request = optimizer_client.post(

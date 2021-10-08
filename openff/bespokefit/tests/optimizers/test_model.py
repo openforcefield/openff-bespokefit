@@ -2,6 +2,7 @@
 Unit test ability to add and remove new optimizers as well as the various optimizer classes.
 """
 import pytest
+from openff.toolkit.typing.engines.smirnoff import ForceField
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.optimizers import BaseOptimizer, ForceBalanceOptimizer
@@ -79,7 +80,7 @@ def test_validate_schema_bad_optimizer(general_optimization_schema):
             return float
 
     with pytest.raises(OptimizerError, match="optimizer can only be used with"):
-        CustomOptimizer._validate_schema(general_optimization_schema)
+        CustomOptimizer._validate_schema(general_optimization_schema.stages[0])
 
 
 def test_validate_schema_bad_target(general_optimization_schema):
@@ -93,7 +94,7 @@ def test_validate_schema_bad_target(general_optimization_schema):
     with pytest.raises(
         TargetRegisterError, match="target type is not registered with the"
     ):
-        CustomOptimizer._validate_schema(general_optimization_schema)
+        CustomOptimizer._validate_schema(general_optimization_schema.stages[0])
 
 
 def test_prepare(general_optimization_schema, monkeypatch):
@@ -114,7 +115,11 @@ def test_prepare(general_optimization_schema, monkeypatch):
     monkeypatch.setattr(CustomOptimizer, "_validate_schema", on_validate)
     monkeypatch.setattr(CustomOptimizer, "_prepare", on_prepared)
 
-    CustomOptimizer.prepare(general_optimization_schema, "")
+    CustomOptimizer.prepare(
+        general_optimization_schema.stages[0],
+        ForceField(general_optimization_schema.initial_force_field),
+        "",
+    )
 
     assert validated
     assert prepared
@@ -138,7 +143,10 @@ def test_optimize(general_optimization_schema, monkeypatch):
     monkeypatch.setattr(CustomOptimizer, "_optimize", on_optimize)
     monkeypatch.setattr(CustomOptimizer, "prepare", on_prepared)
 
-    CustomOptimizer.optimize(general_optimization_schema)
+    CustomOptimizer.optimize(
+        general_optimization_schema.stages[0],
+        ForceField(general_optimization_schema.initial_force_field),
+    )
 
     assert optimized
     assert prepared

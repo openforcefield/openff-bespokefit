@@ -4,21 +4,15 @@ import os
 import subprocess
 from typing import Any, Dict
 
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities.provenance import get_ambertools_version
 
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory
-from openff.bespokefit.optimizers.model import BaseOptimizer, OptimizerResultsType
+from openff.bespokefit.optimizers.model import BaseOptimizer
 from openff.bespokefit.schema import Error
-from openff.bespokefit.schema.fitting import (
-    BaseOptimizationSchema,
-    BespokeOptimizationSchema,
-    OptimizationSchema,
-)
+from openff.bespokefit.schema.fitting import OptimizationStageSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.results import (
-    BespokeOptimizationResults,
-    OptimizationResults,
-)
+from openff.bespokefit.schema.results import OptimizationStageResults
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
     OptGeoTargetSchema,
@@ -86,19 +80,25 @@ class ForceBalanceOptimizer(BaseOptimizer):
         return ForceBalanceSchema
 
     @classmethod
-    def _prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+    def _prepare(
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
+        root_directory: str,
+    ):
         """The internal implementation of the main ``prepare`` method. The input
         ``schema`` is assumed to have been validated before being passed to this
         method.
         """
 
         _logger.info(f"making new fb folders in {root_directory}")
-        ForceBalanceInputFactory.generate(root_directory, schema)
+        ForceBalanceInputFactory.generate(root_directory, schema, initial_force_field)
 
     @classmethod
-    def _optimize(cls, schema: BaseOptimizationSchema) -> OptimizerResultsType:
+    def _optimize(
+        cls, schema: OptimizationStageSchema, initial_force_field: ForceField
+    ) -> OptimizationStageResults:
 
-        # execute forcebalanace to fit the molecule
         with open("log.txt", "w") as log:
 
             _logger.debug("Launching Forcebalance")
@@ -113,15 +113,13 @@ class ForceBalanceOptimizer(BaseOptimizer):
                 env=current_env,
             )
 
-            results = cls._collect_results("", schema=schema)
+            results = cls._collect_results("")
 
         _logger.debug("OPT finished in folder", os.getcwd())
         return results
 
     @classmethod
-    def _collect_results(
-        cls, root_directory: str, schema: BaseOptimizationSchema
-    ) -> OptimizerResultsType:
+    def _collect_results(cls, root_directory: str) -> OptimizationStageResults:
         """Collect the results of a ForceBalance optimization.
 
         Check the exit state of the optimization before attempting to update the final
@@ -131,49 +129,24 @@ class ForceBalanceOptimizer(BaseOptimizer):
         ----------
         root_directory
             The path to the root directory of the ForceBalance optimization.
-        schema
-            The workflow schema that should be updated with the results of the current
-            optimization.
 
         Returns
         -------
             The results of the optimization.
         """
 
-        # look for the result
         results_dictionary = cls._read_output(root_directory)
-
-        # TODO: Should the provenance dictionary contain also any task
-        #       provenance?
 
         force_field_editor = ForceFieldEditor(results_dictionary["forcefield"])
 
-        if isinstance(schema, BespokeOptimizationSchema):
-
-            results = BespokeOptimizationResults(
-                input_schema=schema,
-                provenance=cls.provenance(),
-                status=results_dictionary["status"],
-                error=results_dictionary["error"],
-                refit_force_field=force_field_editor.force_field.to_string(
-                    discard_cosmetic_attributes=True
-                ),
-            )
-
-        elif isinstance(schema, OptimizationSchema):
-
-            results = OptimizationResults(
-                input_schema=schema,
-                provenance=cls.provenance(),
-                status=results_dictionary["status"],
-                error=results_dictionary["error"],
-                refit_force_field=force_field_editor.force_field.to_string(
-                    discard_cosmetic_attributes=True
-                ),
-            )
-
-        else:
-            raise NotImplementedError()
+        results = OptimizationStageResults(
+            provenance=cls.provenance(),
+            status=results_dictionary["status"],
+            error=results_dictionary["error"],
+            refit_force_field=force_field_editor.force_field.to_string(
+                discard_cosmetic_attributes=True
+            ),
+        )
 
         return results
 

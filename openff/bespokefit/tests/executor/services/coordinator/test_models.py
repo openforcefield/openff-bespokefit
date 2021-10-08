@@ -14,7 +14,10 @@ from openff.bespokefit.executor.services.coordinator.stages import (
     StageType,
 )
 from openff.bespokefit.executor.services.models import Link
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationStageSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
 
@@ -30,9 +33,13 @@ def mock_task(
         input_schema=BespokeOptimizationSchema(
             smiles="C",
             initial_force_field="openff-1.0.0.offxml",
-            parameters=[],
-            parameter_hyperparameters=[],
-            optimizer=ForceBalanceSchema(),
+            stages=[
+                OptimizationStageSchema(
+                    parameters=[],
+                    parameter_hyperparameters=[],
+                    optimizer=ForceBalanceSchema(),
+                )
+            ],
         ),
         pending_stages=pending_stages,
         running_stage=running_stage,

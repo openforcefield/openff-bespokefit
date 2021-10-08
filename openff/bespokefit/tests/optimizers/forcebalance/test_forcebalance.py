@@ -8,15 +8,13 @@ import subprocess
 
 import numpy as np
 import pytest
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
-from openff.bespokefit.schema.results import (
-    BespokeOptimizationResults,
-    OptimizationResults,
-)
+from openff.bespokefit.schema.results import OptimizationStageResults
 
 
 @pytest.fixture()
@@ -123,14 +121,11 @@ def test_forcebalance_read_output(output):
 
 
 @pytest.mark.parametrize(
-    "input_schema_fixture, expected_type",
-    [
-        ("bespoke_optimization_schema", BespokeOptimizationResults),
-        ("general_optimization_schema", OptimizationResults),
-    ],
+    "input_schema_fixture",
+    ["bespoke_optimization_schema", "general_optimization_schema"],
 )
 def test_forcebalance_collect_general_results(
-    input_schema_fixture, expected_type, forcebalance_results_directory, request
+    input_schema_fixture, forcebalance_results_directory, request
 ):
     """Test trying to collect results that have been successful and updated the
     parameters.
@@ -138,24 +133,36 @@ def test_forcebalance_collect_general_results(
 
     input_schema: BaseOptimizationSchema = request.getfixturevalue(input_schema_fixture)
 
-    results = ForceBalanceOptimizer._collect_results(
-        forcebalance_results_directory, schema=input_schema
-    )
+    results = ForceBalanceOptimizer._collect_results(forcebalance_results_directory)
 
-    assert isinstance(results, expected_type)
+    assert isinstance(results, OptimizationStageResults)
 
     initial_values = input_schema.initial_parameter_values
-    refit_values = results.refit_parameter_values
+    refit_force_field = ForceField(results.refit_force_field)
+
+    refit_values = {
+        parameter: {
+            attribute: getattr(
+                refit_force_field[parameter.type].parameters[parameter.smirks],
+                attribute,
+            )
+            for attribute in parameter.attributes
+        }
+        for stage in input_schema.stages
+        for parameter in stage.parameters
+    }
 
     for parameter_smirks in initial_values:
 
-        initial_value = initial_values[parameter_smirks]
-        refit_value = refit_values[parameter_smirks]
+        for attribute in initial_values[parameter_smirks]:
 
-        refit_value = refit_value.value_in_unit(initial_value.unit)
-        initial_value = initial_value.value_in_unit(initial_value.unit)
+            initial_value = initial_values[parameter_smirks][attribute]
+            refit_value = refit_values[parameter_smirks][attribute]
 
-        assert not np.isclose(initial_value, refit_value)
+            refit_value = refit_value.value_in_unit(initial_value.unit)
+            initial_value = initial_value.value_in_unit(initial_value.unit)
+
+            assert not np.isclose(initial_value, refit_value)
 
 
 def test_forcebalance_optimize(
@@ -166,6 +173,9 @@ def test_forcebalance_optimize(
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
 
     with temporary_cd(str(forcebalance_results_directory)):
-        results = ForceBalanceOptimizer._optimize(general_optimization_schema)
+        results = ForceBalanceOptimizer._optimize(
+            general_optimization_schema.stages[0],
+            ForceField(general_optimization_schema.initial_force_field),
+        )
 
     assert results.status == "success"

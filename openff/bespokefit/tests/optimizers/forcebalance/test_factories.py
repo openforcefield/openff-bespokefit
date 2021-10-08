@@ -6,6 +6,7 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import temporary_cd
 from qcelemental.models.procedures import TorsionDriveResult
 
@@ -255,4 +256,31 @@ def test_generate_vibration_target(result_fixture, request):
 
 def test_force_balance_factory(tmpdir, general_optimization_schema: OptimizationSchema):
 
-    ForceBalanceInputFactory.generate(tmpdir, general_optimization_schema)
+    ForceBalanceInputFactory.generate(
+        tmpdir,
+        general_optimization_schema.stages[0],
+        ForceField(general_optimization_schema.initial_force_field),
+    )
+
+
+def test_get_fitting_force_field(general_optimization_schema, tmpdir):
+
+    with temporary_cd(str(tmpdir)):
+
+        ForceBalanceInputFactory._generate_force_field_directory(
+            general_optimization_schema.stages[0],
+            ForceField(general_optimization_schema.initial_force_field),
+        )
+
+        expected_path = os.path.join("forcefield", "force-field.offxml")
+        assert os.path.isfile(expected_path)
+
+        force_field = ForceField(expected_path, allow_cosmetic_attributes=True)
+
+    target_parameter = general_optimization_schema.stages[0].parameters[0]
+
+    parameter_handler = force_field.get_parameter_handler(target_parameter.type)
+    parameter = parameter_handler.parameters[target_parameter.smirks]
+
+    assert parameter.attribute_is_cosmetic("parameterize")
+    assert parameter._parameterize == "k1"
