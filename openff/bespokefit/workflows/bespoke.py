@@ -14,7 +14,7 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.qcsubmit.serializers import serialize
+from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
@@ -151,7 +151,7 @@ class BespokeWorkflowFactory(ClassBase):
         description="The default specification (e.g. method, basis) to use when "
         "performing any new QC calculations. If multiple specs are provided, each spec "
         "will be considered in order until one is found that i) is available based on "
-        "the installed dependencies, and ii) is compatable with the molecule of "
+        "the installed dependencies, and ii) is compatible with the molecule of "
         "interest.",
     )
 
@@ -229,6 +229,13 @@ class BespokeWorkflowFactory(ClassBase):
         """
 
         serialize(serializable=self.dict(), file_name=file_name)
+
+    @classmethod
+    def from_file(cls, file_name: str):
+        """
+        Build the factory from a model serialised to file.
+        """
+        return cls.parse_obj(deserialize(file_name=file_name))
 
     @classmethod
     def _deduplicated_list(

@@ -13,9 +13,9 @@ from openff.bespokefit.cli.utilities import create_command, print_header
 # making changes here.
 def launch_options(
     directory: str = "bespoke-executor",
-    n_fragmenter_workers: Optional[int] = None,
-    n_qc_compute_workers: Optional[int] = None,
-    n_optimizer_workers: Optional[int] = None,
+    n_fragmenter_workers: Optional[int] = 1,
+    n_qc_compute_workers: Optional[int] = 1,
+    n_optimizer_workers: Optional[int] = 1,
     launch_redis_if_unavailable: Optional[bool] = True,
 ):
 
