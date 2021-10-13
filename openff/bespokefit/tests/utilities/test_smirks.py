@@ -344,5 +344,8 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
 
         if expand_torsions:
             assert len(parameter.k) == 4
+            assert parameter.periodicity == [1, 2, 3, 4]
         else:
             assert len(parameter.k) < 4
+        if bespoke_smirks:
+            assert "-BF" in parameter.id

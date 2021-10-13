@@ -122,12 +122,6 @@ class BespokeWorkflowFactory(ClassBase):
         "By default bespoke torsion parameters (if requested) will be constructed for "
         "all non-terminal 'rotatable bonds'",
     )
-    target_smirks: List[SMIRKSType] = Field(
-        [
-            SMIRKSType.ProperTorsions,
-        ],
-        description="The list of parameters the new smirks patterns should be made for.",
-    )
 
     expand_torsion_terms: bool = Field(
         True,
@@ -209,13 +203,15 @@ class BespokeWorkflowFactory(ClassBase):
                 "There are no parameter settings specified which will mean that the "
                 "optimiser has no parameters to optimize."
             )
-        elif len(self.target_smirks) == 0:
-            raise TargetNotSetError(
-                "No forcefield groups have been supplied, which means no smirks were "
-                "selected to be optimized."
-            )
         else:
             return
+
+    @property
+    def target_smirks(self) -> List[SMIRKSType]:
+        """Returns a list of the target smirks types based on the selected hyper parameters."""
+        return list(
+            {SMIRKSType(parameter.type) for parameter in self.parameter_hyperparameters}
+        )
 
     def export_factory(self, file_name: str) -> None:
         """

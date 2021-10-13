@@ -60,24 +60,39 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
         description="The fittings targets to simultaneously optimize against.",
     )
 
+    keep_files: bool = Field(
+        True,
+        description="If the files generated during a parameter optimization should be kept or not.",
+    )
+
     @property
     def n_targets(self) -> int:
         """Returns the number of targets to be fit."""
         return len(self.targets)
 
     @property
-    def initial_parameter_values(self) -> Dict[BaseSMIRKSParameter, unit.Quantity]:
+    def initial_parameter_values(
+        self,
+    ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
         """A list of the refit force field parameters."""
 
         initial_force_field = ForceField(self.initial_force_field)
 
         return {
-            parameter: getattr(
-                initial_force_field[parameter.type].parameters[parameter.smirks],
-                attribute,
+            parameter: dict(
+                (
+                    attribute,
+                    getattr(
+                        initial_force_field[parameter.type].parameters[
+                            parameter.smirks
+                        ],
+                        attribute,
+                    ),
+                )
+                for parameter in self.parameters
+                for attribute in parameter.attributes
             )
             for parameter in self.parameters
-            for attribute in parameter.attributes
         }
 
     def get_fitting_force_field(self) -> ForceField:

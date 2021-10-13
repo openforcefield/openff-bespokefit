@@ -44,7 +44,9 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     # )
 
     @property
-    def initial_parameter_values(self) -> Dict[BaseSMIRKSParameter, unit.Quantity]:
+    def initial_parameter_values(
+        self,
+    ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
         """A list of the refit force field parameters."""
 
         return self.input_schema.initial_parameter_values
@@ -52,7 +54,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     @property
     def refit_parameter_values(
         self,
-    ) -> Optional[Dict[BaseSMIRKSParameter, unit.Quantity]]:
+    ) -> Optional[Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]]:
         """A list of the refit force field parameters."""
 
         if self.refit_force_field is None:
@@ -61,12 +63,18 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         refit_force_field = ForceField(self.refit_force_field)
 
         return {
-            parameter: getattr(
-                refit_force_field[parameter.type].parameters[parameter.smirks],
-                attribute,
+            parameter: dict(
+                (
+                    attribute,
+                    getattr(
+                        refit_force_field[parameter.type].parameters[parameter.smirks],
+                        attribute,
+                    ),
+                )
+                for parameter in self.input_schema.parameters
+                for attribute in parameter.attributes
             )
             for parameter in self.input_schema.parameters
-            for attribute in parameter.attributes
         }
 
 

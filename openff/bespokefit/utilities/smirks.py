@@ -256,15 +256,29 @@ class SMIRKSGenerator(ClassBase):
                 if not isinstance(parameter, ProperTorsionHandler.ProperTorsionType):
                     continue
 
-                for i in range(len(parameter.k), 4):
+                # parameters have been split so set all to 1.0 as idivf may have changed
+                parameter.idivf = [1.0] * 4
+                default_k = [0 * unit.kilocalories_per_mole] * 4
+                default_phase = [
+                    0 * unit.degree,
+                    180 * unit.degree,
+                    0 * unit.degree,
+                    180 * unit.degree,
+                ]
+                default_p = [1, 2, 3, 4]
 
-                    parameter.k.append(0.0 * unit.kilocalories_per_mole)
-                    parameter.phase.append(parameter.phase[-1])
-                    parameter.periodicity.append(parameter.periodicity[-1])
-                    parameter.idivf.append(parameter.idivf[-1])
+                # update the existing k values for the correct phase and p
+                for i, p in enumerate(parameter.periodicity):
+                    default_k[p - 1] = parameter.k[i]
 
-                    if parameter.k_bondorder is not None:
-                        parameter.k_bondorder.append(parameter.k_bondorder[i - 1])
+                # update with new parameters
+                parameter.k = default_k
+                parameter.phase = default_phase
+                parameter.periodicity = default_p
+
+                # TODO make sure we do not fit interpolated parameters
+                # if parameter.k_bondorder is not None:
+                #     parameter.k_bondorder.append(parameter.k_bondorder[i - 1])
 
         return new_parameters
 

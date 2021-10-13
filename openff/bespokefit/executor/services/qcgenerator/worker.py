@@ -2,7 +2,7 @@ from typing import List
 
 import qcengine
 import redis
-from openff.toolkit.topology import Molecule
+from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import DriverEnum
 from qcelemental.models.procedures import (
@@ -28,6 +28,17 @@ redis_connection = redis.Redis(
 celery_app = configure_celery_app("qcgenerator", redis_connection)
 
 
+def _select_atom(atoms: List[Atom]) -> int:
+    """
+    For a list of atoms chose the heaviest atom.
+    """
+    candidate = atoms[0]
+    for atom in atoms:
+        if atom.atomic_number > candidate.atomic_number:
+            candidate = atom
+    return candidate.molecule_atom_index
+
+
 @celery_app.task(acks_late=True)
 def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     """Runs a torsion drive using QCEngine."""
@@ -46,24 +57,31 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     index_2 = map_to_atom_index[task.central_bond[0]]
     index_3 = map_to_atom_index[task.central_bond[1]]
 
-    index_1 = [
-        atom.molecule_atom_index
+    index_1_atoms = [
+        atom
         for atom in molecule.atoms[index_2].bonded_atoms
         if atom.molecule_atom_index != index_3
-    ][0]
-    index_4 = [
-        atom.molecule_atom_index
+    ]
+    index_4_atoms = [
+        atom
         for atom in molecule.atoms[index_3].bonded_atoms
         if atom.molecule_atom_index != index_2
-    ][0]
+    ]
 
     del molecule.properties["atom_map"]
 
     input_schema = TorsionDriveInput(
         keywords=TDKeywords(
-            dihedrals=[(index_1, index_2, index_3, index_4)],
+            dihedrals=[
+                (
+                    _select_atom(index_1_atoms),
+                    index_2,
+                    index_3,
+                    _select_atom(index_4_atoms),
+                )
+            ],
             grid_spacing=[task.grid_spacing],
-            dihedral_ranges=[task.scan_range],
+            dihedral_ranges=[task.scan_range] if task.scan_range is not None else None,
         ),
         extras={
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -75,10 +93,9 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
             model=task.model, driver=DriverEnum.gradient
         ),
         optimization_spec=OptimizationSpecification(
-            procedure=task.optimization_spec.procedure,
+            procedure="geometric",
             keywords={
-                "coordsys": "dlc",
-                "maxiter": task.optimization_spec.max_iterations,
+                **task.optimization_spec.dict(exclude={"program", "constraints"}),
                 "program": task.program,
             },
         ),
@@ -104,6 +121,8 @@ def compute_optimization(
     task_json: str,
 ) -> List[OptimizationResult]:
     """Runs a set of geometry optimizations using QCEngine."""
+    # TODO: should we only return the lowest energy optimization?
+    # or the first optimisation to work?
 
     task = OptimizationTask.parse_raw(task_json)
 
@@ -113,8 +132,7 @@ def compute_optimization(
     input_schemas = [
         OptimizationInput(
             keywords={
-                "coordsys": "dlc",
-                "maxiter": task.optimization_spec.max_iterations,
+                **task.optimization_spec.dict(exclude={"program", "constraints"}),
                 "program": task.program,
             },
             extras={
@@ -135,7 +153,7 @@ def compute_optimization(
     for input_schema in input_schemas:
 
         return_value = qcengine.compute_procedure(
-            input_schema, task.optimization_spec.procedure, raise_error=True
+            input_schema, task.optimization_spec.program, raise_error=True
         )
 
         if isinstance(return_value, OptimizationResult):

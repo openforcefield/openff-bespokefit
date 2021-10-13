@@ -148,14 +148,17 @@ def test_forcebalance_collect_general_results(
     refit_values = results.refit_parameter_values
 
     for parameter_smirks in initial_values:
+        initial_parameters = initial_values[parameter_smirks]
+        refit_parameters = refit_values[parameter_smirks]
 
-        initial_value = initial_values[parameter_smirks]
-        refit_value = refit_values[parameter_smirks]
+        for attribute in initial_parameters:
+            initial_parameter = initial_parameters[attribute]
+            refit_parameter = refit_parameters[attribute]
 
-        refit_value = refit_value.value_in_unit(initial_value.unit)
-        initial_value = initial_value.value_in_unit(initial_value.unit)
+            refit_value = refit_parameter.value_in_unit(initial_parameter.unit)
+            initial_value = initial_parameter.value_in_unit(initial_parameter.unit)
 
-        assert not np.isclose(initial_value, refit_value)
+            assert not np.isclose(initial_value, refit_value)
 
 
 def test_forcebalance_optimize(
