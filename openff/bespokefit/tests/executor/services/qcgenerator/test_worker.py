@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
@@ -16,8 +17,13 @@ def test_compute_torsion_drive():
         central_bond=(1, 2),
         grid_spacing=180,
         scan_range=(-180, 180),
-        program="rdkit",
-        model=Model(method="uff", basis=None),
+        qc_spec=QCSpec(
+            method="uff",
+            basis=None,
+            program="rdkit",
+            spec_name="rdkit_uff",
+            spec_description="testing",
+        ),
     )
 
     result_json = worker.compute_torsion_drive(task.json())
@@ -47,8 +53,13 @@ def test_compute_optimization():
     task = OptimizationTask(
         smiles="CCCCC",
         n_conformers=2,
-        program="rdkit",
-        model=Model(method="uff", basis=None),
+        qc_spec=QCSpec(
+            method="uff",
+            basis=None,
+            program="rdkit",
+            spec_name="rdkit_uff",
+            spec_description="testing",
+        ),
     )
 
     result_json = worker.compute_optimization(task.json())
@@ -71,34 +82,3 @@ def test_compute_optimization():
         # Make sure a molecule can be created from CMILES
         final_molecule = Molecule.from_mapped_smiles(cmiles)
         assert Molecule.are_isomorphic(final_molecule, Molecule.from_smiles("CCCCC"))
-
-
-@pytest.mark.parametrize(
-    "compute_function, task",
-    [
-        (
-            worker.compute_torsion_drive,
-            Torsion1DTask(
-                smiles="[CH2:1]=[CH2:2]",
-                central_bond=(1, 2),
-                grid_spacing=180,
-                scan_range=(-180, 180),
-                program="non-existent-program",
-                model=Model(method="uff", basis=None),
-            ),
-        ),
-        (
-            worker.compute_optimization,
-            OptimizationTask(
-                smiles="CCCCC",
-                n_conformers=1,
-                program="non-existent-program",
-                model=Model(method="uff", basis=None),
-            ),
-        ),
-    ],
-)
-def test_compute_failure(compute_function, task, celery_worker):
-
-    with pytest.raises(ValueError, match="non-existent-program"):
-        compute_function(task.json())

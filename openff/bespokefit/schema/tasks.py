@@ -1,9 +1,9 @@
 import abc
 from typing import Optional, Tuple
 
+from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.procedures import GeometricProcedure
 from pydantic import Field, conint
-from qcelemental.models.common_models import Model
 from typing_extensions import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
@@ -13,8 +13,7 @@ class QCGenerationTask(BaseModel, abc.ABC):
 
     type: Literal["base-task"]
 
-    program: str = Field(..., description="The program to use to evaluate the model.")
-    model: Model = Field(..., description=str(Model.__doc__))
+    qc_spec: QCSpec = Field(..., description="The qc specification for the task.")
 
 
 class HessianTaskSpec(QCGenerationTask):
@@ -63,7 +62,7 @@ class Torsion1DTaskSpec(QCGenerationTask):
     scan_range: Optional[Tuple[int, int]] = Field(
         None, description="The range of grid angles to scan."
     )
-    # update to use the default torsiondrive settings
+
     optimization_spec: GeometricProcedure = Field(
         GeometricProcedure(enforce=0.1, reset=True, qccnv=True, epsilon=0.0),
         description="The specification for how to optimize the structure at each angle "

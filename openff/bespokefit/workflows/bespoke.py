@@ -563,12 +563,7 @@ class BespokeWorkflowFactory(ClassBase):
                 continue
 
             target_schema.reference_data = BespokeQCData(
-                spec=task_type_to_spec[task_type](
-                    model=Model(
-                        method=default_qc_spec.method, basis=default_qc_spec.basis
-                    ),
-                    program=default_qc_spec.program,
-                )
+                spec=task_type_to_spec[task_type](qc_spec=default_qc_spec)
             )
 
         schema = BespokeOptimizationSchema(

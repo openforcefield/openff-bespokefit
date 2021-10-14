@@ -277,8 +277,10 @@ class SMIRKSGenerator(ClassBase):
                 parameter.periodicity = default_p
 
                 # TODO make sure we do not fit interpolated parameters
-                # if parameter.k_bondorder is not None:
-                #     parameter.k_bondorder.append(parameter.k_bondorder[i - 1])
+                if parameter.k_bondorder is not None:
+                    raise NotImplementedError(
+                        "Bespokefit can not fit interpolated parameters!"
+                    )
 
         return new_parameters
 

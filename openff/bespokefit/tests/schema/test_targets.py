@@ -1,6 +1,6 @@
 import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from pydantic import ValidationError
-from qcelemental.models.common_models import Model
 
 from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
@@ -16,7 +16,13 @@ def test_check_reference_data(qc_torsion_drive_results):
     TorsionProfileTargetSchema(
         reference_data=BespokeQCData(
             spec=Torsion1DTaskSpec(
-                model=Model(method="uff", basis=None), program="rdkit"
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit-uff",
+                    spec_description="testing",
+                )
             )
         )
     )
@@ -27,7 +33,13 @@ def test_check_reference_data(qc_torsion_drive_results):
         TorsionProfileTargetSchema(
             reference_data=BespokeQCData(
                 spec=HessianTaskSpec(
-                    model=Model(method="uff", basis=None), program="rdkit"
+                    qc_spec=QCSpec(
+                        method="uff",
+                        basis=None,
+                        program="rdkit",
+                        spec_name="rdkit-uff",
+                        spec_description="testing",
+                    )
                 )
             )
         )

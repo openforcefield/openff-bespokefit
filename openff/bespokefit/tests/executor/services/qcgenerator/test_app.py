@@ -1,6 +1,7 @@
 import numpy
 import pytest
 from celery.result import AsyncResult
+from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from qcelemental.models import AtomicResult, AtomicResultProperties, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
@@ -147,8 +148,13 @@ def test_get_qc_result(
             Torsion1DTask(
                 smiles="[CH2:1][CH2:2]",
                 central_bond=(1, 2),
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_torsion_drive",
         ),
@@ -156,16 +162,26 @@ def test_get_qc_result(
             OptimizationTask(
                 smiles="[CH2:1][CH2:2]",
                 n_conformers=1,
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_optimization",
         ),
         (
             HessianTask(
                 smiles="[CH2:1][CH2:2]",
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_hessian",
         ),

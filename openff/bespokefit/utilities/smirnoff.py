@@ -191,7 +191,8 @@ class ForceFieldEditor:
                 initial_parameter = copy.deepcopy(parameters[match])
                 initial_parameter.smirks = smirks_pattern
                 # mark the parameter as being bespokefit
-                initial_parameter.id += "-BF"
+                if not initial_parameter.id.endswith("-BF"):
+                    initial_parameter.id += "-BF"
 
                 initial_parameters.append(initial_parameter)
 

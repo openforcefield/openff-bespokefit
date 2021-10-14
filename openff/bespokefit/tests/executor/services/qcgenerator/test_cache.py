@@ -1,4 +1,5 @@
 import pytest
+from openff.qcsubmit.common_structures import QCSpec
 from qcelemental.models.common_models import Model
 
 from openff.bespokefit.executor.services.qcgenerator import worker
@@ -15,8 +16,13 @@ def test_canonicalize_torsion_task():
     original_task = Torsion1DTask(
         smiles="[H:1][C:2]([H:3])([H:4])[O:5][H:6]",
         central_bond=(2, 5),
-        program="rdkit",
-        model=Model(method="uff", basis=None),
+        qc_spec=QCSpec(
+            method="uff",
+            basis=None,
+            program="rdkit",
+            spec_name="rdkit_uff",
+            spec_description="testing",
+        ),
     )
     canonical_task = _canonicalize_task(original_task)
 
@@ -31,8 +37,13 @@ def test_canonicalize_torsion_task():
             Torsion1DTask(
                 smiles="[CH2:1][CH2:2]",
                 central_bond=(1, 2),
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_torsion_drive",
         ),
@@ -40,16 +51,26 @@ def test_canonicalize_torsion_task():
             OptimizationTask(
                 smiles="[CH2:1][CH2:2]",
                 n_conformers=1,
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_optimization",
         ),
         (
             HessianTask(
                 smiles="[CH2:1][CH2:2]",
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                qc_spec=QCSpec(
+                    method="uff",
+                    basis=None,
+                    program="rdkit",
+                    spec_name="rdkit_uff",
+                    spec_description="testing",
+                ),
             ),
             "compute_hessian",
         ),
