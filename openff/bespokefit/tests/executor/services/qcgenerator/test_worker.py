@@ -1,7 +1,6 @@
 import json
 
 import pytest
-from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
@@ -17,13 +16,8 @@ def test_compute_torsion_drive():
         central_bond=(1, 2),
         grid_spacing=180,
         scan_range=(-180, 180),
-        qc_spec=QCSpec(
-            method="uff",
-            basis=None,
-            program="rdkit",
-            spec_name="rdkit_uff",
-            spec_description="testing",
-        ),
+        program="rdkit",
+        model=Model(method="uff", basis=None),
     )
 
     result_json = worker.compute_torsion_drive(task.json())
@@ -53,13 +47,8 @@ def test_compute_optimization():
     task = OptimizationTask(
         smiles="CCCCC",
         n_conformers=2,
-        qc_spec=QCSpec(
-            method="uff",
-            basis=None,
-            program="rdkit",
-            spec_name="rdkit_uff",
-            spec_description="testing",
-        ),
+        program="rdkit",
+        model=Model(method="uff", basis=None),
     )
 
     result_json = worker.compute_optimization(task.json())

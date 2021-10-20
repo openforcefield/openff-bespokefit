@@ -27,7 +27,6 @@ from openff.toolkit.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pydantic import Field, validator
-from qcelemental.models.common_models import Model
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.exceptions import (
@@ -563,7 +562,9 @@ class BespokeWorkflowFactory(ClassBase):
                 continue
 
             target_schema.reference_data = BespokeQCData(
-                spec=task_type_to_spec[task_type](qc_spec=default_qc_spec)
+                spec=task_type_to_spec[task_type](
+                    program=default_qc_spec.program, model=default_qc_spec.qc_model
+                )
             )
 
         schema = BespokeOptimizationSchema(

@@ -4,7 +4,7 @@ import qcengine
 import redis
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicResult
-from qcelemental.models.common_models import DriverEnum, Model
+from qcelemental.models.common_models import DriverEnum
 from qcelemental.models.procedures import (
     OptimizationInput,
     OptimizationResult,
@@ -90,14 +90,14 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         },
         initial_molecule=molecule.to_qcschema(),
         input_specification=QCInputSpecification(
-            model=Model(method=task.qc_spec.method, basis=task.qc_spec.basis),
+            model=task.model,
             driver=DriverEnum.gradient,
         ),
         optimization_spec=OptimizationSpecification(
             procedure=task.optimization_spec.program,
             keywords={
                 **task.optimization_spec.dict(exclude={"program", "constraints"}),
-                "program": task.qc_spec.program,
+                "program": task.program,
             },
         ),
     )
@@ -134,7 +134,7 @@ def compute_optimization(
         OptimizationInput(
             keywords={
                 **task.optimization_spec.dict(exclude={"program", "constraints"}),
-                "program": task.qc_spec.program,
+                "program": task.program,
             },
             extras={
                 "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -142,7 +142,7 @@ def compute_optimization(
                 )
             },
             input_specification=QCInputSpecification(
-                model=Model(method=task.qc_spec.method, basis=task.qc_spec.basis),
+                model=task.model,
                 driver=DriverEnum.gradient,
             ),
             initial_molecule=molecule.to_qcschema(conformer=i),

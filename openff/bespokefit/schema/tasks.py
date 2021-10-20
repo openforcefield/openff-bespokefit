@@ -1,9 +1,9 @@
 import abc
 from typing import Optional, Tuple
 
-from openff.qcsubmit.common_structures import QCSpec
 from openff.qcsubmit.procedures import GeometricProcedure
 from pydantic import Field, conint
+from qcelemental.models.common_models import Model
 from typing_extensions import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
@@ -13,7 +13,8 @@ class QCGenerationTask(BaseModel, abc.ABC):
 
     type: Literal["base-task"]
 
-    qc_spec: QCSpec = Field(..., description="The qc specification for the task.")
+    program: str = Field(..., description="The program to use to evaluate the model.")
+    model: Model = Field(..., description=str(Model.__doc__))
 
 
 class HessianTaskSpec(QCGenerationTask):

@@ -1,7 +1,6 @@
 import numpy
 import pytest
 from celery.result import AsyncResult
-from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from qcelemental.models import AtomicResult, AtomicResultProperties, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
@@ -35,7 +34,7 @@ def mock_atomic_result() -> AtomicResult:
     return AtomicResult(
         molecule=molecule.to_qcschema(),
         driver=DriverEnum.hessian,
-        model=Model(method="rdkit", basis=None),
+        model=Model(method="uff", basis=None),
         return_result=5.2,
         success=True,
         provenance=Provenance(creator="pytest"),
@@ -52,7 +51,7 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
     return TorsionDriveResult(
         keywords=TDKeywords(dihedrals=[(0, 1, 2, 3)], grid_spacing=[15]),
         input_specification=QCInputSpecification(
-            model=Model(method="rdkit", basis=None), driver=DriverEnum.gradient
+            model=Model(method="uff", basis=None), driver=DriverEnum.gradient
         ),
         initial_molecule=molecule.to_qcschema(),
         optimization_spec=OptimizationSpecification(procedure="geometric"),
@@ -148,13 +147,8 @@ def test_get_qc_result(
             Torsion1DTask(
                 smiles="[CH2:1][CH2:2]",
                 central_bond=(1, 2),
-                qc_spec=QCSpec(
-                    method="uff",
-                    basis=None,
-                    program="rdkit",
-                    spec_name="rdkit_uff",
-                    spec_description="testing",
-                ),
+                program="rdkit",
+                model=Model(method="uff", basis=None),
             ),
             "compute_torsion_drive",
         ),
@@ -162,26 +156,16 @@ def test_get_qc_result(
             OptimizationTask(
                 smiles="[CH2:1][CH2:2]",
                 n_conformers=1,
-                qc_spec=QCSpec(
-                    method="uff",
-                    basis=None,
-                    program="rdkit",
-                    spec_name="rdkit_uff",
-                    spec_description="testing",
-                ),
+                program="rdkit",
+                model=Model(method="uff", basis=None),
             ),
             "compute_optimization",
         ),
         (
             HessianTask(
                 smiles="[CH2:1][CH2:2]",
-                qc_spec=QCSpec(
-                    method="uff",
-                    basis=None,
-                    program="rdkit",
-                    spec_name="rdkit_uff",
-                    spec_description="testing",
-                ),
+                program="rdkit",
+                model=Model(method="uff", basis=None),
             ),
             "compute_hessian",
         ),

@@ -71,7 +71,6 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
                         attribute,
                     ),
                 )
-                for parameter in self.input_schema.parameters
                 for attribute in parameter.attributes
             )
             for parameter in self.input_schema.parameters
