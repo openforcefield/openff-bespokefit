@@ -1,6 +1,5 @@
 import json
 
-import pytest
 from openff.toolkit.topology import Molecule
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult

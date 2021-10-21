@@ -35,3 +35,4 @@ class Settings(BaseSettings):
     BEFLOW_OPTIMIZER_PREFIX = "optimizations"
     BEFLOW_OPTIMIZER_ROUTER = "openff.bespokefit.executor.services.optimizer.app:router"
     BEFLOW_OPTIMIZER_WORKER = "openff.bespokefit.executor.services.optimizer.worker"
+    BEFLOW_KEEP_FILES = False

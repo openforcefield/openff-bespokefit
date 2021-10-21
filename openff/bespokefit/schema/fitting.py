@@ -60,11 +60,6 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
         description="The fittings targets to simultaneously optimize against.",
     )
 
-    keep_files: bool = Field(
-        True,
-        description="If the files generated during a parameter optimization should be kept or not.",
-    )
-
     @property
     def n_targets(self) -> int:
         """Returns the number of targets to be fit."""

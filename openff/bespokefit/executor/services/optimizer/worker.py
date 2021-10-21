@@ -26,6 +26,6 @@ def optimize(self, optimization_input_json: str) -> str:
     input_schema.id = self.request.id
 
     optimizer = get_optimizer(input_schema.optimizer.type)
-    result = optimizer.optimize(input_schema, keep_files=input_schema.keep_files)
+    result = optimizer.optimize(input_schema, keep_files=settings.BEFLOW_KEEP_FILES)
 
     return serialize(result, encoding="json")
