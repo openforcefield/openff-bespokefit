@@ -16,7 +16,7 @@ def test_check_reference_data(qc_torsion_drive_results):
     TorsionProfileTargetSchema(
         reference_data=BespokeQCData(
             spec=Torsion1DTaskSpec(
-                model=Model(method="uff", basis=None), program="rdkit"
+                program="rdkit", model=Model(method="uff", basis=None)
             )
         )
     )
@@ -27,7 +27,7 @@ def test_check_reference_data(qc_torsion_drive_results):
         TorsionProfileTargetSchema(
             reference_data=BespokeQCData(
                 spec=HessianTaskSpec(
-                    model=Model(method="uff", basis=None), program="rdkit"
+                    program="rdkit", model=Model(method="uff", basis=None)
                 )
             )
         )

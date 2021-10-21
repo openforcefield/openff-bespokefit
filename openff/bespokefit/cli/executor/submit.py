@@ -82,7 +82,7 @@ def _to_input_schema(
             "openff.bespokefit",
         )
 
-    workflow_factory = BespokeWorkflowFactory.parse_file(spec_file_name)
+    workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
     workflow_factory.initial_force_field = force_field_path
 
     return workflow_factory.optimization_schema_from_molecule(molecule)

@@ -27,7 +27,6 @@ from openff.toolkit.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pydantic import Field, validator
-from qcelemental.models.common_models import Model
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.exceptions import (
@@ -122,12 +121,6 @@ class BespokeWorkflowFactory(ClassBase):
         "By default bespoke torsion parameters (if requested) will be constructed for "
         "all non-terminal 'rotatable bonds'",
     )
-    target_smirks: List[SMIRKSType] = Field(
-        [
-            SMIRKSType.ProperTorsions,
-        ],
-        description="The list of parameters the new smirks patterns should be made for.",
-    )
 
     expand_torsion_terms: bool = Field(
         True,
@@ -209,13 +202,15 @@ class BespokeWorkflowFactory(ClassBase):
                 "There are no parameter settings specified which will mean that the "
                 "optimiser has no parameters to optimize."
             )
-        elif len(self.target_smirks) == 0:
-            raise TargetNotSetError(
-                "No forcefield groups have been supplied, which means no smirks were "
-                "selected to be optimized."
-            )
         else:
             return
+
+    @property
+    def target_smirks(self) -> List[SMIRKSType]:
+        """Returns a list of the target smirks types based on the selected hyper parameters."""
+        return list(
+            {SMIRKSType(parameter.type) for parameter in self.parameter_hyperparameters}
+        )
 
     def export_factory(self, file_name: str) -> None:
         """
@@ -568,10 +563,7 @@ class BespokeWorkflowFactory(ClassBase):
 
             target_schema.reference_data = BespokeQCData(
                 spec=task_type_to_spec[task_type](
-                    model=Model(
-                        method=default_qc_spec.method, basis=default_qc_spec.basis
-                    ),
-                    program=default_qc_spec.program,
+                    program=default_qc_spec.program, model=default_qc_spec.qc_model
                 )
             )
 
