@@ -49,6 +49,7 @@ async def test_internal_cycle(redis_connection, monkeypatch):
             parameter_hyperparameters=[],
             fragmentation_engine=WBOFragmenter(),
             targets=[],
+            target_torsion_smirks=[],
             optimizer=ForceBalanceSchema(max_iterations=1),
         ),
         pending_stages=[FragmentationStage(), QCGenerationStage()],

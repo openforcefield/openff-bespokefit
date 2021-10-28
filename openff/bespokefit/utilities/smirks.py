@@ -229,7 +229,7 @@ class SMIRKSGenerator(ClassBase):
         if isinstance(self.initial_force_field, ForceFieldEditor):
             ff = self.initial_force_field
         else:
-            ff = ForceFieldEditor(force_field_name=self.initial_force_field)
+            ff = ForceFieldEditor(force_field=self.initial_force_field)
 
         if self.generate_bespoke_terms:
 

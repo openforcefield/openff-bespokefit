@@ -33,6 +33,7 @@ def mock_task(
             parameters=[],
             parameter_hyperparameters=[],
             optimizer=ForceBalanceSchema(),
+            target_torsion_smirks=[],
         ),
         pending_stages=pending_stages,
         running_stage=running_stage,

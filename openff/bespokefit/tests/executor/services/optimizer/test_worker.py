@@ -19,6 +19,7 @@ def test_optimize(monkeypatch):
         fragmentation_engine=WBOFragmenter(),
         targets=[],
         optimizer=ForceBalanceSchema(max_iterations=1),
+        target_torsion_smirks=[],
     )
     input_schema_json = input_schema.json()
 

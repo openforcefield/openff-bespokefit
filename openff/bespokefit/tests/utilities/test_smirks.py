@@ -355,7 +355,7 @@ def test_fit_interpolated_torsion():
     """
     Make sure an error is raised if we try and fit an interpolated torsion.
     """
-    ff = ForceFieldEditor(force_field_name="openff_unconstrained-1.3.0.offxml")
+    ff = ForceFieldEditor(force_field="openff_unconstrained-1.3.0.offxml")
     # add an interploated general parameter
     parameter = ff.force_field["ProperTorsions"].parameters[0]
     parameter._k_bondorder = [1, 2]

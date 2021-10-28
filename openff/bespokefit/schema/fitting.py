@@ -137,3 +137,14 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         description="The fragmentation engine that should be used to fragment the "
         "molecule. If no engine is provided the molecules will not be fragmented.",
     )
+
+    target_torsion_smirks: List[str] = Field(
+        ...,
+        description="A list of SMARTS patterns that should be used to identify the "
+        "**bonds** within the target molecule to generate bespoke torsions around. Each "
+        "SMARTS pattern should include **two** indexed atoms that correspond to the "
+        "two atoms involved in the central bond."
+        "\n"
+        "By default bespoke torsion parameters (if requested) will be constructed for "
+        "all non-terminal 'rotatable bonds'",
+    )

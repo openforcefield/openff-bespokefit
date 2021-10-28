@@ -51,6 +51,7 @@ def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
         fragmentation_engine=WBOFragmenter(),
         targets=[],
         optimizer=ForceBalanceSchema(max_iterations=1),
+        target_torsion_smirks=[],
     )
 
     request = optimizer_client.post(

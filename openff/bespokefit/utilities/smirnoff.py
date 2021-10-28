@@ -3,7 +3,7 @@ Tools for dealing with SMIRNOFF force field manipulation.
 """
 import copy
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from openff.toolkit import topology as off
@@ -36,11 +36,11 @@ class SMIRKSType(str, Enum):
 
 
 class ForceFieldEditor:
-    def __init__(self, force_field_name: str):
+    def __init__(self, force_field: Union[str, ForceField]):
         """
 
         Args:
-            force_field_name: A path to a serialized SMIRNOFF force field or the
+            force_field: A path to a serialized SMIRNOFF force field or the
                 contents of an OFFXML serialized SMIRNOFF force field.
 
         Notes
@@ -48,7 +48,10 @@ class ForceFieldEditor:
               should be unconstrained for fitting.
         """
 
-        self.force_field = ForceField(force_field_name, allow_cosmetic_attributes=True)
+        if isinstance(force_field, ForceField):
+            self.force_field = force_field
+        else:
+            self.force_field = ForceField(force_field, allow_cosmetic_attributes=True)
 
         try:
             # try and strip a constraint handler
