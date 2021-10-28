@@ -23,9 +23,7 @@ def test_initial_parameter_values(bespoke_optimization_results):
 
 def test_refit_parameter_values(bespoke_optimization_results):
 
-    refit_parameter_values = (
-        bespoke_optimization_results.refit_parameter_values
-    )
+    refit_parameter_values = bespoke_optimization_results.refit_parameter_values
 
     assert len(refit_parameter_values) == len(
         bespoke_optimization_results.input_schema.stages[0].parameters

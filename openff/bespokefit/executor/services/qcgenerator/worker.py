@@ -102,6 +102,8 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         ),
     )
 
+    print(input_schema.json())
+
     return_value = qcengine.compute_procedure(
         input_schema, "torsiondrive", raise_error=True
     )
