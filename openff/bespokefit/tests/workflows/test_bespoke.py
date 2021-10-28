@@ -109,10 +109,6 @@ def test_check_target_torsion_smirks():
             dict(parameter_hyperparameters=[]),
             pytest.raises(TargetNotSetError, match="There are no parameter settings"),
         ),
-        (
-            dict(target_smirks=[]),
-            pytest.raises(TargetNotSetError, match="No forcefield groups have"),
-        ),
     ],
 )
 def test_pre_run_check(input_kwargs, expected_raises):
@@ -125,7 +121,11 @@ def test_pre_run_check(input_kwargs, expected_raises):
         factory._pre_run_check()
 
 
-def test_export_factory():
+@pytest.mark.parametrize(
+    "filename",
+    [pytest.param("test.yaml", id="yaml"), pytest.param("test.json", id="json")],
+)
+def test_export_factory(filename):
     """Test exporting and importing a workflow."""
 
     factory = BespokeWorkflowFactory(
@@ -135,10 +135,10 @@ def test_export_factory():
 
     with temporary_cd():
 
-        factory.export_factory(file_name="test.json")
+        factory.export_factory(file_name=filename)
 
         # now read it back in
-        recreated = BespokeWorkflowFactory.parse_file("test.json")
+        recreated = BespokeWorkflowFactory.from_file(file_name=filename)
         assert factory.dict() == recreated.dict()
 
 

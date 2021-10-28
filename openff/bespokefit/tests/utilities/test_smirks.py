@@ -344,5 +344,24 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
 
         if expand_torsions:
             assert len(parameter.k) == 4
+            assert parameter.periodicity == [1, 2, 3, 4]
         else:
             assert len(parameter.k) < 4
+        if bespoke_smirks:
+            assert "-BF" in parameter.id
+
+
+def test_fit_interpolated_torsion():
+    """
+    Make sure an error is raised if we try and fit an interpolated torsion.
+    """
+    ff = ForceFieldEditor(force_field_name="openff_unconstrained-1.3.0.offxml")
+    # add an interploated general parameter
+    parameter = ff.force_field["ProperTorsions"].parameters[0]
+    parameter._k_bondorder = [1, 2]
+    ff.force_field["ProperTorsions"]._parameters = [parameter]
+    # run the generation
+    gen = SMIRKSGenerator(initial_force_field=ff)
+    mol = Molecule.from_smiles("CC")
+    with pytest.raises(NotImplementedError):
+        _ = gen.generate_smirks_from_molecule(molecule=mol)

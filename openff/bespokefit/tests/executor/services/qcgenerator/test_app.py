@@ -34,7 +34,7 @@ def mock_atomic_result() -> AtomicResult:
     return AtomicResult(
         molecule=molecule.to_qcschema(),
         driver=DriverEnum.hessian,
-        model=Model(method="rdkit", basis=None),
+        model=Model(method="uff", basis=None),
         return_result=5.2,
         success=True,
         provenance=Provenance(creator="pytest"),
@@ -51,7 +51,7 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
     return TorsionDriveResult(
         keywords=TDKeywords(dihedrals=[(0, 1, 2, 3)], grid_spacing=[15]),
         input_specification=QCInputSpecification(
-            model=Model(method="rdkit", basis=None), driver=DriverEnum.gradient
+            model=Model(method="uff", basis=None), driver=DriverEnum.gradient
         ),
         initial_molecule=molecule.to_qcschema(),
         optimization_spec=OptimizationSpecification(procedure="geometric"),

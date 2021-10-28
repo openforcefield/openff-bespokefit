@@ -35,7 +35,9 @@ def optimize(self, optimization_input_json: str) -> str:
     for stage in input_schema.stages:
 
         optimizer = get_optimizer(stage.optimizer.type)
-        result = optimizer.optimize(stage, input_force_field, keep_files=False)
+        result = optimizer.optimize(
+            stage, input_force_field, keep_files=settings.BEFLOW_KEEP_FILES
+        )
 
         stage_results.append(result)
 

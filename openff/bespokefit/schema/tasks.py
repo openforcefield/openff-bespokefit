@@ -1,6 +1,7 @@
 import abc
-from typing import Tuple
+from typing import Optional, Tuple
 
+from openff.qcsubmit.procedures import GeometricProcedure
 from pydantic import Field, conint
 from qcelemental.models.common_models import Model
 from typing_extensions import Literal
@@ -8,20 +9,12 @@ from typing_extensions import Literal
 from openff.bespokefit.utilities.pydantic import BaseModel
 
 
-class OptimizationSpec(BaseModel):
-
-    procedure: Literal["geometric"] = "geometric"
-
-    max_iterations: conint(gt=0) = Field(
-        300,
-        description="The maximum number of iterations to perform before raising a "
-        "convergence failure exception.",
-    )
-
-
 class QCGenerationTask(BaseModel, abc.ABC):
 
     type: Literal["base-task"]
+
+    program: str = Field(..., description="The program to use to evaluate the model.")
+    model: Model = Field(..., description=str(Model.__doc__))
 
 
 class HessianTaskSpec(QCGenerationTask):
@@ -34,12 +27,8 @@ class HessianTaskSpec(QCGenerationTask):
         "hessian. Each conformer will be minimized and the one with the lowest energy "
         "will have its hessian computed.",
     )
-
-    program: str = Field(..., description="The program to use to evaluate the model.")
-    model: Model = Field(..., description=str(Model.__doc__))
-
-    optimization_spec: OptimizationSpec = Field(
-        OptimizationSpec(),
+    optimization_spec: GeometricProcedure = Field(
+        GeometricProcedure(),
         description="The specification for how to optimize each conformer before "
         "computing the hessian.",
     )
@@ -54,21 +43,8 @@ class HessianTask(HessianTaskSpec):
     )
 
 
-class OptimizationTaskSpec(QCGenerationTask):
+class OptimizationTaskSpec(HessianTaskSpec):
     type: Literal["optimization"] = "optimization"
-
-    n_conformers: conint(gt=0) = Field(
-        ...,
-        description="The maximum number of conformers to begin the optimization from.",
-    )
-
-    program: str = Field(..., description="The program to use to evaluate the model.")
-    model: Model = Field(..., description=str(Model.__doc__))
-
-    optimization_spec: OptimizationSpec = Field(
-        OptimizationSpec(),
-        description="The specification for how to optimize each conformer.",
-    )
 
 
 class OptimizationTask(OptimizationTaskSpec):
@@ -84,15 +60,12 @@ class Torsion1DTaskSpec(QCGenerationTask):
     type: Literal["torsion1d"] = "torsion1d"
 
     grid_spacing: int = Field(15, description="The spacing between grid angles.")
-    scan_range: Tuple[int, int] = Field(
-        (-180, 165), description="The range of grid angles to scan."
+    scan_range: Optional[Tuple[int, int]] = Field(
+        None, description="The range of grid angles to scan."
     )
 
-    program: str = Field(..., description="The program to use to evaluate the model.")
-    model: Model = Field(..., description=str(Model.__doc__))
-
-    optimization_spec: OptimizationSpec = Field(
-        OptimizationSpec(),
+    optimization_spec: GeometricProcedure = Field(
+        GeometricProcedure(enforce=0.1, reset=True, qccnv=True, epsilon=0.0),
         description="The specification for how to optimize the structure at each angle "
         "in the scan.",
     )
