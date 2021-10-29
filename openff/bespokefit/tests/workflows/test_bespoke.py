@@ -182,25 +182,33 @@ def test_optimization_schemas_from_molecule(func_name):
         assert len(opt_schema) == 1
         opt_schema = opt_schema[0]
 
-    assert len(opt_schema.parameters) == 1
+    assert len(opt_schema.stages[0].parameters) == 1
     expected_matches = molecule.chemical_environment_matches(
         "[*:1]~[#6:2]-[#6:3]~[*:4]"
     )
     actual_matches = molecule.chemical_environment_matches(
-        opt_schema.parameters[0].smirks
+        opt_schema.stages[0].parameters[0].smirks
     )
     assert {*actual_matches} == {*expected_matches}
 
     force_field = ForceField(opt_schema.initial_force_field)
-    assert opt_schema.parameters[0].smirks in force_field["ProperTorsions"].parameters
+    assert (
+        opt_schema.stages[0].parameters[0].smirks
+        in force_field["ProperTorsions"].parameters
+    )
 
-    assert opt_schema.optimizer == factory.optimizer
+    assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_0"
-    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert (
+        opt_schema.stages[0].parameter_hyperparameters
+        == factory.parameter_hyperparameters
+    )
     assert Molecule.from_smiles(opt_schema.smiles) == molecule
-    assert opt_schema.n_targets == 1
-    assert isinstance(opt_schema.targets[0].reference_data, BespokeQCData)
-    assert isinstance(opt_schema.targets[0].reference_data.spec, Torsion1DTaskSpec)
+    assert opt_schema.stages[0].n_targets == 1
+    assert isinstance(opt_schema.stages[0].targets[0].reference_data, BespokeQCData)
+    assert isinstance(
+        opt_schema.stages[0].targets[0].reference_data.spec, Torsion1DTaskSpec
+    )
 
 
 @pytest.mark.parametrize("combine, n_expected", [(True, 1), (False, 2)])
@@ -233,12 +241,15 @@ def test_optimization_schema_from_records(qc_torsion_drive_results):
 
     ForceField(opt_schema.initial_force_field)
 
-    assert opt_schema.optimizer == factory.optimizer
+    assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
-    assert bool(opt_schema.parameters) is True
-    assert opt_schema.parameter_hyperparameters == factory.parameter_hyperparameters
+    assert bool(opt_schema.stages[0].parameters) is True
+    assert (
+        opt_schema.stages[0].parameter_hyperparameters
+        == factory.parameter_hyperparameters
+    )
     assert molecule == Molecule.from_mapped_smiles(opt_schema.smiles)
-    assert opt_schema.n_targets == 1
+    assert opt_schema.stages[0].n_targets == 1
 
 
 def test_optimization_schemas_from_results(qc_torsion_drive_results):

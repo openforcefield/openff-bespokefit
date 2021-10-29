@@ -37,7 +37,10 @@ from openff.bespokefit.exceptions import (
 from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.optimizers import get_optimizer, list_optimizers
 from openff.bespokefit.schema.data import LocalQCData
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationStageSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema, OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
     AngleSMIRKS,
@@ -571,10 +574,14 @@ class BespokeWorkflowFactory(ClassBase):
             id=f"bespoke_task_{index}",
             smiles=molecule.to_smiles(mapped=True),
             initial_force_field=force_field_editor.force_field.to_string(),
-            optimizer=self.optimizer,
-            parameters=parameters,
-            parameter_hyperparameters=self.parameter_hyperparameters,
-            targets=targets,
+            stages=[
+                OptimizationStageSchema(
+                    optimizer=self.optimizer,
+                    parameters=parameters,
+                    parameter_hyperparameters=self.parameter_hyperparameters,
+                    targets=targets,
+                )
+            ],
             fragmentation_engine=self.fragmentation_engine,
         )
         return schema

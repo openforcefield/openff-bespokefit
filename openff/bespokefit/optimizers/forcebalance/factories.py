@@ -14,6 +14,7 @@ from openff.qcsubmit.results import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import temporary_cd
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
@@ -32,7 +33,7 @@ from openff.bespokefit.optimizers.forcebalance.templates import (
     VibrationTargetTemplate,
 )
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
-from openff.bespokefit.schema.fitting import BaseOptimizationSchema
+from openff.bespokefit.schema.fitting import OptimizationStageSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
@@ -232,10 +233,10 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         elif isinstance(target.reference_data, BespokeQCData):
 
-            qc_records = [
-                (task.reference_data.record, task.reference_data.molecule)
-                for task in target.reference_data.tasks
-            ]
+            raise RuntimeError(
+                "`BespokeQCData` must be converted into `LocalQCData` before generating "
+                "targets."
+            )
 
         elif isinstance(target.reference_data, LocalQCData):
 
@@ -637,22 +638,39 @@ class ForceBalanceInputFactory:
 
     @classmethod
     def _generate_force_field_directory(
-        cls, optimization_schema: BaseOptimizationSchema
+        cls,
+        optimization_stage: OptimizationStageSchema,
+        initial_force_field: ForceField,
     ):
 
         os.makedirs("forcefield", exist_ok=True)
 
-        force_field = optimization_schema.get_fitting_force_field()
+        force_field = copy.deepcopy(initial_force_field)
+
+        for target_parameter in optimization_stage.parameters:
+
+            parameter_handler = force_field.get_parameter_handler(target_parameter.type)
+            parameter = parameter_handler.parameters[target_parameter.smirks]
+
+            attributes_string = ", ".join(
+                attribute
+                for attribute in target_parameter.attributes
+                if hasattr(parameter, attribute)
+            )
+
+            parameter.add_cosmetic_attribute("parameterize", attributes_string)
+
         force_field.to_file(os.path.join("forcefield", "force-field.offxml"))
 
     @classmethod
     def generate(
         cls,
         root_directory: Union[str, Path],
-        optimization_schema: BaseOptimizationSchema,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
     ):
 
-        if not isinstance(optimization_schema.optimizer, ForceBalanceSchema):
+        if not isinstance(schema.optimizer, ForceBalanceSchema):
 
             raise OptimizerError(
                 "Inputs can only be generated using this factory for optimizations "
@@ -666,7 +684,7 @@ class ForceBalanceInputFactory:
             OptGeoTargetSchema: OptGeoTargetFactory,
         }
 
-        if not isinstance(optimization_schema.optimizer, ForceBalanceSchema):
+        if not isinstance(schema.optimizer, ForceBalanceSchema):
 
             raise OptimizerError(
                 "The `ForceBalanceInputFactory` can only create inputs from an "
@@ -687,7 +705,7 @@ class ForceBalanceInputFactory:
 
             with (temporary_cd("targets")):
 
-                for target in optimization_schema.targets:
+                for target in schema.targets:
 
                     target_factory = target_factories[target.__class__]
                     target_sections.append(target_factory.generate(".", target))
@@ -704,7 +722,7 @@ class ForceBalanceInputFactory:
                         f"{attribute}",
                         prior,
                     )
-                    for hyperparameter in optimization_schema.parameter_hyperparameters
+                    for hyperparameter in schema.parameter_hyperparameters
                     for attribute, prior in hyperparameter.priors.items()
                 ]
             }
@@ -713,11 +731,9 @@ class ForceBalanceInputFactory:
 
                 file.write(
                     InputOptionsTemplate.generate(
-                        optimization_schema.optimizer,
-                        targets_section=targets_section,
-                        priors=priors,
+                        schema.optimizer, targets_section=targets_section, priors=priors
                     )
                 )
 
             # Create the force field directory
-            cls._generate_force_field_directory(optimization_schema)
+            cls._generate_force_field_directory(schema, initial_force_field)

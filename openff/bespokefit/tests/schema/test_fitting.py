@@ -9,21 +9,8 @@ from openff.bespokefit.schema.fitting import (
 
 
 def test_n_targets(general_optimization_schema):
-    expected_n_targets = len(general_optimization_schema.targets)
-    assert general_optimization_schema.n_targets == expected_n_targets
-
-
-def test_get_fitting_force_field(general_optimization_schema):
-
-    target_parameter = general_optimization_schema.parameters[0]
-
-    force_field = general_optimization_schema.get_fitting_force_field()
-
-    parameter_handler = force_field.get_parameter_handler(target_parameter.type)
-    parameter = parameter_handler.parameters[target_parameter.smirks]
-
-    assert parameter.attribute_is_cosmetic("parameterize")
-    assert parameter._parameterize == "k1"
+    expected_n_targets = len(general_optimization_schema.stages[0].targets)
+    assert general_optimization_schema.stages[0].n_targets == expected_n_targets
 
 
 def test_general_schema_export_roundtrip(general_optimization_schema):

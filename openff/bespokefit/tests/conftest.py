@@ -12,6 +12,7 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model, Provenance
 from qcelemental.models.procedures import OptimizationResult as QCOptimizationResult
@@ -32,8 +33,13 @@ from simtk import unit
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
+    OptimizationStageSchema,
 )
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
+from openff.bespokefit.schema.results import (
+    BespokeOptimizationResults,
+    OptimizationStageResults,
+)
 from openff.bespokefit.schema.smirnoff import (
     ProperTorsionHyperparameters,
     ProperTorsionSMIRKS,
@@ -327,17 +333,21 @@ def general_optimization_schema(
 
     optimization_schema = OptimizationSchema(
         initial_force_field="openff-1.3.0.offxml",
-        optimizer=ForceBalanceSchema(),
-        targets=[
-            TorsionProfileTargetSchema(reference_data=qc_torsion_drive_results),
-            AbInitioTargetSchema(reference_data=qc_torsion_drive_results),
-            VibrationTargetSchema(reference_data=qc_hessian_results),
-            OptGeoTargetSchema(reference_data=qc_optimization_results),
-        ],
-        parameter_hyperparameters=[ProperTorsionHyperparameters()],
-        parameters=[
-            ProperTorsionSMIRKS(
-                smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
+        stages=[
+            OptimizationStageSchema(
+                optimizer=ForceBalanceSchema(),
+                targets=[
+                    TorsionProfileTargetSchema(reference_data=qc_torsion_drive_results),
+                    AbInitioTargetSchema(reference_data=qc_torsion_drive_results),
+                    VibrationTargetSchema(reference_data=qc_hessian_results),
+                    OptGeoTargetSchema(reference_data=qc_optimization_results),
+                ],
+                parameter_hyperparameters=[ProperTorsionHyperparameters()],
+                parameters=[
+                    ProperTorsionSMIRKS(
+                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
+                    )
+                ],
             )
         ],
     )
@@ -359,6 +369,39 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
     )
 
     return schema_factory.optimization_schema_from_molecule(molecule)
+
+
+@pytest.fixture()
+def bespoke_optimization_results(
+    bespoke_optimization_schema,
+) -> BespokeOptimizationResults:
+
+    force_field = ForceField(bespoke_optimization_schema.initial_force_field)
+
+    for key, value in bespoke_optimization_schema.initial_parameter_values.items():
+
+        for attribute in key.attributes:
+
+            expected_unit = getattr(
+                force_field[key.type].parameters[key.smirks], attribute
+            ).unit
+
+            setattr(
+                force_field[key.type].parameters[key.smirks],
+                attribute,
+                2 * expected_unit,
+            )
+
+    return BespokeOptimizationResults(
+        input_schema=bespoke_optimization_schema,
+        stages=[
+            OptimizationStageResults(
+                provenance={},
+                status="success",
+                refit_force_field=force_field.to_string(),
+            )
+        ],
+    )
 
 
 @pytest.fixture()

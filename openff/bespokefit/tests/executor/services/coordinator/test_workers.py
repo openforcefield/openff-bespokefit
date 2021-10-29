@@ -9,7 +9,10 @@ from openff.bespokefit.executor.services.coordinator.stages import (
     QCGenerationStage,
 )
 from openff.bespokefit.executor.services.coordinator.worker import _cycle
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationStageSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 
 
@@ -45,11 +48,15 @@ async def test_internal_cycle(redis_connection, monkeypatch):
         input_schema=BespokeOptimizationSchema(
             smiles="CC",
             initial_force_field="openff-2.0.0.offxml",
-            parameters=[],
-            parameter_hyperparameters=[],
+            stages=[
+                OptimizationStageSchema(
+                    parameters=[],
+                    parameter_hyperparameters=[],
+                    targets=[],
+                    optimizer=ForceBalanceSchema(max_iterations=1),
+                )
+            ],
             fragmentation_engine=WBOFragmenter(),
-            targets=[],
-            optimizer=ForceBalanceSchema(max_iterations=1),
         ),
         pending_stages=[FragmentationStage(), QCGenerationStage()],
     )
