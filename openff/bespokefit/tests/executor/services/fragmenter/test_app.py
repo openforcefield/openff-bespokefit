@@ -56,7 +56,7 @@ def test_post_fragment(fragmenter_client, redis_connection, monkeypatch):
     request = fragmenter_client.post(
         "/fragmentations",
         data=FragmenterPOSTBody(
-            cmiles="[CH2:1]=[CH2:2]",
+            cmiles="[H:3][C:1](=[C:2]([H:5])[H:6])[H:4]",
             fragmenter=PfizerFragmenter(),
             target_bond_smarts=["[#6:1]-[#6:2]"],
         ).json(),
@@ -65,7 +65,7 @@ def test_post_fragment(fragmenter_client, redis_connection, monkeypatch):
 
     assert submitted_task_kwargs is not None
 
-    assert submitted_task_kwargs["cmiles"] == "[CH2:1]=[CH2:2]"
+    assert submitted_task_kwargs["cmiles"] == "[H:3][C:1](=[C:2]([H:5])[H:6])[H:4]"
     assert submitted_task_kwargs["target_bond_smarts"] == ["[#6:1]-[#6:2]"]
 
     result = FragmenterPOSTResponse.parse_raw(request.text)
