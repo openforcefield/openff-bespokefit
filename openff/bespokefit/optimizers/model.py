@@ -7,20 +7,17 @@ import copy
 import os
 import shutil
 from collections import defaultdict
-from typing import Dict, Type, Union
+from typing import Dict, Optional, Type
 
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import temporary_cd
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
-from openff.bespokefit.schema.fitting import BaseOptimizationSchema
+from openff.bespokefit.schema.fitting import OptimizationStageSchema
 from openff.bespokefit.schema.optimizers import OptimizerSchema
-from openff.bespokefit.schema.results import (
-    BespokeOptimizationResults,
-    OptimizationResults,
-)
+from openff.bespokefit.schema.results import OptimizationStageResults
 from openff.bespokefit.schema.targets import BaseTargetSchema
 
-OptimizerResultsType = Union[OptimizationResults, BespokeOptimizationResults]
 TargetSchemaType = Type[BaseTargetSchema]
 
 
@@ -147,7 +144,7 @@ class BaseOptimizer(abc.ABC):
             )
 
     @classmethod
-    def _validate_schema(cls, schema: BaseOptimizationSchema):
+    def _validate_schema(cls, schema: OptimizationStageSchema):
         """Validates that a particular optimization schema can be used with this
         optimizer.
         """
@@ -174,7 +171,12 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+    def _prepare(
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
+        root_directory: str,
+    ):
         """The internal implementation of the main ``prepare`` method. The input
         ``schema`` is assumed to have been validated before being passed to this
         method.
@@ -182,15 +184,22 @@ class BaseOptimizer(abc.ABC):
         raise NotImplementedError()
 
     @classmethod
-    def prepare(cls, schema: BaseOptimizationSchema, root_directory: str):
+    def prepare(
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
+        root_directory: str,
+    ):
         """Prepares the optimization by creating any required inputs and setting up
         the required environment."""
 
         cls._validate_schema(schema)
-        cls._prepare(schema, root_directory)
+        cls._prepare(schema, initial_force_field, root_directory)
 
     @classmethod
-    def _optimize(cls, schema: BaseOptimizationSchema) -> OptimizerResultsType:
+    def _optimize(
+        cls, schema: OptimizationStageSchema, initial_force_field: ForceField
+    ) -> OptimizationStageResults:
         """The internal implementation of the main ``optimize`` method. The input
         ``schema`` is assumed to have been validated before being passed to this
         method.
@@ -199,8 +208,12 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     def optimize(
-        cls, schema: BaseOptimizationSchema, keep_files: bool = False
-    ) -> OptimizerResultsType:
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
+        keep_files: bool = False,
+        root_directory: Optional[str] = None,
+    ) -> OptimizationStageResults:
         """
         This is the main function of the optimizer which is called when the optimizer is
         put in a workflow.
@@ -209,23 +222,23 @@ class BaseOptimizer(abc.ABC):
         compute and optimization.
         """
 
-        root_directory = schema.id
-
-        if root_directory is None:
-            root_directory = "optimizer-directory"
-
         try:
 
-            os.makedirs(root_directory, exist_ok=True)
-
-            cls.prepare(schema, root_directory)
+            if root_directory is not None:
+                os.makedirs(root_directory, exist_ok=True)
 
             with temporary_cd(root_directory):
-                results = cls._optimize(schema)
+
+                cls.prepare(schema, initial_force_field, "")
+                results = cls._optimize(schema, initial_force_field)
 
         finally:
 
-            if not keep_files and os.path.isdir(root_directory):
+            if (
+                root_directory is not None
+                and not keep_files
+                and os.path.isdir(root_directory)
+            ):
                 shutil.rmtree(root_directory, ignore_errors=True)
 
         return results

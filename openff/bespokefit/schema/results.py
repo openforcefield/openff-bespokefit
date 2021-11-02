@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
@@ -15,14 +15,9 @@ from openff.bespokefit.schema.smirnoff import BaseSMIRKSParameter
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
-class BaseOptimizationResults(SchemaBase, abc.ABC):
+class OptimizationStageResults(SchemaBase, abc.ABC):
     """The base class for data models which store the results of an optimization."""
 
-    type: Literal["base"] = "base"
-
-    input_schema: Optional[Any] = Field(
-        None, description="The schema defining the input to the optimization."
-    )
     provenance: Dict[str, str] = Field(
         {}, description="The versions of the software used to generate the results."
     )
@@ -43,13 +38,30 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     #     ..., description="The value of the objective function at each iteration."
     # )
 
+
+class BaseOptimizationResults(SchemaBase, abc.ABC):
+    """A class for storing the results of a general force field optimization."""
+
+    type: Literal["base-results"] = "base-results"
+
+    input_schema: Optional[Any] = Field(
+        None, description="The schema defining the input to the optimization."
+    )
+
+    stages: List[OptimizationStageResults] = Field(
+        [], description="The results of each of the fitting states."
+    )
+
     @property
     def initial_parameter_values(
         self,
-    ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
+    ) -> Optional[Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]]:
         """A list of the refit force field parameters."""
-
-        return self.input_schema.initial_parameter_values
+        return (
+            None
+            if self.input_schema is None
+            else self.input_schema.initial_parameter_values
+        )
 
     @property
     def refit_parameter_values(
@@ -57,24 +69,44 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     ) -> Optional[Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]]:
         """A list of the refit force field parameters."""
 
-        if self.refit_force_field is None:
+        if self.input_schema is None or len(self.stages) != len(
+            self.input_schema.stages
+        ):
             return None
 
-        refit_force_field = ForceField(self.refit_force_field)
+        refit_force_field = ForceField(self.stages[-1].refit_force_field)
 
         return {
-            parameter: dict(
-                (
+            parameter: {
+                attribute: getattr(
+                    refit_force_field[parameter.type].parameters[parameter.smirks],
                     attribute,
-                    getattr(
-                        refit_force_field[parameter.type].parameters[parameter.smirks],
-                        attribute,
-                    ),
                 )
                 for attribute in parameter.attributes
-            )
-            for parameter in self.input_schema.parameters
+            }
+            for stage in self.input_schema.stages
+            for parameter in stage.parameters
         }
+
+    @property
+    def status(self) -> Status:
+
+        if (
+            len(self.stages) == 0
+            or all(stage.status == "waiting" for stage in self.stages)
+            or self.input_schema is None
+        ):
+            return "waiting"
+
+        if any(stage.status == "errored" for stage in self.stages):
+            return "errored"
+
+        if len(self.stages) == len(self.input_schema.stages) and all(
+            stage.status == "success" for stage in self.stages
+        ):
+            return "success"
+
+        return "running"
 
 
 class OptimizationResults(BaseOptimizationResults):

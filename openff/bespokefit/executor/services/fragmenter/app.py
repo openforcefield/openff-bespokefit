@@ -7,6 +7,9 @@ from openff.fragmenter.fragment import FragmentationResult
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.fragmenter import worker
+from openff.bespokefit.executor.services.fragmenter.cache import (
+    cached_fragmentation_task,
+)
 from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterGETResponse,
     FragmenterPOSTBody,
@@ -57,15 +60,13 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
     # We use celery delay method in order to enqueue the task with the given
     # parameters
 
-    task = worker.fragment.delay(
-        cmiles=body.cmiles,
-        fragmenter_json=body.fragmenter.json(),
-        target_bond_smarts=body.target_bond_smarts,
+    task_id = cached_fragmentation_task(
+        task=body, redis_connection=worker.redis_connection
     )
     return FragmenterPOSTResponse(
-        id=task.id,
+        id=task_id,
         self=settings.BEFLOW_API_V1_STR
-        + __GET_ENDPOINT.format(fragmentation_id=task.id),
+        + __GET_ENDPOINT.format(fragmentation_id=task_id),
     )
 
 

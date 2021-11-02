@@ -152,7 +152,11 @@ class QCGenerationStage(_Stage):
 
         target_qc_tasks = defaultdict(list)
 
-        for i, target in enumerate(task.input_schema.targets):
+        targets = [
+            target for stage in task.input_schema.stages for target in stage.targets
+        ]
+
+        for i, target in enumerate(targets):
 
             if not isinstance(target.reference_data, BespokeQCData):
                 continue
@@ -332,7 +336,9 @@ class OptimizationStage(_Stage):
         input_schema: BespokeOptimizationSchema,
     ):
 
-        for i, target in enumerate(input_schema.targets):
+        targets = [target for stage in input_schema.stages for target in stage.targets]
+
+        for i, target in enumerate(targets):
 
             local_qc_data = LocalQCData(
                 qc_records=[
