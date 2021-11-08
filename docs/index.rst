@@ -8,11 +8,18 @@ Welcome to BespokeFit's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User's Guide:
 
    getting_started
-   api
 
+
+.. autosummary::
+   :recursive:
+   :caption: API Reference
+   :toctree: _autosummary
+   :nosignatures:
+
+   openff.bespokefit
 
 
 Indices and tables
