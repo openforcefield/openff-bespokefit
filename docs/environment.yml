@@ -1,0 +1,56 @@
+name: readthedocs-environment
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python>=3.7
+  - pip
+
+    ### Core dependencies.
+
+  - numpy
+  - pydantic
+  - pyyaml
+  - tqdm
+  - rich
+  - click
+  - click-option-group
+  - rdkit
+  - openff-utilities
+  - openff-toolkit-base >=0.10.0
+  - openff-forcefields
+  - openff-qcsubmit
+  - openmm >=7.6.0
+
+    # Optional
+  - forcebalance >=1.9.2
+  - openff-fragmenter-base >=0.1.2
+
+  - openeye-toolkits
+
+    ### Bespoke dependencies
+
+  - qcportal >=0.15.6
+  - qcengine >=0.20.0
+  - chemper
+  - geometric
+  - torsiondrive
+
+    # Executor
+  - uvicorn
+  - fastapi <0.68
+  - celery
+  - httpx
+  - redis-server
+  - redis-py
+
+    ### Documentation dependencies
+
+  - sphinx
+  - sphinx-notfound-page
+  - myst-parser
+
+  # Dependencies not available on Conda Forge
+  - pip:
+    # Documentation theme
+    - https://github.com/openforcefield/openff-sphinx-theme.git@main

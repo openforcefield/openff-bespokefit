@@ -51,6 +51,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.extlinks",
+    "myst_parser",
 ]
 
 autosummary_generate = True
@@ -68,6 +69,14 @@ autodoc_inherit_docstrings = False
 napoleon_google_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
+
+myst_enable_extensions = [
+    "deflist",
+    "smartquotes",
+    "replacements",
+    "dollarmath",
+    "colon_fence",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -104,7 +113,10 @@ pygments_style = "default"
 #
 extensions.append("openff_sphinx_theme")
 html_theme = "openff_sphinx_theme"
-html_sidebars = {"**": ["globaltoc.html", "localtoc.html", "searchbox.html"]}
+html_sidebars = {
+    "**": ["globaltoc.html", "localtoc.html", "searchbox.html"],
+    "index": ["globaltoc.html", "searchbox.html"],
+}
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.
