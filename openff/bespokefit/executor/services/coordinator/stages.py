@@ -310,7 +310,7 @@ class OptimizationStage(_Stage):
 
         new_parameters = []
         # now we can remove all of the place holder terms
-        for old_parameter in input_schema.parameters:
+        for old_parameter in input_schema.stages[0].parameters:
             if isinstance(old_parameter, ProperTorsionSMIRKS):
                 # remove from the old force field
                 del torsion_handler.parameters[old_parameter.smirks]
@@ -327,7 +327,7 @@ class OptimizationStage(_Stage):
             )
             initial_force_field.add_parameters(parameters=[torsion_parameter])
 
-        input_schema.parameters = new_parameters
+        input_schema.stages[0].parameters = new_parameters
         input_schema.initial_force_field = initial_force_field.force_field.to_string()
 
     @staticmethod

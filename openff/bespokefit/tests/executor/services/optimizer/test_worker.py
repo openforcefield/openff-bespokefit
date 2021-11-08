@@ -20,13 +20,13 @@ def test_optimize(monkeypatch):
     input_schema = BespokeOptimizationSchema(
         smiles="CC",
         initial_force_field="openff-2.0.0.offxml",
+        target_torsion_smirks=[],
         stages=[
             OptimizationStageSchema(
                 parameters=[],
                 parameter_hyperparameters=[],
                 targets=[],
                 optimizer=ForceBalanceSchema(max_iterations=1),
-                target_torsion_smirks=[]
             )
         ],
         fragmentation_engine=WBOFragmenter(),

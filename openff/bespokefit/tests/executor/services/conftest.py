@@ -2,7 +2,10 @@ import pytest
 from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.toolkit.topology import Molecule
 
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import (
+    BespokeOptimizationSchema,
+    OptimizationStageSchema,
+)
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.smirnoff import (
     ProperTorsionHyperparameters,
@@ -64,10 +67,14 @@ def ptp1b_input_schema(ptp1b_smiles) -> BespokeOptimizationSchema:
     return BespokeOptimizationSchema(
         id="ptp1b",
         initial_force_field=force_field.force_field.to_string(),
-        optimizer=ForceBalanceSchema(),
-        parameters=[torsion_smirks],
-        parameter_hyperparameters=[ProperTorsionHyperparameters()],
-        targets=[],
+        stages=[
+            OptimizationStageSchema(
+                optimizer=ForceBalanceSchema(),
+                parameters=[torsion_smirks],
+                parameter_hyperparameters=[ProperTorsionHyperparameters()],
+                targets=[],
+            )
+        ],
         smiles="[H:30][c:1]1[c:2]([c:6]([c:11]([c:7]([c:3]1[H:32])[H:36])[C:17](=[O:24])[N:21]([H:41])[c:12]2[c:8]"
         "([c:4]([c:5]([c:10]([c:9]2[H:38])[C:13]3=[C:15]([C:14](=[C:16]([S:28]3)[C:18](=[O:25])[O-:22])[O:27]"
         "[C:20]([H:39])([H:40])[C:19](=[O:26])[O-:23])[Br:29])[H:34])[H:33])[H:37])[H:35])[H:31]",

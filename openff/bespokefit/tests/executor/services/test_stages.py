@@ -1,5 +1,5 @@
 import pytest
-from openff.toolkit.typing.engines.smirnoff import ParameterLookupError
+from openff.toolkit.typing.engines.smirnoff import ForceField, ParameterLookupError
 
 from openff.bespokefit.executor.services.coordinator.stages import OptimizationStage
 
@@ -34,16 +34,18 @@ async def test_regenerate_parameters(ptp1b_input_schema, ptp1b_fragment):
     """
     input_schema = ptp1b_input_schema.copy(deep=True)
     # make a copy of the original parameters
-    parameters = input_schema.parameters
+    parameters = input_schema.stages[0].parameters
     old_smirks = {parameter.smirks for parameter in parameters}
     await OptimizationStage._regenerate_parameters(
         fragmentation_result=ptp1b_fragment, input_schema=input_schema
     )
     # now make sure the parameters are different
-    new_smirks = {parameter.smirks for parameter in input_schema.parameters}
+    new_smirks = {parameter.smirks for parameter in input_schema.stages[0].parameters}
     assert new_smirks.difference(old_smirks) != set()
     # the old patterns should be removed for the force field
-    force_field = input_schema.get_fitting_force_field()
+    force_field = ForceField(
+        input_schema.initial_force_field, allow_cosmetic_attributes=True
+    )
     torsion_handler = force_field.get_parameter_handler("ProperTorsions")
     for smirks in old_smirks:
         with pytest.raises(ParameterLookupError):
