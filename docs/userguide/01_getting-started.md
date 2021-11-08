@@ -10,7 +10,7 @@ BespokeFit creates bespoke [SMIRNOFF-format] molecular mechanics force field par
 
 Please note that BespokeFit is experimental, pre-production software. It does not promise to have a stable API or even to produce correct results. If you find it produces incorrect results, please [file an issue!]
 
-BespokeFit will soon be available on Conda Forge. In the meantime, or for development, it can be installed from GitHub:
+BespokeFit will soon be available on Conda Forge. In the meantime, or for development, it can be installed manually:
 
 ```sh
 # Download the repository
@@ -24,7 +24,7 @@ conda activate bespokefit
 python setup.py develop
 ```
 
-Update BespokeFit by pulling updates from GitHub:
+Update BespokeFit by pulling updates with Git, and updating any changed dependencies:
 
 ```sh
 cd /path/to/bespoke-fit
