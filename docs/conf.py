@@ -57,12 +57,14 @@ extensions = [
 
 autosummary_generate = True
 autosummary_imported_members = False
+autosummary_ignore___all__ = False
 autosummary_context = {
     # Modules to exclude from API docs
     "exclude_modules": [],
 }
 autodoc_default_options = {
     "member-order": "bysource",
+    "undoc-members": False,
 }
 autodoc_preserve_defaults = True
 autodoc_inherit_docstrings = False
