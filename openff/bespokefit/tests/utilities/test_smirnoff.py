@@ -9,7 +9,7 @@ from openff.toolkit.topology import Molecule
 from openff.utilities import get_data_file_path
 from simtk import unit
 
-from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 def test_loading_force_fields():
@@ -107,12 +107,13 @@ def test_get_parameters():
 def test_get_initial_parameters():
 
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
-    smirks = {
-        SMIRKSType.Vdw: ["[#6:1]"],
-        SMIRKSType.Bonds: ["[#6:1]~[#6:2]", "[#17:1]-[#1:2]"],
-        SMIRKSType.Angles: ["[*:1]~[#6:2]~[#6:3]"],
-        SMIRKSType.ProperTorsions: ["[#1:1]~[#6:2]~[#6:3]~[#1:4]"],
-    }
+    smirks = [
+        "[#6:1]",
+        "[#6:1]~[#6:2]",
+        "[#17:1]-[#1:2]",
+        "[*:1]~[#6:2]~[#6:3]",
+        "[#1:1]~[#6:2]~[#6:3]~[#1:4]",
+    ]
 
     ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
 

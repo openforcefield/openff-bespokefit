@@ -25,6 +25,12 @@ _PARAMETER_TYPE_TO_HANDLER = {
     ProperTorsionHandler.ProperTorsionType: "ProperTorsions",
     ImproperTorsionHandler.ImproperTorsionType: "ImproperTorsions",
 }
+_ATOMS_TO_HANDLER = {
+    1: "vdW",
+    2: "Bonds",
+    3: "Angles",
+    4: "ProperTorsions",
+}
 
 
 class SMIRKSType(str, Enum):
@@ -130,12 +136,6 @@ class ForceFieldEditor:
         For a given molecule label it and get back the smirks patterns and parameters
         for the requested atoms.
         """
-        _atoms_to_params = {
-            1: SMIRKSType.Vdw,
-            2: SMIRKSType.Bonds,
-            3: SMIRKSType.Angles,
-            4: SMIRKSType.ProperTorsions,
-        }
 
         off_params = {}
 
@@ -143,10 +143,10 @@ class ForceFieldEditor:
 
         for atom_ids in atoms:
             # work out the parameter type from the length of the tuple
-            smirk_class = _atoms_to_params[len(atom_ids)]
+            smirk_class = _ATOMS_TO_HANDLER[len(atom_ids)]
             # now we can get the handler type using the smirk type
-            off_param = labels[smirk_class.value][atom_ids]
-
+            off_param = labels[smirk_class][atom_ids]
+            # get a unique list of openff params as some params may hit many atoms
             off_params[(off_param.__class__, off_param.smirks)] = off_param
 
         return [*off_params.values()]
@@ -154,7 +154,7 @@ class ForceFieldEditor:
     def get_initial_parameters(
         self,
         molecule: off.Molecule,
-        smirks: Dict[SMIRKSType, List[str]],
+        smirks: List[str],
     ) -> List[ParameterType]:
         """
         Find the initial parameters assigned to the atoms in the given smirks patterns
@@ -165,38 +165,38 @@ class ForceFieldEditor:
         initial_parameters = []
 
         # now find the atoms
-        for smirks_type, smirks_patterns in smirks.items():
+        for smirks_pattern in smirks:
 
-            for smirks_pattern in smirks_patterns:
-                matches = molecule.chemical_environment_matches(smirks_pattern)
+            matches = molecule.chemical_environment_matches(smirks_pattern)
 
-                if len(matches) == 0:
-                    continue
+            if len(matches) == 0:
+                continue
 
-                parameters = labels[smirks_type.value]
+            n_tagged_atoms = len(matches[0])
+            parameters = labels[_ATOMS_TO_HANDLER[n_tagged_atoms]]
 
-                if smirks_type == SMIRKSType.ProperTorsions:
+            if n_tagged_atoms == 4:
 
-                    # here we can combine multiple parameter types
-                    # TODO is this needed?
-                    openff_params = [parameters[match] for match in matches]
+                # here we can combine multiple parameter types
+                # TODO is this needed?
+                openff_params = [parameters[match] for match in matches]
 
-                    n_terms = [len(param.k) for param in openff_params]
+                n_terms = [len(param.k) for param in openff_params]
 
-                    # Choose the torsion parameter that has the most k values as the
-                    # starting point.
-                    match = matches[np.argmax(n_terms)]
+                # Choose the torsion parameter that has the most k values as the
+                # starting point.
+                match = matches[np.argmax(n_terms)]
 
-                else:
+            else:
 
-                    match = matches[0]
+                match = matches[0]
 
-                initial_parameter = copy.deepcopy(parameters[match])
-                initial_parameter.smirks = smirks_pattern
-                # mark the parameter as being bespokefit
-                if not initial_parameter.id.endswith("-BF"):
-                    initial_parameter.id += "-BF"
+            initial_parameter = copy.deepcopy(parameters[match])
+            initial_parameter.smirks = smirks_pattern
+            # mark the parameter as being bespokefit
+            if not initial_parameter.id.endswith("-BF"):
+                initial_parameter.id += "-BF"
 
-                initial_parameters.append(initial_parameter)
+            initial_parameters.append(initial_parameter)
 
         return initial_parameters

@@ -182,20 +182,7 @@ def test_optimization_schemas_from_molecule(func_name):
         assert len(opt_schema) == 1
         opt_schema = opt_schema[0]
 
-    assert len(opt_schema.stages[0].parameters) == 1
-    expected_matches = molecule.chemical_environment_matches(
-        "[*:1]~[#6:2]-[#6:3]~[*:4]"
-    )
-    actual_matches = molecule.chemical_environment_matches(
-        opt_schema.stages[0].parameters[0].smirks
-    )
-    assert {*actual_matches} == {*expected_matches}
-
-    force_field = ForceField(opt_schema.initial_force_field)
-    assert (
-        opt_schema.stages[0].parameters[0].smirks
-        in force_field["ProperTorsions"].parameters
-    )
+    assert len(opt_schema.stages[0].parameters) == 0
 
     assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_0"
@@ -243,7 +230,7 @@ def test_optimization_schema_from_records(qc_torsion_drive_results):
 
     assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
-    assert bool(opt_schema.stages[0].parameters) is True
+    assert bool(opt_schema.stages[0].parameters) is False
     assert (
         opt_schema.stages[0].parameter_hyperparameters
         == factory.parameter_hyperparameters

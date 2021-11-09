@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -335,12 +335,17 @@ class SMIRKSGenerator(ClassBase):
             mapped=False, isomeric=False
         ) == fragment.to_smiles(mapped=False, isomeric=False)
 
-        bespoke_smirks: Dict[SMIRKSType, List[str]] = {
-            smirk_type: self._get_bespoke_smirks(
-                parent, fragment, fragment_map_indices, fragment_is_parent, smirk_type
+        bespoke_smirks = []
+        for smirk_type in self.target_smirks:
+            bespoke_smirks.extend(
+                self._get_bespoke_smirks(
+                    parent=parent,
+                    fragment=fragment,
+                    fragment_map_indices=fragment_map_indices,
+                    fragment_is_parent=fragment_is_parent,
+                    smirks_type=smirk_type,
+                )
             )
-            for smirk_type in self.target_smirks
-        }
 
         # now we need to update all smirks
         new_parameters = force_field_editor.get_initial_parameters(

@@ -95,8 +95,8 @@ class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
     type: Literal["vdW"] = "vdW"
 
-    priors: Dict[Literal["epsilon", "rmin_half"], PositiveFloat] = Field(
-        {"epsilon": 0.1, "rmin_half": 0.1}, description=""
+    priors: Dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
+        {"epsilon": 0.1, "sigma": 0.1}, description=""
     )
 
     @classmethod

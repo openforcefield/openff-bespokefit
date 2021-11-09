@@ -5,7 +5,14 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import httpx
 from openff.fragmenter.fragment import FragmentationResult
-from openff.toolkit.typing.engines.smirnoff import ParameterType
+from openff.toolkit.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ImproperTorsionHandler,
+    ParameterType,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
@@ -32,10 +39,20 @@ from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS
+from openff.bespokefit.schema.smirnoff import (
+    AngleSMIRKS,
+    BondSMIRKS,
+    ImproperTorsionSMIRKS,
+    ProperTorsionSMIRKS,
+    VdWSMIRKS,
+)
 from openff.bespokefit.schema.tasks import Torsion1DTask
 from openff.bespokefit.utilities.pydantic import BaseModel
-from openff.bespokefit.utilities.smirks import ForceFieldEditor, SMIRKSGenerator
+from openff.bespokefit.utilities.smirks import (
+    ForceFieldEditor,
+    SMIRKSGenerator,
+    SMIRKSType,
+)
 
 if TYPE_CHECKING:
     from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
@@ -268,13 +285,18 @@ class OptimizationStage(_Stage):
     )
 
     @staticmethod
-    def _regenerate_torsion_parameters(
+    def _generate_torsion_parameters(
         fragmentation_result: FragmentationResult,
-        initial_force_field: str,
+        input_schema: BespokeOptimizationSchema,
     ) -> List[ParameterType]:
 
         parent = fragmentation_result.parent_molecule
-        smirks_gen = SMIRKSGenerator(initial_force_field=initial_force_field)
+        smirks_gen = SMIRKSGenerator(
+            initial_force_field=input_schema.initial_force_field,
+            generate_bespoke_terms=input_schema.generate_bespoke_terms,
+            expand_torsion_terms=input_schema.expand_torsion_terms,
+            target_smirks=[SMIRKSType.ProperTorsions],
+        )
 
         new_smirks = []
         for fragment_data in fragmentation_result.fragments:
@@ -290,44 +312,64 @@ class OptimizationStage(_Stage):
         return new_smirks
 
     @staticmethod
-    async def _regenerate_parameters(
+    async def _generate_parameters(
         fragmentation_result: FragmentationResult,
         input_schema: BespokeOptimizationSchema,
     ):
         """
-        Regenerate any place holder torsion parameters in the input schema and add them to the force field while
-        removing old values. This edits the input schema in place.
+        Generate a list of parameters which are to be optimised, these are added to the input force field.
+        The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
         """
 
         initial_force_field = ForceFieldEditor(input_schema.initial_force_field)
-
-        torsion_parameters = OptimizationStage._regenerate_torsion_parameters(
-            fragmentation_result=fragmentation_result,
-            initial_force_field=input_schema.initial_force_field,
-        )
-
-        torsion_handler = initial_force_field.force_field["ProperTorsions"]
-
         new_parameters = []
-        # now we can remove all of the place holder terms
-        for old_parameter in input_schema.stages[0].parameters:
-            if isinstance(old_parameter, ProperTorsionSMIRKS):
-                # remove from the old force field
-                del torsion_handler.parameters[old_parameter.smirks]
-            else:
-                # we want to keep the other parameters
-                new_parameters.append(old_parameter)
 
-        # now add our new parameters to the force field and the schema list
-        for torsion_parameter in torsion_parameters:
-            new_parameters.append(
-                ProperTorsionSMIRKS(
-                    smirks=torsion_parameter.smirks, attributes={"k1", "k2", "k3", "k4"}
-                )
+        target_smirks = {*input_schema.target_smirks}
+        if SMIRKSType.ProperTorsions in target_smirks:
+            target_smirks.remove(SMIRKSType.ProperTorsions)
+
+            torsion_parameters = OptimizationStage._generate_torsion_parameters(
+                fragmentation_result=fragmentation_result,
+                input_schema=input_schema,
             )
-            initial_force_field.add_parameters(parameters=[torsion_parameter])
+            new_parameters.extend(torsion_parameters)
 
-        input_schema.stages[0].parameters = new_parameters
+        if len(target_smirks) > 0:
+            smirks_gen = SMIRKSGenerator(
+                initial_force_field=input_schema.initial_force_field,
+                generate_bespoke_terms=input_schema.generate_bespoke_terms,
+                target_smirks=[*target_smirks],
+                smirks_layers=1,
+            )
+
+            parameters = smirks_gen.generate_smirks_from_molecule(
+                molecule=input_schema.molecule
+            )
+            new_parameters.extend(parameters)
+
+        # add all new terms to the input force field
+        initial_force_field.add_parameters(parameters=new_parameters)
+
+        parameter_to_type = {
+            vdWHandler.vdWType: VdWSMIRKS,
+            BondHandler.BondType: BondSMIRKS,
+            AngleHandler.AngleType: AngleSMIRKS,
+            ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
+            ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
+        }
+        # convert all parameters to bespokefit types
+        parameters_to_fit = defaultdict(list)
+        for parameter in new_parameters:
+            bespoke_parameter = parameter_to_type[parameter.__class__].from_smirnoff(
+                parameter
+            )
+            parameters_to_fit[bespoke_parameter.type].append(bespoke_parameter)
+
+        # set which parameters should be optimised in each stage
+        for stage in input_schema.stages:
+            for hyper_param in stage.parameter_hyperparameters:
+                stage.parameters.extend(parameters_to_fit[hyper_param.type])
+
         input_schema.initial_force_field = initial_force_field.force_field.to_string()
 
     @staticmethod
@@ -355,13 +397,12 @@ class OptimizationStage(_Stage):
 
         input_schema = task.input_schema.copy(deep=True)
 
-        # Regenerate any parameters that should target both the parent molecule and
-        # its fragments
+        # Generate all parameters to be optimised
         fragmentation_stage: FragmentationStage = completed_stages["fragmentation"]
 
         # TODO: Move these methods onto the celery worker.
         try:
-            await self._regenerate_parameters(fragmentation_stage.result, input_schema)
+            await self._generate_parameters(fragmentation_stage.result, input_schema)
         except BaseException as e:  # lgtm [py/catch-base-exception]
 
             self.status = "errored"

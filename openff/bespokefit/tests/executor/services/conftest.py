@@ -1,6 +1,5 @@
 import pytest
 from openff.fragmenter.fragment import Fragment, FragmentationResult
-from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
@@ -8,10 +7,10 @@ from openff.bespokefit.schema.fitting import (
 )
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.smirnoff import (
+    BondHyperparameters,
     ProperTorsionHyperparameters,
-    ProperTorsionSMIRKS,
 )
-from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 @pytest.fixture()
@@ -42,27 +41,12 @@ def ptp1b_fragment(ptp1b_smiles) -> FragmentationResult:
 
 
 @pytest.fixture()
-def ptp1b_input_schema(ptp1b_smiles) -> BespokeOptimizationSchema:
+def ptp1b_input_schema_single(ptp1b_smiles) -> BespokeOptimizationSchema:
     """
-    Mock an input schema for SMARTS regeneration testing.
+    Mock an input schema for SMARTS generation testing.
     """
-    torsion_smirks = ProperTorsionSMIRKS(
-        smirks="[#6H0X3x2r5+0A:1](-;!@[#35H0X1x0!r+0A])(-;@[#6H0X3x2r5+0A](=;@[#6H0X3x2r5+0A](-;@[#16H0X2x2r5+0A])-;!@"
-        "[#6H0X3x0!r+0A](=;!@[#8H0X1x0!r+0A])-;!@[#8H0X1x0!r-1A])-;!@[#8H0X2x0!r+0A]-;!@[#6H2X4x0!r+0A]"
-        "(-;!@[#1H0X1x0!r+0A])(-;!@[#1H0X1x0!r+0A])-;!@[#6H0X3x0!r+0A](=;!@[#8H0X1x0!r+0A])-;!@[#8H0X1x0!r-1A])=;"
-        "@[#6H0X3x2r5+0A:2]-;!@[#6H0X3x2r6+0a:3](:;@[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H1X3x2r6+0a]"
-        "(-;!@[#1H0X1x0!r+0A]):;@[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H0X3x2r6+0a]-;!@[#7H1X3x0!r+0A]"
-        "(-;!@[#1H0X1x0!r+0A])-;!@[#6H0X3x0!r+0A](-;!@[#6H0X3x2r6+0a](:;@[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@"
-        "[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H1X3x2r6+0a]-;!@"
-        "[#1H0X1x0!r+0A]):;@[#6H1X3x2r6+0a]-;!@[#1H0X1x0!r+0A])=;!@[#8H0X1x0!r+0A]):;@[#6H1X3x2r6+0a:4]-;!@[#1H0X1x0!r+0A]",
-        attributes={"k1", "k2", "k3", "k4"},
-    )
+
     force_field = ForceFieldEditor("openff_unconstrained-1.3.0.offxml")
-    molecule = Molecule.from_mapped_smiles(mapped_smiles=ptp1b_smiles)
-    openff_parameters = force_field.get_initial_parameters(
-        molecule=molecule, smirks={SMIRKSType.ProperTorsions: [torsion_smirks.smirks]}
-    )
-    force_field.add_parameters(parameters=openff_parameters)
 
     return BespokeOptimizationSchema(
         id="ptp1b",
@@ -70,7 +54,7 @@ def ptp1b_input_schema(ptp1b_smiles) -> BespokeOptimizationSchema:
         stages=[
             OptimizationStageSchema(
                 optimizer=ForceBalanceSchema(),
-                parameters=[torsion_smirks],
+                parameters=[],
                 parameter_hyperparameters=[ProperTorsionHyperparameters()],
                 targets=[],
             )
@@ -80,3 +64,20 @@ def ptp1b_input_schema(ptp1b_smiles) -> BespokeOptimizationSchema:
         "[C:20]([H:39])([H:40])[C:19](=[O:26])[O-:23])[Br:29])[H:34])[H:33])[H:37])[H:35])[H:31]",
         target_torsion_smirks=["[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"],
     )
+
+
+@pytest.fixture()
+def ptp1b_input_schema_multiple(ptp1b_input_schema_single) -> BespokeOptimizationSchema:
+    """
+    Mock a multi stage optimisation schema.
+    """
+    input_schema = ptp1b_input_schema_single.copy(deep=True)
+    input_schema.stages.append(
+        OptimizationStageSchema(
+            optimizer=ForceBalanceSchema(),
+            parameters=[],
+            parameter_hyperparameters=[BondHyperparameters()],
+            targets=[],
+        )
+    )
+    return input_schema

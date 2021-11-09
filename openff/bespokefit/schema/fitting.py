@@ -2,6 +2,7 @@ import abc
 from typing import Dict, List, Optional
 
 from openff.fragmenter.fragment import WBOFragmenter
+from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field, conlist
 from simtk import unit
@@ -16,6 +17,7 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit.utilities.smirks import SMIRKSType
 
 
 class OptimizationStageSchema(SchemaBase, abc.ABC):
@@ -82,6 +84,19 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     )
 
     @property
+    def target_smirks(self) -> List[SMIRKSType]:
+        """Returns a list of the target smirks types based on the selected hyper parameters.
+        Used to determine which parameters should be fit.
+        """
+        return list(
+            {
+                SMIRKSType(parameter.type)
+                for stage in self.stages
+                for parameter in stage.parameter_hyperparameters
+            }
+        )
+
+    @property
     def initial_parameter_values(
         self,
     ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
@@ -138,3 +153,18 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "By default bespoke torsion parameters (if requested) will be constructed for "
         "all non-terminal 'rotatable bonds'",
     )
+
+    expand_torsion_terms: bool = Field(
+        True,
+        description="If the optimization should first expand the number of k values "
+        "that should be fit for each torsion beyond what is in the initial force field.",
+    )
+    generate_bespoke_terms: bool = Field(
+        True,
+        description="If the optimized smirks should be bespoke to the target molecules.",
+    )
+
+    @property
+    def molecule(self) -> Molecule:
+        """Return the openff molecule of the mapped smiles."""
+        return Molecule.from_mapped_smiles(self.smiles)

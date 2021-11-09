@@ -17,15 +17,7 @@ from openff.qcsubmit.results import (
 from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import (
-    AngleHandler,
-    BondHandler,
-    ForceField,
-    ImproperTorsionHandler,
-    ParameterType,
-    ProperTorsionHandler,
-    vdWHandler,
-)
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field, validator
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
@@ -43,13 +35,8 @@ from openff.bespokefit.schema.fitting import (
 )
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema, OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
-    AngleSMIRKS,
-    BondSMIRKS,
-    ImproperTorsionSMIRKS,
     ProperTorsionHyperparameters,
-    ProperTorsionSMIRKS,
     SMIRNOFFHyperparameters,
-    VdWSMIRKS,
 )
 from openff.bespokefit.schema.targets import (
     BespokeQCData,
@@ -63,11 +50,7 @@ from openff.bespokefit.schema.tasks import (
 )
 from openff.bespokefit.utilities import parallel
 from openff.bespokefit.utilities.pydantic import ClassBase
-from openff.bespokefit.utilities.smirks import (
-    SMIRKSGenerator,
-    SMIRKSType,
-    validate_smirks,
-)
+from openff.bespokefit.utilities.smirks import SMIRKSType, validate_smirks
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
@@ -415,88 +398,88 @@ class BespokeWorkflowFactory(ClassBase):
                 records_of_type
             )
 
-        smirks_gen = self._get_smirks_generator()
-        bespoke_parameters = []
+        # smirks_gen = self._get_smirks_generator()
+        # bespoke_parameters = []
 
-        for record, record_molecule in records:
-
-            if not isinstance(record, TorsionDriveRecord):
-                raise NotImplementedError("Only torsion drives are supported.")
-
-            dihedrals = record.keywords.dihedrals
-            assert len(dihedrals) == 1, "only 1D torsion drives are supported"
-
-            bespoke_parameters.extend(
-                smirks_gen.generate_smirks_from_molecule(
-                    molecule=record_molecule,
-                    central_bond=(dihedrals[0][1], dihedrals[0][2]),
-                )
-            )
+        # for record, record_molecule in records:
+        #
+        #     if not isinstance(record, TorsionDriveRecord):
+        #         raise NotImplementedError("Only torsion drives are supported.")
+        #
+        #     dihedrals = record.keywords.dihedrals
+        #     assert len(dihedrals) == 1, "only 1D torsion drives are supported"
+        #
+        #     bespoke_parameters.extend(
+        #         smirks_gen.generate_smirks_from_molecule(
+        #             molecule=record_molecule,
+        #             central_bond=(dihedrals[0][1], dihedrals[0][2]),
+        #         )
+        #     )
 
         opt_schema = self._build_optimization_schema(
             molecule=records[0][1],
             index=index,
-            bespoke_parameters=bespoke_parameters,
+            # bespoke_parameters=bespoke_parameters,
             local_qc_data=local_qc_data,
         )
 
         return opt_schema
 
-    def _default_bespoke_parameters(self, molecule: Molecule) -> List[ParameterType]:
-        """Generates a default set of bespoke parameters to train for a given molecule
-        of interest."""
+    # def _default_bespoke_parameters(self, molecule: Molecule) -> List[ParameterType]:
+    #     """Generates a default set of bespoke parameters to train for a given molecule
+    #     of interest."""
+    #
+    #     bespoke_parameters = []
+    #     target_smirks = {*self.target_smirks}
+    #
+    #     if SMIRKSType.ProperTorsions in self.target_smirks:
+    #
+    #         target_smirks.remove(SMIRKSType.ProperTorsions)
+    #
+    #         torsion_smirks_gen = self._get_smirks_generator(
+    #             target_smirks=[SMIRKSType.ProperTorsions]
+    #         )
+    #
+    #         central_bonds = {
+    #             tuple(sorted(match))
+    #             for smirks in self.target_torsion_smirks
+    #             for match in molecule.chemical_environment_matches(smirks)
+    #         }
+    #
+    #         bespoke_torsion_parameters = [
+    #             parameter
+    #             for match in central_bonds
+    #             for parameter in torsion_smirks_gen.generate_smirks_from_molecule(
+    #                 molecule, central_bond=match
+    #             )
+    #         ]
+    #         bespoke_parameters.extend(bespoke_torsion_parameters)
+    #
+    #     if len(target_smirks) > 0:
+    #
+    #         smirks_gen = self._get_smirks_generator([*target_smirks])
+    #
+    #         bespoke_parameters.extend(
+    #             smirks_gen.generate_smirks_from_molecule(molecule)
+    #         )
+    #
+    #     return bespoke_parameters
 
-        bespoke_parameters = []
-        target_smirks = {*self.target_smirks}
-
-        if SMIRKSType.ProperTorsions in self.target_smirks:
-
-            target_smirks.remove(SMIRKSType.ProperTorsions)
-
-            torsion_smirks_gen = self._get_smirks_generator(
-                target_smirks=[SMIRKSType.ProperTorsions]
-            )
-
-            central_bonds = {
-                tuple(sorted(match))
-                for smirks in self.target_torsion_smirks
-                for match in molecule.chemical_environment_matches(smirks)
-            }
-
-            bespoke_torsion_parameters = [
-                parameter
-                for match in central_bonds
-                for parameter in torsion_smirks_gen.generate_smirks_from_molecule(
-                    molecule, central_bond=match
-                )
-            ]
-            bespoke_parameters.extend(bespoke_torsion_parameters)
-
-        if len(target_smirks) > 0:
-
-            smirks_gen = self._get_smirks_generator([*target_smirks])
-
-            bespoke_parameters.extend(
-                smirks_gen.generate_smirks_from_molecule(molecule)
-            )
-
-        return bespoke_parameters
-
-    def _get_smirks_generator(
-        self, target_smirks: Optional[List[SMIRKSType]] = None
-    ) -> SMIRKSGenerator:
-        """
-        Build a smirks generator from the set of inputs.
-        """
-        smirks_gen = SMIRKSGenerator(
-            initial_force_field=self.initial_force_field,
-            generate_bespoke_terms=self.generate_bespoke_terms,
-            expand_torsion_terms=self.expand_torsion_terms,
-            target_smirks=self.target_smirks
-            if target_smirks is None
-            else target_smirks,
-        )
-        return smirks_gen
+    # def _get_smirks_generator(
+    #     self, target_smirks: Optional[List[SMIRKSType]] = None
+    # ) -> SMIRKSGenerator:
+    #     """
+    #     Build a smirks generator from the set of inputs.
+    #     """
+    #     smirks_gen = SMIRKSGenerator(
+    #         initial_force_field=self.initial_force_field,
+    #         generate_bespoke_terms=self.generate_bespoke_terms,
+    #         expand_torsion_terms=self.expand_torsion_terms,
+    #         target_smirks=self.target_smirks
+    #         if target_smirks is None
+    #         else target_smirks,
+    #     )
+    #     return smirks_gen
 
     def _select_qc_spec(self, molecule: Molecule) -> QCSpec:
         """Attempts to select a QC spec for a given molecule from the defaults list."""
@@ -513,30 +496,30 @@ class BespokeWorkflowFactory(ClassBase):
         self,
         molecule: Molecule,
         index: int,
-        bespoke_parameters: Optional[List[ParameterType]] = None,
+        # bespoke_parameters: Optional[List[ParameterType]] = None,
         local_qc_data: Optional[Dict[str, LocalQCData]] = None,
     ) -> BespokeOptimizationSchema:
         """For a given molecule schema build an optimization schema."""
 
         # Determine the bespoke parameters to be trained.
-        if bespoke_parameters is None:
-            bespoke_parameters = self._default_bespoke_parameters(molecule)
-
+        # if bespoke_parameters is None:
+        #     bespoke_parameters = self._default_bespoke_parameters(molecule)
+        #
         force_field_editor = ForceFieldEditor(self.initial_force_field)
-        bespoke_parameters = force_field_editor.add_parameters(bespoke_parameters)
+        # bespoke_parameters = force_field_editor.add_parameters(bespoke_parameters)
 
-        parameter_to_type = {
-            vdWHandler.vdWType: VdWSMIRKS,
-            BondHandler.BondType: BondSMIRKS,
-            AngleHandler.AngleType: AngleSMIRKS,
-            ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
-            ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
-        }
-        # noinspection PyTypeChecker
-        parameters = [
-            parameter_to_type[parameter.__class__].from_smirnoff(parameter)
-            for parameter in bespoke_parameters
-        ]
+        # parameter_to_type = {
+        #     vdWHandler.vdWType: VdWSMIRKS,
+        #     BondHandler.BondType: BondSMIRKS,
+        #     AngleHandler.AngleType: AngleSMIRKS,
+        #     ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
+        #     ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
+        # }
+        # # noinspection PyTypeChecker
+        # parameters = [
+        #     parameter_to_type[parameter.__class__].from_smirnoff(parameter)
+        #     for parameter in bespoke_parameters
+        # ]
 
         # Populate the targets
         targets = []
@@ -577,12 +560,14 @@ class BespokeWorkflowFactory(ClassBase):
             stages=[
                 OptimizationStageSchema(
                     optimizer=self.optimizer,
-                    parameters=parameters,
+                    parameters=[],
                     parameter_hyperparameters=self.parameter_hyperparameters,
                     targets=targets,
                 )
             ],
             fragmentation_engine=self.fragmentation_engine,
             target_torsion_smirks=self.target_torsion_smirks,
+            expand_torsion_terms=self.expand_torsion_terms,
+            generate_bespoke_terms=self.generate_bespoke_terms,
         )
         return schema
