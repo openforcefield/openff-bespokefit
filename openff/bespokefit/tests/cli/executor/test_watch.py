@@ -30,7 +30,7 @@ def test_watch(runner):
         )
         m.get(
             mock_href,
-            text=mock_response.json(),
+            text=mock_response.json(by_alias=True),
         )
 
         output = runner.invoke(watch_cli, args=["--id", "1"])
