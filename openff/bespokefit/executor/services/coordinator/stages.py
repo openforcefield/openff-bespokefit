@@ -195,9 +195,9 @@ class FragmentationStage(_Stage):
 
             self.error = json.dumps(
                 "No fragments could be generated for the parent molecule. This likely "
-                "this likely means that the bespoke parameters that you have generated "
-                "and are trying to fit are invalid. Please raise an issue on the GitHub "
-                "issue tracker for further assistance."
+                "means that the bespoke parameters that you have generated and are "
+                "trying to fit are invalid. Please raise an issue on the GitHub issue "
+                "tracker for further assistance."
             )
             self.status = "errored"
 
