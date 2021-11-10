@@ -57,10 +57,14 @@ extensions = [
 
 autosummary_generate = True
 autosummary_imported_members = False
-autosummary_ignore___all__ = False
+autosummary_ignore_module_all = False
 autosummary_context = {
     # Modules to exclude from API docs
-    "exclude_modules": [],
+    "exclude_modules": [
+        "openff.bespokefit.cli",
+        "openff.bespokefit.utilities",
+        "openff.bespokefit.tests",
+    ]
 }
 autodoc_default_options = {
     "member-order": "bysource",
