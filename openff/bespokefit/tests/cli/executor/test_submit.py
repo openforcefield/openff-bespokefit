@@ -1,3 +1,4 @@
+import json
 import os.path
 
 import numpy
@@ -57,6 +58,49 @@ def test_to_input_schema():
 
     assert isinstance(input_schema, BespokeOptimizationSchema)
     assert input_schema.id == "bespoke_task_0"
+
+
+def test_to_input_schema_file_not_found(tmpdir):
+
+    console = rich.get_console()
+
+    with console.capture() as capture:
+
+        input_schema = _to_input_schema(
+            console,
+            Molecule.from_smiles("CC"),
+            force_field_path="openff-1.2.1.offxml",
+            spec_name="fake-spec-name-123",
+            spec_file_name=None,
+        )
+
+    assert input_schema is None
+    assert (
+        "The specified schema could not be found: fake-spec-name-123" in capture.get()
+    )
+
+
+def test_to_input_schema_invalid_schema(tmpdir):
+
+    console = rich.get_console()
+
+    invalid_spec_path = os.path.join(tmpdir, "some-invalid-schema.json")
+
+    with open(invalid_spec_path, "w") as file:
+        json.dump({"invalid-filed": 1}, file)
+
+    with console.capture() as capture:
+
+        input_schema = _to_input_schema(
+            console,
+            Molecule.from_smiles("CC"),
+            force_field_path="openff-1.2.1.offxml",
+            spec_name=None,
+            spec_file_name=invalid_spec_path,
+        )
+
+    assert input_schema is None
+    assert "The factory schema could not be parsed" in capture.get()
 
 
 def test_submit_multi_molecule(tmpdir):

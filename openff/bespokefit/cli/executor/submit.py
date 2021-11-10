@@ -76,21 +76,37 @@ def _to_input_schema(
         )
         return None
 
-    if spec_name is not None:
-
-        spec_file_name = get_data_file_path(
-            os.path.join("schemas", f"{spec_name.lower()}.json"),
-            "openff.bespokefit",
-        )
+    invalid_spec_name = spec_name if spec_name is not None else spec_file_name
 
     try:
+
+        if spec_name is not None:
+
+            spec_file_name = get_data_file_path(
+                os.path.join("schemas", f"{spec_name.lower()}.json"),
+                "openff.bespokefit",
+            )
 
         workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
         workflow_factory.initial_force_field = force_field_path
 
-    except ValidationError as e:
+    except (FileNotFoundError, RuntimeError) as e:
 
-        invalid_spec_name = spec_name if spec_name is not None else spec_file_name
+        # Need for QCSubmit #176
+        if isinstance(e, RuntimeError) and "could not be found" not in str(e):
+            raise e
+
+        console.print(
+            Padding(
+                f"[[red]ERROR[/red]] The specified schema could not be found: "
+                f"[repr.filename]{invalid_spec_name}[/repr.filename]",
+                (1, 0, 0, 0),
+            )
+        )
+
+        return
+
+    except ValidationError as e:
 
         console.print(
             Padding(
