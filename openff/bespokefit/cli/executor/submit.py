@@ -90,10 +90,12 @@ def _to_input_schema(
 
     except ValidationError as e:
 
+        invalid_spec_name = spec_name if spec_name is not None else spec_file_name
+
         console.print(
             Padding(
                 f"[[red]ERROR[/red]] The factory schema could not be parsed. Make sure "
-                f"{spec_name if spec_name is not None else spec_file_name} is a valid "
+                f"[repr.filename]{invalid_spec_name}[/repr.filename] is a valid "
                 f"`BespokeWorkflowFactory` schema.",
                 (1, 0, 0, 0),
             )
