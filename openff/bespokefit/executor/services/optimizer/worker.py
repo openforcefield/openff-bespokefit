@@ -1,6 +1,9 @@
+import os
+import shutil
 from typing import Union
 
 import redis
+from openff.utilities import temporary_cd
 from pydantic import parse_raw_as
 from qcelemental.util import serialize
 
@@ -31,24 +34,31 @@ def optimize(self, optimization_input_json: str) -> str:
     input_force_field = ForceField(input_schema.initial_force_field)
 
     stage_results = []
+    # run all optimisations in the task folder
+    os.makedirs(input_schema.id, exist_ok=True)
+    with temporary_cd(input_schema.id):
+        for i, stage in enumerate(input_schema.stages):
 
-    for stage in input_schema.stages:
+            optimizer = get_optimizer(stage.optimizer.type)
+            result = optimizer.optimize(
+                schema=stage,
+                initial_force_field=input_force_field,
+                keep_files=settings.BEFLOW_KEEP_FILES,
+                root_directory=f"stage_{i}",
+            )
 
-        optimizer = get_optimizer(stage.optimizer.type)
-        result = optimizer.optimize(
-            stage, input_force_field, keep_files=settings.BEFLOW_KEEP_FILES
-        )
+            stage_results.append(result)
 
-        stage_results.append(result)
+            if result.status != "success":
+                break
 
-        if result.status != "success":
-            break
-
-        input_force_field = ForceField(
-            ForceField(
-                result.refit_force_field, allow_cosmetic_attributes=True
-            ).to_string(discard_cosmetic_attributes=True)
-        )
+            input_force_field = ForceField(
+                ForceField(
+                    result.refit_force_field, allow_cosmetic_attributes=True
+                ).to_string(discard_cosmetic_attributes=True)
+            )
+    if not settings.BEFLOW_KEEP_FILES:
+        shutil.rmtree(input_schema.id, ignore_errors=True)
 
     return serialize(
         BespokeOptimizationResults(input_schema=input_schema, stages=stage_results),
