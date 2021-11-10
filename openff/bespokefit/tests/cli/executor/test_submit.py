@@ -46,18 +46,23 @@ def test_to_input_schema_mutual_exclusive_args(
     assert (input_schema is None) == output_is_none
 
 
-def test_to_input_schema():
+@pytest.mark.parametrize("force_field_path", [None, "openff-1.0.0.offxml"])
+def test_to_input_schema(force_field_path):
 
     input_schema = _to_input_schema(
         rich.get_console(),
         Molecule.from_smiles("CC"),
-        force_field_path="openff-1.2.1.offxml",
+        force_field_path=force_field_path,
         spec_name="debug",
         spec_file_name=None,
     )
 
     assert isinstance(input_schema, BespokeOptimizationSchema)
     assert input_schema.id == "bespoke_task_0"
+
+    assert (
+        "2021-08-16" if force_field_path is None else "2019-10-10"
+    ) in input_schema.initial_force_field
 
 
 def test_to_input_schema_file_not_found(tmpdir):

@@ -34,9 +34,11 @@ def submit_options():
             "--force-field",
             "force_field_path",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
-            help="The initial force field to build upon",
-            default="openff-2.0.0.offxml",
+            help="The initial force field to build upon. This will overwrite the value "
+            "in the workflow spec if provided.",
+            default=None,
             show_default=True,
+            required=False,
         ),
         optgroup.group("Optimization configuration"),
         optgroup.option(
@@ -59,7 +61,7 @@ def submit_options():
 def _to_input_schema(
     console: "rich.Console",
     molecule: "Molecule",
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ) -> Optional["BespokeOptimizationSchema"]:
@@ -88,7 +90,9 @@ def _to_input_schema(
             )
 
         workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
-        workflow_factory.initial_force_field = force_field_path
+
+        if force_field_path is not None:
+            workflow_factory.initial_force_field = force_field_path
 
     except (FileNotFoundError, RuntimeError) as e:
 
@@ -126,7 +130,7 @@ def _to_input_schema(
 def _submit(
     console: "rich.Console",
     input_file_path: str,
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ) -> Optional["CoordinatorPOSTResponse"]:
@@ -176,7 +180,7 @@ def _submit(
 
 def _submit_cli(
     input_file_path: str,
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ):
