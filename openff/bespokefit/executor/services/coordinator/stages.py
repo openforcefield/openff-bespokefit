@@ -166,8 +166,23 @@ class FragmentationStage(_Stage):
 
         self.result = get_response.result
 
-        self.error = get_response.error
-        self.status = get_response.status
+        if (
+            isinstance(self.result, FragmentationResult)
+            and len(self.result.fragments) == 0
+        ):
+
+            self.error = json.dumps(
+                "No fragments could be generated for the parent molecule. This likely "
+                "this likely means that the bespoke parameters that you have generated "
+                "and are trying to fit are invalid. Please raise an issue on the GitHub "
+                "issue tracker for further assistance."
+            )
+            self.status = "errored"
+
+        else:
+
+            self.error = get_response.error
+            self.status = get_response.status
 
 
 class QCGenerationStage(_Stage):
@@ -248,6 +263,17 @@ class QCGenerationStage(_Stage):
     async def update(self):
 
         if self.status == "errored":
+            return
+
+        if (
+            len([qc_id for target_ids in self.ids.values() for qc_id in target_ids])
+            == 0
+        ):
+
+            # Handle the case were there was no bespoke QC data to generate.
+            self.status = "success"
+            self.results = {}
+
             return
 
         async with httpx.AsyncClient() as client:
@@ -412,27 +438,29 @@ class OptimizationStage(_Stage):
             input_schema.initial_force_field, allow_cosmetic_attributes=True
         )
 
-        torsion_parameters = self._regenerate_torsion_parameters(
-            input_schema.parameters, fragmentation_stage.result
-        )
+        for stage in input_schema.stages:
 
-        torsion_handler = initial_force_field["ProperTorsions"]
+            torsion_parameters = self._regenerate_torsion_parameters(
+                stage.parameters, fragmentation_stage.result
+            )
 
-        for original_parameter, new_parameter in torsion_parameters:
+            torsion_handler = initial_force_field["ProperTorsions"]
 
-            force_field_parameter = torsion_handler.parameters[
-                original_parameter.smirks
+            for original_parameter, new_parameter in torsion_parameters:
+
+                force_field_parameter = torsion_handler.parameters[
+                    original_parameter.smirks
+                ]
+                force_field_parameter.smirks = new_parameter.smirks
+
+            stage.parameters = [
+                *[
+                    parameter
+                    for parameter in stage.parameters
+                    if not isinstance(parameter, ProperTorsionSMIRKS)
+                ],
+                *[parameter for _, parameter in torsion_parameters],
             ]
-            force_field_parameter.smirks = new_parameter.smirks
-
-        input_schema.parameters = [
-            *[
-                parameter
-                for parameter in input_schema.parameters
-                if not isinstance(parameter, ProperTorsionSMIRKS)
-            ],
-            *[parameter for _, parameter in torsion_parameters],
-        ]
 
         input_schema.initial_force_field = initial_force_field.to_string()
 
@@ -446,6 +474,12 @@ class OptimizationStage(_Stage):
 
         for i, target in enumerate(targets):
 
+            if not isinstance(target.reference_data, BespokeQCData):
+                continue
+
+            if i not in qc_generation_stage.ids or i not in qc_generation_stage.results:
+                continue
+
             local_qc_data = LocalQCData(
                 qc_records=[
                     qc_generation_stage.results[result_id]
@@ -454,6 +488,21 @@ class OptimizationStage(_Stage):
             )
 
             target.reference_data = local_qc_data
+
+        targets_missing_qc_data = [
+            target
+            for target in targets
+            if isinstance(target.reference_data, BespokeQCData)
+        ]
+        n_targets_missing_qc_data = len(targets_missing_qc_data)
+
+        if n_targets_missing_qc_data > 0:
+
+            raise RuntimeError(
+                f"{n_targets_missing_qc_data} targets were missing QC data - this "
+                f"should likely never happen. Please raise an issue on the GitHub "
+                f"issue tracker."
+            )
 
     async def enter(self, task: "CoordinatorTask"):
 
