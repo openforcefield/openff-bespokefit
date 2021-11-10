@@ -57,12 +57,32 @@ class _Stage(BaseModel, abc.ABC):
         None, description="The error raised, if any, while running this stage."
     )
 
-    @abc.abstractmethod
     async def enter(self, task: "CoordinatorTask"):
+
+        try:
+            return await self._enter(task)
+
+        except BaseException as e:  # lgtm [py/catch-base-exception]
+
+            self.status = "errored"
+            self.error = json.dumps(f"{e.__class__.__name__}: {str(e)}")
+
+    async def update(self):
+
+        try:
+            return await self._update()
+
+        except BaseException as e:  # lgtm [py/catch-base-exception]
+
+            self.status = "errored"
+            self.error = json.dumps(f"{e.__class__.__name__}: {str(e)}")
+
+    @abc.abstractmethod
+    async def _enter(self, task: "CoordinatorTask"):
         pass
 
     @abc.abstractmethod
-    async def update(self):
+    async def _update(self):
         pass
 
 
@@ -107,7 +127,12 @@ class FragmentationStage(_Stage):
 
         return sorted(target_bond_smarts)
 
-    async def enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: "CoordinatorTask"):
+
+        target_bond_smarts = self._generate_target_bond_smarts(
+            task.input_schema.smiles,
+            [*task.input_schema.initial_parameter_values],
+        )
 
         async with httpx.AsyncClient() as client:
 
@@ -119,10 +144,7 @@ class FragmentationStage(_Stage):
                 data=FragmenterPOSTBody(
                     cmiles=task.input_schema.smiles,
                     fragmenter=task.input_schema.fragmentation_engine,
-                    target_bond_smarts=self._generate_target_bond_smarts(
-                        task.input_schema.smiles,
-                        [*task.input_schema.initial_parameter_values],
-                    ),
+                    target_bond_smarts=target_bond_smarts,
                 ).json(),
             )
 
@@ -139,7 +161,7 @@ class FragmentationStage(_Stage):
 
         self.id = post_response.id
 
-    async def update(self):
+    async def _update(self):
 
         if self.status == "errored":
             return
@@ -195,7 +217,7 @@ class QCGenerationStage(_Stage):
         Dict[str, Union[AtomicResult, OptimizationResult, TorsionDriveResult]]
     ] = Field(None, description="")
 
-    async def enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: "CoordinatorTask"):
 
         fragment_stage = next(
             iter(
@@ -260,7 +282,7 @@ class QCGenerationStage(_Stage):
 
         self.ids = {i: sorted(ids) for i, ids in qc_calc_ids.items()}
 
-    async def update(self):
+    async def _update(self):
 
         if self.status == "errored":
             return
@@ -504,7 +526,7 @@ class OptimizationStage(_Stage):
                 f"issue tracker."
             )
 
-    async def enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: "CoordinatorTask"):
 
         completed_stages = {stage.type: stage for stage in task.completed_stages}
 
@@ -565,7 +587,7 @@ class OptimizationStage(_Stage):
             response = OptimizerPOSTResponse.parse_raw(raw_response.text)
             self.id = response.id
 
-    async def update(self):
+    async def _update(self):
 
         if self.status == "errored":
             return
