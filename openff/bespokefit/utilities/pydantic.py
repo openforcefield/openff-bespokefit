@@ -2,12 +2,16 @@
 """
 import numpy as np
 import pydantic
+from pydantic import Extra
 
 
 class BaseModel(pydantic.BaseModel):
     """The base model from which all data models within the package should inherit."""
 
     class Config:
+
+        extra = Extra.forbid
+
         json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}
 
 
