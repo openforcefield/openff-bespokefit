@@ -5,6 +5,7 @@ import click
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
+from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 
@@ -82,8 +83,24 @@ def _to_input_schema(
             "openff.bespokefit",
         )
 
-    workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
-    workflow_factory.initial_force_field = force_field_path
+    try:
+
+        workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
+        workflow_factory.initial_force_field = force_field_path
+
+    except ValidationError as e:
+
+        console.print(
+            Padding(
+                f"[[red]ERROR[/red]] The factory schema could not be parsed. Make sure "
+                f"{spec_name if spec_name is not None else spec_file_name} is a valid "
+                f"`BespokeWorkflowFactory` schema.",
+                (1, 0, 0, 0),
+            )
+        )
+        console.print(Padding(str(e), (1, 1, 1, 1)))
+
+        return
 
     return workflow_factory.optimization_schema_from_molecule(molecule)
 
