@@ -17,7 +17,7 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.utilities.pydantic import SchemaBase
-from openff.bespokefit.utilities.smirks import SMIRKSType
+from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 
 
 class OptimizationStageSchema(SchemaBase, abc.ABC):
@@ -154,14 +154,9 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "all non-terminal 'rotatable bonds'",
     )
 
-    expand_torsion_terms: bool = Field(
-        True,
-        description="If the optimization should first expand the number of k values "
-        "that should be fit for each torsion beyond what is in the initial force field.",
-    )
-    generate_bespoke_terms: bool = Field(
-        True,
-        description="If the optimized smirks should be bespoke to the target molecules.",
+    smirk_settings: SMIRKSettings = Field(
+        SMIRKSettings(),
+        description="The settings that should be used when generating SMIRKS patterns for this optimization stage.",
     )
 
     @property

@@ -293,8 +293,8 @@ class OptimizationStage(_Stage):
         parent = fragmentation_result.parent_molecule
         smirks_gen = SMIRKSGenerator(
             initial_force_field=input_schema.initial_force_field,
-            generate_bespoke_terms=input_schema.generate_bespoke_terms,
-            expand_torsion_terms=input_schema.expand_torsion_terms,
+            generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
+            expand_torsion_terms=input_schema.smirk_settings.expand_torsion_terms,
             target_smirks=[SMIRKSType.ProperTorsions],
         )
 
@@ -337,7 +337,7 @@ class OptimizationStage(_Stage):
         if len(target_smirks) > 0:
             smirks_gen = SMIRKSGenerator(
                 initial_force_field=input_schema.initial_force_field,
-                generate_bespoke_terms=input_schema.generate_bespoke_terms,
+                generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
                 target_smirks=[*target_smirks],
                 smirks_layers=1,
             )

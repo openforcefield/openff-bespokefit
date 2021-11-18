@@ -16,7 +16,7 @@ from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import ClassBase
+from openff.bespokefit.utilities.pydantic import ClassBase, SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -148,7 +148,23 @@ def validate_smirks(smirks: str, expected_tags: int) -> str:
     return smirks
 
 
-class SMIRKSGenerator(ClassBase):
+class SMIRKSettings(SchemaBase):
+    """
+    Settings for the generation of SMIRKS patterns via the SMIRKSGenerator.
+    """
+
+    expand_torsion_terms: bool = Field(
+        True,
+        description="If the number of k values for each torsion should be expanded beyond what is in "
+        "the initial force field to introduce extra degrees of freedom during fitting.",
+    )
+    generate_bespoke_terms: bool = Field(
+        True,
+        description="If we should generate bespoke smirks for the molecule or use existing general patterns.",
+    )
+
+
+class SMIRKSGenerator(SMIRKSettings):
     """
     Generates a set of smirks that describe the requested force groups of the molecule,
     these can be bespoke or simply extract the current values from the target forcefield.
@@ -157,16 +173,6 @@ class SMIRKSGenerator(ClassBase):
     initial_force_field: Union[str, ForceFieldEditor] = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",
-    )
-
-    generate_bespoke_terms: bool = Field(
-        True,
-        description="For each instance of a force group in the molecule generate a new "
-        "bespoke smirks parameter.",
-    )
-    expand_torsion_terms: bool = Field(
-        True,
-        description="For each new torsion term expand the number of k terms up to 4.",
     )
 
     target_smirks: List[SMIRKSType] = Field(
