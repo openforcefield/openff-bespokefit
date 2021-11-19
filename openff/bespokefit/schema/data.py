@@ -75,7 +75,7 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
                 model=Model(method=record.qc_spec.method, basis=record.qc_spec.basis),
                 extras=record.extras,
             ),
-            initial_molecule=molecule.to_qcschema(),
+            initial_molecule=[molecule.to_qcschema()],
             optimization_spec=OptimizationSpecification(
                 procedure=record.optimization_spec.program,
                 keywords=record.optimization_spec.keywords,

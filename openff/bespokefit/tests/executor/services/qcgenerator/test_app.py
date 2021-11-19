@@ -53,7 +53,7 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
         input_specification=QCInputSpecification(
             model=Model(method="uff", basis=None), driver=DriverEnum.gradient
         ),
-        initial_molecule=molecule.to_qcschema(),
+        initial_molecule=[molecule.to_qcschema()],
         optimization_spec=OptimizationSpecification(procedure="geometric"),
         final_energies={"[180]": 1.0},
         final_molecules={"[180]": molecule.to_qcschema()},

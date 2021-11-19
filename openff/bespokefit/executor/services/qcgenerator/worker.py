@@ -46,8 +46,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     task = Torsion1DTask.parse_raw(task_json)
 
     molecule: Molecule = Molecule.from_smiles(task.smiles)
-    # TODO: Ask Josh about multiple conformers.
-    molecule.generate_conformers(n_conformers=1)
+    molecule.generate_conformers(n_conformers=task.n_conformers)
 
     map_to_atom_index = {
         map_index: atom_index
@@ -88,7 +87,9 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
                 isomeric=True, explicit_hydrogens=True, mapped=True
             )
         },
-        initial_molecule=molecule.to_qcschema(),
+        initial_molecule=[
+            molecule.to_qcschema(conformer=i) for i in range(molecule.n_conformers)
+        ],
         input_specification=QCInputSpecification(
             model=task.model,
             driver=DriverEnum.gradient,

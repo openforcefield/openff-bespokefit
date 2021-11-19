@@ -36,6 +36,7 @@ dependencies:
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
+  - qcelemental >=0.24.0
   - qcengine >=0.20.0
   - chemper
   - geometric
