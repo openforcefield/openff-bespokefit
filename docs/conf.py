@@ -62,16 +62,30 @@ autosummary_context = {
     # Modules to exclude from API docs
     "exclude_modules": [
         "openff.bespokefit.cli",
-        "openff.bespokefit.utilities",
         "openff.bespokefit.tests",
     ]
 }
 autodoc_default_options = {
     "member-order": "bysource",
-    "undoc-members": False,
+    "undoc-members": True,
+    "members": True,
+    "inherited-members": False,
+    "show-inheritance": True,
 }
 autodoc_preserve_defaults = True
 autodoc_inherit_docstrings = False
+
+autodoc_pydantic_model_member_order = "groupwise"
+autodoc_pydantic_model_signature_prefix = "model"
+autodoc_pydantic_model_show_validator_members = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_settings_signature_prefix = "settings"
+autodoc_pydantic_settings_show_validator_members = False
+autodoc_pydantic_settings_show_validator_summary = False
+autodoc_pydantic_settings_show_config_summary = False
+autodoc_pydantic_field_doc_policy = "both"
+autodoc_pydantic_field_list_validators = False
 
 napoleon_google_docstring = True
 napoleon_use_param = False
@@ -142,6 +156,8 @@ html_theme_options = {
     # or a tuple of three ints in the range [0, 255] corresponding to
     # a position in RGB space.
     "color_accent": "openff-evaluator-orange",
+    "html_minify": False,
+    "html_prettify": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

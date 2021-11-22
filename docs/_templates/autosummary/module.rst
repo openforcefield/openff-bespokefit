@@ -1,6 +1,11 @@
 {{ objname | escape | underline(line="=")}}
 
 .. automodule:: {{ fullname }}
+{#
+   :no-members:
+
+   TODO: Restore this when Sphinx 4.4 with autosummary_ignore_module_all setting is released
+#}
 
 {% block modules %}
 {% if modules %}
