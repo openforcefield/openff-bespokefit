@@ -41,7 +41,7 @@ git pull
 conda env update --file devtools/conda-envs/test-env.yaml --name bespokefit 
 ```
 
-Remember to activate the `bespokefit` environment before trying to develop with it:
+Remember to activate the `bespokefit` environment before trying to use it:
 
 ```sh
 conda activate bespokefit
