@@ -53,6 +53,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "myst_parser",
     "sphinxcontrib.autodoc_pydantic",
+    "doctest_oxide",
 ]
 
 autosummary_generate = True

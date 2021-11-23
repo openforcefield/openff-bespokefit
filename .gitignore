@@ -65,6 +65,7 @@ instance/
 # Sphinx documentation
 docs/_build/
 docs/_autosummary/
+docs/_doctests/
 
 # PyBuilder
 target/
@@ -104,3 +105,6 @@ ENV/
 
 # PyCharm
 .idea
+
+# BespokeFit
+bespoke-executor/

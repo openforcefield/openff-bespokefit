@@ -1,9 +1,14 @@
-name: readthedocs-environment
+name: test
+
 channels:
+  - openeye
   - conda-forge
-  - nodefaults
+  - defaults
+
 dependencies:
-  - python>=3.7
+
+    # Base depends
+  - python
   - pip
 
     ### Core dependencies.
@@ -43,6 +48,10 @@ dependencies:
   - httpx
   - redis-server
   - redis-py
+
+    ### Testing
+
+  - pytest
 
     ### Documentation dependencies
 

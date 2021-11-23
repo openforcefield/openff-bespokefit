@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  test:
+
+    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+
+    env:
+      OE_LICENSE: ${{ github.workspace }}/oe_license.txt
+
+    steps:
+      - uses: actions/checkout@v2.3.5
+
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v2.1.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: devtools/conda-envs/doctest-env.yaml
+
+          channels: openeye,conda-forge,defaults
+
+          activate-environment: test
+          auto-update-conda: true
+          auto-activate-base: false
+          show-channel-urls: true
+
+      - name: License OpenEye
+        shell: bash -l {0}
+        run: |
+          echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+        env:
+          SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+
+      - name: Install Package
+        shell: bash -l {0}
+        run: |
+          python setup.py develop --no-deps
+
+      - name: Conda Environment Information
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+
+      - name: Run Doctests
+        shell: bash -l {0}
+        run: |
+          cd docs
+          make doctest_oxide
+          pytest _build/doctest_oxide
