@@ -56,6 +56,17 @@ extensions = [
     "doctest_oxide",
 ]
 
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "openff.toolkit": (
+        "https://open-forcefield-toolkit.readthedocs.io/en/stable/",
+        None,
+    ),
+    "openff.fragmenter": ("https://fragmenter.readthedocs.io/en/stable/", None),
+    "openff.qcsubmit": ("https://openff-qcsubmit.readthedocs.io/en/stable/", None),
+    "mdtraj": ("https://www.mdtraj.org/1.9.5/", None),
+}
+
 autosummary_generate = True
 autosummary_imported_members = False
 autosummary_ignore_module_all = False
