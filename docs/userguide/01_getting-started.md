@@ -1,3 +1,4 @@
+(getting_started_chapter)=
 # Getting started
 
 BespokeFit creates bespoke [SMIRNOFF-format] molecular mechanics force field
@@ -16,7 +17,8 @@ Please note that BespokeFit is experimental, pre-production software. It does
 not promise to have a stable API or even to produce correct results. If you
 find it produces incorrect results, please [file an issue!]
 
-BespokeFit will soon be available on Conda Forge. In the meantime, or for development, it can be installed manually:
+BespokeFit will soon be available on Conda Forge. In the meantime, or for
+development, it can be installed manually:
 
 ```sh
 # Download the repository
@@ -76,7 +78,6 @@ package. A script to perform this default optimization is very simple:
 // 
     # Ask the factory to create an optimization workflow for a given molecule
     target_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine
-    target_molecule.generate_conformers(n_conformers=1)
     workflow = factory.optimization_schema_from_molecule(
         molecule=target_molecule,
     )
@@ -114,21 +115,56 @@ unsupported:
 
 Check the [API docs](openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory)
 for descriptions of the factory's configurable options. Once the factory is 
-configured, it can be saved and loaded from disk easily:
+configured, it can be [saved] and [loaded] from disk easily:
 
 ```python
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  factory = BespokeWorkflowFactory()
-    factory.to_file("default_factory.yaml") # or .json
+    factory.export_factory("default_factory.yaml") # or .json
     factory_from_disk = BespokeWorkflowFactory.from_file("default_factory.yaml")
     assert factory == factory_from_disk
 ```
 
 This makes it simple to record and share complex configurations. OpenFF
 recommends making this file available when publishing data using BespokeFit for
-reproducibility.
+reproducibility. Factories that have been saved to disk can also be used via
+BespokeFit's [command line interface].
+
+The configured factory describes a general workflow for any molecule that can be
+represented by the OpenFF Toolkit's [`Molecule`] class. The configured
+factory's [`optimization_schema_from_molecule()`] method takes a `Molecule` and
+produces a [`BespokeOptimizationSchema`] object. Note that the Toolkit can be
+very strict about the kinds of input it accepts, as it wants to avoid
+misinterpreting an ambiguous input and silently producing the wrong molecule.
+Rather than providing a coordinate file, it's usually best to provide a SMILES
+string of the target molecule.
+
+```python
+//  from openff.bespokefit.workflows import BespokeWorkflowFactory
+//  from openff.toolkit.topology import Molecule
+//  factory = BespokeWorkflowFactory()
+//  
+    target_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine
+    workflow = factory.optimization_schema_from_molecule(
+        molecule=target_molecule,
+    )
+```
+
+Once we have the target molecule's optimization schema, we use
+[`BespokeExecutor`] to run the workflow. `BespokeExecutor` not only takes care
+of calling out to any external programs in your workflow, it also manages
+spreading a queue of jobs over a pool of worker threads so that batch runs can
+be executed efficiently in parallel. `BespokeExecutor` is described in more
+detail in [it's own chapter](executor_chapter).
 
 [workflow factory]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
 [`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
 ["Parsley"]: https://github.com/openforcefield/openff-forcefields/releases/tag/1.3.0
 [Psi4]: https://psicode.org/
+[saved]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.export_factory
+[loaded]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.from_file
+[`Molecule`]: openff.toolkit.topology.Molecule
+[`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
+[`optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
+[command line interface]: cli_chapter
+[`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
