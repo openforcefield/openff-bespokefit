@@ -52,6 +52,7 @@ dependencies:
     ### Testing
 
   - pytest
+  - xtb-python
 
     ### Documentation dependencies
 
