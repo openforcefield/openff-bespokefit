@@ -20,6 +20,8 @@ workflows submitted to individual instances.
 `BespokeExecutor` can be started, jobs submitted, and progress reported on from
 Python code using the [`BespokeExecutor`] class, or from the CLI.
 
+[`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
+
 ## From Python
 
 Configure the `BespokeExecutor` instance by specifying the number of worker
@@ -43,12 +45,15 @@ available cores, even if only one workflow is submitted. If a value greater
 than 1 is provided, each worker can work on its own fragment of the target
 molecule.
 
-The resulting executor is a context manager that accepts workflows submitted to
-it by its `submit()` method. As soon as the context manager ends, the
-`BespokeExecutor` instance is closed, terminating any running jobs. To complete
-a job, we need to use the `wait_until_complete()` function, which blocks
-progress in the script until it can return a result. This is also the easiest
-way to get results out of the executor:
+The resulting executor is a context manager that accepts workflows via its
+`submit()` method. Recall that workflows are instances of the
+[`BespokeOptimizationSchema`] class, which are created by the
+[`BespokeWorkflowFactory.optimization_schema_from_molecule()`] method. As soon
+as the context manager ends, the `BespokeExecutor` instance is closed,
+terminating any running jobs. To complete a job, we need to use the
+`wait_until_complete()` function, which blocks progress in the script until it
+can return a result. This is also the easiest way to get results out of the
+executor:
 
 ```python
 //  from openff.bespokefit.executor import BespokeExecutor
@@ -66,8 +71,10 @@ way to get results out of the executor:
 ```
 
 These functions respectively correspond to a HTTP POST and GET request, and they
-return the appropriate [POST] and [GET] response types. Using the context with
-multiple workflows is simple:
+return the appropriate [POST] and [GET] response types. `wait_until_complete()`
+returns the result of a task even if the task has already finished when the
+function is executed, so using the context manager with multiple workflows is
+simple. Given an iterator of workflow schemas named `workflows`:
 
 ```python
 //  from openff.bespokefit.executor import BespokeExecutor
@@ -85,15 +92,50 @@ multiple workflows is simple:
 //      "C(C(C(=O)O)N)S",
 //  ]
 //  molecules = [Molecule.from_smiles(s) for s in smiles]
-    workflows = [factory.optimization_schema_from_molecule(m) for m in molecules]
+//  workflows = [factory.optimization_schema_from_molecule(m) for m in molecules]
     with BespokeExecutor(1, 1, 2) as executor:
         tasks = [executor.submit(w) for w in workflows]
         results = [wait_until_complete(t.id) for t in tasks]
 ```
 
+This will return all the results in the same order as the `molecule` iterator,
+even if they are executed out of order behind the scenes.
 
-[`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
+[`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
+[`BespokeWorkflowFactory.optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
 [`submit()`]: openff.bespokefit.executor.BespokeExecutor.submit
 [`wait_until_complete()`]: openff.bespokefit.executor.wait_until_complete
 [POST]: openff.bespokefit.executor.services.coordinator.models.CoordinatorPOSTResponse
 [GET]: openff.bespokefit.executor.services.coordinator.models.CoordinatorGETResponse
+[`Molecule`]: openff.toolkit.topology.Molecule
+
+## From the CLI
+
+BespokeFit also provides a [command line interface](cli_chapter) for working
+with BespokeExecutor. First, start the executor:
+
+```sh
+openff-bespoke executor launch
+```
+
+Then submit a molecule from a structure file:
+
+```sh
+openff-bespoke executor submit --input molecule.sdf
+```
+
+The `--input` switch accepts most commonly used chemistry formats. OpenFF
+recommends SDF as it includes all the information needed to unambiguously
+construct a molecular graph. For more information, see the[OpenFF Toolkit FAQ].
+For other options and features, use the `--help` switch on any subcommand:
+
+
+```sh
+openff-bespoke --help
+openff-bespoke executor --help
+openff-bespoke executor submit --help # etc
+```
+
+
+[command line interface]: cli_chapter
+[`openff-toolkit` FAQ]: openff.toolkit:faq

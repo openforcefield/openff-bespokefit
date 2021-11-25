@@ -111,6 +111,29 @@ myst_enable_extensions = [
     "colon_fence",
 ]
 
+# sphinx-notfound-page
+# https://github.com/readthedocs/sphinx-notfound-page
+# Renders a 404 page with absolute links
+import importlib
+
+if importlib.util.find_spec("notfound"):
+    extensions.append("notfound.extension")
+
+    notfound_context = {
+        "title": "404: File Not Found",
+        "body": """
+    <h1>404: File Not Found</h1>
+    <p>
+        Sorry, we couldn't find that page. This often happens as a result of
+        following an outdated link. Please check the latest stable version
+        of the docs, unless you're sure you want an earlier version, and
+        try using the search box or the navigation menu on the left.
+    </p>
+    <p>
+    </p>
+    """,
+    }
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -133,7 +156,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
@@ -147,8 +170,8 @@ pygments_style = "default"
 extensions.append("openff_sphinx_theme")
 html_theme = "openff_sphinx_theme"
 html_sidebars = {
-    "**": ["globaltoc.html", "localtoc.html", "searchbox.html"],
-    "index": ["globaltoc.html", "searchbox.html"],
+    # "**": ["globaltoc.html", "localtoc.html", "searchbox.html"], #  To place the local TOC on the right hand side
+    "**": ["globaltoc.html", "searchbox.html"],
 }
 
 # Theme options are theme-specific and customize the look and feel of a
