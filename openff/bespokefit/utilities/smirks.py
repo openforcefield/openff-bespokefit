@@ -12,11 +12,12 @@ from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
 from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import ClassBase, SchemaBase
+from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -132,20 +133,20 @@ def make_smirks_attribute_graph(chem_env: ChemicalEnvironment) -> nx.Graph:
     return new_graph
 
 
-def validate_smirks(smirks: str, expected_tags: int) -> str:
-    """
-    Make sure the supplied smirks has the correct number of tagged atoms.
-    """
-
-    smirk = ChemicalEnvironment(smirks=smirks)
-    tagged_atoms = len(smirk.get_indexed_atoms())
-
-    assert tagged_atoms == expected_tags, (
-        f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should "
-        f"have {expected_tags}."
-    )
-
-    return smirks
+# def validate_smirks(smirks: str, expected_tags: int) -> str:
+#     """
+#     Make sure the supplied smirks has the correct number of tagged atoms.
+#     """
+#
+#     smirk = ChemicalEnvironment(smirks=smirks)
+#     tagged_atoms = len(smirk.get_indexed_atoms())
+#
+#     assert tagged_atoms == expected_tags, (
+#         f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should "
+#         f"have {expected_tags}."
+#     )
+#
+#     return smirks
 
 
 class SMIRKSettings(SchemaBase):
@@ -304,24 +305,23 @@ class SMIRKSGenerator(SMIRKSettings):
         this will only extract parameters for the requested groups.
         """
 
-        requested_smirks = [
-            valence_term
-            for smirks_type in self.target_smirks
+        requested_smirks = {}
+        for smirks_type in self.target_smirks:
             for valence_term in self._get_valence_terms(
-                molecule,
-                smirks_type,
-                None
+                molecule=molecule,
+                smirks_type=smirks_type,
+                torsion_bond=None
                 if molecule_map_indices is None
                 else (
                     get_atom_index(molecule, molecule_map_indices[0]),
                     get_atom_index(molecule, molecule_map_indices[1]),
                 ),
-            )
-        ]
+            ):
+                requested_smirks.setdefault(smirks_type, []).append(valence_term)
 
         # now request all of these smirks from the forcefield
         new_parameters = force_field_editor.get_parameters(
-            molecule=molecule, atoms=requested_smirks
+            molecule=molecule, atoms_by_type=requested_smirks
         )
         return new_parameters
 
@@ -369,7 +369,7 @@ class SMIRKSGenerator(SMIRKSettings):
         fragment_map_indices: Optional[Tuple[int, int]],
         fragment_is_parent: bool,
         smirks_type: SMIRKSType,
-    ) -> List[str]:
+    ) -> List[SMIRNOFFParameter]:
         """For the molecule generate a unique set of bespoke smirks of a given type."""
 
         bespoke_smirks = []
@@ -405,7 +405,10 @@ class SMIRKSGenerator(SMIRKSettings):
                 smirks_atoms_lists=target_atoms,
                 layers=self.smirks_layers,
             )
-            bespoke_smirks.append(graph.as_smirks(compress=False))
+            parameter = get_smirnoff_parameter(smirks_type)(
+                smirks=graph.as_smirks(compress=False), attributes=set()
+            )
+            bespoke_smirks.append(parameter)
 
         return bespoke_smirks
 

@@ -37,6 +37,7 @@ from openff.bespokefit.schema.optimizers import ForceBalanceSchema, OptimizerSch
 from openff.bespokefit.schema.smirnoff import (
     ProperTorsionHyperparameters,
     SMIRNOFFHyperparameters,
+    validate_smirks,
 )
 from openff.bespokefit.schema.targets import (
     BespokeQCData,
@@ -50,11 +51,7 @@ from openff.bespokefit.schema.tasks import (
 )
 from openff.bespokefit.utilities import parallel
 from openff.bespokefit.utilities.pydantic import ClassBase
-from openff.bespokefit.utilities.smirks import (
-    SMIRKSettings,
-    SMIRKSType,
-    validate_smirks,
-)
+from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]

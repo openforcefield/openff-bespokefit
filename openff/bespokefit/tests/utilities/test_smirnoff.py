@@ -9,6 +9,12 @@ from openff.toolkit.topology import Molecule
 from openff.utilities import get_data_file_path
 from simtk import unit
 
+from openff.bespokefit.schema.smirnoff import (
+    AngleSMIRKS,
+    BondSMIRKS,
+    ProperTorsionSMIRKS,
+    VdWSMIRKS,
+)
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
@@ -77,19 +83,13 @@ def test_get_parameters():
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
 
     parameters = ff.get_parameters(
-        molecule,
-        [
-            (0,),
-            (1,),
-            (2,),
-            (3,),
-            (0, 1),
-            (1, 2),
-            (2, 3),
-            (0, 1, 2),
-            (1, 2, 3),
-            (0, 1, 2, 3),
-        ],
+        molecule=molecule,
+        atoms_by_type={
+            "vdW": [(0,), (1,), (2,), (3,)],
+            "Bonds": [(0, 1), (1, 2), (2, 3)],
+            "Angles": [(0, 1, 2), (1, 2, 3)],
+            "ProperTorsions": [(0, 1, 2, 3)],
+        },
     )
 
     assert len(parameters) == 6
@@ -108,11 +108,11 @@ def test_get_initial_parameters():
 
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
     smirks = [
-        "[#6:1]",
-        "[#6:1]~[#6:2]",
-        "[#17:1]-[#1:2]",
-        "[*:1]~[#6:2]~[#6:3]",
-        "[#1:1]~[#6:2]~[#6:3]~[#1:4]",
+        VdWSMIRKS(smirks="[#6:1]", attributes=set()),
+        BondSMIRKS(smirks="[#6:1]~[#6:2]", attributes=set()),
+        BondSMIRKS(smirks="[#17:1]-[#1:2]", attributes=set()),
+        AngleSMIRKS(smirks="[*:1]~[#6:2]~[#6:3]", attributes=set()),
+        ProperTorsionSMIRKS(smirks="[#1:1]~[#6:2]~[#6:3]~[#1:4]", attributes=set()),
     ]
 
     ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
