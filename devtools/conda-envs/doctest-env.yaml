@@ -57,7 +57,7 @@ dependencies:
     ### Documentation dependencies
 
   - sphinx
-  - sphinx-notfound-page
+  - sphinx-click 
   - myst-parser
 
   # Dependencies not available on Conda Forge

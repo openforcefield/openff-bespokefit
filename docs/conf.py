@@ -54,6 +54,7 @@ extensions = [
     "myst_parser",
     "sphinxcontrib.autodoc_pydantic",
     "doctest_oxide",
+    "sphinx_click",
 ]
 
 intersphinx_mapping = {
@@ -169,9 +170,14 @@ pygments_style = "default"
 #
 extensions.append("openff_sphinx_theme")
 html_theme = "openff_sphinx_theme"
+
+LOCALTOC_ON_LEFT = ["globaltoc.html", "searchbox.html"]
+LOCALTOC_ON_RIGHT = ["globaltoc.html", "localtoc.html", "searchbox.html"]
 html_sidebars = {
-    # "**": ["globaltoc.html", "localtoc.html", "searchbox.html"], #  To place the local TOC on the right hand side
-    "**": ["globaltoc.html", "searchbox.html"],
+    "*": LOCALTOC_ON_LEFT,
+    "userguide/**": LOCALTOC_ON_LEFT,
+    "references/**": LOCALTOC_ON_RIGHT,
+    "_autosummary/**": LOCALTOC_ON_RIGHT,
 }
 
 # Theme options are theme-specific and customize the look and feel of a
@@ -193,6 +199,7 @@ html_theme_options = {
     "color_accent": "openff-evaluator-orange",
     "html_minify": False,
     "html_prettify": False,
+    "css_minify": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

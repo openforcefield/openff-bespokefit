@@ -3,24 +3,25 @@
 
 BespokeFit not only provides tools and schemas for specifying workflows, but
 also an execution environment for running them. This environment is called
-[`BespokeExecutor`]. `BespokeExecutor` combines a HTTP server, job queue,
+[BespokeExecutor]. BespokeExecutor combines a HTTP server, job queue,
 parallel scheduler, and workflow interpreter so that workflows produced by
 BespokeFit can be efficiently executed in parallel.
 
-`BespokeExecutor` runs in the background on a computer with plenty of CPU power.
+BespokeExecutor runs in the background on a computer with plenty of CPU power.
 This might be a local workstation or a remote HPC cluster. It then provides a
 server to which jobs can be submitted. Submitted jobs are placed in a queue
-until resources become available, at which point `BespokeExecutor` runs them.
-`BespokeExecutor` can break a workflow down into stages and run parts in
+until resources become available, at which point the executor runs them.
+BespokeExecutor can break a workflow down into stages and run parts in
 parallel with parts from other workflows so that even serial steps can take
 advantage of the host platform's parallelism. This means that several workflows
-submitted to a single `BespokeExecutor` instance can be faster than the same
+submitted to a single BespokeExecutor instance can be faster than the same
 workflows submitted to individual instances.
 
-`BespokeExecutor` can be started, jobs submitted, and progress reported on from
+BespokeExecutor can be started, jobs submitted, and progress reported on from
 Python code using the [`BespokeExecutor`] class, or from the CLI.
 
-[`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
+[BespokeExecutor]: openff.bespokefit.executor.executor.BespokeExecutor
+[`BespokeExecutor`]: openff.bespokefit.executor.executor.BespokeExecutor
 
 ## From Python
 
@@ -48,8 +49,8 @@ molecule.
 The resulting executor is a context manager that accepts workflows via its
 `submit()` method. Recall that workflows are instances of the
 [`BespokeOptimizationSchema`] class, which are created by the
-[`BespokeWorkflowFactory.optimization_schema_from_molecule()`] method. As soon
-as the context manager ends, the `BespokeExecutor` instance is closed,
+[`optimization_schema_from_molecule()`] method on [`BespokeWorkflowFactory`]. As
+soon as the context manager ends, the `BespokeExecutor` instance is closed,
 terminating any running jobs. To complete a job, we need to use the
 `wait_until_complete()` function, which blocks progress in the script until it
 can return a result. This is also the easiest way to get results out of the
@@ -102,7 +103,8 @@ This will return all the results in the same order as the `molecule` iterator,
 even if they are executed out of order behind the scenes.
 
 [`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
-[`BespokeWorkflowFactory.optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
+[`optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
+[`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
 [`submit()`]: openff.bespokefit.executor.BespokeExecutor.submit
 [`wait_until_complete()`]: openff.bespokefit.executor.wait_until_complete
 [POST]: openff.bespokefit.executor.services.coordinator.models.CoordinatorPOSTResponse
@@ -126,9 +128,8 @@ openff-bespoke executor submit --input molecule.sdf
 
 The `--input` switch accepts most commonly used chemistry formats. OpenFF
 recommends SDF as it includes all the information needed to unambiguously
-construct a molecular graph. For more information, see the[OpenFF Toolkit FAQ].
+construct a molecular graph. For more information, see the [OpenFF Toolkit FAQ].
 For other options and features, use the `--help` switch on any subcommand:
-
 
 ```sh
 openff-bespoke --help
@@ -136,6 +137,5 @@ openff-bespoke executor --help
 openff-bespoke executor submit --help # etc
 ```
 
-
 [command line interface]: cli_chapter
-[`openff-toolkit` FAQ]: openff.toolkit:faq
+[OpenFF Toolkit FAQ]: openff.toolkit:faq

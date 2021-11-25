@@ -11,23 +11,15 @@ userguide/*
 
 :::
 
-<!-- This matches the styling of a toctree caption as of Sphinx 4.2.0 -->
-<div class="toctree-wrapper"><p class="caption" role="heading"><span class="caption-text">
-API Reference
-</span></p></div>
+:::{toctree}
+---
+maxdepth: 1
+caption: "Reference Manuals"
+glob: True
+---
 
-<!--
-The autosummary directive renders to rST,
-so we must use eval-rst here
--->
-:::{eval-rst}
-.. autosummary::
-   :recursive:
-   :caption: API Reference
-   :toctree: _autosummary
-   :nosignatures:
+references/*
 
-   openff.bespokefit
 :::
 
 <!-- This matches the styling of a toctree caption as of Sphinx 4.2.0 -->

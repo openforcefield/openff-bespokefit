@@ -1,18 +1,14 @@
 {{ objname | escape | underline(line="=")}}
 
 .. automodule:: {{ fullname }}
-{#
    :no-members:
-
-   TODO: Restore this when Sphinx 4.4 with autosummary_ignore_module_all setting is released
-#}
 
 {% block modules %}
 {% if modules %}
 {{ _('Modules') | escape | underline(line="-") }}
 
 .. autosummary::
-   :toctree:
+   :toctree: {{objname}}
    :recursive:
 {% for item in modules if item not in exclude_modules %}
    {{ item }}
@@ -33,7 +29,7 @@
 {{ _('Classes') | escape | underline(line="-") }}
 
    .. autosummary::
-      :toctree:
+      :toctree: {{objname}}
       :nosignatures:
    {% for item in types %}
       {{ item }}
@@ -47,7 +43,7 @@
 {{ _('Functions') | escape | underline(line="-") }}
 
    .. autosummary::
-      :toctree:
+      :toctree: {{objname}}
       :nosignatures:
    {% for item in functions %}
       {{ item }}
@@ -61,7 +57,7 @@
 {{ _('Exceptions') | escape | underline(line="-") }}
 
    .. autosummary::
-      :toctree:
+      :toctree: {{objname}}
       :nosignatures:
    {% for item in exceptions %}
       {{ item }}

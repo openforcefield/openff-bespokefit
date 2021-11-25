@@ -1,5 +1,5 @@
 (factory_chapter)=
-# Configuring the workflow factory
+# The workflow factory
 
 The [`BespokeWorkflowFactory`] class describes a Bespoke workflow for
 creating parameters for any given molecule.
@@ -23,3 +23,5 @@ TODO: When stages are added, describe how to configure commonly-needed things
 -->
 
 ## The default workflow
+
+## Sharing a workflow factory

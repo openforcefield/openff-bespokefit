@@ -167,4 +167,4 @@ detail in [it's own chapter](executor_chapter).
 [`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
 [`optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
 [command line interface]: cli_chapter
-[`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
+[`BespokeExecutor`]: openff.bespokefit.executor.executor.BespokeExecutor
