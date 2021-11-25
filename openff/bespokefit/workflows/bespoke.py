@@ -22,7 +22,7 @@ from pydantic import Field, validator
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.exceptions import (
-    FragmenterError,
+    MissingTorsionTargetSMARTS,
     OptimizerError,
     TargetNotSetError,
 )
@@ -50,7 +50,11 @@ from openff.bespokefit.schema.tasks import (
 )
 from openff.bespokefit.utilities import parallel
 from openff.bespokefit.utilities.pydantic import ClassBase
-from openff.bespokefit.utilities.smirks import SMIRKSType, validate_smirks
+from openff.bespokefit.utilities.smirks import (
+    SMIRKSettings,
+    SMIRKSType,
+    validate_smirks,
+)
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
@@ -97,7 +101,7 @@ class BespokeWorkflowFactory(ClassBase):
         "optimisation such as through the inclusion of harmonic priors.",
     )
 
-    target_torsion_smirks: List[str] = Field(
+    target_torsion_smirks: Optional[List[str]] = Field(
         [_DEFAULT_ROTATABLE_SMIRKS],
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "
@@ -108,14 +112,9 @@ class BespokeWorkflowFactory(ClassBase):
         "all non-terminal 'rotatable bonds'",
     )
 
-    expand_torsion_terms: bool = Field(
-        True,
-        description="If the optimization should first expand the number of k values "
-        "that should be fit for each torsion beyond what is in the initial force field.",
-    )
-    generate_bespoke_terms: bool = Field(
-        True,
-        description="If the optimized smirks should be bespoke to the target molecules.",
+    smirk_settings: SMIRKSettings = Field(
+        SMIRKSettings(),
+        description="The settings that should be used when generating SMIRKS patterns for this optimization stage.",
     )
 
     fragmentation_engine: Optional[FragmentationEngine] = Field(
@@ -166,8 +165,12 @@ class BespokeWorkflowFactory(ClassBase):
         return optimizer
 
     @validator("target_torsion_smirks")
-    def _check_target_torsion_smirks(cls, values: List[str]) -> List[str]:
-        return [validate_smirks(value, 2) for value in values]
+    def _check_target_torsion_smirks(
+        cls, values: Optional[List[str]]
+    ) -> Optional[List[str]]:
+        if values:
+            return [validate_smirks(value, 2) for value in values]
+        return values
 
     def _pre_run_check(self) -> None:
         """
@@ -179,10 +182,17 @@ class BespokeWorkflowFactory(ClassBase):
             raise OptimizerError(
                 "There are no optimization targets in the optimization workflow."
             )
-        elif not self.fragmentation_engine:
-            raise FragmenterError(
-                "There is no fragmentation engine registered for the workflow."
-            )
+        elif self.target_torsion_smirks is None:
+            if (
+                self.fragmentation_engine
+                or SMIRKSType.ProperTorsions in self.target_smirks
+            ):
+                # We need the target torsion smirks in 2 cases
+                # 1 We wish to fragment to molecule
+                # 2 We do not want to fragment but still want to fit torsions
+                raise MissingTorsionTargetSMARTS(
+                    "The `target_torsion_smirks` have not been set and are required for this workflow."
+                )
         elif len(self.parameter_hyperparameters) == 0:
             raise TargetNotSetError(
                 "There are no parameter settings specified which will mean that the "
@@ -553,6 +563,13 @@ class BespokeWorkflowFactory(ClassBase):
                 )
             )
 
+        # work out if we need the target torsion smirks
+        # they are required if we are fragmenting or fitting torsions else not needed
+        if self.fragmentation_engine or SMIRKSType.ProperTorsions in self.target_smirks:
+            target_torsion_smirks = self.target_torsion_smirks
+        else:
+            target_torsion_smirks = None
+
         schema = BespokeOptimizationSchema(
             id=f"bespoke_task_{index}",
             smiles=molecule.to_smiles(mapped=True),
@@ -566,8 +583,7 @@ class BespokeWorkflowFactory(ClassBase):
                 )
             ],
             fragmentation_engine=self.fragmentation_engine,
-            target_torsion_smirks=self.target_torsion_smirks,
-            expand_torsion_terms=self.expand_torsion_terms,
-            generate_bespoke_terms=self.generate_bespoke_terms,
+            target_torsion_smirks=target_torsion_smirks,
+            smirk_settings=self.smirk_settings,
         )
         return schema

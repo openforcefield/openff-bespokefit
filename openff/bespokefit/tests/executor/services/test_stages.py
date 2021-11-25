@@ -38,7 +38,22 @@ async def test_generate_parameters(ptp1b_input_schema_single, ptp1b_fragment):
     )
     # make sure we have new parameters
     new_smirks = {parameter.smirks for parameter in input_schema.stages[0].parameters}
-    assert len(new_smirks) != 0
+    # regression test the generated patterns
+    assert new_smirks == {
+        "[#6H1X3x2r6+0a:1](-;!@[#1H0X1x0!r+0A])(:;@[#6H0X3x2r6+0a,#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A,#7H1X3x0!r+0A]):;@"
+        "[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H0X3x2r6+0a,#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A,#7H1X3x0!r+0A]):;@"
+        "[#6H1X3x2r6+0a]-;!@[#1H0X1x0!r+0A]):;@[#6H0X3x2r6+0a:2]-;!@[#6H0X3x2r5+0A:3](=;@[#6H0X3x2r5+0A](-;!@"
+        "[#35H0X1x0!r+0A])-;@[#6H0X3x2r5+0A](=;@[#6H0X3x2r5+0A,#6H1X3x2r5+0A]-;!@[#1H0X1x0!r+0A,#6H0X3x0!r+0A])-;!@"
+        "[#8H0X2x0!r+0A]-;!@[#6H2X4x0!r+0A,#6H3X4x0!r+0A](-;!@[#1H0X1x0!r+0A,#6H0X3x0!r+0A])(-;!@[#1H0X1x0!r+0A])-;!@"
+        "[#1H0X1x0!r+0A])-;@[#16H0X2x2r5+0A:4]",
+        "[#6H1X3x2r6+0a:1](-;!@[#1H0X1x0!r+0A])(:;@[#6H0X3x2r6+0a,#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A,#7H1X3x0!r+0A]):;@"
+        "[#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A]):;@[#6H0X3x2r6+0a,#6H1X3x2r6+0a](-;!@[#1H0X1x0!r+0A,#7H1X3x0!r+0A]):;@"
+        "[#6H1X3x2r6+0a]-;!@[#1H0X1x0!r+0A]):;@[#6H0X3x2r6+0a:2]-;!@[#6H0X3x2r5+0A:3](-;@[#16H0X2x2r5+0A]-;@"
+        "[#6H0X3x2r5+0A,#6H1X3x2r5+0A](-;!@[#1H0X1x0!r+0A,#6H0X3x0!r+0A])=;@[#6H0X3x2r5+0A]-;!@[#8H0X2x0!r+0A]-;!@"
+        "[#6H2X4x0!r+0A,#6H3X4x0!r+0A](-;!@[#1H0X1x0!r+0A,#6H0X3x0!r+0A])(-;!@[#1H0X1x0!r+0A])-;!@[#1H0X1x0!r+0A])=;@"
+        "[#6H0X3x2r5+0A:4]-;!@[#35H0X1x0!r+0A]",
+    }
+    assert len(new_smirks) == 2
     # make sure the smirks have been added to the force field
     force_field = ForceField(
         input_schema.initial_force_field, allow_cosmetic_attributes=True

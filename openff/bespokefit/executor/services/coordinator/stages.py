@@ -165,7 +165,9 @@ class QCGenerationStage(_Stage):
             ),
             None,
         )
-        fragments = [] if fragment_stage is None else fragment_stage.result.fragments
+        fragments = (
+            [] if fragment_stage.result is None else fragment_stage.result.fragments
+        )
 
         target_qc_tasks = defaultdict(list)
 
@@ -313,8 +315,8 @@ class OptimizationStage(_Stage):
 
     @staticmethod
     async def _generate_parameters(
-        fragmentation_result: FragmentationResult,
         input_schema: BespokeOptimizationSchema,
+        fragmentation_result: Optional[FragmentationResult],
     ):
         """
         Generate a list of parameters which are to be optimised, these are added to the input force field.
@@ -402,7 +404,10 @@ class OptimizationStage(_Stage):
 
         # TODO: Move these methods onto the celery worker.
         try:
-            await self._generate_parameters(fragmentation_stage.result, input_schema)
+            await self._generate_parameters(
+                fragmentation_result=fragmentation_stage.result,
+                input_schema=input_schema,
+            )
         except BaseException as e:  # lgtm [py/catch-base-exception]
 
             self.status = "errored"

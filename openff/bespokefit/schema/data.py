@@ -68,7 +68,7 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
         assert record.status == RecordStatusEnum.complete
 
         return TorsionDriveResult(
-            keywords=record.keywords,
+            keywords=record.keywords.dict(),
             extras=record.extras,
             input_specification=QCInputSpecification(
                 driver=record.qc_spec.driver,

@@ -170,6 +170,9 @@ class SMIRKSGenerator(SMIRKSettings):
     these can be bespoke or simply extract the current values from the target forcefield.
     """
 
+    class Config(SMIRKSettings.Config):
+        arbitrary_types_allowed = True
+
     initial_force_field: Union[str, ForceFieldEditor] = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",

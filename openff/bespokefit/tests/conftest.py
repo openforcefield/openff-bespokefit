@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Tuple
 
 import pytest
@@ -13,6 +14,7 @@ from openff.qcsubmit.results import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.utilities import get_data_file_path
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model, Provenance
 from qcelemental.models.procedures import OptimizationResult as QCOptimizationResult
@@ -50,7 +52,21 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
+from openff.bespokefit.utilities.smirks import SMIRKSettings
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
+
+
+@pytest.fixture()
+def bace() -> Molecule:
+
+    molecule: Molecule = Molecule.from_file(
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "bace", "bace.sdf"), "openff.bespokefit"
+        ),
+        file_format="sdf",
+    )
+
+    return molecule
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -133,7 +149,7 @@ def qc_torsion_drive_qce_result(
     qc_record, molecule = qc_torsion_drive_record
 
     qc_result = QCTorsionDriveResult(
-        keywords=qc_record.keywords,
+        keywords=qc_record.keywords.dict(),
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -363,8 +379,9 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
 
     schema_factory = BespokeWorkflowFactory(
         # turn off bespoke terms we want fast fitting
-        generate_bespoke_terms=False,
-        expand_torsion_terms=False,
+        smirk_settings=SMIRKSettings(
+            generate_bespoke_terms=False, expand_torsion_terms=False
+        ),
         optimizer=ForceBalanceSchema(max_iterations=1, initial_trust_radius=0.25),
     )
 

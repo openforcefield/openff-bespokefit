@@ -84,19 +84,6 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     )
 
     @property
-    def target_smirks(self) -> List[SMIRKSType]:
-        """Returns a list of the target smirks types based on the selected hyper parameters.
-        Used to determine which parameters should be fit.
-        """
-        return list(
-            {
-                SMIRKSType(parameter.type)
-                for stage in self.stages
-                for parameter in stage.parameter_hyperparameters
-            }
-        )
-
-    @property
     def initial_parameter_values(
         self,
     ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
@@ -143,7 +130,7 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "molecule. If no engine is provided the molecules will not be fragmented.",
     )
 
-    target_torsion_smirks: List[str] = Field(
+    target_torsion_smirks: Optional[List[str]] = Field(
         ...,
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "
@@ -163,3 +150,16 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
     def molecule(self) -> Molecule:
         """Return the openff molecule of the mapped smiles."""
         return Molecule.from_mapped_smiles(self.smiles)
+
+    @property
+    def target_smirks(self) -> List[SMIRKSType]:
+        """Returns a list of the target smirks types based on the selected hyper parameters.
+        Used to determine which parameters should be fit.
+        """
+        return list(
+            {
+                SMIRKSType(parameter.type)
+                for stage in self.stages
+                for parameter in stage.parameter_hyperparameters
+            }
+        )

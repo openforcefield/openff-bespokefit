@@ -29,8 +29,7 @@ def optimize(self, optimization_input_json: str) -> str:
     input_schema = parse_raw_as(
         Union[BespokeOptimizationSchema], optimization_input_json
     )
-    input_schema.id = self.request.id
-
+    input_schema.id = self.request.id or input_schema.id
     input_force_field = ForceField(input_schema.initial_force_field)
 
     stage_results = []
