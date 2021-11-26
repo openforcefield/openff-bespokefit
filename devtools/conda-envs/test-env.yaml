@@ -36,7 +36,8 @@ dependencies:
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
-  - qcengine >=0.20.0
+  - qcelemental >=0.24.0
+  - qcengine >=0.21.0
   - chemper
   - geometric
   - torsiondrive
