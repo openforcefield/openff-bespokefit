@@ -133,7 +133,7 @@ def qc_torsion_drive_qce_result(
     qc_record, molecule = qc_torsion_drive_record
 
     qc_result = QCTorsionDriveResult(
-        keywords=qc_record.keywords,
+        keywords=qc_record.keywords.dict(),
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
