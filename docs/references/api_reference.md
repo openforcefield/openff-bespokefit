@@ -2,9 +2,15 @@
 # Python API Reference
 
 <!--
-The click directive renders to rST,
+The autosummary directive renders to rST,
 so we must use eval-rst here
 -->
 :::{eval-rst}
-.. include:: ../_autosummary/openff.bespokefit.rst
+.. autosummary::
+   :recursive:
+   :caption: API Reference
+   :toctree: ../_autosummary
+   :nosignatures:
+
+   openff.bespokefit
 :::
