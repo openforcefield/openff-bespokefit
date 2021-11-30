@@ -205,7 +205,7 @@ class BespokeWorkflowFactory(ClassBase):
             {SMIRKSType(parameter.type) for parameter in self.parameter_hyperparameters}
         )
 
-    def export_factory(self, file_name: str) -> None:
+    def to_file(self, file_name: str) -> None:
         """
         Export the factory to yaml or json file.
 

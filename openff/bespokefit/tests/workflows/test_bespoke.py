@@ -149,7 +149,7 @@ def test_export_factory(filename):
 
     with temporary_cd():
 
-        factory.export_factory(file_name=filename)
+        factory.to_file(file_name=filename)
 
         # now read it back in
         recreated = BespokeWorkflowFactory.from_file(file_name=filename)
