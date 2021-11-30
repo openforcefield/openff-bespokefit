@@ -39,7 +39,7 @@ def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
 
     with requests_mock.Mocker() as m:
 
-        m.get(mock_href, text=mock_response.json())
+        m.get(mock_href, text=mock_response.json(by_alias=True))
         yield mock_response
 
 
@@ -200,7 +200,7 @@ def test_query_coordinator(status_code: int):
 
     def mock_callback(request, context):
         context.status_code = status_code
-        return mock_response.json()
+        return mock_response.json(by_alias=True)
 
     mock_href = (
         f"http://127.0.0.1:"
@@ -244,7 +244,7 @@ def test_wait_for_stage(status):
     def mock_callback(request, context):
         context.status_code = 200
 
-        response_json = mock_response.json()
+        response_json = mock_response.json(by_alias=True)
         mock_response.stages[0].status = status
 
         nonlocal n_requests

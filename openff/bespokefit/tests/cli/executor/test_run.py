@@ -45,7 +45,7 @@ def test_run(runner, tmpdir):
                         type="fragmentation", status="success", error=None, results=None
                     )
                 ],
-            ).json(),
+            ).json(by_alias=True),
         )
 
         output = runner.invoke(

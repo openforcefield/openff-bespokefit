@@ -169,7 +169,7 @@ class _TargetFactory(Generic[T], abc.ABC):
 
             elif isinstance(qc_result, TorsionDriveResult):
 
-                cmiles = qc_result.initial_molecule.extras[
+                cmiles = qc_result.initial_molecule[0].extras[
                     "canonical_isomeric_explicit_hydrogen_mapped_smiles"
                 ]
 

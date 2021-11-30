@@ -1,5 +1,5 @@
 {
-  "initial_force_field": "openff-2.0.0.offxml",
+  "initial_force_field": "openff_unconstrained-2.0.0.offxml",
   "optimizer": {
     "type": "ForceBalance",
     "max_iterations": 10,
@@ -41,9 +41,6 @@
   ],
   "target_torsion_smirks": [
     "[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"
-  ],
-  "target_smirks": [
-    "ProperTorsions"
   ],
   "expand_torsion_terms": true,
   "generate_bespoke_terms": true,

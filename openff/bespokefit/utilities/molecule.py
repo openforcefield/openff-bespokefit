@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from openff.toolkit.topology import Molecule
+from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 
 def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
@@ -29,7 +30,7 @@ def get_atom_symmetries(molecule: Molecule) -> List[int]:
 
     try:
         return _oe_get_atom_symmetries(molecule)
-    except (ImportError, ModuleNotFoundError):
+    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
         return _rd_get_atom_symmetries(molecule)
 
 

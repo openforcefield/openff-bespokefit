@@ -13,7 +13,7 @@ from openff.bespokefit.cli.utilities import create_command, print_header
 def _run_cli(
     input_file_path: str,
     output_file_path: str,
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
     directory: str,
