@@ -137,3 +137,12 @@ class QCRecordMissMatchError(BespokeFitException):
 
     error_type = "qc_record_miss_match_error"
     header = "QC Record Miss Match Error"
+
+
+class MissingTorsionTargetSMARTS(BespokeFitException):
+    """
+    Raised when a workflow is fitting torsions but has no way to determine which ones.
+    """
+
+    error_type = "missing_torsion_target_smarts"
+    header = "Missing Torsion Target SMARTS"
