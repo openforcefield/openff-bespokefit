@@ -30,12 +30,14 @@ def optimize(self, optimization_input_json: str) -> str:
         Union[BespokeOptimizationSchema], optimization_input_json
     )
     input_schema.id = self.request.id or input_schema.id
+
     input_force_field = ForceField(input_schema.initial_force_field)
 
     stage_results = []
-    # run all optimisations in the task folder
-    os.makedirs(input_schema.id, exist_ok=True)
-    with temporary_cd(input_schema.id):
+
+    home = os.getcwd()
+
+    with temporary_cd():
         for i, stage in enumerate(input_schema.stages):
 
             optimizer = get_optimizer(stage.optimizer.type)
@@ -56,8 +58,9 @@ def optimize(self, optimization_input_json: str) -> str:
                     result.refit_force_field, allow_cosmetic_attributes=True
                 ).to_string(discard_cosmetic_attributes=True)
             )
-    if not settings.BEFLOW_KEEP_FILES:
-        shutil.rmtree(input_schema.id, ignore_errors=True)
+        if settings.BEFLOW_KEEP_FILES:
+            os.makedirs(os.path.join(home, input_schema.id), exist_ok=True)
+            shutil.move(os.getcwd(), os.path.join(home, input_schema.id))
 
     return serialize(
         BespokeOptimizationResults(input_schema=input_schema, stages=stage_results),

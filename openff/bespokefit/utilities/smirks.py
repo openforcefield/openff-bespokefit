@@ -133,22 +133,6 @@ def make_smirks_attribute_graph(chem_env: ChemicalEnvironment) -> nx.Graph:
     return new_graph
 
 
-# def validate_smirks(smirks: str, expected_tags: int) -> str:
-#     """
-#     Make sure the supplied smirks has the correct number of tagged atoms.
-#     """
-#
-#     smirk = ChemicalEnvironment(smirks=smirks)
-#     tagged_atoms = len(smirk.get_indexed_atoms())
-#
-#     assert tagged_atoms == expected_tags, (
-#         f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should "
-#         f"have {expected_tags}."
-#     )
-#
-#     return smirks
-
-
 class SMIRKSettings(SchemaBase):
     """
     Settings for the generation of SMIRKS patterns via the SMIRKSGenerator.

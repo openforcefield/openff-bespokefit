@@ -105,7 +105,7 @@ class FragmentationStage(_Stage):
 
     result: Optional[FragmentationResult] = Field(None, description="")
 
-    async def enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: "CoordinatorTask"):
 
         async with httpx.AsyncClient() as client:
 
@@ -427,13 +427,12 @@ class OptimizationStage(_Stage):
     ):
 
         targets = [target for stage in input_schema.stages for target in stage.targets]
-
         for i, target in enumerate(targets):
 
             if not isinstance(target.reference_data, BespokeQCData):
                 continue
 
-            if i not in qc_generation_stage.ids or i not in qc_generation_stage.results:
+            if i not in qc_generation_stage.ids:
                 continue
 
             local_qc_data = LocalQCData(
