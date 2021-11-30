@@ -1,6 +1,7 @@
 import abc
-from typing import Dict, Set, Union
+from typing import Dict, Set, Type, Union
 
+from chemper.graphs.environment import ChemicalEnvironment
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -13,7 +14,22 @@ from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
-from openff.bespokefit.utilities.smirks import validate_smirks
+
+
+def validate_smirks(smirks: str, expected_tags: int) -> str:
+    """
+    Make sure the supplied smirks has the correct number of tagged atoms.
+    """
+
+    smirk = ChemicalEnvironment(smirks=smirks)
+    tagged_atoms = len(smirk.get_indexed_atoms())
+
+    assert tagged_atoms == expected_tags, (
+        f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should "
+        f"have {expected_tags}."
+    )
+
+    return smirks
 
 
 class BaseSMIRKSParameter(SchemaBase, abc.ABC):
@@ -95,8 +111,8 @@ class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
     type: Literal["vdW"] = "vdW"
 
-    priors: Dict[Literal["epsilon", "rmin_half"], PositiveFloat] = Field(
-        {"epsilon": 0.1, "rmin_half": 0.1}, description=""
+    priors: Dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
+        {"epsilon": 0.1, "sigma": 0.1}, description=""
     )
 
     @classmethod
@@ -264,3 +280,17 @@ SMIRNOFFHyperparameters = Union[
     VdWHyperparameters,
     ImproperTorsionHyperparameters,
 ]
+
+
+def get_smirnoff_parameter(parameter_type: str) -> Type[SMIRNOFFParameter]:
+    """
+    A helper function to get the SMIRNOFFParameter class from the parameter type.
+    """
+    _parameters_by_type = {
+        VdWSMIRKS.__fields__["type"].default: VdWSMIRKS,
+        BondSMIRKS.__fields__["type"].default: BondSMIRKS,
+        AngleSMIRKS.__fields__["type"].default: AngleSMIRKS,
+        ProperTorsionSMIRKS.__fields__["type"].default: ProperTorsionSMIRKS,
+        ImproperTorsionSMIRKS.__fields__["type"].default: ImproperTorsionSMIRKS
+    }
+    return _parameters_by_type[parameter_type]

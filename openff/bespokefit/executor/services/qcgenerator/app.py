@@ -112,7 +112,7 @@ def get_qc_result_molecule_image(qc_calc_id: str):
         )
 
         svg_content = smiles_to_image(
-            qc_result.initial_molecule.extras[
+            qc_result.initial_molecule[0].extras[
                 "canonical_isomeric_explicit_hydrogen_mapped_smiles"
             ],
             highlight_atoms=highlight_atoms,

@@ -70,6 +70,11 @@ class Torsion1DTaskSpec(QCGenerationTask):
         "in the scan.",
     )
 
+    n_conformers: conint(gt=0) = Field(
+        10,
+        description="The number of initial conformers to seed the torsion drive with.",
+    )
+
 
 class Torsion1DTask(Torsion1DTaskSpec):
 

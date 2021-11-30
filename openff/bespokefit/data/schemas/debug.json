@@ -42,11 +42,10 @@
   "target_torsion_smirks": [
     "[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"
   ],
-  "target_smirks": [
-    "ProperTorsions"
-  ],
-  "expand_torsion_terms": false,
-  "generate_bespoke_terms": false,
+  "smirk_settings": {
+    "expand_torsion_terms": false,
+    "generate_bespoke_terms": false
+  },
   "fragmentation_engine": {
     "functional_groups": {
       "hydrazine": "[NX3:1][NX3:2]",

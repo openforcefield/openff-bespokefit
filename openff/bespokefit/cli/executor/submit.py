@@ -5,6 +5,7 @@ import click
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
+from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 
@@ -33,9 +34,11 @@ def submit_options():
             "--force-field",
             "force_field_path",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
-            help="The initial force field to build upon",
-            default="openff-2.0.0.offxml",
+            help="The initial force field to build upon. This will overwrite the value "
+            "in the workflow spec if provided.",
+            default=None,
             show_default=True,
+            required=False,
         ),
         optgroup.group("Optimization configuration"),
         optgroup.option(
@@ -58,7 +61,7 @@ def submit_options():
 def _to_input_schema(
     console: "rich.Console",
     molecule: "Molecule",
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ) -> Optional["BespokeOptimizationSchema"]:
@@ -75,15 +78,51 @@ def _to_input_schema(
         )
         return None
 
-    if spec_name is not None:
+    invalid_spec_name = spec_name if spec_name is not None else spec_file_name
 
-        spec_file_name = get_data_file_path(
-            os.path.join("schemas", f"{spec_name.lower()}.json"),
-            "openff.bespokefit",
+    try:
+
+        if spec_name is not None:
+
+            spec_file_name = get_data_file_path(
+                os.path.join("schemas", f"{spec_name.lower()}.json"),
+                "openff.bespokefit",
+            )
+
+        workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
+
+        if force_field_path is not None:
+            workflow_factory.initial_force_field = force_field_path
+
+    except (FileNotFoundError, RuntimeError) as e:
+
+        # Need for QCSubmit #176
+        if isinstance(e, RuntimeError) and "could not be found" not in str(e):
+            raise e
+
+        console.print(
+            Padding(
+                f"[[red]ERROR[/red]] The specified schema could not be found: "
+                f"[repr.filename]{invalid_spec_name}[/repr.filename]",
+                (1, 0, 0, 0),
+            )
         )
 
-    workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
-    workflow_factory.initial_force_field = force_field_path
+        return
+
+    except ValidationError as e:
+
+        console.print(
+            Padding(
+                f"[[red]ERROR[/red]] The factory schema could not be parsed. Make sure "
+                f"[repr.filename]{invalid_spec_name}[/repr.filename] is a valid "
+                f"`BespokeWorkflowFactory` schema.",
+                (1, 0, 0, 0),
+            )
+        )
+        console.print(Padding(str(e), (1, 1, 1, 1)))
+
+        return
 
     return workflow_factory.optimization_schema_from_molecule(molecule)
 
@@ -91,7 +130,7 @@ def _to_input_schema(
 def _submit(
     console: "rich.Console",
     input_file_path: str,
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ) -> Optional["CoordinatorPOSTResponse"]:
@@ -141,7 +180,7 @@ def _submit(
 
 def _submit_cli(
     input_file_path: str,
-    force_field_path: str,
+    force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
 ):

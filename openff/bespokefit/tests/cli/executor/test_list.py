@@ -5,8 +5,8 @@ from openff.bespokefit.cli.executor.list import list_cli
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETPageResponse,
-    CoordinatorGETResponse,
 )
+from openff.bespokefit.executor.services.models import Link
 
 
 @pytest.mark.parametrize(
@@ -20,8 +20,7 @@ def test_list_cli(n_results, expected_message, runner):
         mock_response = CoordinatorGETPageResponse(
             self="self-page",
             contents=[
-                CoordinatorGETResponse(id=f"{i}", self=f"self-{i}", stages=[])
-                for i in range(1, 1 + n_results)
+                Link(id=f"{i}", self=f"self-{i}") for i in range(1, 1 + n_results)
             ],
         )
 

@@ -9,12 +9,9 @@ from openff.toolkit.typing.engines.smirnoff import ProperTorsionHandler, vdWHand
 from openff.utilities import get_data_file_path
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirnoff import validate_smirks
 from openff.bespokefit.tests import does_not_raise
-from openff.bespokefit.utilities.smirks import (
-    SMIRKSGenerator,
-    compare_smirks_graphs,
-    validate_smirks,
-)
+from openff.bespokefit.utilities.smirks import SMIRKSGenerator, compare_smirks_graphs
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 

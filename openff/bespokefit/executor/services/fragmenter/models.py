@@ -36,11 +36,11 @@ class FragmenterPOSTBody(BaseModel):
     cmiles: str = Field(
         ..., description="The CMILES representation of the molecule to fragment."
     )
-    fragmenter: Union[PfizerFragmenter, WBOFragmenter] = Field(
+    fragmenter: Optional[Union[PfizerFragmenter, WBOFragmenter]] = Field(
         ..., description="The fragmentation engine to use."
     )
 
-    target_bond_smarts: List[str] = Field(
+    target_bond_smarts: Optional[List[str]] = Field(
         ...,
         description="A list of SMARTS patterns that should be used to identify the "
         "bonds within the parent molecule to grow fragments around. Each SMARTS pattern "
