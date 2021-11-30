@@ -1,14 +1,18 @@
 import abc
 import json
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import httpx
-from chemper.graphs.cluster_graph import ClusterGraph
 from openff.fragmenter.fragment import FragmentationResult
-from openff.fragmenter.utils import get_map_index
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit.typing.engines.smirnoff import (
+    AngleHandler,
+    BondHandler,
+    ImproperTorsionHandler,
+    ParameterType,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
@@ -35,13 +39,20 @@ from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS, SMIRNOFFParameter
-from openff.bespokefit.schema.tasks import Torsion1DTask
-from openff.bespokefit.utilities.molecule import (
-    get_atom_symmetries,
-    group_valence_by_symmetry,
+from openff.bespokefit.schema.smirnoff import (
+    AngleSMIRKS,
+    BondSMIRKS,
+    ImproperTorsionSMIRKS,
+    ProperTorsionSMIRKS,
+    VdWSMIRKS,
 )
+from openff.bespokefit.schema.tasks import Torsion1DTask
 from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit.utilities.smirks import (
+    ForceFieldEditor,
+    SMIRKSGenerator,
+    SMIRKSType,
+)
 
 if TYPE_CHECKING:
     from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
@@ -94,45 +105,7 @@ class FragmentationStage(_Stage):
 
     result: Optional[FragmentationResult] = Field(None, description="")
 
-    @staticmethod
-    def _generate_target_bond_smarts(
-        smiles: str, parameters: List[SMIRNOFFParameter]
-    ) -> List[str]:
-        """Attempts to find all of the bonds in the molecule around which a bespoke
-        torsion parameter is being trained."""
-        molecule = Molecule.from_mapped_smiles(smiles)
-
-        all_central_bonds = {
-            tuple(sorted(central_bond))
-            for parameter in parameters
-            if isinstance(parameter, ProperTorsionSMIRKS)
-            for (_, *central_bond, _) in molecule.chemical_environment_matches(
-                parameter.smirks
-            )
-        }
-
-        grouped_central_bonds = group_valence_by_symmetry(
-            molecule, sorted(all_central_bonds)
-        )
-        unique_central_bonds = [group[0] for group in grouped_central_bonds.values()]
-
-        target_bond_smarts = set()
-
-        for central_bond in unique_central_bonds:
-
-            molecule.properties["atom_map"] = {
-                i: (j + 1) for j, i in enumerate(central_bond)
-            }
-            target_bond_smarts.add(molecule.to_smiles(mapped=True))
-
-        return sorted(target_bond_smarts)
-
     async def _enter(self, task: "CoordinatorTask"):
-
-        target_bond_smarts = self._generate_target_bond_smarts(
-            task.input_schema.smiles,
-            [*task.input_schema.initial_parameter_values],
-        )
 
         async with httpx.AsyncClient() as client:
 
@@ -144,7 +117,7 @@ class FragmentationStage(_Stage):
                 data=FragmenterPOSTBody(
                     cmiles=task.input_schema.smiles,
                     fragmenter=task.input_schema.fragmentation_engine,
-                    target_bond_smarts=target_bond_smarts,
+                    target_bond_smarts=task.input_schema.target_torsion_smirks,
                 ).json(),
             )
 
@@ -227,7 +200,9 @@ class QCGenerationStage(_Stage):
             ),
             None,
         )
-        fragments = [] if fragment_stage is None else fragment_stage.result.fragments
+        fragments = (
+            [] if fragment_stage.result is None else fragment_stage.result.fragments
+        )
 
         target_qc_tasks = defaultdict(list)
 
@@ -358,133 +333,92 @@ class OptimizationStage(_Stage):
     )
 
     @staticmethod
-    def _regenerate_torsion_parameters(
-        original_parameters: List[SMIRNOFFParameter],
+    def _generate_torsion_parameters(
         fragmentation_result: FragmentationResult,
-    ) -> List[Tuple[ProperTorsionSMIRKS, ProperTorsionSMIRKS]]:
+        input_schema: BespokeOptimizationSchema,
+    ) -> List[ParameterType]:
 
         parent = fragmentation_result.parent_molecule
-        parent_atom_symmetries = get_atom_symmetries(parent)
-
-        parent_map_symmetries = {
-            get_map_index(parent, i): parent_atom_symmetries[i]
-            for i in range(parent.n_atoms)
-        }
-
-        fragments = [fragment.molecule for fragment in fragmentation_result.fragments]
-
-        fragment_by_symmetry = {
-            tuple(
-                sorted(parent_map_symmetries[i] for i in result.bond_indices)
-            ): fragment
-            for fragment, result in zip(fragments, fragmentation_result.fragments)
-        }
-        assert len(fragment_by_symmetry) == len(fragmentation_result.fragments)
-
-        fragment_map_to_atom_index = [
-            {j: i for i, j in fragment.properties.get("atom_map", {}).items()}
-            for fragment in fragments
-        ]
-
-        return_value = []
-
-        for original_parameter in original_parameters:
-
-            if not isinstance(original_parameter, ProperTorsionSMIRKS):
-                continue
-
-            matches = parent.chemical_environment_matches(original_parameter.smirks)
-            matches = list(
-                set(
-                    match if match[1] < match[2] else tuple(reversed(match))
-                    for match in matches
-                )
-            )
-
-            # Figure out which fragments need to be matched by this parameter and
-            # update the parameter so it matches these AND the parent.
-            match_symmetries = {
-                tuple(sorted(parent_atom_symmetries[i] for i in match[1:3]))
-                for match in matches
-            }
-            match_fragments = [
-                fragment_by_symmetry[match_symmetry]
-                for match_symmetry in match_symmetries
-            ]
-
-            target_atoms = [matches]
-            target_molecules = [parent]
-
-            for fragment, map_to_atom_index in zip(
-                match_fragments, fragment_map_to_atom_index
-            ):
-
-                match_atoms = [
-                    tuple(
-                        map_to_atom_index.get(get_map_index(parent, i), None)
-                        for i in match
-                    )
-                    for match in matches
-                ]
-                target_atoms.append(
-                    [
-                        match
-                        for match in match_atoms
-                        if all(i is not None for i in match)
-                    ]
-                )
-
-                if len(target_atoms) == 0:
-                    continue
-
-                target_molecules.append(fragment)
-
-            parameter = original_parameter.copy(deep=True)
-            parameter.smirks = ClusterGraph(
-                mols=[molecule.to_rdkit() for molecule in target_molecules],
-                smirks_atoms_lists=target_atoms,
-                layers="all",
-            ).as_smirks(compress=False)
-
-            return_value.append((original_parameter, parameter))
-
-        return return_value
-
-    async def _regenerate_parameters(
-        self,
-        fragmentation_stage: FragmentationStage,
-        input_schema: BespokeOptimizationSchema,
-    ):
-
-        initial_force_field = ForceField(
-            input_schema.initial_force_field, allow_cosmetic_attributes=True
+        smirks_gen = SMIRKSGenerator(
+            initial_force_field=input_schema.initial_force_field,
+            generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
+            expand_torsion_terms=input_schema.smirk_settings.expand_torsion_terms,
+            target_smirks=[SMIRKSType.ProperTorsions],
         )
 
-        for stage in input_schema.stages:
+        new_smirks = []
+        for fragment_data in fragmentation_result.fragments:
+            central_bond = fragment_data.bond_indices
+            fragment_molecule = fragment_data.molecule
+            smirks = smirks_gen.generate_smirks_from_fragment(
+                parent=parent,
+                fragment=fragment_molecule,
+                fragment_map_indices=central_bond,
+            )
+            new_smirks.extend(smirks)
 
-            torsion_parameters = self._regenerate_torsion_parameters(
-                stage.parameters, fragmentation_stage.result
+        return new_smirks
+
+    @staticmethod
+    async def _generate_parameters(
+        input_schema: BespokeOptimizationSchema,
+        fragmentation_result: Optional[FragmentationResult],
+    ):
+        """
+        Generate a list of parameters which are to be optimised, these are added to the input force field.
+        The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
+        """
+
+        initial_force_field = ForceFieldEditor(input_schema.initial_force_field)
+        new_parameters = []
+
+        target_smirks = {*input_schema.target_smirks}
+        if SMIRKSType.ProperTorsions in target_smirks:
+            target_smirks.remove(SMIRKSType.ProperTorsions)
+
+            torsion_parameters = OptimizationStage._generate_torsion_parameters(
+                fragmentation_result=fragmentation_result,
+                input_schema=input_schema,
+            )
+            new_parameters.extend(torsion_parameters)
+
+        if len(target_smirks) > 0:
+            smirks_gen = SMIRKSGenerator(
+                initial_force_field=input_schema.initial_force_field,
+                generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
+                target_smirks=[*target_smirks],
+                smirks_layers=1,
             )
 
-            torsion_handler = initial_force_field["ProperTorsions"]
+            parameters = smirks_gen.generate_smirks_from_molecule(
+                molecule=input_schema.molecule
+            )
+            new_parameters.extend(parameters)
 
-            for original_parameter, new_parameter in torsion_parameters:
+        # add all new terms to the input force field
+        initial_force_field.add_parameters(parameters=new_parameters)
 
-                force_field_parameter = torsion_handler.parameters[
-                    original_parameter.smirks
-                ]
-                force_field_parameter.smirks = new_parameter.smirks
+        parameter_to_type = {
+            vdWHandler.vdWType: VdWSMIRKS,
+            BondHandler.BondType: BondSMIRKS,
+            AngleHandler.AngleType: AngleSMIRKS,
+            ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
+            ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
+        }
+        # convert all parameters to bespokefit types
+        parameters_to_fit = defaultdict(list)
+        for parameter in new_parameters:
+            bespoke_parameter = parameter_to_type[parameter.__class__].from_smirnoff(
+                parameter
+            )
+            parameters_to_fit[bespoke_parameter.type].append(bespoke_parameter)
 
-            stage.parameters = [
-                *[
-                    parameter
-                    for parameter in stage.parameters
-                    if not isinstance(parameter, ProperTorsionSMIRKS)
-                ],
-                *[parameter for _, parameter in torsion_parameters],
-            ]
+        # set which parameters should be optimised in each stage
+        for stage in input_schema.stages:
+            for hyper_param in stage.parameter_hyperparameters:
+                stage.parameters.extend(parameters_to_fit[hyper_param.type])
 
-        input_schema.initial_force_field = initial_force_field.to_string()
+        input_schema.initial_force_field = initial_force_field.force_field.to_string()
 
     @staticmethod
     async def _inject_bespoke_qc_data(
@@ -493,13 +427,12 @@ class OptimizationStage(_Stage):
     ):
 
         targets = [target for stage in input_schema.stages for target in stage.targets]
-
         for i, target in enumerate(targets):
 
             if not isinstance(target.reference_data, BespokeQCData):
                 continue
 
-            if i not in qc_generation_stage.ids or i not in qc_generation_stage.results:
+            if i not in qc_generation_stage.ids:
                 continue
 
             local_qc_data = LocalQCData(
@@ -532,13 +465,15 @@ class OptimizationStage(_Stage):
 
         input_schema = task.input_schema.copy(deep=True)
 
-        # Regenerate any parameters that should target both the parent molecule and
-        # its fragments
+        # Generate all parameters to be optimised
         fragmentation_stage: FragmentationStage = completed_stages["fragmentation"]
 
         # TODO: Move these methods onto the celery worker.
         try:
-            await self._regenerate_parameters(fragmentation_stage, input_schema)
+            await self._generate_parameters(
+                fragmentation_result=fragmentation_stage.result,
+                input_schema=input_schema,
+            )
         except BaseException as e:  # lgtm [py/catch-base-exception]
 
             self.status = "errored"

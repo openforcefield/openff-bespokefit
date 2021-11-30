@@ -229,7 +229,7 @@ class BaseOptimizer(abc.ABC):
 
             with temporary_cd(root_directory):
 
-                cls.prepare(schema, initial_force_field, "")
+                cls.prepare(schema, initial_force_field, ".")
                 results = cls._optimize(schema, initial_force_field)
 
         finally:

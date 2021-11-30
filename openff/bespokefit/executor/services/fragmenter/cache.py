@@ -14,10 +14,14 @@ def cached_fragmentation_task(
     Check if the fragmentation has been done before if not send it to a worker.
     """
     molecule: Molecule = Molecule.from_mapped_smiles(task.cmiles)
+    fragment_string = task.fragmenter.json() if task.fragmenter else "null"
+    target_bonds_string = (
+        str(task.target_bond_smarts) if task.target_bond_smarts else "null"
+    )
     task_string = (
         molecule.to_inchikey(fixed_hydrogens=True)
-        + task.fragmenter.json()
-        + str(task.target_bond_smarts)
+        + fragment_string
+        + target_bonds_string
     )
     task_hash = hashlib.sha512(task_string.encode()).hexdigest()
     task_id = redis_connection.hget("fragmenter:task-ids", task_hash)
@@ -27,7 +31,7 @@ def cached_fragmentation_task(
 
     task_id = worker.fragment.delay(
         cmiles=task.cmiles,
-        fragmenter_json=task.fragmenter.json(),
+        fragmenter_json=fragment_string,
         target_bond_smarts=task.target_bond_smarts,
     ).id
 

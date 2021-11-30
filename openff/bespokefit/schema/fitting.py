@@ -2,6 +2,7 @@ import abc
 from typing import Dict, List, Optional
 
 from openff.fragmenter.fragment import WBOFragmenter
+from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field, conlist
 from simtk import unit
@@ -16,6 +17,7 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 
 
 class OptimizationStageSchema(SchemaBase, abc.ABC):
@@ -127,3 +129,37 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         description="The fragmentation engine that should be used to fragment the "
         "molecule. If no engine is provided the molecules will not be fragmented.",
     )
+
+    target_torsion_smirks: Optional[List[str]] = Field(
+        ...,
+        description="A list of SMARTS patterns that should be used to identify the "
+        "**bonds** within the target molecule to generate bespoke torsions around. Each "
+        "SMARTS pattern should include **two** indexed atoms that correspond to the "
+        "two atoms involved in the central bond."
+        "\n"
+        "By default bespoke torsion parameters (if requested) will be constructed for "
+        "all non-terminal 'rotatable bonds'",
+    )
+
+    smirk_settings: SMIRKSettings = Field(
+        SMIRKSettings(),
+        description="The settings that should be used when generating SMIRKS patterns for this optimization stage.",
+    )
+
+    @property
+    def molecule(self) -> Molecule:
+        """Return the openff molecule of the mapped smiles."""
+        return Molecule.from_mapped_smiles(self.smiles)
+
+    @property
+    def target_smirks(self) -> List[SMIRKSType]:
+        """Returns a list of the target smirks types based on the selected hyper parameters.
+        Used to determine which parameters should be fit.
+        """
+        return list(
+            {
+                SMIRKSType(parameter.type)
+                for stage in self.stages
+                for parameter in stage.parameter_hyperparameters
+            }
+        )

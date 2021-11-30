@@ -9,7 +9,13 @@ from openff.toolkit.topology import Molecule
 from openff.utilities import get_data_file_path
 from simtk import unit
 
-from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
+from openff.bespokefit.schema.smirnoff import (
+    AngleSMIRKS,
+    BondSMIRKS,
+    ProperTorsionSMIRKS,
+    VdWSMIRKS,
+)
+from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
 
 def test_loading_force_fields():
@@ -18,14 +24,14 @@ def test_loading_force_fields():
     """
 
     # load in the initial FF with constraints
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
     assert "Constraints" not in ff.force_field.registered_parameter_handlers
 
 
 def test_adding_new_smirks_types():
     """Test adding new smirks to a force field."""
 
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
 
     existing_parameter = copy.deepcopy(ff.force_field["vdW"].parameters["[#6X2:1]"])
     existing_parameter.rmin_half *= 2.0
@@ -56,7 +62,7 @@ def test_adding_new_smirks_types():
 def test_label_molecule():
     """Test that labeling a molecule with the editor works."""
 
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
 
     ethane = Molecule.from_file(
         file_path=get_data_file_path(
@@ -73,23 +79,17 @@ def test_label_molecule():
 
 def test_get_parameters():
 
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
 
     parameters = ff.get_parameters(
-        molecule,
-        [
-            (0,),
-            (1,),
-            (2,),
-            (3,),
-            (0, 1),
-            (1, 2),
-            (2, 3),
-            (0, 1, 2),
-            (1, 2, 3),
-            (0, 1, 2, 3),
-        ],
+        molecule=molecule,
+        atoms_by_type={
+            "vdW": [(0,), (1,), (2,), (3,)],
+            "Bonds": [(0, 1), (1, 2), (2, 3)],
+            "Angles": [(0, 1, 2), (1, 2, 3)],
+            "ProperTorsions": [(0, 1, 2, 3)],
+        },
     )
 
     assert len(parameters) == 6
@@ -107,14 +107,15 @@ def test_get_parameters():
 def test_get_initial_parameters():
 
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
-    smirks = {
-        SMIRKSType.Vdw: ["[#6:1]"],
-        SMIRKSType.Bonds: ["[#6:1]~[#6:2]", "[#17:1]-[#1:2]"],
-        SMIRKSType.Angles: ["[*:1]~[#6:2]~[#6:3]"],
-        SMIRKSType.ProperTorsions: ["[#1:1]~[#6:2]~[#6:3]~[#1:4]"],
-    }
+    smirks = [
+        VdWSMIRKS(smirks="[#6:1]", attributes=set()),
+        BondSMIRKS(smirks="[#6:1]~[#6:2]", attributes=set()),
+        BondSMIRKS(smirks="[#17:1]-[#1:2]", attributes=set()),
+        AngleSMIRKS(smirks="[*:1]~[#6:2]~[#6:3]", attributes=set()),
+        ProperTorsionSMIRKS(smirks="[#1:1]~[#6:2]~[#6:3]~[#1:4]", attributes=set()),
+    ]
 
-    ff = ForceFieldEditor(force_field_name="openff-1.0.0.offxml")
+    ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
 
     initial_parameters = {
         parameter.smirks: parameter

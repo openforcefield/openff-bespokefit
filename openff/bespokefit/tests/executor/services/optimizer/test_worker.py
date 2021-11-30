@@ -18,8 +18,10 @@ from openff.bespokefit.schema.results import (
 def test_optimize(monkeypatch):
 
     input_schema = BespokeOptimizationSchema(
+        id="test",
         smiles="CC",
         initial_force_field="openff-2.0.0.offxml",
+        target_torsion_smirks=[],
         stages=[
             OptimizationStageSchema(
                 parameters=[],
@@ -39,7 +41,9 @@ def test_optimize(monkeypatch):
 
     received_schema = None
 
-    def mock_optimize(schema, initial_force_field, keep_files=False):
+    def mock_optimize(
+        schema, initial_force_field, keep_files=False, root_directory=None
+    ):
         nonlocal received_schema
         received_schema = schema
 

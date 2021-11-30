@@ -33,6 +33,7 @@ def mock_task(
         input_schema=BespokeOptimizationSchema(
             smiles="C",
             initial_force_field="openff-1.0.0.offxml",
+            target_torsion_smirks=[],
             stages=[
                 OptimizationStageSchema(
                     parameters=[],

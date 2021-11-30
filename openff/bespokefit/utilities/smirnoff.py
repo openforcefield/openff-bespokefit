@@ -3,7 +3,7 @@ Tools for dealing with SMIRNOFF force field manipulation.
 """
 import copy
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import numpy as np
 from openff.toolkit import topology as off
@@ -17,6 +17,9 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
+
+if TYPE_CHECKING:
+    from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
 
 _PARAMETER_TYPE_TO_HANDLER = {
     vdWHandler.vdWType: "vdW",
@@ -36,11 +39,11 @@ class SMIRKSType(str, Enum):
 
 
 class ForceFieldEditor:
-    def __init__(self, force_field_name: str):
+    def __init__(self, force_field: Union[str, ForceField]):
         """
 
         Args:
-            force_field_name: A path to a serialized SMIRNOFF force field or the
+            force_field: A path to a serialized SMIRNOFF force field or the
                 contents of an OFFXML serialized SMIRNOFF force field.
 
         Notes
@@ -48,7 +51,10 @@ class ForceFieldEditor:
               should be unconstrained for fitting.
         """
 
-        self.force_field = ForceField(force_field_name, allow_cosmetic_attributes=True)
+        if isinstance(force_field, ForceField):
+            self.force_field = force_field
+        else:
+            self.force_field = ForceField(force_field, allow_cosmetic_attributes=True)
 
         try:
             # try and strip a constraint handler
@@ -121,37 +127,30 @@ class ForceFieldEditor:
         return self.force_field.label_molecules(molecule.to_topology())[0]
 
     def get_parameters(
-        self, molecule: off.Molecule, atoms: List[Tuple[int, ...]]
+        self, molecule: off.Molecule, atoms_by_type: Dict[str, List[Tuple[int, ...]]]
     ) -> List[ParameterType]:
         """
         For a given molecule label it and get back the smirks patterns and parameters
         for the requested atoms.
         """
-        _atoms_to_params = {
-            1: SMIRKSType.Vdw,
-            2: SMIRKSType.Bonds,
-            3: SMIRKSType.Angles,
-            4: SMIRKSType.ProperTorsions,
-        }
 
         off_params = {}
 
         labels = self.label_molecule(molecule=molecule)
 
-        for atom_ids in atoms:
-            # work out the parameter type from the length of the tuple
-            smirk_class = _atoms_to_params[len(atom_ids)]
-            # now we can get the handler type using the smirk type
-            off_param = labels[smirk_class.value][atom_ids]
-
-            off_params[(off_param.__class__, off_param.smirks)] = off_param
+        for parameter_type, atom_ids in atoms_by_type.items():
+            for atoms in atom_ids:
+                # now we can get the handler type using the smirk type
+                off_param = labels[parameter_type][atoms]
+                # get a unique list of openff params as some params may hit many atoms
+                off_params[(off_param.__class__, off_param.smirks)] = off_param
 
         return [*off_params.values()]
 
     def get_initial_parameters(
         self,
         molecule: off.Molecule,
-        smirks: Dict[SMIRKSType, List[str]],
+        smirks: List["SMIRNOFFParameter"],
     ) -> List[ParameterType]:
         """
         Find the initial parameters assigned to the atoms in the given smirks patterns
@@ -162,38 +161,40 @@ class ForceFieldEditor:
         initial_parameters = []
 
         # now find the atoms
-        for smirks_type, smirks_patterns in smirks.items():
+        for smirks_pattern in smirks:
 
-            for smirks_pattern in smirks_patterns:
-                matches = molecule.chemical_environment_matches(smirks_pattern)
+            matches = molecule.chemical_environment_matches(query=smirks_pattern.smirks)
 
-                if len(matches) == 0:
-                    continue
+            if len(matches) == 0:
+                continue
 
-                parameters = labels[smirks_type.value]
+            parameters = labels[smirks_pattern.type]
 
-                if smirks_type == SMIRKSType.ProperTorsions:
+            if (
+                smirks_pattern.type == "ProperTorsions"
+                or smirks_pattern.type == "ImproperTorsions"
+            ):
 
-                    # here we can combine multiple parameter types
-                    # TODO is this needed?
-                    openff_params = [parameters[match] for match in matches]
+                # here we can combine multiple parameter types
+                # TODO is this needed?
+                openff_params = [parameters[match] for match in matches]
 
-                    n_terms = [len(param.k) for param in openff_params]
+                n_terms = [len(param.k) for param in openff_params]
 
-                    # Choose the torsion parameter that has the most k values as the
-                    # starting point.
-                    match = matches[np.argmax(n_terms)]
+                # Choose the torsion parameter that has the most k values as the
+                # starting point.
+                match = matches[np.argmax(n_terms)]
 
-                else:
+            else:
 
-                    match = matches[0]
+                match = matches[0]
 
-                initial_parameter = copy.deepcopy(parameters[match])
-                initial_parameter.smirks = smirks_pattern
-                # mark the parameter as being bespokefit
-                if not initial_parameter.id.endswith("-BF"):
-                    initial_parameter.id += "-BF"
+            initial_parameter = copy.deepcopy(parameters[match])
+            initial_parameter.smirks = smirks_pattern.smirks
+            # mark the parameter as being bespokefit
+            if not initial_parameter.id.endswith("-BF"):
+                initial_parameter.id += "-BF"
 
-                initial_parameters.append(initial_parameter)
+            initial_parameters.append(initial_parameter)
 
         return initial_parameters

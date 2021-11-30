@@ -4,6 +4,7 @@ Test for the bespoke-fit workflow generator.
 import os
 
 import pytest
+from openff.fragmenter.fragment import WBOFragmenter
 from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
@@ -11,29 +12,23 @@ from openff.utilities import get_data_file_path, temporary_cd
 from pydantic import ValidationError
 
 from openff.bespokefit.exceptions import (
-    FragmenterError,
+    MissingTorsionTargetSMARTS,
     OptimizerError,
     TargetNotSetError,
 )
 from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
+from openff.bespokefit.schema.smirnoff import (
+    BondHyperparameters,
+    ProperTorsionHyperparameters,
+)
 from openff.bespokefit.schema.targets import AbInitioTargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTaskSpec
 from openff.bespokefit.tests import does_not_raise
-from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
-
-
-@pytest.fixture()
-def bace() -> Molecule:
-
-    molecule: Molecule = Molecule.from_file(
-        file_path=get_data_file_path(
-            os.path.join("test", "molecules", "bace", "bace.sdf"), "openff.bespokefit"
-        ),
-        file_format="sdf",
-    )
-
-    return molecule
+from openff.bespokefit.workflows.bespoke import (
+    _DEFAULT_ROTATABLE_SMIRKS,
+    BespokeWorkflowFactory,
+)
 
 
 @pytest.mark.parametrize(
@@ -93,21 +88,40 @@ def test_check_target_torsion_smirks():
     with pytest.raises(ValidationError, match="target_torsion_smirks"):
         BespokeWorkflowFactory(target_torsion_smirks=["[*:1]~[*:2]~[*:3]"])
 
+    factory = BespokeWorkflowFactory(target_torsion_smirks=None)
+    assert factory.target_torsion_smirks is None
+
 
 @pytest.mark.parametrize(
     "input_kwargs, expected_raises",
     [
-        (
+        pytest.param(
             dict(target_templates=[]),
             pytest.raises(OptimizerError, match="There are no optimization targets"),
+            id="OptimizerError",
         ),
-        (
-            dict(fragmentation_engine=None),
-            pytest.raises(FragmenterError, match="There is no fragmentation engine"),
+        pytest.param(
+            dict(fragmentation_engine=WBOFragmenter(), target_torsion_smirks=None),
+            pytest.raises(
+                MissingTorsionTargetSMARTS, match="The `target_torsion_smirks`"
+            ),
+            id="Fragmenter, no torsion smirks",
         ),
-        (
+        pytest.param(
+            dict(
+                fragmentation_engine=None,
+                target_torsion_smirks=None,
+                parameter_hyperparameters=[ProperTorsionHyperparameters()],
+            ),
+            pytest.raises(
+                MissingTorsionTargetSMARTS, match="The `target_torsion_smirks`"
+            ),
+            id="No frgamenter, no target torsions",
+        ),
+        pytest.param(
             dict(parameter_hyperparameters=[]),
             pytest.raises(TargetNotSetError, match="There are no parameter settings"),
+            id="TargetError",
         ),
     ],
 )
@@ -182,20 +196,7 @@ def test_optimization_schemas_from_molecule(func_name):
         assert len(opt_schema) == 1
         opt_schema = opt_schema[0]
 
-    assert len(opt_schema.stages[0].parameters) == 1
-    expected_matches = molecule.chemical_environment_matches(
-        "[*:1]~[#6:2]-[#6:3]~[*:4]"
-    )
-    actual_matches = molecule.chemical_environment_matches(
-        opt_schema.stages[0].parameters[0].smirks
-    )
-    assert {*actual_matches} == {*expected_matches}
-
-    force_field = ForceField(opt_schema.initial_force_field)
-    assert (
-        opt_schema.stages[0].parameters[0].smirks
-        in force_field["ProperTorsions"].parameters
-    )
+    assert len(opt_schema.stages[0].parameters) == 0
 
     assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_0"
@@ -209,6 +210,57 @@ def test_optimization_schemas_from_molecule(func_name):
     assert isinstance(
         opt_schema.stages[0].targets[0].reference_data.spec, Torsion1DTaskSpec
     )
+
+
+@pytest.mark.parametrize(
+    "workflow_settings, expected_output",
+    [
+        pytest.param(
+            dict(
+                fragmentation_engine=None,
+                parameter_hyperparameters=[ProperTorsionHyperparameters()],
+                target_torsion_smirks=[_DEFAULT_ROTATABLE_SMIRKS],
+            ),
+            dict(
+                target_torsion_smirks=[_DEFAULT_ROTATABLE_SMIRKS],
+                fragmentation_engine=None,
+            ),
+            id="No fragmentation, torsion fitting",
+        ),
+        pytest.param(
+            dict(
+                fragmentation_engine=None,
+                parameter_hyperparameters=[BondHyperparameters()],
+                target_torsion_smirks=[_DEFAULT_ROTATABLE_SMIRKS],
+            ),
+            dict(target_torsion_smirks=None, fragmentation_engine=None),
+            id="No fragmentation, no torsion fitting",
+        ),
+        pytest.param(
+            dict(
+                fragmentation_engine=WBOFragmenter(),
+                parameter_hyperparameters=[BondHyperparameters()],
+                target_torsion_smirks=[_DEFAULT_ROTATABLE_SMIRKS],
+            ),
+            dict(
+                fragmentation_engine=WBOFragmenter(),
+                target_torsion_smirks=[_DEFAULT_ROTATABLE_SMIRKS],
+            ),
+            id="Fragmentation, no torsion fitting",
+        ),
+    ],
+)
+def test_optimization_schema_from_molecule_fragmentation(
+    workflow_settings, expected_output, bace
+):
+    """
+    Test creating the optimization schema from a molecule with different fragmentation settings.
+    """
+    factory = BespokeWorkflowFactory(**workflow_settings)
+
+    schema = factory.optimization_schema_from_molecule(molecule=bace)
+    for key, value in expected_output.items():
+        assert getattr(schema, key) == value
 
 
 @pytest.mark.parametrize("combine, n_expected", [(True, 1), (False, 2)])
@@ -243,7 +295,7 @@ def test_optimization_schema_from_records(qc_torsion_drive_results):
 
     assert opt_schema.stages[0].optimizer == factory.optimizer
     assert opt_schema.id == "bespoke_task_1"
-    assert bool(opt_schema.stages[0].parameters) is True
+    assert bool(opt_schema.stages[0].parameters) is False
     assert (
         opt_schema.stages[0].parameter_hyperparameters
         == factory.parameter_hyperparameters

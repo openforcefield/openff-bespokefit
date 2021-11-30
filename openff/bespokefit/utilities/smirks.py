@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -12,11 +12,12 @@ from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
+from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
 from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import ClassBase
+from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -132,41 +133,34 @@ def make_smirks_attribute_graph(chem_env: ChemicalEnvironment) -> nx.Graph:
     return new_graph
 
 
-def validate_smirks(smirks: str, expected_tags: int) -> str:
+class SMIRKSettings(SchemaBase):
     """
-    Make sure the supplied smirks has the correct number of tagged atoms.
+    Settings for the generation of SMIRKS patterns via the SMIRKSGenerator.
     """
 
-    smirk = ChemicalEnvironment(smirks=smirks)
-    tagged_atoms = len(smirk.get_indexed_atoms())
-
-    assert tagged_atoms == expected_tags, (
-        f"The smirks pattern ({smirks}) has {tagged_atoms} tagged atoms, but should "
-        f"have {expected_tags}."
+    expand_torsion_terms: bool = Field(
+        True,
+        description="If the number of k values for each torsion should be expanded beyond what is in "
+        "the initial force field to introduce extra degrees of freedom during fitting.",
+    )
+    generate_bespoke_terms: bool = Field(
+        True,
+        description="If we should generate bespoke smirks for the molecule or use existing general patterns.",
     )
 
-    return smirks
 
-
-class SMIRKSGenerator(ClassBase):
+class SMIRKSGenerator(SMIRKSettings):
     """
     Generates a set of smirks that describe the requested force groups of the molecule,
     these can be bespoke or simply extract the current values from the target forcefield.
     """
 
+    class Config(SMIRKSettings.Config):
+        arbitrary_types_allowed = True
+
     initial_force_field: Union[str, ForceFieldEditor] = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",
-    )
-
-    generate_bespoke_terms: bool = Field(
-        True,
-        description="For each instance of a force group in the molecule generate a new "
-        "bespoke smirks parameter.",
-    )
-    expand_torsion_terms: bool = Field(
-        True,
-        description="For each new torsion term expand the number of k terms up to 4.",
     )
 
     target_smirks: List[SMIRKSType] = Field(
@@ -229,7 +223,7 @@ class SMIRKSGenerator(ClassBase):
         if isinstance(self.initial_force_field, ForceFieldEditor):
             ff = self.initial_force_field
         else:
-            ff = ForceFieldEditor(force_field_name=self.initial_force_field)
+            ff = ForceFieldEditor(force_field=self.initial_force_field)
 
         if self.generate_bespoke_terms:
 
@@ -295,24 +289,23 @@ class SMIRKSGenerator(ClassBase):
         this will only extract parameters for the requested groups.
         """
 
-        requested_smirks = [
-            valence_term
-            for smirks_type in self.target_smirks
+        requested_smirks = {}
+        for smirks_type in self.target_smirks:
             for valence_term in self._get_valence_terms(
-                molecule,
-                smirks_type,
-                None
+                molecule=molecule,
+                smirks_type=smirks_type,
+                torsion_bond=None
                 if molecule_map_indices is None
                 else (
                     get_atom_index(molecule, molecule_map_indices[0]),
                     get_atom_index(molecule, molecule_map_indices[1]),
                 ),
-            )
-        ]
+            ):
+                requested_smirks.setdefault(smirks_type, []).append(valence_term)
 
         # now request all of these smirks from the forcefield
         new_parameters = force_field_editor.get_parameters(
-            molecule=molecule, atoms=requested_smirks
+            molecule=molecule, atoms_by_type=requested_smirks
         )
         return new_parameters
 
@@ -335,12 +328,17 @@ class SMIRKSGenerator(ClassBase):
             mapped=False, isomeric=False
         ) == fragment.to_smiles(mapped=False, isomeric=False)
 
-        bespoke_smirks: Dict[SMIRKSType, List[str]] = {
-            smirk_type: self._get_bespoke_smirks(
-                parent, fragment, fragment_map_indices, fragment_is_parent, smirk_type
+        bespoke_smirks = []
+        for smirk_type in self.target_smirks:
+            bespoke_smirks.extend(
+                self._get_bespoke_smirks(
+                    parent=parent,
+                    fragment=fragment,
+                    fragment_map_indices=fragment_map_indices,
+                    fragment_is_parent=fragment_is_parent,
+                    smirks_type=smirk_type,
+                )
             )
-            for smirk_type in self.target_smirks
-        }
 
         # now we need to update all smirks
         new_parameters = force_field_editor.get_initial_parameters(
@@ -355,7 +353,7 @@ class SMIRKSGenerator(ClassBase):
         fragment_map_indices: Optional[Tuple[int, int]],
         fragment_is_parent: bool,
         smirks_type: SMIRKSType,
-    ) -> List[str]:
+    ) -> List[SMIRNOFFParameter]:
         """For the molecule generate a unique set of bespoke smirks of a given type."""
 
         bespoke_smirks = []
@@ -391,7 +389,10 @@ class SMIRKSGenerator(ClassBase):
                 smirks_atoms_lists=target_atoms,
                 layers=self.smirks_layers,
             )
-            bespoke_smirks.append(graph.as_smirks(compress=False))
+            parameter = get_smirnoff_parameter(smirks_type)(
+                smirks=graph.as_smirks(compress=False), attributes=set()
+            )
+            bespoke_smirks.append(parameter)
 
         return bespoke_smirks
 
