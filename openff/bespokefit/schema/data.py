@@ -66,10 +66,13 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     ) -> TorsionDriveResult:
 
         assert record.status == RecordStatusEnum.complete
+        # add the program to the model which we need for the cache
+        extras = record.extras
+        extras["program"] = record.qc_spec.program
 
         return TorsionDriveResult(
             keywords=record.keywords.dict(),
-            extras=record.extras,
+            extras=extras,
             input_specification=QCInputSpecification(
                 driver=record.qc_spec.driver,
                 model=Model(method=record.qc_spec.method, basis=record.qc_spec.basis),
