@@ -19,8 +19,8 @@ from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field, validator
-from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 from qcelemental.models.common_models import Model
+from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.exceptions import (
     MissingTorsionTargetSMARTS,

@@ -1,47 +1,195 @@
+import hashlib
+import json
+import uuid
+from typing import Optional, Union
+
 import click
 import redis
 import rich
 from click_option_group import optgroup
+from openff.qcsubmit.results import (
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
+)
 from rich import pretty
-from typing import Optional
-from typing import Union
+from rich.padding import Padding
+from rich.progress import track
 
 from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
-from openff.qcsubmit.results import TorsionDriveResultCollection, OptimizationResultCollection
+from openff.bespokefit.schema.data import LocalQCData
+from openff.bespokefit.schema.tasks import task_from_result
+
 
 @click.group("cache")
 def cache_cli():
-    #TODO do we want the redius database to be saved in a standard location as it is directory dependent?
+    # TODO do we want the redis database to be saved in a standard location as it is directory dependent?
     """Commands to manually update the qc data cache."""
 
 
-
 def update_from_qcsubmit_options(
-        result_file: str,
-        launch_redis_if_unavailable: Optional[bool] = True,
+    launch_redis_if_unavailable: Optional[bool] = True,
 ):
     return [
         optgroup("Input Configuration"),
-        optgroup.option()
+        optgroup.option(
+            "--input",
+            "input_file_path",
+            type=click.Path(exists=True, file_okay=True, dir_okay=False),
+            help="The serialised openff-qcsubmit file.",
+            required=True,
+        ),
+        optgroup.group("Storage configuration"),
+        optgroup.option(
+            "--launch-redis/--no-launch-redis",
+            "launch_redis_if_unavailable",
+            help="Whether to launch a redis server if an already running one cannot be "
+            "found.",
+            required=launch_redis_if_unavailable is None,
+            default=launch_redis_if_unavailable,
+            show_default=launch_redis_if_unavailable is not None,
+        ),
     ]
 
 
-def update():
+def _update(input_file_path: str, launch_redis_if_unavailable: bool):
     """
     The main worker function which updates the redis cache with qcsubmit results objects.
     """
-    # first download qcsubmit results
-    # connect to / launch redis
-    # save and close
-    # have options for files and address as they all go through the same in fastructure should they be mutally exclusive?
 
-    pass
+    pretty.install()
+    console = rich.get_console()
+    print_header(console)
+
+    console.print(Padding("1. gathering QCSubmit results", (0, 0, 1, 0)))
+
+    with console.status("loading results file"):
+        try:
+            qcsubmit_result = TorsionDriveResultCollection.parse_file(input_file_path)
+            console.print(
+                f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `TorsionDriveResultCollection`."
+            )
+        except TypeError:
+            try:
+                qcsubmit_result = OptimizationResultCollection.parse_file(
+                    input_file_path
+                )
+                console.print(
+                    f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `OptimizationResultCollection`."
+                )
+            except TypeError as e:
+                console.print(
+                    Padding(
+                        f"[[red]ERROR[/red]] The result file [repr.filename]{input_file_path}[/repr.filename] could not be loaded into QCSubmit"
+                    )
+                )
+                console.print(Padding(str(e), (1, 1, 1, 1)))
+                return
+
+    console.print(Padding("2. connecting to redis cache", (1, 0, 1, 0)))
+    if launch_redis_if_unavailable and not is_redis_available(
+        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+    ):
+        redis_log_file = open("redis.log", "w")
+
+        redis_process = launch_redis(
+            port=settings.BEFLOW_REDIS_PORT,
+            stderr_file=redis_log_file,
+            stdout_file=redis_log_file,
+            terminate_at_exit=False,
+        )
+    else:
+        redis_process = None
+    # connect to redis
+    redis_connection = redis.Redis(
+        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+    )
+
+    # run the update
+    _update_from_qcsubmit_result(
+        console=console,
+        qcsubmit_results=qcsubmit_result,
+        redis_connection=redis_connection,
+    )
+
+    if redis_process is not None:
+        # close redis
+        console.print(Padding("5. closing redis", (0, 0, 1, 0)))
+        redis_process.terminate()
+        redis_process.wait()
 
 
-def _update_from_qcsubmit_result(qcsubmit_results: Union[TorsionDriveResultCollection, OptimizationResultCollection], redis_connection: redis.Redis):
+def _update_from_qcsubmit_result(
+    console: "rich.Console",
+    qcsubmit_results: Union[TorsionDriveResultCollection, OptimizationResultCollection],
+    redis_connection: redis.Redis,
+):
     """Update the qcgeneration redis cache using qcsubmit results objects."""
-    # take the results and convert them to tasks and store in redis if not present
-    pass
+
+    # process the results into local data
+    console.print(Padding("3. updating local cache", (0, 0, 1, 0)))
+
+    with console.status("building local results"):
+        try:
+            local_data = LocalQCData.from_remote_records(
+                qc_records=qcsubmit_results.to_records()
+            )
+            console.print("[[green]✓[/green]] local results built")
+        except BaseException as e:
+            console.print(
+                Padding(
+                    "[[red]ERROR[/red]] The local results could not be built due to the following error.",
+                    (1, 0, 0, 0),
+                )
+            )
+            console.print(Padding(str(e), (1, 1, 1, 1)))
+
+            return
+
+    new_results = 0
+    for result in track(
+        local_data.qc_records, description="[green]Processing results..."
+    ):
+        task = task_from_result(result=result)
+        con_task = _canonicalize_task(task=task)
+        task_hash = hashlib.sha512(con_task.json().encode()).hexdigest()
+        task_id = redis_connection.hget("qcgenerator:task-ids", task_hash)
+
+        if task_id is None:
+            # we need to add the result with a random id
+            task_id = str(uuid.uuid4())
+            redis_connection.hset("qcgenerator:types", task_id, task.type)
+            redis_connection.hset("qcgenerator:task-ids", task_hash, task_id)
+            # mock a celery worker result
+            task_meta = {
+                "status": "SUCCESS",
+                "result": result.json(),
+                "traceback": None,
+                "children": [],
+                "date_done": "",
+                "task_id": task_id,
+            }
+            redis_connection.set(f"celery-task-meta-{task_id}", json.dumps(task_meta))
+            new_results += 1
+
+    console.print(
+        f"[[green]✓[/green]] [blue]{new_results}[/blue]/[cyan]{len(local_data.qc_records)}[/cyan] results cached"
+    )
+
+    console.print(Padding("4. saving local cache", (1, 0, 1, 0)))
+    # block until data is saved
+    redis_connection.save()
+
+    return
 
 
+update_cli = create_command(
+    click_command=click.command("update"),
+    click_options=update_from_qcsubmit_options(),
+    func=_update,
+)
+
+
+cache_cli.add_command(update_cli)
