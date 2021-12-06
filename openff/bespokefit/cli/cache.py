@@ -1,7 +1,8 @@
+import datetime
 import hashlib
 import json
 import uuid
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import click
 import redis
@@ -11,9 +12,11 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
+from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
+from typing_extensions import Literal
 
 from openff.bespokefit.cli.utilities import create_command, print_header
 from openff.bespokefit.executor.services import settings
@@ -21,6 +24,9 @@ from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
 from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.tasks import task_from_result
+
+if TYPE_CHECKING:
+    from qcportal import FractalClient
 
 
 @click.group("cache")
@@ -35,11 +41,57 @@ def update_from_qcsubmit_options(
     return [
         optgroup("Input Configuration"),
         optgroup.option(
-            "--input",
+            "--file",
             "input_file_path",
             type=click.Path(exists=True, file_okay=True, dir_okay=False),
             help="The serialised openff-qcsubmit file.",
-            required=True,
+            default=None,
+            required=False,
+        ),
+        optgroup.option(
+            "--qcf-dataset",
+            "qcf_dataset_name",
+            type=click.STRING,
+            help="The name of the dataset in QCFractal to cache locally.",
+            required=False,
+            default=None,
+        ),
+        optgroup.option(
+            "--qcf-datatype",
+            "qcf_datatype",
+            type=click.Choice(
+                ["torsion", "optimization", "hessian"], case_sensitive=False
+            ),
+            help="The type of dataset to cache.",
+            required=False,
+            default="torsion",
+            show_default=True,
+        ),
+        optgroup.option(
+            "--qcf-address",
+            "qcf_address",
+            type=click.STRING,
+            help="The address of the QCFractal server to pull the dataset from.",
+            default="api.qcarchive.molssi.org:443",
+            required=False,
+            show_default=True,
+        ),
+        optgroup.option(
+            "--qcf-config",
+            "qcf_config",
+            type=click.Path(exists=True, file_okay=True, dir_okay=False),
+            help="The path to a QCFractal config file containing the address username and password.",
+            default=None,
+            required=False,
+        ),
+        optgroup.option(
+            "--qcf-spec",
+            "qcf_specification",
+            type=click.STRING,
+            help="The name of the calculation specification in QCFractal.",
+            required=False,
+            default="default",
+            show_default=True,
         ),
         optgroup.group("Storage configuration"),
         optgroup.option(
@@ -54,7 +106,15 @@ def update_from_qcsubmit_options(
     ]
 
 
-def _update(input_file_path: str, launch_redis_if_unavailable: bool):
+def _update(
+    input_file_path: Optional[str],
+    qcf_dataset_name: Optional[str],
+    qcf_datatype: Literal["torsion", "optimization", "hessian"],
+    qcf_address: str,
+    qcf_config: Optional[str],
+    qcf_specification: str,
+    launch_redis_if_unavailable: bool,
+):
     """
     The main worker function which updates the redis cache with qcsubmit results objects.
     """
@@ -63,30 +123,37 @@ def _update(input_file_path: str, launch_redis_if_unavailable: bool):
     console = rich.get_console()
     print_header(console)
 
+    if (qcf_dataset_name is not None and input_file_path is not None) or (
+        qcf_dataset_name is None and input_file_path is None
+    ):
+        console.print(
+            "[[red]ERROR[/red]] The `file` and `qcf-dataset` arguments are mutually exclusive"
+        )
+        return
+
     console.print(Padding("1. gathering QCSubmit results", (0, 0, 1, 0)))
 
-    with console.status("loading results file"):
-        try:
-            qcsubmit_result = TorsionDriveResultCollection.parse_file(input_file_path)
-            console.print(
-                f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `TorsionDriveResultCollection`."
-            )
-        except TypeError:
-            try:
-                qcsubmit_result = OptimizationResultCollection.parse_file(
-                    input_file_path
-                )
-                console.print(
-                    f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `OptimizationResultCollection`."
-                )
-            except TypeError as e:
-                console.print(
-                    Padding(
-                        f"[[red]ERROR[/red]] The result file [repr.filename]{input_file_path}[/repr.filename] could not be loaded into QCSubmit"
-                    )
-                )
-                console.print(Padding(str(e), (1, 1, 1, 1)))
-                return
+    if input_file_path is not None:
+        qcsubmit_result = _results_from_file(
+            console=console, input_file_path=input_file_path
+        )
+    else:
+        client = _connect_to_qcfractal(
+            console=console, qcf_address=qcf_address, qcf_config=qcf_config
+        )
+        if client is None:
+            return
+
+        qcsubmit_result = _results_from_client(
+            client=client,
+            console=console,
+            qcf_datatype=qcf_datatype,
+            qcf_dataset_name=qcf_dataset_name,
+            qcf_specification=qcf_specification,
+        )
+    if qcsubmit_result is None:
+        # exit here as something is wrong
+        return
 
     console.print(Padding("2. connecting to redis cache", (1, 0, 1, 0)))
     if launch_redis_if_unavailable and not is_redis_available(
@@ -119,6 +186,92 @@ def _update(input_file_path: str, launch_redis_if_unavailable: bool):
         console.print(Padding("5. closing redis", (0, 0, 1, 0)))
         redis_process.terminate()
         redis_process.wait()
+
+
+def _results_from_file(
+    console: "rich.Console", input_file_path: str
+) -> Optional[Union[TorsionDriveResultCollection, OptimizationResultCollection]]:
+    """
+    Try and build a qcsubmit results object from a local file.
+    """
+    with console.status("loading results file"):
+        try:
+            qcsubmit_result = TorsionDriveResultCollection.parse_file(input_file_path)
+            console.print(
+                f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `TorsionDriveResultCollection`."
+            )
+        except ValidationError:
+            try:
+                qcsubmit_result = OptimizationResultCollection.parse_file(
+                    input_file_path
+                )
+                console.print(
+                    f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `OptimizationResultCollection`."
+                )
+            except ValidationError as e:
+                console.print(
+                    Padding(
+                        f"[[red]ERROR[/red]] The result file [repr.filename]{input_file_path}[/repr.filename] could not be loaded into QCSubmit"
+                    )
+                )
+                console.print(Padding(str(e), (1, 1, 1, 1)))
+                return None
+
+    return qcsubmit_result
+
+
+def _connect_to_qcfractal(
+    console: "rich.Console",
+    qcf_address: str,
+    qcf_config: Optional[str],
+) -> Optional["FractalClient"]:
+    """Connected to the chosen qcfractal server."""
+    from qcportal import FractalClient
+
+    with console.status("connecting to qcfractal"):
+        try:
+            if qcf_config is not None:
+                client = FractalClient.from_file(load_path=qcf_config)
+            else:
+                client = FractalClient(address=qcf_address)
+        except BaseException as e:
+            console.print(
+                Padding(
+                    "[[red]ERROR[/red]] Unable to connect to QCFractal due to the following error."
+                )
+            )
+            console.print(Padding(str(e), (1, 1, 1, 1)))
+            return None
+
+        console.print("[[green]✓[/green]] connected to QCFractal")
+        return client
+
+
+def _results_from_client(
+    console: "rich.Console",
+    qcf_dataset_name: Optional[str],
+    qcf_datatype: Literal["torsion", "optimization", "hessian"],
+    client: "FractalClient",
+    qcf_specification: str,
+) -> Optional[Union[TorsionDriveResultCollection, OptimizationResultCollection]]:
+    """Connect to qcfractal and create a qcsubmit results object."""
+
+    with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
+
+        if qcf_datatype == "torsion":
+            qcsubmit_result = TorsionDriveResultCollection.from_server(
+                client=client, datasets=qcf_dataset_name, spec_name=qcf_specification
+            )
+        elif qcf_datatype == "optimization":
+            qcsubmit_result = OptimizationResultCollection.from_server(
+                client=client, datasets=qcf_dataset_name, spec_name=qcf_specification
+            )
+        else:
+            raise NotImplementedError()
+
+        console.print("[[green]✓[/green]] dataset downloaded")
+
+    return qcsubmit_result
 
 
 def _update_from_qcsubmit_result(
@@ -168,7 +321,7 @@ def _update_from_qcsubmit_result(
                 "result": result.json(),
                 "traceback": None,
                 "children": [],
-                "date_done": "",
+                "date_done": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
                 "task_id": task_id,
             }
             redis_connection.set(f"celery-task-meta-{task_id}", json.dumps(task_meta))
