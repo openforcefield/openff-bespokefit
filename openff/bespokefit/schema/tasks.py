@@ -1,9 +1,12 @@
 import abc
-from typing import Optional, Tuple
+from typing import Optional, Tuple, overload
 
 from openff.qcsubmit.procedures import GeometricProcedure
+from openff.toolkit.topology import Molecule
 from pydantic import Field, conint
+from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model
+from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from typing_extensions import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
@@ -86,3 +89,43 @@ class Torsion1DTask(Torsion1DTaskSpec):
         None,
         description="The **map** indices of the atoms in the bond to scan around.",
     )
+
+
+@overload
+def task_from_result(result: AtomicResult) -> HessianTask:
+    ...
+
+
+@overload
+def task_from_result(result: OptimizationResult) -> OptimizationTask:
+    ...
+
+
+@overload
+def task_from_result(result: TorsionDriveResult) -> Torsion1DTask:
+    ...
+
+
+def task_from_result(result):
+    """
+    Convert a result into a task to populate the cache for the result.
+    """
+
+    if isinstance(result, TorsionDriveResult):
+        dihedral = result.keywords.dihedrals[0]
+        off_mol = Molecule.from_qcschema(result.initial_molecule[0])
+        return Torsion1DTask(
+            smiles=off_mol.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
+            ),
+            program=result.extras["program"],
+            model=result.input_specification.model,
+            central_bond=(dihedral[1] + 1, dihedral[2] + 1),
+            grid_spacing=result.keywords.grid_spacing[0],
+            scan_range=result.keywords.dihedral_ranges,
+            optimization_spec=GeometricProcedure.from_opt_spec(
+                result.optimization_spec
+            ),
+        )
+    else:
+        raise NotImplementedError()

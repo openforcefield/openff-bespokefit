@@ -19,6 +19,7 @@ from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field, validator
+from qcelemental.models.common_models import Model
 from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
 
 from openff.bespokefit.exceptions import (
@@ -463,7 +464,14 @@ class BespokeWorkflowFactory(ClassBase):
 
             target_schema.reference_data = BespokeQCData(
                 spec=task_type_to_spec[task_type](
-                    program=default_qc_spec.program, model=default_qc_spec.qc_model
+                    program=default_qc_spec.program.lower(),
+                    # lower to hit the cache more often
+                    model=Model(
+                        method=default_qc_spec.method.lower(),
+                        basis=default_qc_spec.basis.lower()
+                        if default_qc_spec.basis is not None
+                        else default_qc_spec.basis,
+                    ),
                 )
             )
 
