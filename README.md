@@ -1,9 +1,9 @@
 BespokeFit
 ==============================
 [//]: # (Badges)
-[![CI](https://github.com/openforcefield/bespoke-fit/actions/workflows/CI.yaml/badge.svg)](https://github.com/openforcefield/bespoke-fit/actions/workflows/CI.yaml)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/openforcefield/bespoke-fit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/openforcefield/bespoke-fit/context:python)
-[![codecov](https://codecov.io/gh/openforcefield/bespoke-fit/branch/main/graph/badge.svg)](https://codecov.io/gh/openforcefield/bespoke-fit/branch/main)
+[![CI](https://github.com/openforcefield/openff-bespokefit/actions/workflows/CI.yaml/badge.svg)](https://github.com/openforcefield/openff-bespokefit/actions/workflows/CI.yaml)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/openforcefield/openff-bespokefit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/openforcefield/openff-bespokefit/context:python)
+[![codecov](https://codecov.io/gh/openforcefield/openff-bespokefit/branch/main/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-bespokefit/branch/main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 

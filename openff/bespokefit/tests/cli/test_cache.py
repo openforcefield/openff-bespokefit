@@ -44,7 +44,7 @@ def test_results_from_file(filename, output):
         )
         _ = _results_from_file(console=console, input_file_path=file_path)
 
-    assert output in capture.get()
+    assert output in capture.get().replace("\n", "")
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_connecting_to_fractal_address(address, expected_output):
 
     with console.capture() as capture:
         _ = _connect_to_qcfractal(console=console, qcf_address=address, qcf_config=None)
-    assert expected_output in capture.get()
+    assert expected_output in capture.get().replace("\n", "")
 
 
 def test_connecting_to_fractal_file():
