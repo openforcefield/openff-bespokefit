@@ -132,5 +132,5 @@ def test_cache_cli_fractal(runner, tmpdir):
             "torsion",
         ],
     )
-    assert output.exit_code == 0
+    assert output.exit_code == 0, print(output.output)
     assert "4. saving local cache" in output.output
