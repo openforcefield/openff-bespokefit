@@ -1,5 +1,6 @@
 name: readthedocs-environment
 channels:
+  - openeye
   - conda-forge
   - nodefaults
 dependencies:
