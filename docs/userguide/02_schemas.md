@@ -1,10 +1,10 @@
 (schemas_chapter)=
 # Schemas in BespokeFit
 
-BespokeFit uses [Pydantic] to "Define how data should be in pure, canonical
-python; validate it with *pydantic*." Pydantic helps BespokeFit provide clear
-error messages when it is configured improperly, and also provides inspection
-and documentation tools that BespokeFit uses extensively.
+BespokeFit uses [Pydantic] to validate input provided by users. Pydantic helps
+BespokeFit provide clear error messages when it is configured improperly, and
+also provides inspection and documentation tools that BespokeFit uses
+extensively.
 
 ## Models and fields
 
@@ -20,11 +20,11 @@ failure later on when the value is used.
 
 A model's fields, validation machinery, and other Pydantic configuration forms
 its schema. A schema describes every possible configuration of a model and is
-useful for investigating what can be done with a class. Schemas are reproduced
-on a model's API reference, and can be accessed programmatically with the 
-[`schema()`] method.
+useful for investigating what can be done with a class. Schemas are included in
+a model's API reference documentation, and can be accessed programmatically
+with the [`schema()`] method.
 
-For example, [`BespokeWorkflowFactory`] is a model. It's schema is available
+For example, [`BespokeWorkflowFactory`] is a model. Its schema is available
 on its API page, but can also be accessed on the class itself or any instance:
 
 ```python

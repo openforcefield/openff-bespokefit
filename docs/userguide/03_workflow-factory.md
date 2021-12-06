@@ -37,12 +37,13 @@ fragmenter = WBOFragmenter()
 
 ### QC Generation
 
-BespokeFit uses target schemas to specify how to fit parameters. These schemas are
-responsible for generating the specific tasks used to generate reference data,
-and also describe how significant each target is in terms of the accuracy of the
-overall fit. Target schema classes are subclasses of [`BaseTargetSchema`], and schemas
-for torsion drives, vibration fitting, and several other targets are available in the
-[`openff.bespokefit.schema.targets`] module.
+BespokeFit uses target schemas to specify how to fit parameters. These schemas
+are responsible for generating the specific tasks used to produce reference
+data. The target schema also describes how significant each target is in terms
+of the accuracy of the overall fit. Target schema classes are subclasses of
+[`BaseTargetSchema`], and schemas for torsion drives, vibration fitting, and
+several other targets are available in the [`openff.bespokefit.schema.targets`] 
+module.
 
 ```python
 from openff.bespokefit.schema.targets import TorsionProfileTargetSchema

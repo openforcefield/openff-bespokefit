@@ -11,11 +11,10 @@ BespokeExecutor runs in the background on a computer with plenty of CPU power.
 This might be a local workstation or a remote HPC cluster. It then provides a
 server to which jobs can be submitted. Submitted jobs are placed in a queue
 until resources become available, at which point the executor runs them.
-BespokeExecutor can break a workflow down into stages and run parts in
-parallel with parts from other workflows so that even serial steps can take
-advantage of the host platform's parallelism. This means that several workflows
-submitted to a single BespokeExecutor instance can be faster than the same
-workflows submitted to individual instances.
+BespokeExecutor breaks workflows down into stages, and runs stages from
+different workflows in parallel. This means that even serial steps can take
+advantage of the host platform's parallelism, so long as several workflows are
+submitted to a single BespokeExecutor instance.
 
 BespokeExecutor can be started, jobs submitted, and progress reported on from
 Python code using the [`BespokeExecutor`] class, or from the CLI.
@@ -81,10 +80,6 @@ simple. Given an iterator of workflow schemas named `workflows`:
 //  from openff.bespokefit.executor import BespokeExecutor
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  from openff.toolkit.topology import Molecule
-//  target_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine
-//  workflow = factory.optimization_schema_from_molecule(
-//      molecule=target_molecule,
-//  )
 //  
 //  factory = BespokeWorkflowFactory()
 //  smiles = [
@@ -127,9 +122,10 @@ openff-bespoke executor submit --input molecule.sdf
 ```
 
 The `--input` switch accepts most commonly used chemistry formats. OpenFF
-recommends SDF as it includes all the information needed to unambiguously
-construct a molecular graph. For more information, see the [OpenFF Toolkit FAQ].
-For other options and features, use the `--help` switch on any subcommand:
+recommends SDF or MOL as they include all the information needed to
+unambiguously construct a molecular graph. For more information, see the
+[OpenFF Toolkit FAQ]. For other options and features, use the `--help` switch
+on any subcommand:
 
 ```sh
 openff-bespoke --help
