@@ -51,7 +51,7 @@ def test_run(runner, tmpdir):
         output = runner.invoke(
             run_cli,
             args=[
-                "--input",
+                "--file",
                 input_file_path,
                 "--spec",
                 "debug",

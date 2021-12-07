@@ -6,9 +6,15 @@ import pytest
 import requests_mock
 import rich
 from openff.toolkit.topology import Molecule, Topology
+from openff.utilities import get_data_file_path
 from openmm import unit
 
-from openff.bespokefit.cli.executor.submit import _submit, _to_input_schema, submit_cli
+from openff.bespokefit.cli.executor.submit import (
+    _submit,
+    _submit_cli,
+    _to_input_schema,
+    submit_cli,
+)
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
@@ -124,6 +130,7 @@ def test_submit_multi_molecule(tmpdir):
         response = _submit(
             console,
             input_file_path=input_file_path,
+            molecule_smiles=None,
             force_field_path="openff-2.0.0.offxml",
             spec_name="debug",
             spec_file_name=None,
@@ -142,6 +149,7 @@ def test_submit_invalid_schema(tmpdir):
     response = _submit(
         rich.get_console(),
         input_file_path=input_file_path,
+        molecule_smiles=None,
         force_field_path="openff-2.0.0.offxml",
         spec_name=None,
         spec_file_name=None,
@@ -150,11 +158,22 @@ def test_submit_invalid_schema(tmpdir):
     assert response is None
 
 
-def test_submit(tmpdir):
+@pytest.mark.parametrize(
+    "file, smiles",
+    [
+        pytest.param(
+            get_data_file_path(
+                os.path.join("test", "molecules", "ethane.sdf"),
+                package_name="openff.bespokefit",
+            ),
+            None,
+            id="file path",
+        ),
+        pytest.param(None, "CC", id="smiles"),
+    ],
+)
+def test_submit(tmpdir, file, smiles):
     """Make sure to schema failures are cleanly handled."""
-
-    input_file_path = os.path.join(tmpdir, "mol.sdf")
-    Molecule.from_smiles("CC").to_file(input_file_path, "SDF")
 
     with requests_mock.Mocker() as m:
 
@@ -168,7 +187,8 @@ def test_submit(tmpdir):
 
         response = _submit(
             rich.get_console(),
-            input_file_path=input_file_path,
+            input_file_path=file,
+            molecule_smiles=smiles,
             force_field_path="openff-2.0.0.offxml",
             spec_name="debug",
             spec_file_name=None,
@@ -195,8 +215,38 @@ def test_submit_cli(runner, tmpdir):
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
         output = runner.invoke(
-            submit_cli, args=["--input", input_file_path, "--spec", "debug"]
+            submit_cli, args=["--file", input_file_path, "--spec", "debug"]
         )
 
     assert output.exit_code == 0
     assert "workflow submitted: id=1" in output.output
+
+
+@pytest.mark.parametrize(
+    "file, smiles",
+    [
+        pytest.param("test.sdf", "CC", id="both defined."),
+        pytest.param(None, None, id="Both missing"),
+    ],
+)
+def test_submit_cli_mutual_exclusive_args(file, smiles):
+    """
+    Make sure an error is raised if we pass mutual exclusive args.
+    """
+
+    console = rich.get_console()
+
+    with console.capture() as capture:
+        result = _submit_cli(
+            input_file_path=file,
+            molecule_smiles=smiles,
+            spec_name="default",
+            spec_file_name=None,
+            force_field_path=None,
+        )
+        assert result is None
+
+    assert (
+        "[ERROR] The `file` and `smiles` arguments are mutually exclusive."
+        in capture.get()
+    )
