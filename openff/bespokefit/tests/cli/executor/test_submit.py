@@ -215,7 +215,7 @@ def test_submit_cli(runner, tmpdir):
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
         output = runner.invoke(
-            submit_cli, args=["--input", input_file_path, "--spec", "debug"]
+            submit_cli, args=["--file", input_file_path, "--spec", "debug"]
         )
 
     assert output.exit_code == 0
