@@ -51,6 +51,7 @@ dependencies:
   - sphinx-notfound-page
   - sphinx-click
   - myst-parser
+  - autodoc-pydantic
 
   # Dependencies not available on Conda Forge
   - pip:
