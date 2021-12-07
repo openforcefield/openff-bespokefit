@@ -11,7 +11,8 @@ from openff.bespokefit.cli.utilities import create_command, print_header
 
 
 def _run_cli(
-    input_file_path: str,
+    input_file_path: Optional[str],
+    molecule_smiles: Optional[str],
     output_file_path: str,
     force_field_path: Optional[str],
     spec_name: Optional[str],
@@ -52,11 +53,12 @@ def _run_cli(
         console.line()
 
         response = _submit(
-            console,
-            input_file_path,
-            force_field_path,
-            spec_name,
-            spec_file_name,
+            console=console,
+            input_file_path=input_file_path,
+            molecule_smiles=molecule_smiles,
+            force_field_path=force_field_path,
+            spec_name=spec_name,
+            spec_file_name=spec_file_name,
         )
 
         if response is None:

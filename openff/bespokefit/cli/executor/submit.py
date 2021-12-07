@@ -25,10 +25,18 @@ if TYPE_CHECKING:
 def submit_options():
     return [
         click.option(
-            "--input",
+            "--file",
             "input_file_path",
             type=click.Path(exists=True, file_okay=True, dir_okay=False),
             help="The file containing the molecule of interest",
+            required=False,
+        ),
+        click.option(
+            "--smiles",
+            "molecule_smiles",
+            type=click.STRING,
+            help="The SMILES string representation of the input molecule.",
+            required=False,
         ),
         click.option(
             "--force-field",
@@ -129,7 +137,8 @@ def _to_input_schema(
 
 def _submit(
     console: "rich.Console",
-    input_file_path: str,
+    input_file_path: Optional[str],
+    molecule_smiles: Optional[str],
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
@@ -141,19 +150,22 @@ def _submit(
 
     console.print(Padding("1. preparing the bespoke workflow", (0, 0, 1, 0)))
 
-    with console.status("loading the molecules"):
+    if input_file_path is not None:
+        with console.status("loading the molecules"):
+            molecule = Molecule.from_file(input_file_path)
 
-        molecule = Molecule.from_file(input_file_path)
+    else:
+        with console.status("creating molecule from smiles"):
+            molecule = Molecule.from_smiles(molecule_smiles)
 
-        if not isinstance(molecule, Molecule) or "." in molecule.to_smiles():
+    if not isinstance(molecule, Molecule) or "." in molecule.to_smiles():
+        console.print(
+            "[[red]ERROR[/red]] only one molecule can currently be submitted at "
+            "a time"
+        )
+        return
 
-            console.print(
-                "[[red]ERROR[/red]] only one molecule can currently be submitted at "
-                "a time"
-            )
-            return
-
-    console.print(f"[[green]✓[/green]] [blue]{1}[/blue] molecule was found")
+    console.print("[[green]✓[/green]] [blue]1[/blue] molecule was found")
 
     with console.status("building fitting schemas"):
 
@@ -179,7 +191,8 @@ def _submit(
 
 
 def _submit_cli(
-    input_file_path: str,
+    input_file_path: Optional[str],
+    molecule_smiles: Optional[str],
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
@@ -191,12 +204,21 @@ def _submit_cli(
     console = rich.get_console()
     print_header(console)
 
+    if (input_file_path is not None and molecule_smiles is not None) or (
+        input_file_path is None and molecule_smiles is None
+    ):
+        console.print(
+            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually exclusive."
+        )
+        return
+
     _submit(
-        console,
-        input_file_path,
-        force_field_path,
-        spec_name,
-        spec_file_name,
+        console=console,
+        input_file_path=input_file_path,
+        molecule_smiles=molecule_smiles,
+        force_field_path=force_field_path,
+        spec_name=spec_name,
+        spec_file_name=spec_file_name,
     )
 
 
