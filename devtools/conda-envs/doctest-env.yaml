@@ -21,6 +21,7 @@ dependencies:
   - click
   - click-option-group
   - rdkit
+  - ambertools
   - openff-utilities
   - openff-toolkit-base >=0.10.0
   - openff-forcefields
