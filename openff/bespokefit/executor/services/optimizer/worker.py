@@ -10,6 +10,7 @@ from qcelemental.util import serialize
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.utils import cache_parameters
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.executor.utilities.redis import is_redis_available
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import (
@@ -82,7 +83,13 @@ def optimize(self, optimization_input_json: str) -> str:
 
     result = BespokeOptimizationResults(input_schema=input_schema, stages=stage_results)
     # cache the final parameters
-    cache_parameters(results_schema=result, redis_connection=redis_connection)
+    if (
+        is_redis_available(
+            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        )
+        and result.refit_force_field is not None
+    ):
+        cache_parameters(results_schema=result, redis_connection=redis_connection)
 
     return serialize(
         result,

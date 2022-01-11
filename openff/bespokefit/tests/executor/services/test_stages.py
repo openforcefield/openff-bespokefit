@@ -1,7 +1,7 @@
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
 
-from openff.bespokefit.executor.services.coordinator.stages import OptimizationStage
+from openff.bespokefit.executor.services.coordinator.stages import QCGenerationStage
 
 
 def test_generate_torsions(ptp1b_fragment, ptp1b_input_schema_single):
@@ -9,18 +9,18 @@ def test_generate_torsions(ptp1b_fragment, ptp1b_input_schema_single):
     Make sure the optimisation stage can correctly regenerate torsion SMIRKS which hit both the parent and fragment molecule.
     """
     input_schema = ptp1b_input_schema_single.copy(deep=True)
-    new_parameter = OptimizationStage._generate_torsion_parameters(
+    new_parameters, _ = QCGenerationStage._generate_torsion_parameters(
         fragmentation_result=ptp1b_fragment, input_schema=input_schema
     )[0]
     # now check the new smirks hits the fragment and parent, for the same atoms
     parent_matches = set(
         ptp1b_fragment.parent_molecule.chemical_environment_matches(
-            new_parameter.smirks
+            new_parameters.smirks
         )
     )
     fragment_matches = set(
         ptp1b_fragment.fragments[0].molecule.chemical_environment_matches(
-            new_parameter.smirks
+            new_parameters.smirks
         )
     )
     # check number of unique matches is the same
@@ -33,7 +33,7 @@ async def test_generate_parameters(ptp1b_input_schema_single, ptp1b_fragment):
     Make sure that old parameters are generated for the stage
     """
     input_schema = ptp1b_input_schema_single.copy(deep=True)
-    await OptimizationStage._generate_parameters(
+    await QCGenerationStage._generate_parameters(
         fragmentation_result=ptp1b_fragment, input_schema=input_schema
     )
     # make sure we have new parameters
@@ -69,7 +69,7 @@ async def test_generate_parameters_multiple_stages(
 ):
     """Make sure parameters are correctly generated and assigned to the correct optimisation stage."""
     input_schema = ptp1b_input_schema_multiple.copy(deep=True)
-    await OptimizationStage._generate_parameters(
+    await QCGenerationStage._generate_parameters(
         fragmentation_result=ptp1b_fragment, input_schema=input_schema
     )
     force_field = ForceField(

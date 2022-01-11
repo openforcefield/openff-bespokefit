@@ -76,5 +76,4 @@ def cache_parameters(
     redis_connection.set(
         hash_string, cached_force_field.to_string(discard_cosmetic_attributes=False)
     )
-    results_schema.json()
     return hash_string

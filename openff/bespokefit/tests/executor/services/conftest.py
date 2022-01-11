@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from openff.fragmenter.fragment import Fragment, FragmentationResult
 
@@ -47,10 +49,11 @@ def ptp1b_input_schema_single(ptp1b_smiles) -> BespokeOptimizationSchema:
     """
 
     force_field = ForceFieldEditor("openff_unconstrained-1.3.0.offxml")
-
+    ff_hash = hashlib.sha512(force_field.force_field.to_string().encode()).hexdigest()
     return BespokeOptimizationSchema(
         id="ptp1b",
         initial_force_field=force_field.force_field.to_string(),
+        initial_force_field_hash=ff_hash,
         stages=[
             OptimizationStageSchema(
                 optimizer=ForceBalanceSchema(),
