@@ -29,6 +29,10 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
 
     reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData[Any]]]
 
+    calculation_specification: Optional[
+        Union[Torsion1DTaskSpec, HessianTaskSpec, OptimizationTaskSpec]
+    ]
+
     extras: Dict[str, str] = Field(
         {},
         description="Extra settings to use for the target. Optimizer specific settings "
@@ -63,6 +67,10 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
+    calculation_specification: Optional[Torsion1DTaskSpec] = Field(
+        None,
+        description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
+    )
 
     attenuate_weights: bool = Field(
         True, description="Whether to attenuate the weights as a function of energy."
@@ -94,7 +102,10 @@ class AbInitioTargetSchema(BaseTargetSchema):
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
-
+    calculation_specification: Optional[Torsion1DTaskSpec] = Field(
+        None,
+        description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
+    )
     attenuate_weights: bool = Field(
         False, description="Whether to attenuate the weights as a function of energy."
     )
@@ -128,6 +139,10 @@ class VibrationTargetSchema(BaseTargetSchema):
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
+    calculation_specification: Optional[HessianTaskSpec] = Field(
+        None,
+        description="The specification for the reference hessian calculation, also acts as a provenance source.",
+    )
 
     mode_reassignment: Optional[Literal["permute", "overlap"]] = Field(
         None, description="The (optional) method by which to re-assign normal modes."
@@ -154,7 +169,10 @@ class OptGeoTargetSchema(BaseTargetSchema):
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
-
+    calculation_specification: Optional[OptimizationTaskSpec] = Field(
+        None,
+        description="The specification for the reference optimisation calculation, also acts as a provenance source.",
+    )
     bond_denominator: float = Field(
         0.05,
         description="The denominator to scale the contributions of bonds to the "

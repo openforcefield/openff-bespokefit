@@ -64,6 +64,11 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         )
 
     @property
+    def refit_force_field(self) -> str:
+        """Return the final refit force field."""
+        return self.stages[-1].refit_force_field
+
+    @property
     def refit_parameter_values(
         self,
     ) -> Optional[Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]]:

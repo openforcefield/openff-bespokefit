@@ -2,6 +2,7 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke
 workflows.
 """
+import hashlib
 import logging
 import os
 from collections import defaultdict
@@ -435,6 +436,11 @@ class BespokeWorkflowFactory(ClassBase):
         """For a given molecule schema build an optimization schema."""
 
         force_field_editor = ForceFieldEditor(self.initial_force_field)
+        ff_hash = hashlib.sha512(
+            force_field_editor.force_field.to_string(
+                discard_cosmetic_attributes=True
+            ).encode()
+        ).hexdigest()
 
         # Populate the targets
         targets = []
@@ -453,27 +459,30 @@ class BespokeWorkflowFactory(ClassBase):
             target_schema = target_template.copy(deep=True)
             targets.append(target_schema)
 
+            # set the calculation specification for provenance and caching
+            task_type = target_schema.bespoke_task_type()
+            target_specification = task_type_to_spec[task_type](
+                program=default_qc_spec.program.lower(),
+                # lower to hit the cache more often
+                model=Model(
+                    method=default_qc_spec.method.lower(),
+                    basis=default_qc_spec.basis.lower()
+                    if default_qc_spec.basis is not None
+                    else default_qc_spec.basis,
+                ),
+            )
+            # only overwrite with general settings if not configured
+            if target_schema.calculation_specification is None:
+                target_schema.calculation_specification = target_specification
+
             if target_schema.reference_data is not None:
                 continue
-
-            task_type = target_schema.bespoke_task_type()
 
             if task_type in local_qc_data:
                 target_schema.reference_data = local_qc_data[task_type]
                 continue
 
-            target_schema.reference_data = BespokeQCData(
-                spec=task_type_to_spec[task_type](
-                    program=default_qc_spec.program.lower(),
-                    # lower to hit the cache more often
-                    model=Model(
-                        method=default_qc_spec.method.lower(),
-                        basis=default_qc_spec.basis.lower()
-                        if default_qc_spec.basis is not None
-                        else default_qc_spec.basis,
-                    ),
-                )
-            )
+            target_schema.reference_data = BespokeQCData(spec=target_specification)
 
         # work out if we need the target torsion smirks
         # they are required if we are fragmenting or fitting torsions else not needed
@@ -486,6 +495,7 @@ class BespokeWorkflowFactory(ClassBase):
             id=f"bespoke_task_{index}",
             smiles=molecule.to_smiles(mapped=True),
             initial_force_field=force_field_editor.force_field.to_string(),
+            initial_force_field_hash=ff_hash,
             stages=[
                 OptimizationStageSchema(
                     optimizer=self.optimizer,

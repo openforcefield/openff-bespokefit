@@ -91,20 +91,24 @@ class ForceFieldEditor:
 
             for i, parameter in enumerate(handler_parameters, start=2):
 
-                parameter_data = parameter.to_dict()
+                parameter_data = parameter.to_dict(discard_cosmetic_attributes=False)
 
                 try:
                     current_param = current_params[parameter_data["smirks"]]
                     parameter_data["id"] = current_param.id
                     # update the parameter using the init to get around conditional
                     # assigment
-                    current_param.__init__(**parameter_data)
+                    current_param.__init__(
+                        **parameter_data, allow_cosmetic_attributes=True
+                    )
                 except ParameterLookupError:
                     parameter_data["id"] = _smirks_ids[parameter.__class__] + str(
                         n_params + i
                     )
 
-                    current_param = parameter.__class__(**parameter_data)
+                    current_param = parameter.__class__(
+                        **parameter_data, allow_cosmetic_attributes=True
+                    )
                     current_params.append(current_param)
 
                 added_parameters.append(current_param)
