@@ -67,3 +67,16 @@ def test_optimize(monkeypatch):
     assert result.status == expected_output.status
 
     assert received_schema.json() == input_schema.stages[0].json()
+
+
+def test_optimise_cache(bespoke_optimization_schema):
+    """
+    Make sure any stages with cached parameters are skipped and a mock result is returned.
+    """
+
+    result_json = worker.optimize(
+        optimization_input_json=bespoke_optimization_schema.json()
+    )
+    result = BespokeOptimizationResults.parse_raw(result_json)
+    assert result.status == "success"
+    assert result.stages[0].provenance["skipped"] == "True"
