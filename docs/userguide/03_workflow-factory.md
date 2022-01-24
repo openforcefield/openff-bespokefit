@@ -122,11 +122,11 @@ With all the components configured, we can construct the workflow factory with i
 //  from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 //  
 //  optimizer = ForceBalanceSchema()
-//  prior = ProperTorsionHyperparameters()
 //  initial_ff = "openff_unconstrained-2.0.0.offxml" 
 //  qc_spec = QCSpec()
 //  target = TorsionProfileTargetSchema()
 //  fragmenter = WBOFragmenter()
+//  hyperparams = [ProperTorsionHyperparameters()]
     
     factory = BespokeWorkflowFactory(
         fragmentation_engine = fragmenter,
@@ -156,12 +156,12 @@ can be customized; see its [API documentation] for details.
 It's very important to be able to share a customized workflow factory, both so that 
 any results produced can be reproducibly documented in the scientific literature and so
 that we can be sure we're using the same procedure on different molecules at different
-times. Workflow factories can be saved to disk with the [`export_factory()`] method:
+times. Workflow factories can be saved to disk with the [`to_file()`] method:
 
 ```python
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
-//  factory = BespokeWorkflowFactory
-    factory.export_factory("my_bespoke_workflow.json")
+//  factory = BespokeWorkflowFactory()
+    factory.to_file("my_bespoke_workflow.json")
 ```
 
 The resulting JSON file can be distributed with a paper or pre-print, or shared
@@ -169,8 +169,9 @@ with colleagues. Exported factories can then be used either with the
 [`BespokeWorkflowFactory.from_file()`] class method:
 
 ```python
-from openff.bespokefit.workflows import BespokeWorkflowFactory
-factory = BespokeWorkflowFactory.from_file("my_bespoke_workflow.json")
+    from openff.bespokefit.workflows import BespokeWorkflowFactory
+//  BespokeWorkflowFactory().to_file("my_bespoke_workflow.json")
+    factory = BespokeWorkflowFactory.from_file("my_bespoke_workflow.json")
 ```
 
 or with the CLI:
@@ -179,5 +180,5 @@ or with the CLI:
 openff-bespoke executor run --input molecule.sdf --spec-file my_bespoke_workflow.json
 ```
 
-[`export_factory()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.export_factory
+[`to_file()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.to_file
 [`BespokeWorkflowFactory.from_file()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.from_file

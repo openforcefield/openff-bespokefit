@@ -83,11 +83,7 @@ package. A script to perform this default optimization is very simple:
     )
     
     # Start up the executor, which manages calling out to other programs
-    with BespokeExecutor(
-        n_fragmenter_workers=1, 
-        n_qc_compute_workers=1, 
-        n_optimizer_workers=1,
-    ) as executor:
+    with BespokeExecutor() as executor:
         # Submit our workflow to the executor
         task = executor.submit(input_schema=workflow)
         # Wait until the executor is done
@@ -120,7 +116,7 @@ configured, it can be [saved] and [loaded] from disk easily:
 ```python
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  factory = BespokeWorkflowFactory()
-    factory.export_factory("default_factory.yaml") # or .json
+    factory.to_file("default_factory.yaml") # or .json
     factory_from_disk = BespokeWorkflowFactory.from_file("default_factory.yaml")
     assert factory == factory_from_disk
 ```
@@ -161,7 +157,7 @@ detail in [it's own chapter](executor_chapter).
 [`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
 ["Parsley"]: https://github.com/openforcefield/openff-forcefields/releases/tag/1.3.0
 [Psi4]: https://psicode.org/
-[saved]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.export_factory
+[saved]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.to_file
 [loaded]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.from_file
 [`Molecule`]: openff.toolkit.topology.Molecule
 [`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema

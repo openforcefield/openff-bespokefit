@@ -56,7 +56,7 @@ can return a result. This is also the easiest way to get results out of the
 executor:
 
 ```python
-//  from openff.bespokefit.executor import BespokeExecutor
+//  from openff.bespokefit.executor import BespokeExecutor, wait_until_complete
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  from openff.toolkit.topology import Molecule 
 //  factory = BespokeWorkflowFactory()
@@ -87,7 +87,7 @@ simple. Given an iterator of workflow schemas named `workflows`:
 //      "CC(C(=O)O)N",
 //      "C(C(C(=O)O)N)S",
 //  ]
-//  molecules = [Molecule.from_smiles(s) for s in smiles]
+//  molecules = [Molecule.from_smiles(s, allow_undefined_stereo=True) for s in smiles]
 //  workflows = [factory.optimization_schema_from_molecule(m) for m in molecules]
     with BespokeExecutor(1, 1, 2) as executor:
         tasks = [executor.submit(w) for w in workflows]

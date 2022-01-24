@@ -87,6 +87,7 @@ autodoc_default_options = {
 }
 autodoc_preserve_defaults = True
 autodoc_inherit_docstrings = False
+autodoc_typehints_format = "short"
 
 autodoc_pydantic_model_member_order = "groupwise"
 autodoc_pydantic_model_signature_prefix = "model"
