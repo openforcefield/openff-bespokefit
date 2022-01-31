@@ -3,19 +3,7 @@
 The outcome of a BespokeFit run is reported to the user in instances of the
 [`CoordinatorGETResponse`] class. These are returned from the
 [`wait_until_complete()`] method of the Python API, or written to the
-`output.json` file by the CLI. `output.json` can be read into a
-[`CoordinatorGETResponse`] object with the 
-[`CoordinatorGETResponse.parse_file()`] method:
-
-```python
-// try:
-        from openff.bespokefit.executor.services.coordinator.models import CoordinatorGETResponse
-        report = CoordinatorGETResponse.parse_file("path/to/file.json")
-// except FileNotFoundError:
-//      pass
-// else:
-//      assert False, "Should raise FileNotFoundError"
-```
+`output.json` file by the CLI.
 
 If a run has not yet finished, or was unsuccessful, the `results` field of the
 report will be `None` (`null` in JSON), and the
