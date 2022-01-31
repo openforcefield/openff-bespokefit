@@ -3,6 +3,8 @@
 .. automodule:: {{ fullname }}
    :no-members:
 
+.. currentmodule:: {{ fullname }}
+
 {% block modules %}
 {% if modules %}
 {{ _('Modules') | escape | underline(line="-") }}
@@ -11,7 +13,7 @@
    :toctree: {{objname}}
    :recursive:
 {% for item in modules if item not in exclude_modules %}
-   {{ item }}
+   {{ item.removeprefix(fullname ~ ".") }}
 {%- endfor %}
 {% endif %}
 {% endblock %}
@@ -32,7 +34,7 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in types %}
-      {{ item }}
+      {{ item.removeprefix(fullname ~ ".").partition('[')[0] }}
    {%- endfor %}
 
 {% endif %}
@@ -46,7 +48,7 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in functions %}
-      {{ item }}
+      {{ item.removeprefix(fullname ~ ".") }}
    {%- endfor %}
 
 {% endif %}
@@ -60,7 +62,7 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in exceptions %}
-      {{ item }}
+      {{ item.removeprefix(fullname ~ ".") }}
    {%- endfor %}
 
 {% endif %}
@@ -71,7 +73,7 @@
 {{ _('Module Attributes') | escape | underline(line="-") }}
 
    {% for item in attributes %}
-   .. autoattribute:: {{ item }}
+   .. autoattribute:: {{ item.removeprefix(fullname ~ ".") }}
    {%- endfor %}
 
 {% endif %}

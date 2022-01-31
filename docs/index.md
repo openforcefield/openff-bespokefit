@@ -7,25 +7,47 @@ caption: "User's Guide"
 glob: True
 ---
 
-userguide/getting-started.md
-userguide/schemas.md
-userguide/workflow-factory.md
-userguide/bespoke-executor.md
-userguide/results.md
-userguide/bespoke-cli.md
+users/getting-started
+users/schemas
+users/workflow-factory
+users/bespoke-executor
+users/results
+users/bespoke-cli
 
 :::
 
 :::{toctree}
 ---
-maxdepth: 1
-caption: "Reference Manuals"
+maxdepth: 2
+caption: "Command Line Reference"
 glob: True
 ---
 
-references/*
+ref/cli
 
 :::
+
+(api_ref)=
+<!-- This matches the styling of a toctree caption as of Sphinx 4.2.0 -->
+<div class="toctree-wrapper"><p class="caption" role="heading"><span class="caption-text">
+Python API Reference
+</span></p></div>
+
+<!--
+The autosummary directive renders to rST,
+so we must use eval-rst here
+-->
+:::{eval-rst}
+.. autosummary::
+   :recursive:
+   :caption: API Reference
+   :toctree: ref/api
+   :nosignatures:
+
+   openff.bespokefit
+:::
+
+
 
 <!-- This matches the styling of a toctree caption as of Sphinx 4.2.0 -->
 <div class="toctree-wrapper"><p class="caption" role="heading"><span class="caption-text">
