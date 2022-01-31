@@ -1,7 +1,6 @@
 name: test
 
 channels:
-  - openeye
   - conda-forge
   - defaults
 
@@ -32,11 +31,10 @@ dependencies:
   - forcebalance >=1.9.2
   - openff-fragmenter-base >=0.1.2
 
-  - openeye-toolkits
-
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
+  - qcelemental >=0.24.0
   - qcengine >=0.20.0
   - chemper
   - geometric
