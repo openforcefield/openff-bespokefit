@@ -94,10 +94,13 @@ autodoc_pydantic_model_signature_prefix = "model"
 autodoc_pydantic_model_show_validator_members = False
 autodoc_pydantic_model_show_validator_summary = False
 autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_config_member = False
+autodoc_pydantic_model_show_json = False
 autodoc_pydantic_settings_signature_prefix = "settings"
 autodoc_pydantic_settings_show_validator_members = False
 autodoc_pydantic_settings_show_validator_summary = False
 autodoc_pydantic_settings_show_config_summary = False
+autodoc_pydantic_settings_show_config_member = False
 autodoc_pydantic_field_doc_policy = "both"
 autodoc_pydantic_field_list_validators = False
 
@@ -176,9 +179,8 @@ LOCALTOC_ON_LEFT = ["globaltoc.html", "searchbox.html"]
 LOCALTOC_ON_RIGHT = ["globaltoc.html", "localtoc.html", "searchbox.html"]
 html_sidebars = {
     "*": LOCALTOC_ON_LEFT,
-    "userguide/**": LOCALTOC_ON_LEFT,
-    "references/**": LOCALTOC_ON_RIGHT,
-    "_autosummary/**": LOCALTOC_ON_RIGHT,
+    "users/**": LOCALTOC_ON_LEFT,
+    "ref/**": LOCALTOC_ON_RIGHT,
 }
 
 # Theme options are theme-specific and customize the look and feel of a

@@ -71,7 +71,7 @@ executor:
 ```
 
 These functions respectively correspond to a HTTP POST and GET request, and they
-return the appropriate [POST] and [GET] response types. `wait_until_complete()`
+return the appropriate [POST] and [GET] response types. [`wait_until_complete()`]
 returns the result of a task even if the task has already finished when the
 function is executed, so using the context manager with multiple workflows is
 simple. Given an iterator of workflow schemas named `workflows`:
@@ -115,7 +115,18 @@ with BespokeExecutor. First, start the executor:
 openff-bespoke executor launch
 ```
 
-Then submit a molecule from a structure file:
+Then submit a molecule from a SMILES string:
+
+```sh
+openff-bespoke executor submit --smiles "C[C@@H](C(=O)O)N"
+```
+
+Note that enough information must be provided to unambiguously construct a
+stereochemical molecular graph. In particular, this means that any chiral
+centers or nonzero formal charges must be specified. Hydrogens may be included
+explicitly or implicitly.
+
+Molecules may also be submitted from a chemical structure file:
 
 ```sh
 openff-bespoke executor submit --input molecule.sdf
@@ -123,9 +134,9 @@ openff-bespoke executor submit --input molecule.sdf
 
 The `--input` switch accepts most commonly used chemistry formats. OpenFF
 recommends SDF or MOL as they include all the information needed to
-unambiguously construct a molecular graph. For more information, see the
-[OpenFF Toolkit FAQ]. For other options and features, use the `--help` switch
-on any subcommand:
+unambiguously construct a stereochemical molecular graph. For more information,
+see the [OpenFF Toolkit FAQ]. For other options and features, use the `--help`
+switch on any subcommand:
 
 ```sh
 openff-bespoke --help

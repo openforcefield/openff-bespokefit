@@ -60,9 +60,9 @@ though they are not explicitly documented in order to reduce clutter.
     
     .. automethod:: json
 
-    .. automethod:: parse_raw
+    .. automethod:: parse_file
 
-        Read a ``str`` or ``bytes`` object encoding an instance of a model in JSON.
+        Read a ``json`` file with the given filename encoding an instance of a model.
     
     .. automethod:: schema
 
