@@ -43,7 +43,7 @@ quantum chemistry code may spin up threads of its own. As a result, using a
 large value for `n_qc_compute_workers` may end up over-subscribing the
 available cores, even if only one workflow is submitted. If a value greater
 than 1 is provided, each worker can work on its own fragment of the target
-molecule.
+molecule. The default is to assign 1 worker to each task.
 
 The resulting executor is a context manager that accepts workflows via its
 `submit()` method. Recall that workflows are instances of the
@@ -67,7 +67,7 @@ executor:
 //  
     with BespokeExecutor(1, 1, 2) as executor:
         task = executor.submit(workflow)
-        result = wait_until_complete(task.id)
+        results = wait_until_complete(task.id).results
 ```
 
 These functions respectively correspond to a HTTP POST and GET request, and they
@@ -91,7 +91,7 @@ simple. Given an iterator of workflow schemas named `workflows`:
 //  workflows = [factory.optimization_schema_from_molecule(m) for m in molecules]
     with BespokeExecutor(1, 1, 2) as executor:
         tasks = [executor.submit(w) for w in workflows]
-        results = [wait_until_complete(t.id) for t in tasks]
+        results = [wait_until_complete(t.id).results for t in tasks]
 ```
 
 This will return all the results in the same order as the `molecule` iterator,

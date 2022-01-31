@@ -90,7 +90,7 @@ package. A script to perform this default optimization is very simple:
         results = wait_until_complete(optimization_id=task.id).results
     
     # Print out the resulting force field in OFFXML format
-    print(results.refit_force_field)
+    print(results.stages[-1].refit_force_field)
 ```
 
 [`BespokeWorkflowFactory`] supports a range of options to customize the
