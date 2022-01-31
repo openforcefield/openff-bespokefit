@@ -41,13 +41,13 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
 
-      - name: License OpenEye
-        shell: bash -l {0}
-        run: |
-          echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
-          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
-        env:
-          SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+      # - name: License OpenEye
+      #   shell: bash -l {0}
+      #   run: |
+      #     echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+      #     python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+      #   env:
+      #     SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Install Package
         shell: bash -l {0}
