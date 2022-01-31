@@ -48,9 +48,9 @@ class BespokeExecutor:
 
     def __init__(
         self,
-        n_fragmenter_workers: int = 0,
-        n_qc_compute_workers: int = 0,
-        n_optimizer_workers: int = 0,
+        n_fragmenter_workers: int = 1,
+        n_qc_compute_workers: int = 1,
+        n_optimizer_workers: int = 1,
         directory: Optional[str] = "bespoke-executor",
         launch_redis_if_unavailable: bool = True,
     ):
