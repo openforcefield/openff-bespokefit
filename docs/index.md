@@ -7,7 +7,12 @@ caption: "User's Guide"
 glob: True
 ---
 
-userguide/*
+userguide/getting-started.md
+userguide/schemas.md
+userguide/workflow-factory.md
+userguide/bespoke-executor.md
+userguide/results.md
+userguide/bespoke-cli.md
 
 :::
 
