@@ -88,7 +88,7 @@ function is executed, so using the context manager with multiple workflows is
 simple. Given an iterator of workflow schemas named `workflows`:
 
 ```python
-//  from openff.bespokefit.executor import BespokeExecutor
+//  from openff.bespokefit.executor import BespokeExecutor, wait_until_complete
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  from openff.toolkit.topology import Molecule
 //  
@@ -117,7 +117,9 @@ simple. Given an iterator of workflow schemas named `workflows`:
 ```
 
 This will return all the results in the same order as the `molecule` iterator,
-even if they are executed out of order behind the scenes.
+even if they are executed out of order behind the scenes. Note that the
+`.results` attribute is accessed from the GET response to access the actual
+results of the successfully completed run.
 
 [`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
 [`optimization_schema_from_molecule()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimization_schema_from_molecule
