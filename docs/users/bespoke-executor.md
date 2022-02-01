@@ -60,12 +60,23 @@ executor:
 //  from openff.bespokefit.workflows import BespokeWorkflowFactory
 //  from openff.toolkit.topology import Molecule 
 //  factory = BespokeWorkflowFactory()
+//  # Use xtb in the doctests for speed
+//  from openff.qcsubmit.common_structures import QCSpec
+//  xtb_spec = QCSpec(
+//      method="gfn2xtb",
+//      basis=None,
+//      program="xtb",
+//      spec_name="xtb",
+//      spec_description="gfn2xtb",
+//  )
+//  factory.default_qc_specs = [xtb_spec]
+// 
 //  target_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine
 //  workflow = factory.optimization_schema_from_molecule(
 //      molecule=target_molecule,
 //  )
 //  
-    with BespokeExecutor(1, 1, 2) as executor:
+    with BespokeExecutor() as executor:
         task = executor.submit(workflow)
         results = wait_until_complete(task.id).results
 ```
@@ -82,14 +93,25 @@ simple. Given an iterator of workflow schemas named `workflows`:
 //  from openff.toolkit.topology import Molecule
 //  
 //  factory = BespokeWorkflowFactory()
+//  # Use xtb in the doctests for speed
+//  from openff.qcsubmit.common_structures import QCSpec
+//  xtb_spec = QCSpec(
+//      method="gfn2xtb",
+//      basis=None,
+//      program="xtb",
+//      spec_name="xtb",
+//      spec_description="gfn2xtb",
+//  )
+//  factory.default_qc_specs = [xtb_spec]
+// 
 //  smiles = [
 //      "C(C(=O)O)N",
-//      "CC(C(=O)O)N",
-//      "C(C(C(=O)O)N)S",
+//      "C[C@@H](C(=O)O)N",
+//      "S[C@@H](C(=O)O)N",
 //  ]
 //  molecules = [Molecule.from_smiles(s, allow_undefined_stereo=True) for s in smiles]
 //  workflows = [factory.optimization_schema_from_molecule(m) for m in molecules]
-    with BespokeExecutor(1, 1, 2) as executor:
+    with BespokeExecutor() as executor:
         tasks = [executor.submit(w) for w in workflows]
         results = [wait_until_complete(t.id).results for t in tasks]
 ```
