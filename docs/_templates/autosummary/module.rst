@@ -13,7 +13,11 @@
    :toctree: {{objname}}
    :recursive:
 {% for item in modules if item not in exclude_modules %}
-   {{ item.removeprefix(fullname ~ ".") }}
+   {% if item.startswith(fullname ~ ".") -%}
+   {{- item[((fullname ~ ".") | length):] -}}
+   {%- else -%}
+   {{- item -}}
+   {%- endif %}
 {%- endfor %}
 {% endif %}
 {% endblock %}
@@ -34,7 +38,11 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in types %}
-      {{ item.removeprefix(fullname ~ ".").partition('[')[0] }}
+      {% if item.startswith(fullname ~ ".") -%}
+      {{- item[((fullname ~ ".") | length):] -}}
+      {%- else -%}
+      {{- item -}}
+      {%- endif %}
    {%- endfor %}
 
 {% endif %}
@@ -48,7 +56,11 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in functions %}
-      {{ item.removeprefix(fullname ~ ".") }}
+      {% if item.startswith(fullname ~ ".") -%}
+      {{- item[((fullname ~ ".") | length):] -}}
+      {%- else -%}
+      {{- item -}}
+      {%- endif %}
    {%- endfor %}
 
 {% endif %}
@@ -62,7 +74,11 @@
       :toctree: {{objname}}
       :nosignatures:
    {% for item in exceptions %}
-      {{ item.removeprefix(fullname ~ ".") }}
+      {% if item.startswith(fullname ~ ".") -%}
+      {{- item[((fullname ~ ".") | length):] -}}
+      {%- else -%}
+      {{- item -}}
+      {%- endif %}
    {%- endfor %}
 
 {% endif %}
@@ -73,7 +89,11 @@
 {{ _('Module Attributes') | escape | underline(line="-") }}
 
    {% for item in attributes %}
-   .. autoattribute:: {{ item.removeprefix(fullname ~ ".") }}
+   .. autoattribute:: {% if item.startswith(fullname ~ ".") -%}
+                      {{- item[((fullname ~ ".") | length):] -}}
+                      {%- else -%}
+                      {{- item -}}
+                      {%- endif %}
    {%- endfor %}
 
 {% endif %}
