@@ -188,9 +188,9 @@ html_sidebars = {
 html_theme_options = {
     # Repository integration
     # Set the repo url for the link to appear
-    "repo_url": "https://github.com/openforcefield/bespoke-fit",
+    "repo_url": "https://github.com/openforcefield/openff-bespokefit",
     # The name of the repo. If must be set if repo_url is set
-    "repo_name": "bespoke-fit",
+    "repo_name": "openff-bespokefit",
     # Must be one of github, gitlab or bitbucket
     "repo_type": "github",
     # Colour for sidebar captions and other accents. One of
