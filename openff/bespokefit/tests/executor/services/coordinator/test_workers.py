@@ -48,6 +48,7 @@ async def test_internal_cycle(redis_connection, monkeypatch):
         input_schema=BespokeOptimizationSchema(
             smiles="CC",
             initial_force_field="openff-2.0.0.offxml",
+            initial_force_field_hash="test_hash",
             target_torsion_smirks=[],
             stages=[
                 OptimizationStageSchema(

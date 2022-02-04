@@ -124,6 +124,12 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "parameters for.",
     )
 
+    initial_force_field_hash: str = Field(
+        ...,
+        description="The hash values of the initial input force field with "
+        "no bespokefit modifications. Used for internal hashing",
+    )
+
     fragmentation_engine: Optional[FragmentationEngine] = Field(
         WBOFragmenter(),
         description="The fragmentation engine that should be used to fragment the "

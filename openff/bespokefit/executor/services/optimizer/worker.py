@@ -8,10 +8,15 @@ from pydantic import parse_raw_as
 from qcelemental.util import serialize
 
 from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services.coordinator.utils import cache_parameters
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.executor.utilities.redis import is_redis_available
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
+from openff.bespokefit.schema.results import (
+    BespokeOptimizationResults,
+    OptimizationStageResults,
+)
 
 redis_connection = redis.Redis(
     host=settings.BEFLOW_REDIS_ADDRESS,
@@ -31,7 +36,10 @@ def optimize(self, optimization_input_json: str) -> str:
     )
     input_schema.id = self.request.id or input_schema.id
 
-    input_force_field = ForceField(input_schema.initial_force_field)
+    # some parameters have a cached attribute
+    input_force_field = ForceField(
+        input_schema.initial_force_field, allow_cosmetic_attributes=True
+    )
 
     stage_results = []
 
@@ -41,12 +49,23 @@ def optimize(self, optimization_input_json: str) -> str:
         for i, stage in enumerate(input_schema.stages):
 
             optimizer = get_optimizer(stage.optimizer.type)
-            result = optimizer.optimize(
-                schema=stage,
-                initial_force_field=input_force_field,
-                keep_files=settings.BEFLOW_KEEP_FILES,
-                root_directory=f"stage_{i}",
-            )
+            # If there are no parameters to optimise as they have all been cached mock the result
+            if not stage.parameters:
+                result = OptimizationStageResults(
+                    provenance={"skipped": True},
+                    status="success",
+                    error=None,
+                    refit_force_field=input_force_field.to_string(
+                        discard_cosmetic_attributes=True
+                    ),
+                )
+            else:
+                result = optimizer.optimize(
+                    schema=stage,
+                    initial_force_field=input_force_field,
+                    keep_files=settings.BEFLOW_KEEP_FILES,
+                    root_directory=f"stage_{i}",
+                )
 
             stage_results.append(result)
 
@@ -62,7 +81,17 @@ def optimize(self, optimization_input_json: str) -> str:
             os.makedirs(os.path.join(home, input_schema.id), exist_ok=True)
             shutil.move(os.getcwd(), os.path.join(home, input_schema.id))
 
+    result = BespokeOptimizationResults(input_schema=input_schema, stages=stage_results)
+    # cache the final parameters
+    if (
+        is_redis_available(
+            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        )
+        and result.refit_force_field is not None
+    ):
+        cache_parameters(results_schema=result, redis_connection=redis_connection)
+
     return serialize(
-        BespokeOptimizationResults(input_schema=input_schema, stages=stage_results),
+        result,
         encoding="json",
     )

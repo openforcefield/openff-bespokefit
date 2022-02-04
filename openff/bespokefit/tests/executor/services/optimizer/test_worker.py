@@ -13,6 +13,7 @@ from openff.bespokefit.schema.results import (
     BespokeOptimizationResults,
     OptimizationStageResults,
 )
+from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS
 
 
 def test_optimize(monkeypatch):
@@ -21,10 +22,15 @@ def test_optimize(monkeypatch):
         id="test",
         smiles="CC",
         initial_force_field="openff-2.0.0.offxml",
+        initial_force_field_hash="test_hash",
         target_torsion_smirks=[],
         stages=[
             OptimizationStageSchema(
-                parameters=[],
+                parameters=[
+                    ProperTorsionSMIRKS(
+                        smirks="[*:1]-[#6:2]-[#6:3]-[*:4]", attributes={"k1"}
+                    )
+                ],
                 parameter_hyperparameters=[],
                 targets=[],
                 optimizer=ForceBalanceSchema(max_iterations=1),
@@ -61,3 +67,16 @@ def test_optimize(monkeypatch):
     assert result.status == expected_output.status
 
     assert received_schema.json() == input_schema.stages[0].json()
+
+
+def test_optimise_cache(bespoke_optimization_schema):
+    """
+    Make sure any stages with cached parameters are skipped and a mock result is returned.
+    """
+
+    result_json = worker.optimize(
+        optimization_input_json=bespoke_optimization_schema.json()
+    )
+    result = BespokeOptimizationResults.parse_raw(result_json)
+    assert result.status == "success"
+    assert result.stages[0].provenance["skipped"] == "True"

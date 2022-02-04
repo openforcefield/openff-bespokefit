@@ -1,10 +1,11 @@
 import abc
 import json
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import httpx
-from openff.fragmenter.fragment import FragmentationResult
+import redis
+from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -20,6 +21,7 @@ from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
 from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterGETResponse,
     FragmenterPOSTBody,
@@ -35,6 +37,7 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
 )
+from openff.bespokefit.executor.utilities.redis import is_redis_available
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
@@ -52,6 +55,7 @@ from openff.bespokefit.utilities.smirks import (
     ForceFieldEditor,
     SMIRKSGenerator,
     SMIRKSType,
+    get_cached_torsion_parameters,
 )
 
 if TYPE_CHECKING:
@@ -190,6 +194,151 @@ class QCGenerationStage(_Stage):
         Dict[str, Union[AtomicResult, OptimizationResult, TorsionDriveResult]]
     ] = Field(None, description="")
 
+    @staticmethod
+    def _generate_torsion_parameters(
+        fragmentation_result: FragmentationResult,
+        input_schema: BespokeOptimizationSchema,
+    ) -> Tuple[List[ParameterType], List[Fragment]]:
+        """
+        Generate torsion parameters for the fragments using any possible cached parameters.
+
+        Args:
+            fragmentation_result: The result of the fragmentation
+            input_schema: The input schema detailing the optimisation
+
+        Returns:
+            The list of generated smirks patterns including any cached values, and a list of fragments which require torsiondrives.
+        """
+        cached_torsions = None
+
+        if is_redis_available(
+            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        ):
+            redis_connection = redis.Redis(
+                host=settings.BEFLOW_REDIS_ADDRESS,
+                port=settings.BEFLOW_REDIS_PORT,
+                db=settings.BEFLOW_REDIS_DB,
+            )
+            cached_force_field = get_cached_parameters(
+                fitting_schema=input_schema, redis_connection=redis_connection
+            )
+            if cached_force_field is not None:
+                cached_torsions = cached_force_field["ProperTorsions"].parameters
+
+        parent = fragmentation_result.parent_molecule
+        smirks_gen = SMIRKSGenerator(
+            initial_force_field=input_schema.initial_force_field,
+            generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
+            expand_torsion_terms=input_schema.smirk_settings.expand_torsion_terms,
+            target_smirks=[SMIRKSType.ProperTorsions],
+        )
+
+        new_smirks = []
+        fragments = []
+        for fragment_data in fragmentation_result.fragments:
+            central_bond = fragment_data.bond_indices
+            fragment_molecule = fragment_data.molecule
+            bespoke_smirks = smirks_gen.generate_smirks_from_fragment(
+                parent=parent,
+                fragment=fragment_molecule,
+                fragment_map_indices=central_bond,
+            )
+            if cached_torsions is not None:
+                smirks_to_add = []
+                for smirk in bespoke_smirks:
+                    cached_smirk = get_cached_torsion_parameters(
+                        molecule=fragment_molecule,
+                        bespoke_parameter=smirk,
+                        cached_parameters=cached_torsions,
+                    )
+                    if cached_smirk is not None:
+                        smirks_to_add.append(cached_smirk)
+                if len(smirks_to_add) == len(bespoke_smirks):
+                    # if we have the same number of parameters we are safe to transfer as they were fit together
+                    new_smirks.extend(smirks_to_add)
+                else:
+                    # the cached parameter was not fit with the correct number of other parameters
+                    # so use new terms not cached
+                    new_smirks.extend(bespoke_smirks)
+                    fragments.append(fragment_data)
+
+            else:
+                new_smirks.extend(bespoke_smirks)
+                # only keep track of fragments which require QM calculations as they have no cached values
+                fragments.append(fragment_data)
+
+        return new_smirks, fragments
+
+    @staticmethod
+    async def _generate_parameters(
+        input_schema: BespokeOptimizationSchema,
+        fragmentation_result: Optional[FragmentationResult],
+    ) -> List[Fragment]:
+        """
+        Generate a list of parameters which are to be optimised, these are added to the input force field.
+        The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
+        """
+
+        initial_force_field = ForceFieldEditor(input_schema.initial_force_field)
+        new_parameters = []
+
+        target_smirks = {*input_schema.target_smirks}
+        if SMIRKSType.ProperTorsions in target_smirks:
+            target_smirks.remove(SMIRKSType.ProperTorsions)
+
+            (
+                torsion_parameters,
+                fragment_jobs,
+            ) = QCGenerationStage._generate_torsion_parameters(
+                fragmentation_result=fragmentation_result,
+                input_schema=input_schema,
+            )
+            new_parameters.extend(torsion_parameters)
+        else:
+            fragment_jobs = []
+
+        if len(target_smirks) > 0:
+            smirks_gen = SMIRKSGenerator(
+                initial_force_field=input_schema.initial_force_field,
+                generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
+                target_smirks=[*target_smirks],
+                smirks_layers=1,
+            )
+
+            parameters = smirks_gen.generate_smirks_from_molecule(
+                molecule=input_schema.molecule
+            )
+            new_parameters.extend(parameters)
+
+        # add all new terms to the input force field
+        initial_force_field.add_parameters(parameters=new_parameters)
+
+        parameter_to_type = {
+            vdWHandler.vdWType: VdWSMIRKS,
+            BondHandler.BondType: BondSMIRKS,
+            AngleHandler.AngleType: AngleSMIRKS,
+            ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
+            ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
+        }
+        # convert all parameters to bespokefit types
+        parameters_to_fit = defaultdict(list)
+        for parameter in new_parameters:
+            bespoke_parameter = parameter_to_type[parameter.__class__].from_smirnoff(
+                parameter
+            )
+            # We only want to fit if it was not cached
+            if not bespoke_parameter.cached:
+                parameters_to_fit[bespoke_parameter.type].append(bespoke_parameter)
+
+        # set which parameters should be optimised in each stage
+        for stage in input_schema.stages:
+            for hyper_param in stage.parameter_hyperparameters:
+                stage.parameters.extend(parameters_to_fit[hyper_param.type])
+
+        input_schema.initial_force_field = initial_force_field.force_field.to_string()
+
+        return fragment_jobs
+
     async def _enter(self, task: "CoordinatorTask"):
 
         fragment_stage = next(
@@ -200,9 +349,24 @@ class QCGenerationStage(_Stage):
             ),
             None,
         )
-        fragments = (
-            [] if fragment_stage.result is None else fragment_stage.result.fragments
-        )
+
+        input_schema = task.input_schema
+
+        # TODO: Move these methods onto the celery worker.
+        try:
+            fragments = await self._generate_parameters(
+                fragmentation_result=fragment_stage.result,
+                input_schema=input_schema,
+            )
+        except BaseException as e:  # lgtm [py/catch-base-exception]
+
+            self.status = "errored"
+            self.error = json.dumps(
+                f"Failed to generate SMIRKS patterns that match both the parent and "
+                f"torsion fragments: {str(e)}"
+            )
+
+            return
 
         target_qc_tasks = defaultdict(list)
 
@@ -221,7 +385,7 @@ class QCGenerationStage(_Stage):
                     Torsion1DTask(
                         smiles=fragment.smiles,
                         central_bond=fragment.bond_indices,
-                        **target.reference_data.spec.dict(),
+                        **target.calculation_specification.dict(),
                     )
                     for fragment in fragments
                 )
@@ -333,94 +497,6 @@ class OptimizationStage(_Stage):
     )
 
     @staticmethod
-    def _generate_torsion_parameters(
-        fragmentation_result: FragmentationResult,
-        input_schema: BespokeOptimizationSchema,
-    ) -> List[ParameterType]:
-
-        parent = fragmentation_result.parent_molecule
-        smirks_gen = SMIRKSGenerator(
-            initial_force_field=input_schema.initial_force_field,
-            generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
-            expand_torsion_terms=input_schema.smirk_settings.expand_torsion_terms,
-            target_smirks=[SMIRKSType.ProperTorsions],
-        )
-
-        new_smirks = []
-        for fragment_data in fragmentation_result.fragments:
-            central_bond = fragment_data.bond_indices
-            fragment_molecule = fragment_data.molecule
-            smirks = smirks_gen.generate_smirks_from_fragment(
-                parent=parent,
-                fragment=fragment_molecule,
-                fragment_map_indices=central_bond,
-            )
-            new_smirks.extend(smirks)
-
-        return new_smirks
-
-    @staticmethod
-    async def _generate_parameters(
-        input_schema: BespokeOptimizationSchema,
-        fragmentation_result: Optional[FragmentationResult],
-    ):
-        """
-        Generate a list of parameters which are to be optimised, these are added to the input force field.
-        The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
-        """
-
-        initial_force_field = ForceFieldEditor(input_schema.initial_force_field)
-        new_parameters = []
-
-        target_smirks = {*input_schema.target_smirks}
-        if SMIRKSType.ProperTorsions in target_smirks:
-            target_smirks.remove(SMIRKSType.ProperTorsions)
-
-            torsion_parameters = OptimizationStage._generate_torsion_parameters(
-                fragmentation_result=fragmentation_result,
-                input_schema=input_schema,
-            )
-            new_parameters.extend(torsion_parameters)
-
-        if len(target_smirks) > 0:
-            smirks_gen = SMIRKSGenerator(
-                initial_force_field=input_schema.initial_force_field,
-                generate_bespoke_terms=input_schema.smirk_settings.generate_bespoke_terms,
-                target_smirks=[*target_smirks],
-                smirks_layers=1,
-            )
-
-            parameters = smirks_gen.generate_smirks_from_molecule(
-                molecule=input_schema.molecule
-            )
-            new_parameters.extend(parameters)
-
-        # add all new terms to the input force field
-        initial_force_field.add_parameters(parameters=new_parameters)
-
-        parameter_to_type = {
-            vdWHandler.vdWType: VdWSMIRKS,
-            BondHandler.BondType: BondSMIRKS,
-            AngleHandler.AngleType: AngleSMIRKS,
-            ProperTorsionHandler.ProperTorsionType: ProperTorsionSMIRKS,
-            ImproperTorsionHandler.ImproperTorsionType: ImproperTorsionSMIRKS,
-        }
-        # convert all parameters to bespokefit types
-        parameters_to_fit = defaultdict(list)
-        for parameter in new_parameters:
-            bespoke_parameter = parameter_to_type[parameter.__class__].from_smirnoff(
-                parameter
-            )
-            parameters_to_fit[bespoke_parameter.type].append(bespoke_parameter)
-
-        # set which parameters should be optimised in each stage
-        for stage in input_schema.stages:
-            for hyper_param in stage.parameter_hyperparameters:
-                stage.parameters.extend(parameters_to_fit[hyper_param.type])
-
-        input_schema.initial_force_field = initial_force_field.force_field.to_string()
-
-    @staticmethod
     async def _inject_bespoke_qc_data(
         qc_generation_stage: QCGenerationStage,
         input_schema: BespokeOptimizationSchema,
@@ -451,7 +527,7 @@ class OptimizationStage(_Stage):
         ]
         n_targets_missing_qc_data = len(targets_missing_qc_data)
 
-        if n_targets_missing_qc_data > 0:
+        if n_targets_missing_qc_data > 0 and qc_generation_stage.results:
 
             raise RuntimeError(
                 f"{n_targets_missing_qc_data} targets were missing QC data - this "
@@ -464,25 +540,6 @@ class OptimizationStage(_Stage):
         completed_stages = {stage.type: stage for stage in task.completed_stages}
 
         input_schema = task.input_schema.copy(deep=True)
-
-        # Generate all parameters to be optimised
-        fragmentation_stage: FragmentationStage = completed_stages["fragmentation"]
-
-        # TODO: Move these methods onto the celery worker.
-        try:
-            await self._generate_parameters(
-                fragmentation_result=fragmentation_stage.result,
-                input_schema=input_schema,
-            )
-        except BaseException as e:  # lgtm [py/catch-base-exception]
-
-            self.status = "errored"
-            self.error = json.dumps(
-                f"Failed to generate SMIRKS patterns that match both the parent and "
-                f"torsion fragments: {str(e)}"
-            )
-
-            return
 
         # Map the generated QC results into a local QC data class and update the schema
         # to target these.

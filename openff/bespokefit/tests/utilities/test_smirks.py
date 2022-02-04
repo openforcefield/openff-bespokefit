@@ -5,13 +5,22 @@ from typing import List, Tuple
 import pytest
 from openff.fragmenter.utils import get_atom_index
 from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ProperTorsionHandler, vdWHandler
+from openff.toolkit.typing.engines.smirnoff import (
+    ForceField,
+    ProperTorsionHandler,
+    vdWHandler,
+)
 from openff.utilities import get_data_file_path
+from openmm import unit
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import validate_smirks
 from openff.bespokefit.tests import does_not_raise
-from openff.bespokefit.utilities.smirks import SMIRKSGenerator, compare_smirks_graphs
+from openff.bespokefit.utilities.smirks import (
+    SMIRKSGenerator,
+    compare_smirks_graphs,
+    get_cached_torsion_parameters,
+)
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -59,6 +68,55 @@ def compare_matches(matches, target) -> bool:
         if match not in matches and tuple(reversed(match)) not in matches:
             return False
     return True
+
+
+def test_get_cached_torsion_no_match(bace):
+    """
+    Make sure no parameter is returned if no cached parameter matches the same atoms as the bespoke parameter.
+    """
+    bespoke_parameter = ProperTorsionHandler.ProperTorsionType(
+        smirks="[*:1]-[#6:2]-[*:3]-[*:4]",
+        periodicity=[1],
+        phase=[0 * unit.degree],
+        k=[1 * unit.kilocalories_per_mole],
+    )
+    force_field = ForceField("openff_unconstrained-1.0.0.offxml")
+    cached_parameter = get_cached_torsion_parameters(
+        molecule=bace,
+        bespoke_parameter=bespoke_parameter,
+        cached_parameters=force_field.get_parameter_handler(
+            "ProperTorsions"
+        ).parameters,
+    )
+    assert cached_parameter is None
+
+
+def test_get_cached_torsion(bace):
+    """
+    Make sure we can correctly identify a parameter which is a valid cached term.
+    """
+    bespoke_parameter = ProperTorsionHandler.ProperTorsionType(
+        smirks="[#6H1:1]@[#6:2]-!@[#6:3]@[#6H1:4]",
+        periodicity=[1],
+        phase=[0 * unit.degree],
+        k=[1 * unit.kilocalories_per_mole],
+    )
+    force_field = ForceField("openff_unconstrained-1.0.0.offxml")
+    cached_parameter = get_cached_torsion_parameters(
+        molecule=bace,
+        bespoke_parameter=bespoke_parameter,
+        cached_parameters=force_field.get_parameter_handler(
+            "ProperTorsions"
+        ).parameters,
+    )
+    assert cached_parameter is not None
+    assert "cached" in cached_parameter._cosmetic_attribs
+    # make sure the k value is updated
+    assert cached_parameter.k[0] == unit.Quantity(
+        value=0.9155269008137, unit=unit.kilocalories_per_mole
+    )
+    # make sure the smirks has not changed
+    assert cached_parameter.smirks == "[#6H1:1]@[#6:2]-!@[#6:3]@[#6H1:4]"
 
 
 @pytest.mark.parametrize(

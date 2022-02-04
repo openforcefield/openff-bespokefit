@@ -1,6 +1,8 @@
+import hashlib
 from typing import List, Optional
 
 import pytest
+from openff.toolkit.typing.engines.smirnoff import ForceField
 
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
@@ -28,11 +30,15 @@ def mock_task(
     completed_stages: List[StageType],
 ) -> CoordinatorTask:
 
+    force_field = ForceField("openff_unconstrained-1.0.0.offxml")
+    ff_hash = hashlib.sha512(force_field.to_string().encode()).hexdigest()
+
     return CoordinatorTask(
         id="mock-task-id",
         input_schema=BespokeOptimizationSchema(
             smiles="C",
-            initial_force_field="openff-1.0.0.offxml",
+            initial_force_field="openff_unconstrained-1.0.0.offxml",
+            initial_force_field_hash=ff_hash,
             target_torsion_smirks=[],
             stages=[
                 OptimizationStageSchema(

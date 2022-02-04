@@ -21,6 +21,41 @@ from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
+def get_cached_torsion_parameters(
+    molecule: Molecule,
+    bespoke_parameter: ProperTorsionHandler.ProperTorsionType,
+    cached_parameters: List[ProperTorsionHandler.ProperTorsionType],
+) -> Optional[ProperTorsionHandler.ProperTorsionType]:
+    """
+    For a given molecule update the input parameter with cached values if an equivalent parameter can be found in the cached list.
+
+    Args:
+        molecule: The target molecule the parameter should be applied to
+        bespoke_parameter: Our bespoke parameter which contains the reference smirks pattern
+        cached_parameters: The list of cached parameters which can be reused
+    """
+
+    # get matches for our target smirks
+    target_matches = molecule.chemical_environment_matches(
+        query=bespoke_parameter.smirks
+    )
+    target_matches = {m for match in target_matches for m in match}
+
+    # make sure the cached parameter hits the same atoms as our bespoke parameter
+    for cached_parameter in cached_parameters:
+        matches = molecule.chemical_environment_matches(query=cached_parameter.smirks)
+        matches = {m for match in matches for m in match}
+        if not target_matches.symmetric_difference(matches):
+            cached_parameter.add_cosmetic_attribute(
+                attr_name="cached", attr_value="True"
+            )
+            # we keep the new bespoke smirks to ensure it matches the parent and the fragment
+            cached_parameter.smirks = bespoke_parameter.smirks
+            return cached_parameter
+
+    return None
+
+
 def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
     """
     Compare two smirks schema based on the types of smirks they cover.

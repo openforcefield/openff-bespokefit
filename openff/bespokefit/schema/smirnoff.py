@@ -50,6 +50,11 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
         ..., description="The attributes of the parameter which should be optimized."
     )
 
+    cached: bool = Field(
+        False,
+        description="If the parameter was reused from a local cache rather than fit.",
+    )
+
     @classmethod
     @abc.abstractmethod
     def _expected_n_tags(cls) -> int:
@@ -71,7 +76,7 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
         assert not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.type, self.smirks, tuple(self.attributes)))
+        return hash((self.type, self.smirks, self.cached, tuple(self.attributes)))
 
 
 class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
@@ -104,7 +109,11 @@ class VdWSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: vdWHandler.vdWType) -> "VdWSMIRKS":
-        return cls(smirks=parameter.smirks, attributes={"epsilon", "sigma"})
+        return cls(
+            smirks=parameter.smirks,
+            attributes={"epsilon", "sigma"},
+            cached=getattr(parameter, "_cached", False),
+        )
 
 
 class VdWHyperparameters(BaseSMIRKSHyperparameters):
@@ -134,7 +143,11 @@ class BondSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: BondHandler.BondType) -> "BondSMIRKS":
-        return cls(smirks=parameter.smirks, attributes={"k", "length"})
+        return cls(
+            smirks=parameter.smirks,
+            attributes={"k", "length"},
+            cached=getattr(parameter, "_cached", False),
+        )
 
 
 class BondHyperparameters(BaseSMIRKSHyperparameters):
@@ -164,7 +177,11 @@ class AngleSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: AngleHandler.AngleType) -> "AngleSMIRKS":
-        return cls(smirks=parameter.smirks, attributes={"k", "angle"})
+        return cls(
+            smirks=parameter.smirks,
+            attributes={"k", "angle"},
+            cached=getattr(parameter, "_cached", False),
+        )
 
 
 class AngleHyperparameters(BaseSMIRKSHyperparameters):
@@ -212,7 +229,9 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
 
         return cls(
             smirks=parameter.smirks,
-            attributes={f"k{i + 1}" for i in range(len(parameter.k))}
+            attributes={f"k{i + 1}" for i in range(len(parameter.k))},
+            # cosmetic attrs are hidden
+            cached=getattr(parameter, "_cached", False)
         )
 
 
