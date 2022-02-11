@@ -25,7 +25,7 @@ There are two main routes for creating a bespoke force field using BespokeFit:
 ## Using the CLI
 
 The fastest way to start producing a bespoke force field for your molecule of interest is through the command
-line. A full list of the available commands as well as help about each can be found by running:
+line. A full list of the [available commands](cli_chapter) as well as help about each can be found by running:
 
 ```shell
 openff-bespoke executor --help 
@@ -35,7 +35,7 @@ Of particular interest are the `run`, `launch`, `submit`, `retrieve` and `watch`
 
 ### One-off fits
 
-The `run` command is the quickest route to using the force field if you are wanting to perform a quick one-off fit for 
+The `run` command is the quickest route to using BespokeFit if you are wanting to perform a quick one-off fit for 
 a single molecule, and will accept either a SMILES pattern
 
 ```shell
@@ -74,8 +74,9 @@ See the chapter on the [bespoke executor](executor_chapter) for more information
 
 ### Production fits
 
-If you are intending to create bespoke parameters for multiple molecules, it is recommended to use the `launch`, 
-`submit`, `retrieve` and `watch` commands instead of `run`.
+If you are intending to create bespoke parameters for multiple molecules such as a particular lead series, it is 
+recommended to instead launch a dedicated bespoke executor. This has the added benefits of being able to re-use
+data from previous fits, such as common QC calculations.
 
 The first step is to launch a [bespoke executor](executor_chapter). The executor is the workhorse of BespokeFit, and 
 seamlessly coordinates every step of the fitting workflow from molecule fragmentation to QC data generation:
