@@ -1,6 +1,7 @@
 from typing import Optional
 
 import click
+import click.exceptions
 import rich
 from rich import pretty
 from rich.padding import Padding
@@ -54,6 +55,7 @@ def _run_cli(
         console.line()
 
         with handle_common_errors(console) as error_state:
+
             response_id = _submit(
                 console=console,
                 input_file_path=input_file_path,
@@ -62,26 +64,24 @@ def _run_cli(
                 spec_name=spec_name,
                 spec_file_name=spec_file_name,
             )
-        if error_state["has_errored"]:
-            return
 
-        console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
+            console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
-        with handle_common_errors(console) as error_state:
             results = wait_until_complete(response_id)
-        if error_state["has_errored"]:
-            return
 
-        console.print(
-            Padding(
-                f"outputs have been saved to "
-                f"[repr.filename]{output_file_path}[/repr.filename]",
-                (1, 0, 1, 0),
+            console.print(
+                Padding(
+                    f"outputs have been saved to "
+                    f"[repr.filename]{output_file_path}[/repr.filename]",
+                    (1, 0, 1, 0),
+                )
             )
-        )
 
-        with open(output_file_path, "w") as file:
-            file.write(results.json())
+            with open(output_file_path, "w") as file:
+                file.write(results.json())
+
+        if error_state["has_errored"]:
+            raise click.exceptions.Exit(code=2)
 
 
 __run_options = [*submit_options()]

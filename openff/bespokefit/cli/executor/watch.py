@@ -1,4 +1,5 @@
 import click
+import click.exceptions
 import rich
 from rich import pretty
 
@@ -24,5 +25,7 @@ def watch_cli(optimization_id):
 
     from openff.bespokefit.executor import wait_until_complete
 
-    with handle_common_errors(console):
+    with handle_common_errors(console) as error_state:
         wait_until_complete(optimization_id)
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)

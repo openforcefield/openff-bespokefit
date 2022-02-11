@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, Callable, List
+from typing import TYPE_CHECKING, Any, Callable, List
 
 import click
+from click.exceptions import Exit
 
 if TYPE_CHECKING:
     import rich
@@ -22,3 +23,9 @@ def create_command(
         func = option(func)
 
     return click_command(func)
+
+
+def exit_with_messages(*messages: Any, console: "rich.Console", exit_code: int = 0):
+
+    console.print(*messages)
+    raise Exit(code=exit_code)

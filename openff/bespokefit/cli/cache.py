@@ -5,6 +5,7 @@ import uuid
 from typing import TYPE_CHECKING, Optional, Union
 
 import click
+import click.exceptions
 import redis
 import rich
 from click_option_group import optgroup
@@ -12,13 +13,17 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from pydantic import ValidationError
+from pydantic import ValidationError, parse_file_as
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
 from typing_extensions import Literal
 
-from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.cli.utilities import (
+    create_command,
+    exit_with_messages,
+    print_header,
+)
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
@@ -31,8 +36,9 @@ if TYPE_CHECKING:
 
 @click.group("cache")
 def cache_cli():
-    # TODO do we want the redis database to be saved in a standard location as it is directory dependent?
     """Commands to manually update the qc data cache."""
+    # TODO: do we want the redis database to be saved in a standard location as it is
+    #       directory dependent?
 
 
 def update_from_qcsubmit_options(
@@ -126,10 +132,12 @@ def _update(
     if (qcf_dataset_name is not None and input_file_path is not None) or (
         qcf_dataset_name is None and input_file_path is None
     ):
-        console.print(
-            "[[red]ERROR[/red]] The `file` and `qcf-dataset` arguments are mutually exclusive"
+        exit_with_messages(
+            "[[red]ERROR[/red]] The `file` and `qcf-dataset` arguments are mutually "
+            "exclusive",
+            console=console,
+            exit_code=2,
         )
-        return
 
     console.print(Padding("1. gathering QCSubmit results", (0, 0, 1, 0)))
 
@@ -141,8 +149,6 @@ def _update(
         client = _connect_to_qcfractal(
             console=console, qcf_address=qcf_address, qcf_config=qcf_config
         )
-        if client is None:
-            return
 
         qcsubmit_result = _results_from_client(
             client=client,
@@ -151,11 +157,9 @@ def _update(
             qcf_dataset_name=qcf_dataset_name,
             qcf_specification=qcf_specification,
         )
-    if qcsubmit_result is None:
-        # exit here as something is wrong
-        return
 
     console.print(Padding("2. connecting to redis cache", (1, 0, 1, 0)))
+
     if launch_redis_if_unavailable and not is_redis_available(
         host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
     ):
@@ -169,53 +173,55 @@ def _update(
         )
     else:
         redis_process = None
-    # connect to redis
-    redis_connection = redis.Redis(
-        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
-    )
 
-    # run the update
-    _update_from_qcsubmit_result(
-        console=console,
-        qcsubmit_results=qcsubmit_result,
-        redis_connection=redis_connection,
-    )
+    try:
+        # connect to redis
+        redis_connection = redis.Redis(
+            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        )
 
-    if redis_process is not None:
-        # close redis
-        console.print(Padding("5. closing redis", (0, 0, 1, 0)))
-        redis_process.terminate()
-        redis_process.wait()
+        # run the update
+        _update_from_qcsubmit_result(
+            console=console,
+            qcsubmit_results=qcsubmit_result,
+            redis_connection=redis_connection,
+        )
+    finally:
+
+        if redis_process is not None:
+            # close redis
+            console.print(Padding("5. closing redis", (0, 0, 1, 0)))
+            redis_process.terminate()
+            redis_process.wait()
 
 
 def _results_from_file(
     console: "rich.Console", input_file_path: str
-) -> Optional[Union[TorsionDriveResultCollection, OptimizationResultCollection]]:
+) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
     """
     Try and build a qcsubmit results object from a local file.
     """
     with console.status("loading results file"):
         try:
-            qcsubmit_result = TorsionDriveResultCollection.parse_file(input_file_path)
-            console.print(
-                f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `TorsionDriveResultCollection`."
+            qcsubmit_result = parse_file_as(
+                Union[TorsionDriveResultCollection, OptimizationResultCollection],
+                input_file_path,
             )
-        except ValidationError:
-            try:
-                qcsubmit_result = OptimizationResultCollection.parse_file(
-                    input_file_path
-                )
-                console.print(
-                    f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] loaded as a `OptimizationResultCollection`."
-                )
-            except ValidationError as e:
-                console.print(
-                    Padding(
-                        f"[[red]ERROR[/red]] The result file [repr.filename]{input_file_path}[/repr.filename] could not be loaded into QCSubmit"
-                    )
-                )
-                console.print(Padding(str(e), (1, 1, 1, 1)))
-                return None
+            console.print(
+                f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] "
+                f"loaded as a `{qcsubmit_result.__class__.__name__}`."
+            )
+        except ValidationError as e:
+            exit_with_messages(
+                Padding(
+                    f"[[red]ERROR[/red]] The result file [repr.filename]"
+                    f"{input_file_path}[/repr.filename] could not be loaded into "
+                    f"QCSubmit"
+                ),
+                Padding(str(e), (1, 1, 1, 1)),
+                console=console,
+                exit_code=2,
+            )
 
     return qcsubmit_result
 
@@ -224,7 +230,7 @@ def _connect_to_qcfractal(
     console: "rich.Console",
     qcf_address: str,
     qcf_config: Optional[str],
-) -> Optional["FractalClient"]:
+) -> "FractalClient":
     """Connected to the chosen qcfractal server."""
     from qcportal import FractalClient
 
@@ -235,13 +241,16 @@ def _connect_to_qcfractal(
             else:
                 client = FractalClient(address=qcf_address)
         except BaseException as e:
-            console.print(
+
+            exit_with_messages(
                 Padding(
-                    "[[red]ERROR[/red]] Unable to connect to QCFractal due to the following error."
-                )
+                    "[[red]ERROR[/red]] Unable to connect to QCFractal due to the "
+                    "following error."
+                ),
+                Padding(str(e), (1, 1, 1, 1)),
+                console=console,
+                exit_code=2,
             )
-            console.print(Padding(str(e), (1, 1, 1, 1)))
-            return None
 
         console.print("[[green]✓[/green]] connected to QCFractal")
         return client
@@ -253,7 +262,7 @@ def _results_from_client(
     qcf_datatype: Literal["torsion", "optimization", "hessian"],
     client: "FractalClient",
     qcf_specification: str,
-) -> Optional[Union[TorsionDriveResultCollection, OptimizationResultCollection]]:
+) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
     """Connect to qcfractal and create a qcsubmit results object."""
 
     with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
@@ -291,15 +300,16 @@ def _update_from_qcsubmit_result(
             )
             console.print("[[green]✓[/green]] local results built")
         except BaseException as e:
-            console.print(
+            exit_with_messages(
                 Padding(
-                    "[[red]ERROR[/red]] The local results could not be built due to the following error.",
+                    "[[red]ERROR[/red]] The local results could not be built due to the "
+                    "following error.",
                     (1, 0, 0, 0),
-                )
+                ),
+                Padding(str(e), (1, 1, 1, 1)),
+                console=console,
+                exit_code=2,
             )
-            console.print(Padding(str(e), (1, 1, 1, 1)))
-
-            return
 
     new_results = 0
     for result in track(
@@ -334,8 +344,6 @@ def _update_from_qcsubmit_result(
     console.print(Padding("4. saving local cache", (1, 0, 1, 0)))
     # block until data is saved
     redis_connection.save()
-
-    return
 
 
 update_cli = create_command(

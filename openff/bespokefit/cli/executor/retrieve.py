@@ -1,4 +1,5 @@
 import click
+import click.exceptions
 import rich
 from rich import pretty
 from rich.padding import Padding
@@ -24,7 +25,7 @@ from openff.bespokefit.executor.utilities import handle_common_errors
     show_default=True,
 )
 def retrieve_cli(optimization_id, output_file_path):
-    """Watch the status of a bespoke optimization."""
+    """Retrieve the current output of a bespoke optimization."""
 
     pretty.install()
 
@@ -36,7 +37,7 @@ def retrieve_cli(optimization_id, output_file_path):
     with handle_common_errors(console) as error_state:
         results = BespokeExecutor.retrieve(optimization_id)
     if error_state["has_errored"]:
-        return
+        raise click.exceptions.Exit(code=2)
 
     message = "the bespoke fit is"
 

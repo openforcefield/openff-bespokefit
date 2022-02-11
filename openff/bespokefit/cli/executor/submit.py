@@ -2,6 +2,7 @@ import os.path
 from typing import TYPE_CHECKING, Optional
 
 import click
+import click.exceptions
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
@@ -9,7 +10,11 @@ from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 
-from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.cli.utilities import (
+    create_command,
+    exit_with_messages,
+    print_header,
+)
 from openff.bespokefit.executor.utilities import handle_common_errors
 
 if TYPE_CHECKING:
@@ -70,7 +75,7 @@ def _to_input_schema(
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
-) -> Optional["BespokeOptimizationSchema"]:
+) -> "BespokeOptimizationSchema":
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -78,11 +83,12 @@ def _to_input_schema(
         spec_name is None and spec_file_name is None
     ):
 
-        console.print(
+        exit_with_messages(
             "[[red]ERROR[/red] The `spec` and `spec-file` arguments are mutually "
-            "exclusive"
+            "exclusive",
+            console=console,
+            exit_code=2,
         )
-        return None
 
     invalid_spec_name = spec_name if spec_name is not None else spec_file_name
 
@@ -106,31 +112,32 @@ def _to_input_schema(
         if isinstance(e, RuntimeError) and "could not be found" not in str(e):
             raise e
 
-        console.print(
+        exit_with_messages(
             Padding(
                 f"[[red]ERROR[/red]] The specified schema could not be found: "
                 f"[repr.filename]{invalid_spec_name}[/repr.filename]",
                 (1, 0, 0, 0),
-            )
+            ),
+            console=console,
+            exit_code=2,
         )
-
-        return
 
     except ValidationError as e:
 
-        console.print(
+        exit_with_messages(
             Padding(
                 f"[[red]ERROR[/red]] The factory schema could not be parsed. Make sure "
                 f"[repr.filename]{invalid_spec_name}[/repr.filename] is a valid "
                 f"`BespokeWorkflowFactory` schema.",
                 (1, 0, 0, 0),
-            )
+            ),
+            Padding(str(e), (1, 1, 1, 1)),
+            console=console,
+            exit_code=2,
         )
-        console.print(Padding(str(e), (1, 1, 1, 1)))
 
-        return
-
-    return workflow_factory.optimization_schema_from_molecule(molecule)
+    else:
+        return workflow_factory.optimization_schema_from_molecule(molecule)
 
 
 def _submit(
@@ -157,11 +164,13 @@ def _submit(
             molecule = Molecule.from_smiles(molecule_smiles)
 
     if not isinstance(molecule, Molecule) or "." in molecule.to_smiles():
-        console.print(
+
+        exit_with_messages(
             "[[red]ERROR[/red]] only one molecule can currently be submitted at "
-            "a time"
+            "a time",
+            console=console,
+            exit_code=2,
         )
-        return
 
     console.print("[[green]✓[/green]] [blue]1[/blue] molecule was found")
 
@@ -170,9 +179,6 @@ def _submit(
         input_schema = _to_input_schema(
             console, molecule, force_field_path, spec_name, spec_file_name
         )
-
-        if input_schema is None:
-            return
 
     console.print("[[green]✓[/green]] fitting schema generated")
 
@@ -201,12 +207,15 @@ def _submit_cli(
     if (input_file_path is not None and molecule_smiles is not None) or (
         input_file_path is None and molecule_smiles is None
     ):
-        console.print(
-            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually exclusive."
+        exit_with_messages(
+            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
+            "exclusive.",
+            console=console,
+            exit_code=2,
         )
-        return
 
     with handle_common_errors(console) as error_state:
+
         _submit(
             console=console,
             input_file_path=input_file_path,
@@ -215,8 +224,9 @@ def _submit_cli(
             spec_name=spec_name,
             spec_file_name=spec_file_name,
         )
-        if error_state["has_errored"]:
-            return
+
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)
 
 
 submit_cli = create_command(

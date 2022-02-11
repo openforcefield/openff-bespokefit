@@ -1,4 +1,5 @@
 import click
+import click.exceptions
 import requests
 import rich
 from rich import pretty
@@ -35,7 +36,7 @@ def list_cli():
         request.raise_for_status()
 
     if error_state["has_errored"]:
-        return
+        raise click.exceptions.Exit(code=2)
 
     response = CoordinatorGETPageResponse.parse_raw(request.content)
     response_ids = [item.id for item in response.contents]

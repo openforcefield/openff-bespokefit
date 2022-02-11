@@ -1,5 +1,6 @@
 import os.path
 
+import click.exceptions
 import pytest
 import rich
 from openff.qcsubmit.results import TorsionDriveResultCollection
@@ -11,27 +12,33 @@ from openff.bespokefit.cli.cache import (
     _update_from_qcsubmit_result,
     update_cli,
 )
+from openff.bespokefit.tests import does_not_raise
 
 
 @pytest.mark.parametrize(
-    "filename, output",
+    "filename, expected_raises, output",
     [
         pytest.param(
             "torsion_collection.json",
+            does_not_raise(),
             "torsion_collection.json loaded as a `TorsionDriveResultCollection`.",
             id="torsiondrive",
         ),
         pytest.param(
             "optimization_collection.json",
+            does_not_raise(),
             "optimization_collection.json loaded as a `OptimizationResultCollection`",
             id="optimization",
         ),
         pytest.param(
-            "hessian_collection.json", "[ERROR] The result file", id="hessian"
+            "hessian_collection.json",
+            pytest.raises(click.exceptions.Exit),
+            "[ERROR] The result file",
+            id="hessian",
         ),
     ],
 )
-def test_results_from_file(filename, output):
+def test_results_from_file(filename, expected_raises, output):
     """
     Test loading qcsubmit results files.
     """
@@ -42,32 +49,41 @@ def test_results_from_file(filename, output):
         file_path = get_data_file_path(
             os.path.join("test", "schemas", filename), package_name="openff.bespokefit"
         )
-        _ = _results_from_file(console=console, input_file_path=file_path)
+
+        with expected_raises:
+            _ = _results_from_file(console=console, input_file_path=file_path)
 
     assert output in capture.get().replace("\n", "")
 
 
 @pytest.mark.parametrize(
-    "address, expected_output",
+    "address, expected_raises, expected_output",
     [
         pytest.param(
-            "api.qcarchive.molssi.org:443", "[✓] connected to QCFractal", id="QCArchive"
+            "api.qcarchive.molssi.org:443",
+            does_not_raise(),
+            "[✓] connected to QCFractal",
+            id="QCArchive",
         ),
         pytest.param(
             "api.qcarchive.molssi.com:1",
+            pytest.raises(click.exceptions.Exit),
             "[ERROR] Unable to connect to QCFractal due to the following error.",
             id="Error",
         ),
     ],
 )
-def test_connecting_to_fractal_address(address, expected_output):
+def test_connecting_to_fractal_address(address, expected_raises, expected_output):
     """
     Test connecting to fractal from using an address.
     """
     console = rich.get_console()
 
     with console.capture() as capture:
-        _ = _connect_to_qcfractal(console=console, qcf_address=address, qcf_config=None)
+        with expected_raises:
+            _ = _connect_to_qcfractal(
+                console=console, qcf_address=address, qcf_config=None
+            )
     assert expected_output in capture.get().replace("\n", "")
 
 
