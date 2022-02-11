@@ -3,6 +3,7 @@ import rich
 from rich import pretty
 
 from openff.bespokefit.cli.utilities import print_header
+from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 @click.command("watch")
@@ -23,4 +24,5 @@ def watch_cli(optimization_id):
 
     from openff.bespokefit.executor import wait_until_complete
 
-    wait_until_complete(optimization_id)
+    with handle_common_errors(console):
+        wait_until_complete(optimization_id)

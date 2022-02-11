@@ -5,6 +5,7 @@ from rich import pretty
 from rich.padding import Padding
 
 from openff.bespokefit.cli.utilities import print_header
+from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 @click.command("list")
@@ -28,16 +29,12 @@ def list_cli():
         f"{settings.BEFLOW_COORDINATOR_PREFIX}"
     )
 
-    try:
+    with handle_common_errors(console) as error_state:
 
         request = requests.get(href)
         request.raise_for_status()
 
-    except requests.ConnectionError:
-        console.print(
-            "A connection could not be made to the bespoke executor. Please make sure "
-            "there is a bespoke executor running."
-        )
+    if error_state["has_errored"]:
         return
 
     response = CoordinatorGETPageResponse.parse_raw(request.content)

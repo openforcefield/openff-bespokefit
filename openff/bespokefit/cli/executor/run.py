@@ -8,6 +8,7 @@ from rich.padding import Padding
 from openff.bespokefit.cli.executor.launch import launch_options
 from openff.bespokefit.cli.executor.submit import _submit, submit_options
 from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 def _run_cli(
@@ -52,24 +53,32 @@ def _run_cli(
         console.print("[[green]✓[/green]] bespoke executor launched")
         console.line()
 
-        response = _submit(
-            console=console,
-            input_file_path=input_file_path,
-            molecule_smiles=molecule_smiles,
-            force_field_path=force_field_path,
-            spec_name=spec_name,
-            spec_file_name=spec_file_name,
-        )
-
-        if response is None:
+        with handle_common_errors(console) as error_state:
+            response_id = _submit(
+                console=console,
+                input_file_path=input_file_path,
+                molecule_smiles=molecule_smiles,
+                force_field_path=force_field_path,
+                spec_name=spec_name,
+                spec_file_name=spec_file_name,
+            )
+        if error_state["has_errored"]:
             return
 
         console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
-        results = wait_until_complete(response.id)
-
-        if results is None:
+        with handle_common_errors(console) as error_state:
+            results = wait_until_complete(response_id)
+        if error_state["has_errored"]:
             return
+
+        console.print(
+            Padding(
+                f"outputs have been saved to "
+                f"[repr.filename]{output_file_path}[/repr.filename]",
+                (1, 0, 1, 0),
+            )
+        )
 
         with open(output_file_path, "w") as file:
             file.write(results.json())

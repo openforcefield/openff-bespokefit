@@ -10,13 +10,11 @@ from rich import pretty
 from rich.padding import Padding
 
 from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.executor.utilities import handle_common_errors
 
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
 
-    from openff.bespokefit.executor.services.coordinator.models import (
-        CoordinatorPOSTResponse,
-    )
     from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 
@@ -142,7 +140,7 @@ def _submit(
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
-) -> Optional["CoordinatorPOSTResponse"]:
+) -> str:
 
     from openff.toolkit.topology import Molecule
 
@@ -180,14 +178,10 @@ def _submit(
 
     console.print(Padding("2. submitting the workflow", (1, 0, 1, 0)))
 
-    executor = BespokeExecutor()  # TODO: submit should be static.
-    executor._started = True
+    response_id = BespokeExecutor.submit(input_schema)
+    console.print(f"[[green]✓[/green]] workflow submitted: id={response_id}")
 
-    response = executor.submit(input_schema)
-
-    console.print(f"[[green]✓[/green]] workflow submitted: id={response.id}")
-
-    return response
+    return response_id
 
 
 def _submit_cli(
@@ -212,14 +206,17 @@ def _submit_cli(
         )
         return
 
-    _submit(
-        console=console,
-        input_file_path=input_file_path,
-        molecule_smiles=molecule_smiles,
-        force_field_path=force_field_path,
-        spec_name=spec_name,
-        spec_file_name=spec_file_name,
-    )
+    with handle_common_errors(console) as error_state:
+        _submit(
+            console=console,
+            input_file_path=input_file_path,
+            molecule_smiles=molecule_smiles,
+            force_field_path=force_field_path,
+            spec_name=spec_name,
+            spec_file_name=spec_file_name,
+        )
+        if error_state["has_errored"]:
+            return
 
 
 submit_cli = create_command(

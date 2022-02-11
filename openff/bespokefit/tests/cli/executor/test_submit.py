@@ -185,7 +185,7 @@ def test_submit(tmpdir, file, smiles):
         )
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
-        response = _submit(
+        response_id = _submit(
             rich.get_console(),
             input_file_path=file,
             molecule_smiles=smiles,
@@ -193,9 +193,7 @@ def test_submit(tmpdir, file, smiles):
             spec_name="debug",
             spec_file_name=None,
         )
-
-    assert isinstance(response, CoordinatorPOSTResponse)
-    assert response.id == "1"
+        response_id == "1"
 
 
 def test_submit_cli(runner, tmpdir):
