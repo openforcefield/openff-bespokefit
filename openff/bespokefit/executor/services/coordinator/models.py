@@ -71,6 +71,12 @@ class CoordinatorGETStageStatus(BaseModel):
 
 class CoordinatorGETResponse(Link):
 
+    smiles: str = Field(
+        ...,
+        description="The SMILES representation of the molecule that the bespoke "
+        "parameters are being generated for.",
+    )
+
     stages: List[CoordinatorGETStageStatus] = Field(
         ..., description="The stages of the bespoke optimization."
     )
@@ -102,6 +108,7 @@ class CoordinatorGETResponse(Link):
                 f"{settings.BEFLOW_API_V1_STR}/"
                 f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
             ),
+            smiles=task.input_schema.smiles,
             stages=stage_responses,
             results=(
                 None

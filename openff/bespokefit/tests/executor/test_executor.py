@@ -35,6 +35,7 @@ def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
     mock_response = CoordinatorGETResponse(
         id=mock_id,
         self=mock_href,
+        smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status=stage_status, error=None, results=None
@@ -165,6 +166,7 @@ class TestBespokeExecutorOutput:
             CoordinatorGETResponse(
                 id="mock-id",
                 self="",
+                smiles="CC",
                 stages=[
                     CoordinatorGETStageStatus(
                         type="fragmentation", status="running", error=None, results=None
@@ -340,6 +342,7 @@ def test_query_coordinator():
     mock_response = CoordinatorGETResponse(
         id="mock-id",
         self="",
+        smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status="running", error=None, results=None
@@ -375,6 +378,7 @@ def test_wait_for_stage(status):
     mock_response = CoordinatorGETResponse(
         id="mock-id",
         self="",
+        smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
                 type="fragmentation", status="running", error=None, results=None

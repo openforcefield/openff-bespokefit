@@ -1,12 +1,44 @@
+from typing import Optional
+
 import click
 import click.exceptions
 import requests
 import rich
 from rich import pretty
-from rich.padding import Padding
+from rich.table import Table
 
 from openff.bespokefit.cli.utilities import print_header
-from openff.bespokefit.executor.utilities import handle_common_errors
+
+
+def _get_smiles(console: "rich.Console", optimization_id: str) -> Optional[str]:
+
+    from openff.toolkit.topology import Molecule
+
+    from openff.bespokefit.executor.services import settings
+    from openff.bespokefit.executor.services.coordinator.models import (
+        CoordinatorGETResponse,
+    )
+    from openff.bespokefit.executor.utilities import handle_common_errors
+
+    href = (
+        f"http://127.0.0.1:"
+        f"{settings.BEFLOW_GATEWAY_PORT}"
+        f"{settings.BEFLOW_API_V1_STR}/"
+        f"{settings.BEFLOW_COORDINATOR_PREFIX}/{optimization_id}"
+    )
+
+    with handle_common_errors(console) as error_state:
+        request = requests.get(href)
+        request.raise_for_status()
+    if error_state["has_errored"]:
+        return None
+
+    cmiles = CoordinatorGETResponse.parse_raw(request.content).smiles
+    smiles = Molecule.from_smiles(cmiles).to_smiles(
+        isomeric=True, explicit_hydrogens=False, mapped=False
+    )
+
+    return smiles
 
 
 @click.command("list")
@@ -22,8 +54,9 @@ def list_cli():
     from openff.bespokefit.executor.services.coordinator.models import (
         CoordinatorGETPageResponse,
     )
+    from openff.bespokefit.executor.utilities import handle_common_errors
 
-    href = (
+    base_href = (
         f"http://127.0.0.1:"
         f"{settings.BEFLOW_GATEWAY_PORT}"
         f"{settings.BEFLOW_API_V1_STR}/"
@@ -32,18 +65,25 @@ def list_cli():
 
     with handle_common_errors(console) as error_state:
 
-        request = requests.get(href)
+        request = requests.get(base_href)
         request.raise_for_status()
 
     if error_state["has_errored"]:
         raise click.exceptions.Exit(code=2)
 
     response = CoordinatorGETPageResponse.parse_raw(request.content)
-    response_ids = [item.id for item in response.contents]
 
-    if len(response_ids) == 0:
+    if len(response.contents) == 0:
         console.print("No optimizations were found.")
         return
 
-    console.print(Padding("The following optimizations were found:", (0, 0, 1, 0)))
-    console.print("\n".join(response_ids))
+    table = Table()
+
+    table.add_column("ID", justify="center", no_wrap=True)
+    table.add_column("SMILES", overflow="fold")
+
+    for item in response.contents:
+        table.add_row(item.id, _get_smiles(console, item.id))
+
+    console.print("The following optimizations were found:")
+    console.print(table)

@@ -119,7 +119,13 @@ used to check on state of the submission:
 openff-bespoke executor watch --id "1"
 ```
 
-and once finished, the final force field can be retrieved using the `retrieve` command:
+A full list of submissions currently being processes can be printed with the `list` command:
+
+```shell
+openff-bespoke executor list
+```
+
+Once finished, the final force field can be retrieved using the `retrieve` command:
 
 ```shell
 openff-bespoke executor retrieve --id          "1"                   \

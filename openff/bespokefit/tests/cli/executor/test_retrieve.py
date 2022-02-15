@@ -26,6 +26,7 @@ def _mock_coordinator_get(status, results=None):
         mock_response = CoordinatorGETResponse(
             id="1",
             self="",
+            smiles="CC",
             stages=[
                 CoordinatorGETStageStatus(
                     type="fragmentation", status=status, error=None, results=None

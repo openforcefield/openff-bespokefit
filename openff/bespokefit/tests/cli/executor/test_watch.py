@@ -22,6 +22,7 @@ def test_watch(runner):
         mock_response = CoordinatorGETResponse(
             id="1",
             self=mock_href,
+            smiles="CC",
             stages=[
                 CoordinatorGETStageStatus(
                     type="fragmentation", status="success", error=None, results=None
