@@ -6,13 +6,14 @@ import multiprocessing
 import os
 import subprocess
 import time
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Type, TypeVar, Union
 
 import celery
 import requests
 import rich
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import temporary_cd
-from requests import HTTPError
+from pydantic import Field
 from rich.padding import Padding
 
 from openff.bespokefit.executor.services import settings
@@ -26,7 +27,12 @@ from openff.bespokefit.executor.services.gateway import launch as launch_gateway
 from openff.bespokefit.executor.services.gateway import wait_for_gateway
 from openff.bespokefit.executor.utilities.celery import spawn_worker
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
+from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.results import BespokeOptimizationResults
+from openff.bespokefit.utilities.pydantic import BaseModel
+
+_T = TypeVar("_T")
 
 _logger = logging.getLogger(__name__)
 
@@ -39,6 +45,107 @@ def _base_endpoint():
 
 def _coordinator_endpoint():
     return f"{_base_endpoint()}{settings.BEFLOW_COORDINATOR_PREFIX}"
+
+
+class BespokeExecutorStageOutput(BaseModel):
+    """A model that stores the output of a particular stage in the bespoke fitting
+    workflow e.g. QC data generation."""
+
+    type: str = Field(..., description="The type of stage.")
+
+    status: Status = Field(..., description="The status of the stage.")
+
+    error: Optional[str] = Field(
+        ..., description="The error, if any, raised by the stage."
+    )
+
+
+class BespokeExecutorOutput(BaseModel):
+    """A model that stores the current output of running bespoke fitting workflow
+    including any partial or final results."""
+
+    stages: List[BespokeExecutorStageOutput] = Field(
+        ..., description="The outputs from each stage in the bespoke fitting process."
+    )
+    results: Optional[BespokeOptimizationResults] = Field(
+        None,
+        description="The final result of the bespoke optimization if the full workflow "
+        "is finished, or ``None`` otherwise.",
+    )
+
+    @property
+    def bespoke_force_field(self) -> Optional[ForceField]:
+        """The final bespoke force field if the bespoke fitting workflow is complete."""
+        return (
+            None
+            if self.results is None
+            else (
+                ForceField(
+                    self.results.refit_force_field, allow_cosmetic_attributes=True
+                )
+            )
+        )
+
+    @property
+    def status(self) -> Status:
+
+        pending_stages = [stage for stage in self.stages if stage.status == "waiting"]
+
+        running_stages = [stage for stage in self.stages if stage.status == "running"]
+        assert len(running_stages) < 2
+
+        running_stage = None if len(running_stages) == 0 else running_stages[0]
+
+        complete_stages = [
+            stage
+            for stage in self.stages
+            if stage not in pending_stages and stage not in running_stages
+        ]
+
+        if (
+            running_stage is None
+            and len(complete_stages) == 0
+            and len(pending_stages) > 0
+        ):
+            return "waiting"
+
+        if any(stage.status == "errored" for stage in complete_stages):
+            return "errored"
+
+        if running_stage is not None or len(pending_stages) > 0:
+            return "running"
+
+        if all(stage.status == "success" for stage in complete_stages):
+            return "success"
+
+        raise NotImplementedError()
+
+    @property
+    def error(self) -> Optional[str]:
+        """The error that caused the fitting to fail if any"""
+
+        if self.status != "errored":
+            return None
+
+        message = next(
+            iter(stage.error for stage in self.stages if stage.status == "errored")
+        )
+        return "unknown error" if message is None else message
+
+    @classmethod
+    def from_response(cls: Type[_T], response: CoordinatorGETResponse) -> _T:
+        """Creates an instance of this object from the response from a bespoke
+        coordinator service."""
+
+        return cls(
+            stages=[
+                BespokeExecutorStageOutput(
+                    type=stage.type, status=stage.status, error=stage.error
+                )
+                for stage in response.stages
+            ],
+            results=response.results,
+        )
 
 
 class BespokeExecutor:
@@ -195,20 +302,37 @@ class BespokeExecutor:
 
         atexit.unregister(self._cleanup_processes)
 
-    def submit(
-        self, input_schema: BespokeOptimizationSchema
-    ) -> CoordinatorPOSTResponse:
+    @staticmethod
+    def submit(input_schema: BespokeOptimizationSchema) -> str:
+        """Submits a new bespoke fitting workflow to the executor.
 
-        if not self._started:
-            raise RuntimeError("The executor is not running.")
+        Args:
+            input_schema: The schema defining the optimization to perform.
 
+        Returns:
+            The unique ID assigned to the optimization to perform.
+        """
         request = requests.post(
             _coordinator_endpoint(),
             data=CoordinatorPOSTBody(input_schema=input_schema).json(),
         )
         request.raise_for_status()
 
-        return CoordinatorPOSTResponse.parse_raw(request.text)
+        return CoordinatorPOSTResponse.parse_raw(request.text).id
+
+    @staticmethod
+    def retrieve(optimization_id: str) -> BespokeExecutorOutput:
+        """Retrieve the current state of a running bespoke fitting workflow.
+
+        Args:
+            optimization_id: The unique ID associated with the running optimization.
+        """
+
+        optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
+
+        return BespokeExecutorOutput.from_response(
+            _query_coordinator(optimization_href)
+        )
 
     def __enter__(self):
         self.start(asynchronous=True)
@@ -218,57 +342,38 @@ class BespokeExecutor:
         self.stop()
 
 
-def _query_coordinator(
-    optimization_href: str,
-) -> Tuple[Optional[CoordinatorGETResponse], Optional[BaseException]]:
+def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
 
-    response = None
-    error = None
+    coordinator_request = requests.get(optimization_href)
+    coordinator_request.raise_for_status()
 
-    try:
-
-        coordinator_request = requests.get(optimization_href)
-        coordinator_request.raise_for_status()
-
-        response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
-
-    except (ConnectionError, HTTPError) as e:
-        error = e
-
-    return None if error is not None else response, error
+    response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
+    return response
 
 
 def _wait_for_stage(
     optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
-) -> Tuple[Optional[CoordinatorGETStageStatus], Optional[BaseException]]:
+) -> CoordinatorGETStageStatus:
 
-    try:
+    while True:
 
-        while True:
+        response = _query_coordinator(optimization_href)
 
-            response, error = _query_coordinator(optimization_href)
+        stage = {stage.type: stage for stage in response.stages}[stage_type]
 
-            if error is not None:
-                return None, error
+        if stage.status in ["errored", "success"]:
+            break
 
-            stage = {stage.type: stage for stage in response.stages}[stage_type]
+        time.sleep(frequency)
 
-            if stage.status in ["errored", "success"]:
-                break
-
-            time.sleep(frequency)
-
-    except KeyboardInterrupt:
-        return None, None
-
-    return None if error is not None else stage, error
+    return stage
 
 
 def wait_until_complete(
     optimization_id: str,
     console: Optional["rich.Console"] = None,
     frequency: Union[int, float] = 5,
-) -> Optional[CoordinatorGETResponse]:
+) -> BespokeExecutorOutput:
     """Wait for a specified optimization to complete and return the results.
 
     Args:
@@ -285,15 +390,8 @@ def wait_until_complete(
 
     optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
 
-    initial_response, error = _query_coordinator(optimization_href)
-
-    if initial_response is not None:
-        stage_types = [stage.type for stage in initial_response.stages]
-
-    else:
-
-        console.log(f"[[red]ERROR[/red]] {str(error)}")
-        return None
+    initial_response = _query_coordinator(optimization_href)
+    stage_types = [stage.type for stage in initial_response.stages]
 
     stage_messages = {
         "fragmentation": "fragmenting the molecule",
@@ -301,20 +399,13 @@ def wait_until_complete(
         "optimization": "optimizing the parameters",
     }
 
-    for stage_type in stage_types:
+    for stage_type in stage_messages:
+
+        if stage_type not in stage_types:
+            continue
 
         with console.status(stage_messages[stage_type]):
-
-            stage, stage_error = _wait_for_stage(
-                optimization_href, stage_type, frequency
-            )
-
-        if stage_error is not None:
-            console.log(f"[[red]ERROR[/red]] {str(stage_error)}")
-            return None
-
-        if stage is None:
-            return None
+            stage = _wait_for_stage(optimization_href, stage_type, frequency)
 
         if stage.status == "errored":
 
@@ -325,10 +416,5 @@ def wait_until_complete(
 
         console.print(f"[[green]✓[/green]] {stage_type} successful")
 
-    final_response, error = _query_coordinator(optimization_href)
-
-    if error is not None:
-        console.log(f"[[red]ERROR[/red]] {str(error)}")
-        return None
-
-    return final_response
+    final_response = _query_coordinator(optimization_href)
+    return BespokeExecutorOutput.from_response(final_response)

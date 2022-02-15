@@ -1,7 +1,13 @@
 import click
+import pytest
 import rich
+from click.exceptions import Exit
 
-from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.cli.utilities import (
+    create_command,
+    exit_with_messages,
+    print_header,
+)
 
 
 def test_print_header():
@@ -33,3 +39,19 @@ def test_create_command(runner):
 
     # Options should be appear in the specified order
     assert help_output.output.index("option-2") < help_output.output.index("option-1")
+
+
+def test_exit_with_messages():
+
+    console = rich.get_console()
+
+    with console.capture() as capture:
+        with pytest.raises(Exit) as raises:
+            exit_with_messages(
+                "general message 1", "general message 2", console=console, exit_code=2
+            )
+
+    assert raises.value.exit_code == 2
+
+    assert "general message 1" in capture.get()
+    assert "general message 2" in capture.get()

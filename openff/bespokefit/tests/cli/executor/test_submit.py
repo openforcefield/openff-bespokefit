@@ -1,6 +1,7 @@
 import json
 import os.path
 
+import click.exceptions
 import numpy
 import pytest
 import requests_mock
@@ -20,31 +21,47 @@ from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
 )
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.tests import does_not_raise
 
 
 @pytest.mark.parametrize(
-    "spec_name, spec_file_name, expected_message, output_is_none",
+    "spec_name, spec_file_name, expected_message, expected_raises, output_is_none",
     [
-        (None, None, "The `spec` and `spec-file` arguments", True),
-        ("a", "b", "The `spec` and `spec-file` arguments", True),
-        ("debug", None, "", False),
+        (
+            None,
+            None,
+            "The `spec` and `spec-file` arguments",
+            pytest.raises(click.exceptions.Exit),
+            True,
+        ),
+        (
+            "a",
+            "b",
+            "The `spec` and `spec-file` arguments",
+            pytest.raises(click.exceptions.Exit),
+            True,
+        ),
+        ("debug", None, "", does_not_raise(), False),
     ],
 )
 def test_to_input_schema_mutual_exclusive_args(
-    spec_name, spec_file_name, expected_message, output_is_none
+    spec_name, spec_file_name, expected_message, expected_raises, output_is_none
 ):
 
     console = rich.get_console()
 
-    with console.capture() as capture:
+    input_schema = None
 
-        input_schema = _to_input_schema(
-            console,
-            Molecule.from_smiles("CC"),
-            force_field_path="openff-2.0.0.offxml",
-            spec_name=spec_name,
-            spec_file_name=spec_file_name,
-        )
+    with console.capture() as capture:
+        with expected_raises:
+
+            input_schema = _to_input_schema(
+                console,
+                Molecule.from_smiles("CC"),
+                force_field_path="openff-2.0.0.offxml",
+                spec_name=spec_name,
+                spec_file_name=spec_file_name,
+            )
 
     if len(expected_message) > 0:
         assert expected_message in capture.get()
@@ -76,16 +93,15 @@ def test_to_input_schema_file_not_found(tmpdir):
     console = rich.get_console()
 
     with console.capture() as capture:
+        with pytest.raises(click.exceptions.Exit):
+            _to_input_schema(
+                console,
+                Molecule.from_smiles("CC"),
+                force_field_path="openff-1.2.1.offxml",
+                spec_name="fake-spec-name-123",
+                spec_file_name=None,
+            )
 
-        input_schema = _to_input_schema(
-            console,
-            Molecule.from_smiles("CC"),
-            force_field_path="openff-1.2.1.offxml",
-            spec_name="fake-spec-name-123",
-            spec_file_name=None,
-        )
-
-    assert input_schema is None
     assert (
         "The specified schema could not be found: fake-spec-name-123" in capture.get()
     )
@@ -101,16 +117,16 @@ def test_to_input_schema_invalid_schema(tmpdir):
         json.dump({"invalid-filed": 1}, file)
 
     with console.capture() as capture:
+        with pytest.raises(click.exceptions.Exit):
 
-        input_schema = _to_input_schema(
-            console,
-            Molecule.from_smiles("CC"),
-            force_field_path="openff-1.2.1.offxml",
-            spec_name=None,
-            spec_file_name=invalid_spec_path,
-        )
+            _to_input_schema(
+                console,
+                Molecule.from_smiles("CC"),
+                force_field_path="openff-1.2.1.offxml",
+                spec_name=None,
+                spec_file_name=invalid_spec_path,
+            )
 
-    assert input_schema is None
     assert "The factory schema could not be parsed" in capture.get()
 
 
@@ -126,17 +142,16 @@ def test_submit_multi_molecule(tmpdir):
     )
 
     with console.capture() as capture:
+        with pytest.raises(click.exceptions.Exit):
+            _submit(
+                console,
+                input_file_path=input_file_path,
+                molecule_smiles=None,
+                force_field_path="openff-2.0.0.offxml",
+                spec_name="debug",
+                spec_file_name=None,
+            )
 
-        response = _submit(
-            console,
-            input_file_path=input_file_path,
-            molecule_smiles=None,
-            force_field_path="openff-2.0.0.offxml",
-            spec_name="debug",
-            spec_file_name=None,
-        )
-
-    assert response is None
     assert "only one molecule can currently" in capture.get()
 
 
@@ -146,16 +161,15 @@ def test_submit_invalid_schema(tmpdir):
     input_file_path = os.path.join(tmpdir, "mol.sdf")
     Molecule.from_smiles("C").to_file(input_file_path, "SDF")
 
-    response = _submit(
-        rich.get_console(),
-        input_file_path=input_file_path,
-        molecule_smiles=None,
-        force_field_path="openff-2.0.0.offxml",
-        spec_name=None,
-        spec_file_name=None,
-    )
-
-    assert response is None
+    with pytest.raises(click.exceptions.Exit):
+        _submit(
+            rich.get_console(),
+            input_file_path=input_file_path,
+            molecule_smiles=None,
+            force_field_path="openff-2.0.0.offxml",
+            spec_name=None,
+            spec_file_name=None,
+        )
 
 
 @pytest.mark.parametrize(
@@ -185,7 +199,7 @@ def test_submit(tmpdir, file, smiles):
         )
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
-        response = _submit(
+        response_id = _submit(
             rich.get_console(),
             input_file_path=file,
             molecule_smiles=smiles,
@@ -193,9 +207,7 @@ def test_submit(tmpdir, file, smiles):
             spec_name="debug",
             spec_file_name=None,
         )
-
-    assert isinstance(response, CoordinatorPOSTResponse)
-    assert response.id == "1"
+        response_id == "1"
 
 
 def test_submit_cli(runner, tmpdir):
@@ -237,14 +249,15 @@ def test_submit_cli_mutual_exclusive_args(file, smiles):
     console = rich.get_console()
 
     with console.capture() as capture:
-        result = _submit_cli(
-            input_file_path=file,
-            molecule_smiles=smiles,
-            spec_name="default",
-            spec_file_name=None,
-            force_field_path=None,
-        )
-        assert result is None
+        with pytest.raises(click.exceptions.Exit):
+
+            _submit_cli(
+                input_file_path=file,
+                molecule_smiles=smiles,
+                spec_name="default",
+                spec_file_name=None,
+                force_field_path=None,
+            )
 
     assert (
         "[ERROR] The `file` and `smiles` arguments are mutually exclusive."

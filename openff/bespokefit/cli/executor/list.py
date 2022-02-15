@@ -1,10 +1,12 @@
 import click
+import click.exceptions
 import requests
 import rich
 from rich import pretty
 from rich.padding import Padding
 
 from openff.bespokefit.cli.utilities import print_header
+from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 @click.command("list")
@@ -28,17 +30,13 @@ def list_cli():
         f"{settings.BEFLOW_COORDINATOR_PREFIX}"
     )
 
-    try:
+    with handle_common_errors(console) as error_state:
 
         request = requests.get(href)
         request.raise_for_status()
 
-    except requests.ConnectionError:
-        console.print(
-            "A connection could not be made to the bespoke executor. Please make sure "
-            "there is a bespoke executor running."
-        )
-        return
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)
 
     response = CoordinatorGETPageResponse.parse_raw(request.content)
     response_ids = [item.id for item in response.contents]
