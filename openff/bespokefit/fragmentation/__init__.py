@@ -1,3 +1,5 @@
+"""Support for molecular fragmentation"""
+
 from openff.bespokefit.fragmentation.base import (
     FragmentationEngine,
     deregister_fragmentation_engine,

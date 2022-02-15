@@ -1,3 +1,5 @@
+"""Exceptions for BespokeFit"""
+
 import traceback
 
 
