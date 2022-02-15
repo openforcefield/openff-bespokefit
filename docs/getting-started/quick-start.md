@@ -39,17 +39,21 @@ The `run` command is the quickest route to using BespokeFit if you are wanting t
 a single molecule, and will accept either a SMILES pattern
 
 ```shell
-openff-bespoke executor run --smiles "CC(=O)NC1=CC=C(C=C1)O" \
-                            --force-field "openff-2.0.0.offxml" \
-                            --spec default
+openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
+                            --force-field        "openff-2.0.0.offxml"   \
+                            --spec               "default"               \
+                            --output             "acetaminophen.json"    \
+                            --output-force-field "acetaminophen.offxml"
 ```
 
 or the path to an SDF file
 
 ```shell
-openff-bespoke executor run --file "acetaminophen.sdf" \
-                            --force-field "openff-2.0.0.offxml" \
-                            --spec default
+openff-bespoke executor run --file               "acetaminophen.sdf"   \
+                            --force-field        "openff-2.0.0.offxml" \
+                            --spec               "default"             \
+                            --output             "acetaminophen.json"  \
+                            --output-force-field "acetaminophen.offxml"
 ```
 
 Here we have specified that we wish to start the fit from the general OpenFF 2.0.0 (Sage) force field, augmenting
@@ -64,9 +68,9 @@ By default, BespokeFit will use only a single process for each step in the fitti
 however extra processes can easily be requested to speed up the process:
 
 ```shell
-openff-bespoke executor run --file "acetaminophen.sdf" \
-                            --force-field "openff-2.0.0.offxml" \
-                            --spec default \
+openff-bespoke executor run --file                 "acetaminophen.sdf"   \
+                            --force-field          "openff-2.0.0.offxml" \
+                            --spec                 "default"             \ 
                             --n-qc-compute-workers 8
 ```
 
@@ -84,7 +88,7 @@ seamlessly coordinates every step of the fitting workflow from molecule fragment
 ```shell
 openff-bespoke executor launch --n-fragmenter-workers 1 \
                                --n-qc-compute-workers 8 \ 
-                               --n-optimizer-workers 1
+                               --n-optimizer-workers  1
 ```
 
 The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general we recommend devoting most
@@ -95,17 +99,17 @@ Once the executor has been launched, we can submit molecules to have bespoke par
 the `submit` command either in the form of a SMILES pattern:
 
 ```shell
-openff-bespoke executor submit --smiles "CC(=O)NC1=CC=C(C=C1)O" \
-                               --force-field "openff-2.0.0.offxml" \
-                               --spec default
+openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
+                               --force-field "openff-2.0.0.offxml"   \
+                               --spec        "default"
 ```
 
 or loading the molecule from an SDF (or similar) file:
 
 ```shell
-openff-bespoke executor submit --file "acetaminophen.sdf" \
+openff-bespoke executor submit --file        "acetaminophen.sdf"   \
                                --force-field "openff-2.0.0.offxml" \
-                               --spec default
+                               --spec        "default"
 ```
 
 The `submit` command will print a unique ID that has been assigned by the executor to the submission. This ID can be 
@@ -118,7 +122,9 @@ openff-bespoke executor watch --id "1"
 and once finished, the final force field can be retrieved using the `retrieve` command:
 
 ```shell
-openff-bespoke executor retrieve --id "1" --output "output.json" --force-field "acetaminophen-ff.offxml"
+openff-bespoke executor retrieve --id          "1"                   \
+                                 --output      "acetaminophen.json"  \
+                                 --force-field "acetaminophen.offxml"
 ```
 
 See the [results chapter](bespoke_results_chapter) for more details on retrieving the results of a bespoke fit.
@@ -196,9 +202,9 @@ Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
         n_optimizer_workers = 1,
     ) as executor:
         # Submit our workflow to the executor
-        task = executor.submit(input_schema=workflow_schema)
+        task_id = executor.submit(input_schema=workflow_schema)
         # Wait until the executor is done
-        output = wait_until_complete(task.id)
+        output = wait_until_complete(task_id)
     
     # Print out the resulting force field in OFFXML format
     if output.status == "success":
