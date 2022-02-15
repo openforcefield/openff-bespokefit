@@ -118,8 +118,10 @@ openff-bespoke executor watch --id "1"
 and once finished, the final force field can be retrieved using the `retrieve` command:
 
 ```shell
-openff-bespoke executor retrieve --id "1" --output "acetaminophen-results"
+openff-bespoke executor retrieve --id "1" --output "output.json" --force-field "acetaminophen-ff.offxml"
 ```
+
+See the [results chapter](bespoke_results_chapter) for more details on retrieving the results of a bespoke fit.
 
 (quick_start_using_api)=
 ## Using the API
@@ -196,10 +198,14 @@ Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
         # Submit our workflow to the executor
         task = executor.submit(input_schema=workflow_schema)
         # Wait until the executor is done
-        results = wait_until_complete(task.id).results
+        output = wait_until_complete(task.id)
     
     # Print out the resulting force field in OFFXML format
-    print(results.stages[-1].refit_force_field)
+    if output.status == "success":
+        print(output.bespoke_force_field)
+    # OR the error message if unsuccessful
+    elif output.status == "errored":
+        print(output.error)
 ```
 
 The `BespokeExecutor` not only takes care of calling out to any external programs in your workflow such as when 

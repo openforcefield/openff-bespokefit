@@ -76,7 +76,15 @@ class BespokeExecutorOutput(BaseModel):
     @property
     def bespoke_force_field(self) -> Optional[ForceField]:
         """The final bespoke force field if the bespoke fitting workflow is complete."""
-        return None if self.results is None else self.results.refit_force_field
+        return (
+            None
+            if self.results is None
+            else (
+                ForceField(
+                    self.results.refit_force_field, allow_cosmetic_attributes=True
+                )
+            )
+        )
 
     @property
     def status(self) -> Status:
@@ -119,9 +127,10 @@ class BespokeExecutorOutput(BaseModel):
         if self.status != "errored":
             return None
 
-        return next(
+        message = next(
             iter(stage.error for stage in self.stages if stage.status == "errored")
         )
+        return "unknown error" if message is None else message
 
     @classmethod
     def from_response(cls: Type[_T], response: CoordinatorGETResponse) -> _T:

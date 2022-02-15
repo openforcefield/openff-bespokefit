@@ -46,13 +46,13 @@ getting-started/bespoke-cli
 :::{toctree}
 ---
 maxdepth: 2
-caption: "User Guide"
+caption: "Bespoke User Guide"
 glob: True
 ---
 
 users/bespoke-workflows
 users/bespoke-executor
-users/results
+users/bespoke-results
 
 :::
 
