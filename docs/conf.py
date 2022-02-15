@@ -19,7 +19,6 @@ import sys
 sys.path.insert(0, os.path.abspath(".."))
 
 
-
 # -- Project information -----------------------------------------------------
 
 project = "BespokeFit"
@@ -52,12 +51,93 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.extlinks",
+    "myst_parser",
+    "sphinxcontrib.autodoc_pydantic",
+    "doctest_oxide",
+    "sphinx_click",
 ]
 
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "openff.toolkit": (
+        "https://open-forcefield-toolkit.readthedocs.io/en/stable/",
+        None,
+    ),
+    "openff.fragmenter": ("https://fragmenter.readthedocs.io/en/stable/", None),
+    "openff.qcsubmit": ("https://openff-qcsubmit.readthedocs.io/en/stable/", None),
+    "mdtraj": ("https://www.mdtraj.org/1.9.5/", None),
+}
+
 autosummary_generate = True
-napoleon_google_docstring = False
+autosummary_imported_members = False
+autosummary_ignore_module_all = False
+autosummary_context = {
+    # Modules to exclude from API docs
+    "exclude_modules": [
+        "openff.bespokefit.cli",
+        "openff.bespokefit.tests",
+    ]
+}
+autodoc_default_options = {
+    "member-order": "bysource",
+    "undoc-members": True,
+    "members": True,
+    "inherited-members": False,
+    "show-inheritance": True,
+}
+autodoc_preserve_defaults = True
+autodoc_inherit_docstrings = False
+autodoc_typehints_format = "short"
+
+autodoc_pydantic_model_member_order = "groupwise"
+autodoc_pydantic_model_signature_prefix = "model"
+autodoc_pydantic_model_show_validator_members = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_config_member = False
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_settings_signature_prefix = "settings"
+autodoc_pydantic_settings_show_validator_members = False
+autodoc_pydantic_settings_show_validator_summary = False
+autodoc_pydantic_settings_show_config_summary = False
+autodoc_pydantic_settings_show_config_member = False
+autodoc_pydantic_field_doc_policy = "both"
+autodoc_pydantic_field_list_validators = False
+
+napoleon_google_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
+
+myst_enable_extensions = [
+    "deflist",
+    "smartquotes",
+    "replacements",
+    "dollarmath",
+    "colon_fence",
+]
+
+# sphinx-notfound-page
+# https://github.com/readthedocs/sphinx-notfound-page
+# Renders a 404 page with absolute links
+import importlib
+
+if importlib.util.find_spec("notfound"):
+    extensions.append("notfound.extension")
+
+    notfound_context = {
+        "title": "404: File Not Found",
+        "body": """
+    <h1>404: File Not Found</h1>
+    <p>
+        Sorry, we couldn't find that page. This often happens as a result of
+        following an outdated link. Please check the latest stable version
+        of the docs, unless you're sure you want an earlier version, and
+        try using the search box or the navigation menu on the left.
+    </p>
+    <p>
+    </p>
+    """,
+    }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -81,7 +161,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
@@ -92,13 +172,40 @@ pygments_style = "default"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+extensions.append("openff_sphinx_theme")
+html_theme = "openff_sphinx_theme"
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
+LOCALTOC_ON_LEFT = ["globaltoc.html", "searchbox.html"]
+LOCALTOC_ON_RIGHT = ["globaltoc.html", "localtoc.html", "searchbox.html"]
+html_sidebars = {
+    "*": LOCALTOC_ON_LEFT,
+    "getting-started/**": LOCALTOC_ON_LEFT,
+    "users/**": LOCALTOC_ON_LEFT,
+    "ref/**": LOCALTOC_ON_RIGHT,
+    "developers/**": LOCALTOC_ON_LEFT,
+}
+
+# Theme options are theme-specific and customize the look and feel of a
+# theme further.
+html_theme_options = {
+    # Repository integration
+    # Set the repo url for the link to appear
+    "repo_url": "https://github.com/openforcefield/openff-bespokefit",
+    # The name of the repo. If must be set if repo_url is set
+    "repo_name": "openff-bespokefit",
+    # Must be one of github, gitlab or bitbucket
+    "repo_type": "github",
+    # Colour for sidebar captions and other accents. One of
+    # openff-blue, openff-toolkit-blue, openff-dataset-yellow,
+    # openff-evaluator-orange, aquamarine, lilac, amaranth, grape,
+    # violet, pink, pale-green, green, crimson, eggplant, turquoise,
+    # or a tuple of three ints in the range [0, 255] corresponding to
+    # a position in RGB space.
+    "color_accent": "openff-evaluator-orange",
+    "html_minify": False,
+    "html_prettify": False,
+    "css_minify": False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

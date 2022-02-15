@@ -1,6 +1,5 @@
 """
-BespokeFit
-Creating bespoke parameters for individual molecules.
+BespokeFit: Creating bespoke parameters for individual molecules.
 """
 import logging
 import sys
