@@ -5,8 +5,8 @@ The current status of a bespoke fit can be retrieved from a bespoke executor in 
 from the command line interface
 
 ```shell
-openff-bespoke executor retrieve --id "1" \
-                                 --output "output.json" \
+openff-bespoke executor retrieve --id          "1"                \
+                                 --output      "output.json"      \
                                  --force-field "bespoke-ff.offxml"
 ```
 

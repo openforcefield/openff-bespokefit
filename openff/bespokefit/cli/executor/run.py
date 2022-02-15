@@ -16,6 +16,7 @@ def _run_cli(
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     output_file_path: str,
+    output_force_field_path: Optional[str],
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
@@ -80,20 +81,43 @@ def _run_cli(
             with open(output_file_path, "w") as file:
                 file.write(results.json())
 
+            if output_force_field_path and results.bespoke_force_field is not None:
+
+                console.print(
+                    Padding(
+                        f"the bespoke force field has been saved to "
+                        f"[repr.filename]{output_force_field_path}[/repr.filename]",
+                        (1, 0, 1, 0),
+                    )
+                )
+
+                results.bespoke_force_field.to_file(force_field_path)
+
         if error_state["has_errored"]:
             raise click.exceptions.Exit(code=2)
 
 
 __run_options = [*submit_options()]
 __run_options.insert(
-    1,
+    3,
     click.option(
         "--output",
         "output_file_path",
         type=click.Path(exists=False, file_okay=True, dir_okay=False),
-        help="The JSON file to save the results to",
+        help="The path [.json] to save the full results to",
         default="output.json",
         show_default=True,
+    ),
+)
+__run_options.insert(
+    4,
+    click.option(
+        "--output-force-field",
+        "output_force_field_path",
+        type=click.Path(exists=False, file_okay=True, dir_okay=False),
+        help="The (optional) path [.offxml] to save the bespoke force field to if the "
+        "fit succeeded",
+        required=False,
     ),
 )
 __run_options.extend(launch_options())
