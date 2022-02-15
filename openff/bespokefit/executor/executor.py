@@ -64,6 +64,12 @@ class BespokeExecutorOutput(BaseModel):
     """A model that stores the current output of running bespoke fitting workflow
     including any partial or final results."""
 
+    smiles: str = Field(
+        ...,
+        description="The SMILES representation of the molecule that the bespoke "
+        "parameters are being generated for.",
+    )
+
     stages: List[BespokeExecutorStageOutput] = Field(
         ..., description="The outputs from each stage in the bespoke fitting process."
     )
@@ -138,6 +144,7 @@ class BespokeExecutorOutput(BaseModel):
         coordinator service."""
 
         return cls(
+            smiles=response.smiles,
             stages=[
                 BespokeExecutorStageOutput(
                     type=stage.type, status=stage.status, error=stage.error

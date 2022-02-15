@@ -53,6 +53,7 @@ class TestBespokeExecutorOutput:
     @pytest.fixture
     def mock_output(self, bespoke_optimization_results):
         return BespokeExecutorOutput(
+            smiles="CC",
             stages=[
                 BespokeExecutorStageOutput(
                     type="fragmentation", status="success", error=None
@@ -65,6 +66,7 @@ class TestBespokeExecutorOutput:
 
         assert isinstance(
             BespokeExecutorOutput(
+                smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
                         type="fragmentation", status="success", error=None
@@ -76,6 +78,7 @@ class TestBespokeExecutorOutput:
         )
         assert (
             BespokeExecutorOutput(
+                smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
                         type="fragmentation", status="success", error=None
@@ -143,13 +146,14 @@ class TestBespokeExecutorOutput:
     )
     def test_status(self, stages, expected_status):
 
-        output = BespokeExecutorOutput(stages=stages)
+        output = BespokeExecutorOutput(smiles="CC", stages=stages)
         assert output.status == expected_status
 
     def test_error(self):
 
         assert (
             BespokeExecutorOutput(
+                smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
                         type="fragmentation", status="errored", error="general error"

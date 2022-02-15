@@ -2,7 +2,7 @@ import pytest
 import requests_mock
 import rich
 
-from openff.bespokefit.cli.executor.list import _get_smiles, list_cli
+from openff.bespokefit.cli.executor.list import _get_columns, list_cli
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETPageResponse,
@@ -11,7 +11,7 @@ from openff.bespokefit.executor.services.coordinator.models import (
 from openff.bespokefit.executor.services.models import Link
 
 
-def test_get_smiles():
+def test_get_columns():
 
     with requests_mock.Mocker() as m:
 
@@ -32,8 +32,9 @@ def test_get_smiles():
             text=mock_response.json(by_alias=True),
         )
 
-        smiles = _get_smiles(rich.get_console(), "1")
+        smiles, status = _get_columns(rich.get_console(), "1")
         assert smiles == "C=C"
+        assert status == "success"
 
 
 @pytest.mark.parametrize(
