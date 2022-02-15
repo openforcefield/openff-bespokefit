@@ -1,5 +1,5 @@
 (executor_chapter)=
-# BespokeExecutor
+# Bespoke executor
 
 BespokeFit not only provides tools and schemas for specifying workflows, but
 also an execution environment for running them. This environment is called
@@ -153,10 +153,10 @@ explicitly or implicitly.
 Molecules may also be submitted from a chemical structure file:
 
 ```sh
-openff-bespoke executor submit --input molecule.sdf
+openff-bespoke executor submit --file molecule.sdf
 ```
 
-The `--input` switch accepts most commonly used chemistry formats. OpenFF
+The `--file` switch accepts most commonly used chemistry formats. OpenFF
 recommends SDF or MOL as they include all the information needed to
 unambiguously construct a stereochemical molecular graph. For more information,
 see the [OpenFF Toolkit FAQ]. For other options and features, use the `--help`

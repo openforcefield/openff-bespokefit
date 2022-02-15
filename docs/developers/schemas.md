@@ -1,5 +1,5 @@
 (schemas_chapter)=
-# Schemas in BespokeFit
+# Schemas
 
 BespokeFit uses [Pydantic] to validate input provided by users. Pydantic helps
 BespokeFit provide clear error messages when it is configured improperly, and

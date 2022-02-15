@@ -1,5 +1,5 @@
 (cli_chapter)=
-# The BespokeFit Command Line Interface
+# Commands
 
 BespokeFit provides a command line interface to its major features called
 `openff-bespoke`. The CLI is organised into sub-commands, similar to Conda,

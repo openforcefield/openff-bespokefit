@@ -1,18 +1,24 @@
-(factory_chapter)=
-# The workflow factory
+(workflow_chapter)=
+# Fitting workflows
 
-The [`BespokeWorkflowFactory`] class describes a Bespoke workflow for
-creating parameters for any given molecule.
+The settings and steps by which a new bespoke force field is generated is referred to as a fitting workflow within 
+bespoke fit (represented by the [`BespokeOptimizationSchema`] object), and are usually created by feeding an OpenFF 
+[`Molecule`] object into a [`BespokeWorkflowFactory`].
 
+[`BespokeOptimizationSchema`]: openff.bespokefit.schema.fitting.BespokeOptimizationSchema
 [`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
+
+[`Molecule`]: openff.toolkit.topology.Molecule
 
 ## The default workflow
 
-The default workflow factory is suitable for adding bespoke torsion terms to a
-molecule for the [Parsley Open Force Field]. In this section, we'll build this
-workflow factory up from nothing, but this is just for a demonstration; you can
-always build this factory by simply instantiating the `BespokeWorkflowFactory`
-class without arguments.
+The default workflow is suitable for augmenting a general [SMIRNOFF] force field (currently the 
+[Parsley Open Force Field]) with a set of bespoke torsion terms trained to reproduce a QC torsion scan. 
+
+[SMIRNOFF]: https://openforcefield.github.io/standards/standards/smirnoff/
+
+In this section, we'll build this workflow factory up from nothing, but this is just for a demonstration; you can
+always build this factory by simply instantiating the `BespokeWorkflowFactory` class without arguments.
 
 The default workflow has three steps:
 
@@ -177,7 +183,7 @@ with colleagues. Exported factories can then be used either with the
 or with the CLI:
 
 ```shell
-openff-bespoke executor run --input molecule.sdf --spec-file my_bespoke_workflow.json
+openff-bespoke executor run --file molecule.sdf --spec-file my_bespoke_workflow.json
 ```
 
 [`to_file()`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.to_file
