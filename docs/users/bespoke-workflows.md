@@ -15,6 +15,8 @@ bespoke fit (represented by the [`BespokeOptimizationSchema`] object), and are u
 The default workflow is suitable for augmenting a general [SMIRNOFF] force field (currently the 
 [Parsley Open Force Field]) with a set of bespoke torsion terms trained to reproduce a QC torsion scan. 
 
+[SMIRNOFF]: https://openforcefield.github.io/standards/standards/smirnoff/
+
 In this section, we'll build this workflow factory up from nothing, but this is just for a demonstration; you can
 always build this factory by simply instantiating the `BespokeWorkflowFactory` class without arguments.
 

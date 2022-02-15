@@ -205,7 +205,7 @@ Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 The `BespokeExecutor` not only takes care of calling out to any external programs in your workflow such as when 
 generating reference QC data, it also manages spreading a queue of tasks over a pool of worker threads so that fitting 
 can be executed efficiently in parallel. The `BespokeExecutor` is described in more detail in 
-[it's own chapter](executor_chapter).
+[its own chapter](executor_chapter).
 
 [workflow factory]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
 [`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
