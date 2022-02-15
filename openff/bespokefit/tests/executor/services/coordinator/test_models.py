@@ -115,6 +115,7 @@ def test_get_status_from_stage(stage, expected):
             CoordinatorGETResponse(
                 id="mock-task-id",
                 self="",
+                smiles="CC",
                 stages=[],
                 results=results,
             ),

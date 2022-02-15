@@ -1,12 +1,35 @@
+from typing import TYPE_CHECKING, Tuple
+
 import click
 import click.exceptions
 import requests
 import rich
 from rich import pretty
-from rich.padding import Padding
+from rich.table import Table
 
 from openff.bespokefit.cli.utilities import print_header
-from openff.bespokefit.executor.utilities import handle_common_errors
+
+if TYPE_CHECKING:
+    from openff.bespokefit.executor.utilities.typing import Status
+
+
+def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "Status"]:
+
+    from openff.toolkit.topology import Molecule
+
+    from openff.bespokefit.executor import BespokeExecutor
+    from openff.bespokefit.executor.utilities import handle_common_errors
+
+    with handle_common_errors(console) as error_state:
+        output = BespokeExecutor.retrieve(optimization_id)
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)
+
+    smiles = Molecule.from_smiles(output.smiles).to_smiles(
+        isomeric=True, explicit_hydrogens=False, mapped=False
+    )
+
+    return smiles, output.status
 
 
 @click.command("list")
@@ -22,8 +45,9 @@ def list_cli():
     from openff.bespokefit.executor.services.coordinator.models import (
         CoordinatorGETPageResponse,
     )
+    from openff.bespokefit.executor.utilities import handle_common_errors
 
-    href = (
+    base_href = (
         f"http://127.0.0.1:"
         f"{settings.BEFLOW_GATEWAY_PORT}"
         f"{settings.BEFLOW_API_V1_STR}/"
@@ -32,18 +56,36 @@ def list_cli():
 
     with handle_common_errors(console) as error_state:
 
-        request = requests.get(href)
+        request = requests.get(base_href)
         request.raise_for_status()
 
     if error_state["has_errored"]:
         raise click.exceptions.Exit(code=2)
 
     response = CoordinatorGETPageResponse.parse_raw(request.content)
-    response_ids = [item.id for item in response.contents]
 
-    if len(response_ids) == 0:
+    if len(response.contents) == 0:
         console.print("No optimizations were found.")
         return
 
-    console.print(Padding("The following optimizations were found:", (0, 0, 1, 0)))
-    console.print("\n".join(response_ids))
+    table = Table()
+
+    table.add_column("ID", justify="center", no_wrap=True)
+    table.add_column("SMILES", overflow="fold")
+    table.add_column("STATUS", no_wrap=True)
+
+    for item in response.contents:
+
+        smiles, status = _get_columns(console, item.id)
+
+        status_string = {
+            "waiting": "[grey]waiting[/grey]",
+            "running": "[yellow]running[/yellow]",
+            "success": "[green]success[/green]",
+            "errored": "[red]errored[/red]",
+        }[status]
+
+        table.add_row(item.id, smiles, status_string)
+
+    console.print("The following optimizations were found:")
+    console.print(table)

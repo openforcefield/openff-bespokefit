@@ -40,6 +40,7 @@ def test_run(runner, tmpdir):
             text=CoordinatorGETResponse(
                 id="1",
                 self="",
+                smiles="CC",
                 stages=[
                     CoordinatorGETStageStatus(
                         type="fragmentation", status="success", error=None, results=None
