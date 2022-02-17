@@ -1,24 +1,25 @@
 (cli_chapter)=
 # Commands
 
-BespokeFit provides a command line interface to its major features called
-`openff-bespoke`. The CLI is organised into sub-commands, similar to Conda,
-GROMACS, git and apt. This CLI is self-documenting via the `--help` switch,
-which is available on any subcommand:
+BespokeFit provides a full command line interface to its major features under
+the alias `openff-bespoke`. The CLI is organised into sub-commands similar to 
+`conda`, GROMACS, `git` and `apt`. This CLI is self-documenting via the `--help` 
+switch which is available on any subcommand:
 
 ```sh
 openff-bespoke --help
 openff-bespoke executor launch --help
 ```
 
-This help is also available on the [CLI reference] page.
+See the [quick start](quick_start_chapter) guide for examples of using the CLI.
 
-The BespokeFit CLI can submit jobs to and control [`BespokeExecutor`], and 
-can also produce input files for manually running optimizations, but does
-not support designing new workflow factories; for that, see [](factory_chapter) 
-and the API reference page for [`BespokeWorkflowFactory`].
-
-
-[CLI reference]: cli_ref
-[`BespokeExecutor`]: executor_chapter
-[`BespokeWorkflowFactory`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory
+(cli_ref)=
+<!--
+The click directive renders to rST,
+so we must use eval-rst here
+-->
+:::{eval-rst}
+.. click:: openff.bespokefit.cli:cli
+    :prog: openff-bespoke
+    :nested: full
+:::
