@@ -42,7 +42,7 @@ dependencies:
 
     # Executor
   - uvicorn
-  - fastapi <0.68
+  - fastapi
   - celery
   - httpx
   - redis-server
@@ -56,7 +56,7 @@ dependencies:
     ### Documentation dependencies
 
   - sphinx
-  - sphinx-click 
+  - sphinx-click
   - myst-parser
   - autodoc-pydantic
 

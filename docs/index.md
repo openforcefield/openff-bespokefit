@@ -34,6 +34,7 @@ or irritating behaviour, please [file an issue!]
 maxdepth: 2
 caption: "Getting Started"
 glob: True
+hidden: True
 ---
 
 getting-started/installation
@@ -48,6 +49,7 @@ getting-started/bespoke-cli
 maxdepth: 2
 caption: "Bespoke User Guide"
 glob: True
+hidden: True
 ---
 
 users/bespoke-workflows
@@ -55,12 +57,6 @@ users/bespoke-executor
 users/bespoke-results
 
 :::
-
-(api_ref)=
-<!-- This matches the styling of a toctree caption as of Sphinx 4.2.0 -->
-<div class="toctree-wrapper"><p class="caption" role="heading"><span class="caption-text">
-Python API Reference
-</span></p></div>
 
 <!--
 The autosummary directive renders to rST,
@@ -79,19 +75,9 @@ so we must use eval-rst here
 :::{toctree}
 ---
 maxdepth: 2
-caption: "Command Line Reference"
-glob: True
----
-
-ref/cli
-
-:::
-
-:::{toctree}
----
-maxdepth: 2
 caption: "Developer Guide"
 glob: True
+hidden: True
 ---
 
 developers/schemas

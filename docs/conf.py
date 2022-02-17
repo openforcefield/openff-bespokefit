@@ -175,14 +175,8 @@ pygments_style = "default"
 extensions.append("openff_sphinx_theme")
 html_theme = "openff_sphinx_theme"
 
-LOCALTOC_ON_LEFT = ["globaltoc.html", "searchbox.html"]
-LOCALTOC_ON_RIGHT = ["globaltoc.html", "localtoc.html", "searchbox.html"]
 html_sidebars = {
-    "*": LOCALTOC_ON_LEFT,
-    "getting-started/**": LOCALTOC_ON_LEFT,
-    "users/**": LOCALTOC_ON_LEFT,
-    "ref/**": LOCALTOC_ON_RIGHT,
-    "developers/**": LOCALTOC_ON_LEFT,
+    "**": ["globaltoc.html", "localtoc.html", "searchbox.html"],
 }
 
 # Theme options are theme-specific and customize the look and feel of a
