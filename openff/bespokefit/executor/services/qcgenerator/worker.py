@@ -43,7 +43,7 @@ def _task_config() -> Dict[str, Any]:
         get_global("ncores") if not worker_settings.n_cores else worker_settings.n_cores
     )
     max_memory = (
-        (psutil.virtual_memory().total / (1024 ** 3))
+        (psutil.virtual_memory().total / (1024**3))
         if not worker_settings.max_memory
         else (
             worker_settings.max_memory
