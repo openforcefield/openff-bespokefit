@@ -7,6 +7,7 @@ from click_option_group import optgroup
 from rich import pretty
 
 from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.executor import BespokeWorkerConfig
 
 
 # The run command inherits these options so be sure to take that into account when
@@ -32,7 +33,6 @@ def launch_options(
         optgroup.group("Worker configuration"),
         optgroup.option(
             "--n-fragmenter-workers",
-            "n_fragmenter_workers",
             type=click.INT,
             help="The number of fragmentation workers to spawn",
             required=n_fragmenter_workers is None,
@@ -41,7 +41,6 @@ def launch_options(
         ),
         optgroup.option(
             "--n-qc-compute-workers",
-            "n_qc_compute_workers",
             type=click.INT,
             help="The number of QC compute workers to spawn",
             required=n_qc_compute_workers is None,
@@ -49,8 +48,24 @@ def launch_options(
             show_default=n_qc_compute_workers is not None,
         ),
         optgroup.option(
+            "--qc-compute-n-cores",
+            type=click.INT,
+            help="The maximum number of cores ( / CPUs) to reserve *per* QC compute "
+            "worker. The actual number of cores utilised will depend on the type of QC "
+            "calculation being performed. If no value is specified, all CPUs will be "
+            "made available to each worker.",
+            required=False,
+        ),
+        optgroup.option(
+            "--qc-compute-max-mem",
+            type=click.FLOAT,
+            help="The maximum memory in GB available to *each* core of *each* QC "
+            "worker. If no value is specified, the full machine memory will be made "
+            "available to each worker.",
+            required=False,
+        ),
+        optgroup.option(
             "--n-optimizer-workers",
-            "n_optimizer_workers",
             type=click.INT,
             help="The number of optimizer workers to spawn",
             required=n_optimizer_workers is None,
@@ -74,6 +89,8 @@ def _launch_cli(
     directory: str,
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
+    qc_compute_n_cores: Optional[int],
+    qc_compute_max_mem: Optional[float],
     n_optimizer_workers: int,
     launch_redis_if_unavailable: bool,
 ):
@@ -93,6 +110,10 @@ def _launch_cli(
         directory=directory,
         n_fragmenter_workers=n_fragmenter_workers,
         n_qc_compute_workers=n_qc_compute_workers,
+        qc_compute_worker_config=BespokeWorkerConfig(
+            n_cores="auto" if not qc_compute_n_cores else qc_compute_n_cores,
+            max_memory="auto" if not qc_compute_max_mem else qc_compute_max_mem,
+        ),
         n_optimizer_workers=n_optimizer_workers,
         launch_redis_if_unavailable=launch_redis_if_unavailable,
     ):

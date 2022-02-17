@@ -9,6 +9,7 @@ from rich.padding import Padding
 from openff.bespokefit.cli.executor.launch import launch_options
 from openff.bespokefit.cli.executor.submit import _submit, submit_options
 from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.executor import BespokeWorkerConfig
 from openff.bespokefit.executor.utilities import handle_common_errors
 
 
@@ -23,6 +24,8 @@ def _run_cli(
     directory: str,
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
+    qc_compute_n_cores: Optional[int],
+    qc_compute_max_mem: Optional[float],
     n_optimizer_workers: int,
     launch_redis_if_unavailable: bool,
 ):
@@ -47,6 +50,10 @@ def _run_cli(
         directory=directory,
         n_fragmenter_workers=n_fragmenter_workers,
         n_qc_compute_workers=n_qc_compute_workers,
+        qc_compute_worker_config=BespokeWorkerConfig(
+            n_cores="auto" if not qc_compute_n_cores else qc_compute_n_cores,
+            max_memory="auto" if not qc_compute_max_mem else qc_compute_max_mem,
+        ),
         n_optimizer_workers=n_optimizer_workers,
         launch_redis_if_unavailable=launch_redis_if_unavailable,
     ):
@@ -91,7 +98,7 @@ def _run_cli(
                     )
                 )
 
-                results.bespoke_force_field.to_file(force_field_path)
+                results.bespoke_force_field.to_file(output_force_field_path)
 
         if error_state["has_errored"]:
             raise click.exceptions.Exit(code=2)

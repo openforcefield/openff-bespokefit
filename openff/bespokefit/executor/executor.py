@@ -15,8 +15,9 @@ from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import temporary_cd
 from pydantic import Field
 from rich.padding import Padding
+from typing_extensions import Literal
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import Settings, settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -45,6 +46,22 @@ def _base_endpoint():
 
 def _coordinator_endpoint():
     return f"{_base_endpoint()}{settings.BEFLOW_COORDINATOR_PREFIX}"
+
+
+class BespokeWorkerConfig(BaseModel):
+    """Configuration options for a bespoke executor worker."""
+
+    n_cores: Union[int, Literal["auto"]] = Field(
+        1,
+        description="The maximum number of cores to reserve for this worker to "
+        "parallelize tasks, such as QC chemical calculations, across.",
+    )
+    max_memory: Union[float, Literal["auto"]] = Field(
+        "auto",
+        description="A guideline for the total maximum memory in GB **per core** that "
+        "is available for this worker. This number may be ignored depending on the "
+        "task type.",
+    )
 
 
 class BespokeExecutorStageOutput(BaseModel):
@@ -163,8 +180,11 @@ class BespokeExecutor:
     def __init__(
         self,
         n_fragmenter_workers: int = 1,
+        fragmenter_worker_config: BespokeWorkerConfig = BespokeWorkerConfig(),
         n_qc_compute_workers: int = 1,
+        qc_compute_worker_config: BespokeWorkerConfig = BespokeWorkerConfig(),
         n_optimizer_workers: int = 1,
+        optimizer_worker_config: BespokeWorkerConfig = BespokeWorkerConfig(),
         directory: Optional[str] = "bespoke-executor",
         launch_redis_if_unavailable: bool = True,
     ):
@@ -186,8 +206,11 @@ class BespokeExecutor:
         """
 
         self._n_fragmenter_workers = n_fragmenter_workers
+        self._fragmenter_worker_config = fragmenter_worker_config
         self._n_qc_compute_workers = n_qc_compute_workers
+        self._qc_compute_worker_config = qc_compute_worker_config
         self._n_optimizer_workers = n_optimizer_workers
+        self._optimizer_worker_config = optimizer_worker_config
 
         self._directory = directory
 
@@ -242,25 +265,50 @@ class BespokeExecutor:
     def _launch_workers(self):
         """Launches any service workers if requested."""
 
-        for import_path, n_workers in {
-            (settings.BEFLOW_FRAGMENTER_WORKER, self._n_fragmenter_workers),
-            (settings.BEFLOW_QC_COMPUTE_WORKER, self._n_qc_compute_workers),
-            (settings.BEFLOW_OPTIMIZER_WORKER, self._n_optimizer_workers),
-        }:
+        with Settings(
+            BEFLOW_FRAGMENTER_WORKER_N_CORES=self._fragmenter_worker_config.n_cores,
+            BEFLOW_FRAGMENTER_WORKER_MAX_MEM=self._fragmenter_worker_config.max_memory,
+            BEFLOW_QC_COMPUTE_WORKER_N_CORES=self._qc_compute_worker_config.n_cores,
+            BEFLOW_QC_COMPUTE_WORKER_MAX_MEM=self._qc_compute_worker_config.max_memory,
+            BEFLOW_OPTIMIZER_WORKER_N_CORES=self._optimizer_worker_config.n_cores,
+            BEFLOW_OPTIMIZER_WORKER_MAX_MEM=self._optimizer_worker_config.max_memory,
+        ).apply_env():
 
-            if n_workers == 0:
-                continue
+            for worker_settings, n_workers, config in (
+                (
+                    settings.fragmenter_settings,
+                    self._n_fragmenter_workers,
+                    self._fragmenter_worker_config,
+                ),
+                (
+                    settings.qc_compute_settings,
+                    self._n_qc_compute_workers,
+                    self._qc_compute_worker_config,
+                ),
+                (
+                    settings.optimizer_settings,
+                    self._n_optimizer_workers,
+                    self._optimizer_worker_config,
+                ),
+            ):
 
-            worker_module = importlib.import_module(import_path)
-            worker_app = getattr(worker_module, "celery_app")
+                if n_workers == 0:
+                    continue
 
-            assert isinstance(worker_app, celery.Celery), "workers must be celery based"
+                worker_module = importlib.import_module(worker_settings.import_path)
+                importlib.reload(worker_module)  # Ensure settings are reloaded
 
-            self._worker_processes.append(
-                spawn_worker(worker_app, concurrency=n_workers)
-            )
+                worker_app = getattr(worker_module, "celery_app")
 
-    def start(self, asynchronous=False):
+                assert isinstance(
+                    worker_app, celery.Celery
+                ), "workers must be celery based"
+
+                self._worker_processes.append(
+                    spawn_worker(worker_app, concurrency=n_workers)
+                )
+
+    def _start(self, asynchronous=False):
         """Launch the executor, allowing it to receive and run bespoke optimizations.
 
         Args:
@@ -298,7 +346,7 @@ class BespokeExecutor:
 
             launch_gateway(self._directory)
 
-    def stop(self):
+    def _stop(self):
         """Stop the executor from running and clean ip any associated processes."""
 
         if not self._started:
@@ -342,11 +390,11 @@ class BespokeExecutor:
         )
 
     def __enter__(self):
-        self.start(asynchronous=True)
+        self._start(asynchronous=True)
         return self
 
     def __exit__(self, *args):
-        self.stop()
+        self._stop()
 
 
 def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:

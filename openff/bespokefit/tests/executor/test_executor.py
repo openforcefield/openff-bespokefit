@@ -192,11 +192,11 @@ class TestBespokeExecutor:
         launch_redis_if_unavailable = False
 
         executor = BespokeExecutor(
-            n_fragmenter_workers,
-            n_qc_compute_workers,
-            n_optimizer_workers,
-            directory,
-            launch_redis_if_unavailable,
+            n_fragmenter_workers=n_fragmenter_workers,
+            n_qc_compute_workers=n_qc_compute_workers,
+            n_optimizer_workers=n_optimizer_workers,
+            directory=directory,
+            launch_redis_if_unavailable=launch_redis_if_unavailable,
         )
 
         assert executor._n_fragmenter_workers == n_fragmenter_workers
@@ -252,7 +252,7 @@ class TestBespokeExecutor:
         executor._started = True
 
         with pytest.raises(RuntimeError, match="This executor is already running."):
-            executor.start()
+            executor._start()
 
     def test_start_stop(self, tmpdir):
 
@@ -263,7 +263,7 @@ class TestBespokeExecutor:
             directory=os.path.join(tmpdir, "mock-exe-dir"),
             launch_redis_if_unavailable=False,
         )
-        executor.start(asynchronous=True)
+        executor._start(asynchronous=True)
         assert executor._started is True
         assert executor._gateway_process.is_alive()
 
@@ -271,7 +271,7 @@ class TestBespokeExecutor:
 
         dir_found = os.path.isdir(os.path.join(tmpdir, "mock-exe-dir"))
 
-        executor.stop()
+        executor._stop()
         assert executor._started is False
 
         with pytest.raises(OSError):
@@ -284,7 +284,7 @@ class TestBespokeExecutor:
         executor = BespokeExecutor()
 
         with pytest.raises(RuntimeError, match="The executor is not running."):
-            executor.stop()
+            executor._stop()
 
     def test_submit(self, bespoke_optimization_schema):
 

@@ -1,5 +1,5 @@
-from openff.bespokefit.executor.services.settings import Settings
+from openff.bespokefit.executor.services._settings import Settings
 
 settings = Settings()
 
-__all__ = ["settings"]
+__all__ = ["settings", "Settings"]
