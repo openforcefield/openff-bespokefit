@@ -42,6 +42,21 @@ def submit_options():
             required=False,
         ),
         click.option(
+            "--spec",
+            "spec_name",
+            type=click.Choice(choices=["default", "debug"], case_sensitive=False),
+            help="The name of the built-in configuration to use",
+            required=False,
+        ),
+        click.option(
+            "--spec-file",
+            "spec_file_name",
+            type=click.Path(exists=False, file_okay=True, dir_okay=False),
+            help="The path to a serialized bespoke workflow factory",
+            required=False,
+        ),
+        optgroup.group("Specification overrides"),
+        optgroup.option(
             "--force-field",
             "force_field_path",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
@@ -49,21 +64,6 @@ def submit_options():
             "in the workflow spec if provided.",
             default=None,
             show_default=True,
-            required=False,
-        ),
-        optgroup.group("Optimization configuration"),
-        optgroup.option(
-            "--spec",
-            "spec_name",
-            type=click.Choice(choices=["default", "debug"], case_sensitive=False),
-            help="The name of the built-in configuration to use",
-            required=False,
-        ),
-        optgroup.option(
-            "--spec-file",
-            "spec_file_name",
-            type=click.Path(exists=False, file_okay=True, dir_okay=False),
-            help="The path to a serialized bespoke workflow factory",
             required=False,
         ),
     ]

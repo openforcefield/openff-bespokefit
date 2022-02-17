@@ -47,7 +47,6 @@ It will accept either a SMILES pattern
 
 ```shell
 openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
-                            --force-field        "openff-2.0.0.offxml"   \
                             --spec               "default"               \
                             --output             "acetaminophen.json"    \
                             --output-force-field "acetaminophen.offxml"  \
@@ -59,7 +58,6 @@ or the path to an SDF file
 
 ```shell
 openff-bespoke executor run --file               "acetaminophen.sdf"    \
-                            --force-field        "openff-2.0.0.offxml"  \
                             --spec               "default"              \
                             --output             "acetaminophen.json"   \
                             --output-force-field "acetaminophen.offxml" \
@@ -80,7 +78,6 @@ however extra processes can easily be requested to speed up the process:
 
 ```shell
 openff-bespoke executor run --file                 "acetaminophen.sdf"   \
-                            --force-field          "openff-2.0.0.offxml" \
                             --spec                 "default"             \ 
                             --n-qc-compute-workers 2                     \
                             --qc-compute-n-cores   8
@@ -114,7 +111,6 @@ the `submit` command either in the form of a SMILES pattern:
 
 ```shell
 openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
-                               --force-field "openff-2.0.0.offxml"   \
                                --spec        "default"
 ```
 
@@ -122,7 +118,6 @@ or loading the molecule from an SDF (or similar) file:
 
 ```shell
 openff-bespoke executor submit --file        "acetaminophen.sdf"   \
-                               --force-field "openff-2.0.0.offxml" \
                                --spec        "default"
 ```
 
@@ -143,8 +138,7 @@ Once finished, the final force field can be retrieved using the `retrieve` comma
 
 ```shell
 openff-bespoke executor retrieve --id          "1"                   \
-                                 --output      "acetaminophen.json"  \
-                                 --force-field "acetaminophen.offxml"
+                                 --output      "acetaminophen.json"
 ```
 
 See the [results chapter](bespoke_results_chapter) for more details on retrieving the results of a bespoke fit.
