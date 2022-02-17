@@ -36,24 +36,35 @@ Of particular interest are the `run`, `launch`, `submit`, `retrieve` and `watch`
 ### One-off fits
 
 The `run` command is the quickest route to using BespokeFit if you are wanting to perform a quick one-off fit for 
-a single molecule, and will accept either a SMILES pattern
+a single molecule.
+
+:::{warning}
+You should only have one `run` command running at once. If you want to compute bespoke parameters for multiple molecules
+at once see the [section on production fits](production_fits_section). 
+:::
+
+It will accept either a SMILES pattern
 
 ```shell
 openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
                             --force-field        "openff-2.0.0.offxml"   \
                             --spec               "default"               \
                             --output             "acetaminophen.json"    \
-                            --output-force-field "acetaminophen.offxml"
+                            --output-force-field "acetaminophen.offxml"  \
+                            --n-qc-compute-workers 2                     \
+                            --qc-compute-n-cores   8
 ```
 
 or the path to an SDF file
 
 ```shell
-openff-bespoke executor run --file               "acetaminophen.sdf"   \
-                            --force-field        "openff-2.0.0.offxml" \
-                            --spec               "default"             \
-                            --output             "acetaminophen.json"  \
-                            --output-force-field "acetaminophen.offxml"
+openff-bespoke executor run --file               "acetaminophen.sdf"    \
+                            --force-field        "openff-2.0.0.offxml"  \
+                            --spec               "default"              \
+                            --output             "acetaminophen.json"   \
+                            --output-force-field "acetaminophen.offxml" \
+                            --n-qc-compute-workers 2                    \
+                            --qc-compute-n-cores   8
 ```
 
 Here we have specified that we wish to start the fit from the general OpenFF 2.0.0 (Sage) force field, augmenting
@@ -71,11 +82,13 @@ however extra processes can easily be requested to speed up the process:
 openff-bespoke executor run --file                 "acetaminophen.sdf"   \
                             --force-field          "openff-2.0.0.offxml" \
                             --spec                 "default"             \ 
-                            --n-qc-compute-workers 8
+                            --n-qc-compute-workers 2                     \
+                            --qc-compute-n-cores   8
 ```
 
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising fits.
 
+(production_fits_section)=
 ### Production fits
 
 If you are intending to create bespoke parameters for multiple molecules such as a particular lead series, it is 
@@ -87,8 +100,9 @@ seamlessly coordinates every step of the fitting workflow from molecule fragment
 
 ```shell
 openff-bespoke executor launch --n-fragmenter-workers 1 \
-                               --n-qc-compute-workers 8 \ 
-                               --n-optimizer-workers  1
+                               --n-optimizer-workers  1 \
+                               --n-qc-compute-workers 2 \
+                               --qc-compute-n-cores   8
 ```
 
 The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general we recommend devoting most

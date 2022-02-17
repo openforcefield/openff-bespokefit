@@ -1,7 +1,11 @@
-from typing import List
+import logging
+from typing import Any, Dict, List
 
+import psutil
+import qcelemental
 import qcengine
 import redis
+from celery.utils.log import get_task_logger
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import DriverEnum
@@ -15,6 +19,7 @@ from qcelemental.models.procedures import (
     TorsionDriveResult,
 )
 from qcelemental.util import serialize
+from qcengine.config import get_global
 
 from openff.bespokefit.executor.services import settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
@@ -26,6 +31,28 @@ redis_connection = redis.Redis(
     db=settings.BEFLOW_REDIS_DB,
 )
 celery_app = configure_celery_app("qcgenerator", redis_connection)
+
+_task_logger: logging.Logger = get_task_logger(__name__)
+
+
+def _task_config() -> Dict[str, Any]:
+
+    worker_settings = settings.qc_compute_settings
+
+    n_cores = (
+        get_global("ncores") if not worker_settings.n_cores else worker_settings.n_cores
+    )
+    max_memory = (
+        (psutil.virtual_memory().total / (1024**3))
+        if not worker_settings.max_memory
+        else (
+            worker_settings.max_memory
+            * qcelemental.constants.conversion_factor("gigabyte", "gibibyte")
+            * n_cores
+        )
+    )
+
+    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3))
 
 
 def _select_atom(atoms: List[Atom]) -> int:
@@ -44,6 +71,8 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     """Runs a torsion drive using QCEngine."""
 
     task = Torsion1DTask.parse_raw(task_json)
+
+    _task_logger.info(f"running 1D scan with {_task_config()}")
 
     molecule: Molecule = Molecule.from_smiles(task.smiles)
     molecule.generate_conformers(n_conformers=task.n_conformers)
@@ -104,7 +133,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     )
 
     return_value = qcengine.compute_procedure(
-        input_schema, "torsiondrive", raise_error=True
+        input_schema, "torsiondrive", raise_error=True, local_options=_task_config()
     )
 
     if isinstance(return_value, TorsionDriveResult):
@@ -127,6 +156,8 @@ def compute_optimization(
     # or the first optimisation to work?
 
     task = OptimizationTask.parse_raw(task_json)
+
+    _task_logger.info(f"running opt with {_task_config()}")
 
     molecule: Molecule = Molecule.from_smiles(task.smiles)
     molecule.generate_conformers(n_conformers=task.n_conformers)
@@ -156,7 +187,10 @@ def compute_optimization(
     for input_schema in input_schemas:
 
         return_value = qcengine.compute_procedure(
-            input_schema, task.optimization_spec.program, raise_error=True
+            input_schema,
+            task.optimization_spec.program,
+            raise_error=True,
+            local_options=_task_config(),
         )
 
         if isinstance(return_value, OptimizationResult):

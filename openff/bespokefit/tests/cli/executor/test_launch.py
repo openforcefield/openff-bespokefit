@@ -32,7 +32,7 @@ def test_launch(runner, monkeypatch):
         self._started = True
 
     monkeypatch.setattr(time, "sleep", mock_sleep)
-    monkeypatch.setattr(BespokeExecutor, "start", mock_start)
+    monkeypatch.setattr(BespokeExecutor, "_start", mock_start)
 
     output = runner.invoke(
         launch_cli,
