@@ -24,6 +24,7 @@
     {
       "weight": 1.0,
       "reference_data": null,
+      "calculation_specification": null,
       "extras": {},
       "type": "TorsionProfile",
       "attenuate_weights": true,
