@@ -22,6 +22,28 @@ from openff.bespokefit.executor.services.coordinator.models import (
 )
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.tests import does_not_raise
+from openff.bespokefit.workflows import BespokeWorkflowFactory
+
+
+def test_default_spec_up_to_date():
+
+    current_default_spec = BespokeWorkflowFactory().json(sort_keys=True, indent=2)
+
+    with open(
+        get_data_file_path(os.path.join("schemas", "default.json"), "openff.bespokefit")
+    ) as file:
+
+        default_spec_from_file = json.dumps(json.load(file), sort_keys=True, indent=2)
+
+    assert current_default_spec == default_spec_from_file
+
+    # with open(
+    #     get_data_file_path(
+    #         os.path.join("schemas", "default.json"), "openff.bespokefit"
+    #     ),
+    #     "w",
+    # ) as file:
+    #     file.write(BespokeWorkflowFactory().json(indent=2))
 
 
 @pytest.mark.parametrize(
