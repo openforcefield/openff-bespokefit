@@ -10,6 +10,10 @@ BespokeFit
 The BespokeFit framework aims to offer a completely automated workflow for creating bespoke, highly accurate, SMIRNOFF 
 format parameters for individual molecules up to entire lead series.
 
+***Warning**: This code is currently experimental and under active development. If you are using this it, please be 
+aware that it is not guaranteed to provide correct results, the documentation and testing may be incomplete, and the
+API can change without notice.*
+
 ## Getting Started
 
 To start using this framework we recommend looking over [the documentation](https://openff-bespokefit.readthedocs.io/en/latest/index.html),
