@@ -4,8 +4,10 @@ import importlib
 import logging
 import multiprocessing
 import os
+import shutil
 import subprocess
 import time
+from tempfile import mkdtemp
 from typing import List, Optional, Type, TypeVar, Union
 
 import celery
@@ -213,6 +215,7 @@ class BespokeExecutor:
         self._optimizer_worker_config = optimizer_worker_config
 
         self._directory = directory
+        self._remove_directory = directory is None
 
         self._launch_redis_if_unavailable = launch_redis_if_unavailable
 
@@ -320,6 +323,8 @@ class BespokeExecutor:
 
         self._started = True
 
+        if self._directory is None:
+            self._directory = mkdtemp()
         if self._directory is not None and len(self._directory) > 0:
             os.makedirs(self._directory, exist_ok=True)
 
@@ -356,6 +361,9 @@ class BespokeExecutor:
         self._cleanup_processes()
 
         atexit.unregister(self._cleanup_processes)
+
+        if self._remove_directory:
+            shutil.rmtree(self._directory, ignore_errors=True)
 
     @staticmethod
     def submit(input_schema: BespokeOptimizationSchema) -> str:

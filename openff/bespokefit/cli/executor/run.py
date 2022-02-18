@@ -9,8 +9,6 @@ from rich.padding import Padding
 from openff.bespokefit.cli.executor.launch import launch_options
 from openff.bespokefit.cli.executor.submit import _submit, submit_options
 from openff.bespokefit.cli.utilities import create_command, print_header
-from openff.bespokefit.executor import BespokeWorkerConfig
-from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 def _run_cli(
@@ -21,7 +19,7 @@ def _run_cli(
     force_field_path: Optional[str],
     spec_name: Optional[str],
     spec_file_name: Optional[str],
-    directory: str,
+    directory: Optional[str],
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
     qc_compute_n_cores: Optional[int],
@@ -41,7 +39,12 @@ def _run_cli(
     console = rich.get_console()
     print_header(console)
 
-    from openff.bespokefit.executor import BespokeExecutor, wait_until_complete
+    from openff.bespokefit.executor import (
+        BespokeExecutor,
+        BespokeWorkerConfig,
+        wait_until_complete,
+    )
+    from openff.bespokefit.executor.utilities import handle_common_errors
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
@@ -106,7 +109,7 @@ def _run_cli(
 
 __run_options = [*submit_options()]
 __run_options.insert(
-    3,
+    4,
     click.option(
         "--output",
         "output_file_path",
@@ -117,7 +120,7 @@ __run_options.insert(
     ),
 )
 __run_options.insert(
-    4,
+    5,
     click.option(
         "--output-force-field",
         "output_force_field_path",
@@ -127,7 +130,7 @@ __run_options.insert(
         required=False,
     ),
 )
-__run_options.extend(launch_options())
+__run_options.extend(launch_options(directory=None))
 
 run_cli = create_command(
     click_command=click.command("run"), click_options=__run_options, func=_run_cli

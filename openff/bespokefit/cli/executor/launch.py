@@ -7,13 +7,12 @@ from click_option_group import optgroup
 from rich import pretty
 
 from openff.bespokefit.cli.utilities import create_command, print_header
-from openff.bespokefit.executor import BespokeWorkerConfig
 
 
 # The run command inherits these options so be sure to take that into account when
 # making changes here.
 def launch_options(
-    directory: str = "bespoke-executor",
+    directory: Optional[str] = "bespoke-executor",
     n_fragmenter_workers: Optional[int] = 1,
     n_qc_compute_workers: Optional[int] = 1,
     n_optimizer_workers: Optional[int] = 1,
@@ -25,8 +24,16 @@ def launch_options(
         optgroup.option(
             "--directory",
             type=click.Path(exists=False, file_okay=False, dir_okay=True),
-            help="The directory to store any working and log files in",
-            required=True,
+            help="The directory to store any working and log files in"
+            + (
+                ""
+                if directory is not None
+                else (
+                    ". By default all files and logs will be stored in a temporary "
+                    "directory and deleted when the command exists."
+                )
+            ),
+            required=directory is not None,
             default=directory,
             show_default=directory is not None,
         ),
@@ -101,7 +108,7 @@ def _launch_cli(
     console = rich.get_console()
     print_header(console)
 
-    from openff.bespokefit.executor import BespokeExecutor
+    from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
