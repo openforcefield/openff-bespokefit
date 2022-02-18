@@ -45,11 +45,11 @@ cd openff-bespokefit
 create a custom conda environment which contains the required dependencies and activate it,
 
 ```shell
-    conda env create --name absolv --file devtools/conda-envs/test-env.yaml
-    conda activate absolv
+conda env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
+conda activate openff-bespokefit
 ```
 and finally install the package itself:
 
 ```shell
-    python setup.py develop
+python setup.py develop
 ```
