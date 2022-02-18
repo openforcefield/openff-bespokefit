@@ -10,7 +10,7 @@ openff-bespoke executor retrieve --id          "1"                \
                                  --force-field "bespoke-ff.offxml"
 ```
 
-:::{note}
+:::{warning}
 A force field file will only be saved if the fit has successfully finished.
 :::
 
