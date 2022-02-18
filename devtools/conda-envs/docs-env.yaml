@@ -32,7 +32,8 @@ dependencies:
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
-  - qcengine >=0.20.0
+  - qcelemental >=0.24.0
+  - qcengine >=0.21.0
   - chemper
   - geometric
   - torsiondrive
@@ -57,5 +58,3 @@ dependencies:
   - pip:
     # Documentation theme
     - git+https://github.com/openforcefield/openff-sphinx-theme.git@main
-    # doctest_oxide
-    - git+https://github.com/yoshanuikabundi/doctest_oxide.git@main

@@ -51,9 +51,9 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.extlinks",
+    "sphinx.ext.doctest",
     "myst_parser",
     "sphinxcontrib.autodoc_pydantic",
-    "doctest_oxide",
     "sphinx_click",
 ]
 

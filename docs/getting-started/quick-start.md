@@ -3,8 +3,7 @@
 
 BespokeFit aims to provide an automated pipeline that ingests a general molecular force field and a set of 
 molecules of interest, and produce a new bespoke force field that has been augmented with highly specific 
-force field parameters trained to accurately capture the important features and phenomenology of 
-the input set. 
+force field parameters trained to accurately capture the important features and phenomenology of the input set. 
 
 Such features may include generating bespoke torsion parameters that have been trained 
 to capture as closely as possible the torsion profiles of the rotatable bonds in the target molecule 
@@ -80,12 +79,12 @@ larger molecules, one for generating any needed reference QC data, and one for d
 extra workers can easily be requested to speed things up:
 
 ```shell
-openff-bespoke executor run --file                 "acetaminophen.sdf"   \
-                            --workflow             "default"             \
-                            --n-fragmenter-workers 1                     \
-                            --n-qc-compute-workers 2                     \
-                            --qc-compute-n-cores   8                     \
-                            --n-optimizer-workers  1
+openff-bespoke executor run --file                 "acetaminophen.sdf" \
+                            --workflow             "default"           \
+                            --n-fragmenter-workers 1                   \
+                            --n-optimizer-workers  1                   \
+                            --n-qc-compute-workers 2                   \
+                            --qc-compute-n-cores   8
 ```
 
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising fits.
@@ -95,7 +94,7 @@ See the chapter on the [bespoke executor](executor_chapter) for more information
 
 If you are intending to create bespoke parameters for multiple molecules such as a particular lead series, it is 
 recommended to instead launch a dedicated bespoke executor. This has the added benefits of being able to re-use
-data from previous fits, such as common QC calculations.
+data from previous fits, such as common QC calculations, and easily retrieve previous bespoke fits.
 
 The first step is to launch a [bespoke executor](executor_chapter). The executor is the workhorse of BespokeFit, and 
 seamlessly coordinates every step of the fitting workflow from molecule fragmentation to QC data generation:
@@ -107,9 +106,10 @@ openff-bespoke executor launch --n-fragmenter-workers 1 \
                                --qc-compute-n-cores   8
 ```
 
-The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general we recommend devoting most
-of your compute power to the QC compute stage as this is the most expensive, and most parallelisable step. See the 
-chapter on the [bespoke executor](executor_chapter) for more information about parallelising fits.
+The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general, we recommend devoting 
+most of your compute power to the QC compute stage as this stage is both the most expensive, and most the 
+parallelisable. See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising 
+fits.
 
 Once the executor has been launched, we can submit molecules to have bespoke parameters trained by the executor using 
 the `submit` command either in the form of a SMILES pattern:
@@ -142,8 +142,9 @@ openff-bespoke executor list
 Once finished, the final force field can be retrieved using the `retrieve` command:
 
 ```shell
-openff-bespoke executor retrieve --id          "1"                   \
-                                 --output      "acetaminophen.json"
+openff-bespoke executor retrieve --id          "1"                  \
+                                 --output      "acetaminophen.json" \
+                                 --force-field "acetaminophen.offxml"
 ```
 
 See the [results chapter](bespoke_results_chapter) for more details on retrieving the results of a bespoke fit.
@@ -152,7 +153,7 @@ See the [results chapter](bespoke_results_chapter) for more details on retrievin
 ## Using the API
 
 For the more Python oriented user, or for users who are looking for more control over how the bespoke fit will be
-performed, BespokeFit includes a full Python API.
+performed, BespokeFit exposes a full Python API.
 
 At the heart of the fitting pipeline is the [`BespokeWorkflowFactory`]. The [`BespokeWorkflowFactory`] encodes the 
 full ensemble of settings that will feed into and control the bespoke fitting pipeline for *any* input molecule, and 
@@ -176,60 +177,42 @@ The workflow factory will ingest any molecule that can be represented by the Ope
 and produce a [`BespokeOptimizationSchema`] schema:
 
 ```python
-//  from openff.bespokefit.workflows import BespokeWorkflowFactory
-//  from openff.toolkit.topology import Molecule
-//  factory = BespokeWorkflowFactory()
-//  
-    input_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine
-    
-    workflow_schema = factory.optimization_schema_from_molecule(
-        molecule=input_molecule
-    )
+from openff.toolkit.topology import Molecule
+
+input_molecule = Molecule.from_smiles("C(C(=O)O)N")  # Glycine
+
+workflow_schema = factory.optimization_schema_from_molecule(
+    molecule=input_molecule
+)
 ```
 
-This schema encodes the full workflow that will produce the bespoke parameters for that molecule, including details
-about how any reference QC data should be generated and at what level of theory, the types of bespoke parameters to
-generate and hyperparameters about how they should be trained, and the sequence of fitting steps (e.g. fit a 
+This schema encodes the full workflow that will produce the bespoke parameters for *this specific molecule*, including 
+details about how any reference QC data should be generated and at what level of theory, the types of bespoke parameters 
+to generate and hyperparameters about how they should be trained, and the sequence of fitting steps (e.g. fit a 
 charge model, then re-fit the torsion and valence parameters using the new charge model) that should be performed.
 
 Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 
 ```python
-//  from openff.bespokefit.workflows import BespokeWorkflowFactory
-//  from openff.toolkit.topology import Molecule
-//  from openff.qcsubmit.common_structures import QCSpec
-//  factory = BespokeWorkflowFactory()
-//  factory.default_qc_specs = [
-//      QCSpec(
-//          method="gfn2xtb",
-//          basis=None,
-//          program="xtb",
-//          spec_name="xtb",
-//          spec_description="gfn2xtb",
-//      )
-//  ]
-//  input_molecule = Molecule.from_smiles("C(C(=O)O)N") # Glycine  
-//  workflow_schema = factory.optimization_schema_from_molecule(
-//      molecule=input_molecule
-//  )
-    from openff.bespokefit.executor import BespokeExecutor, wait_until_complete
+from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig, wait_until_complete
 
-    with BespokeExecutor(
-        n_fragmenter_workers = 1,
-        n_qc_compute_workers = 1,
-        n_optimizer_workers = 1,
-    ) as executor:
-        # Submit our workflow to the executor
-        task_id = executor.submit(input_schema=workflow_schema)
-        # Wait until the executor is done
-        output = wait_until_complete(task_id)
-    
-    # Print out the resulting force field in OFFXML format
-    if output.status == "success":
-        print(output.bespoke_force_field)
-    # OR the error message if unsuccessful
-    elif output.status == "errored":
-        print(output.error)
+with BespokeExecutor(
+    n_fragmenter_workers = 1,
+    n_optimizer_workers = 1,
+    n_qc_compute_workers = 2,
+    qc_compute_worker_config=BespokeWorkerConfig(n_cores=8)
+) as executor:
+    # Submit our workflow to the executor
+    task_id = executor.submit(input_schema=workflow_schema)
+    # Wait until the executor is done
+    output = wait_until_complete(task_id)
+
+if output.status == "success":
+    # Save the resulting force field to an OFFXML file
+    output.bespoke_force_field.to_file("output-ff.offxml")
+elif output.status == "errored":
+    # OR the print the error message if unsuccessful
+    print(output.error)
 ```
 
 The `BespokeExecutor` not only takes care of calling out to any external programs in your workflow such as when 
@@ -246,7 +229,6 @@ that you may wish to use:
 ```python
 from openff.qcsubmit.common_structures import QCSpec
 
-// from openff.bespokefit.workflows import BespokeWorkflowFactory
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.smirnoff import ProperTorsionHyperparameters
 from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
@@ -280,18 +262,13 @@ factory = BespokeWorkflowFactory(
 Once the factory is configured, it can be [saved]
 
 ```python
-//  from openff.bespokefit.workflows import BespokeWorkflowFactory
-//  factory = BespokeWorkflowFactory()
-    factory.to_file("workflow-factory.yaml") # or .json
+factory.to_file("workflow-factory.yaml") # or .json
 ```
 
 and [loaded] from disk easily
 
 ```python
-//  from openff.bespokefit.workflows import BespokeWorkflowFactory
-//  default_factory = BespokeWorkflowFactory()
-//  default_factory.to_file("workflow-factory.yaml") # or .json
-    factory = BespokeWorkflowFactory.from_file("workflow-factory.yaml")
+factory = BespokeWorkflowFactory.from_file("workflow-factory.yaml")
 ```
 
 This makes it simple to record and share complex configurations. OpenFF recommends making this file available when 
