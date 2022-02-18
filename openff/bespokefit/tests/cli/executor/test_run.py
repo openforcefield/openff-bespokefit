@@ -54,7 +54,7 @@ def test_run(runner, tmpdir):
             args=[
                 "--file",
                 input_file_path,
-                "--spec",
+                "--workflow",
                 "debug",
                 "--directory",
                 "mock-directory",

@@ -42,18 +42,18 @@ def submit_options():
             required=False,
         ),
         click.option(
-            "--spec",
-            "spec_name",
+            "--workflow",
+            "workflow_name",
             type=click.Choice(choices=["default", "debug"], case_sensitive=False),
-            help="The name of the built-in bespoke workflow specification to use.",
+            help="The name of the built-in bespoke fitting workflow to use.",
             required=False,
         ),
         click.option(
-            "--spec-file",
-            "spec_file_name",
+            "--workflow-file",
+            "workflow_file_name",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
             help="The path to a serialized bespoke workflow factory that encodes the "
-            "bespoke workflow to use.",
+            "bespoke fitting workflow to use.",
             required=False,
         ),
         optgroup.group("Workflow overrides"),
@@ -73,35 +73,37 @@ def _to_input_schema(
     console: "rich.Console",
     molecule: "Molecule",
     force_field_path: Optional[str],
-    spec_name: Optional[str],
-    spec_file_name: Optional[str],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
-    if (spec_name is not None and spec_file_name is not None) or (
-        spec_name is None and spec_file_name is None
+    if (workflow_name is not None and workflow_file_name is not None) or (
+        workflow_name is None and workflow_file_name is None
     ):
 
         exit_with_messages(
-            "[[red]ERROR[/red] The `spec` and `spec-file` arguments are mutually "
-            "exclusive",
+            "[[red]ERROR[/red] The `--workflow` and `--workflow-file` arguments are "
+            "mutually exclusive",
             console=console,
             exit_code=2,
         )
 
-    invalid_spec_name = spec_name if spec_name is not None else spec_file_name
+    invalid_workflow_name = (
+        workflow_name if workflow_name is not None else workflow_file_name
+    )
 
     try:
 
-        if spec_name is not None:
+        if workflow_name is not None:
 
-            spec_file_name = get_data_file_path(
-                os.path.join("schemas", f"{spec_name.lower()}.json"),
+            workflow_file_name = get_data_file_path(
+                os.path.join("schemas", f"{workflow_name.lower()}.json"),
                 "openff.bespokefit",
             )
 
-        workflow_factory = BespokeWorkflowFactory.from_file(spec_file_name)
+        workflow_factory = BespokeWorkflowFactory.from_file(workflow_file_name)
 
         if force_field_path is not None:
             workflow_factory.initial_force_field = force_field_path
@@ -114,8 +116,8 @@ def _to_input_schema(
 
         exit_with_messages(
             Padding(
-                f"[[red]ERROR[/red]] The specified schema could not be found: "
-                f"[repr.filename]{invalid_spec_name}[/repr.filename]",
+                f"[[red]ERROR[/red]] The specified workflow could not be found: "
+                f"[repr.filename]{invalid_workflow_name}[/repr.filename]",
                 (1, 0, 0, 0),
             ),
             console=console,
@@ -126,8 +128,8 @@ def _to_input_schema(
 
         exit_with_messages(
             Padding(
-                f"[[red]ERROR[/red]] The factory schema could not be parsed. Make sure "
-                f"[repr.filename]{invalid_spec_name}[/repr.filename] is a valid "
+                f"[[red]ERROR[/red]] The workflow could not be parsed. Make sure "
+                f"[repr.filename]{invalid_workflow_name}[/repr.filename] is a valid "
                 f"`BespokeWorkflowFactory` schema.",
                 (1, 0, 0, 0),
             ),
@@ -145,8 +147,8 @@ def _submit(
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     force_field_path: Optional[str],
-    spec_name: Optional[str],
-    spec_file_name: Optional[str],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
 ) -> str:
 
     from openff.toolkit.topology import Molecule
@@ -177,7 +179,7 @@ def _submit(
     with console.status("building fitting schemas"):
 
         input_schema = _to_input_schema(
-            console, molecule, force_field_path, spec_name, spec_file_name
+            console, molecule, force_field_path, workflow_name, workflow_file_name
         )
 
     console.print("[[green]✓[/green]] fitting schema generated")
@@ -194,8 +196,8 @@ def _submit_cli(
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     force_field_path: Optional[str],
-    spec_name: Optional[str],
-    spec_file_name: Optional[str],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
 ):
     """Submit a new bespoke optimization to a running executor."""
 
@@ -221,8 +223,8 @@ def _submit_cli(
             input_file_path=input_file_path,
             molecule_smiles=molecule_smiles,
             force_field_path=force_field_path,
-            spec_name=spec_name,
-            spec_file_name=spec_file_name,
+            workflow_name=workflow_name,
+            workflow_file_name=workflow_file_name,
         )
 
     if error_state["has_errored"]:

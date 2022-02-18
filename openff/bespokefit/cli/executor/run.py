@@ -17,8 +17,8 @@ def _run_cli(
     output_file_path: str,
     output_force_field_path: Optional[str],
     force_field_path: Optional[str],
-    spec_name: Optional[str],
-    spec_file_name: Optional[str],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
     directory: Optional[str],
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
@@ -72,8 +72,8 @@ def _run_cli(
                 input_file_path=input_file_path,
                 molecule_smiles=molecule_smiles,
                 force_field_path=force_field_path,
-                spec_name=spec_name,
-                spec_file_name=spec_file_name,
+                workflow_name=workflow_name,
+                workflow_file_name=workflow_file_name,
             )
 
             console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))

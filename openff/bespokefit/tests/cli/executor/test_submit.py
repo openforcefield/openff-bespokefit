@@ -25,17 +25,19 @@ from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.workflows import BespokeWorkflowFactory
 
 
-def test_default_spec_up_to_date():
+def test_default_workflow_up_to_date():
 
-    current_default_spec = BespokeWorkflowFactory().json(sort_keys=True, indent=2)
+    current_default_workflow = BespokeWorkflowFactory().json(sort_keys=True, indent=2)
 
     with open(
         get_data_file_path(os.path.join("schemas", "default.json"), "openff.bespokefit")
     ) as file:
 
-        default_spec_from_file = json.dumps(json.load(file), sort_keys=True, indent=2)
+        default_workflow_from_file = json.dumps(
+            json.load(file), sort_keys=True, indent=2
+        )
 
-    assert current_default_spec == default_spec_from_file
+    assert current_default_workflow == default_workflow_from_file
 
     # with open(
     #     get_data_file_path(
@@ -47,19 +49,19 @@ def test_default_spec_up_to_date():
 
 
 @pytest.mark.parametrize(
-    "spec_name, spec_file_name, expected_message, expected_raises, output_is_none",
+    "workflow_name, workflow_file_name, expected_message, expected_raises, output_is_none",
     [
         (
             None,
             None,
-            "The `spec` and `spec-file` arguments",
+            "The `--workflow` and `--workflow-file` arguments",
             pytest.raises(click.exceptions.Exit),
             True,
         ),
         (
             "a",
             "b",
-            "The `spec` and `spec-file` arguments",
+            "The `--workflow` and `--workflow-file` arguments",
             pytest.raises(click.exceptions.Exit),
             True,
         ),
@@ -67,7 +69,7 @@ def test_default_spec_up_to_date():
     ],
 )
 def test_to_input_schema_mutual_exclusive_args(
-    spec_name, spec_file_name, expected_message, expected_raises, output_is_none
+    workflow_name, workflow_file_name, expected_message, expected_raises, output_is_none
 ):
 
     console = rich.get_console()
@@ -81,8 +83,8 @@ def test_to_input_schema_mutual_exclusive_args(
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-2.0.0.offxml",
-                spec_name=spec_name,
-                spec_file_name=spec_file_name,
+                workflow_name=workflow_name,
+                workflow_file_name=workflow_file_name,
             )
 
     if len(expected_message) > 0:
@@ -98,8 +100,8 @@ def test_to_input_schema(force_field_path):
         rich.get_console(),
         Molecule.from_smiles("CC"),
         force_field_path=force_field_path,
-        spec_name="debug",
-        spec_file_name=None,
+        workflow_name="debug",
+        workflow_file_name=None,
     )
 
     assert isinstance(input_schema, BespokeOptimizationSchema)
@@ -120,12 +122,13 @@ def test_to_input_schema_file_not_found(tmpdir):
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-1.2.1.offxml",
-                spec_name="fake-spec-name-123",
-                spec_file_name=None,
+                workflow_name="fake-workflow-name-123",
+                workflow_file_name=None,
             )
 
     assert (
-        "The specified schema could not be found: fake-spec-name-123" in capture.get()
+        "The specified workflow could not be found: fake-workflow-name-123"
+        in capture.get()
     )
 
 
@@ -133,9 +136,9 @@ def test_to_input_schema_invalid_schema(tmpdir):
 
     console = rich.get_console()
 
-    invalid_spec_path = os.path.join(tmpdir, "some-invalid-schema.json")
+    invalid_workflow_path = os.path.join(tmpdir, "some-invalid-schema.json")
 
-    with open(invalid_spec_path, "w") as file:
+    with open(invalid_workflow_path, "w") as file:
         json.dump({"invalid-filed": 1}, file)
 
     with console.capture() as capture:
@@ -145,11 +148,11 @@ def test_to_input_schema_invalid_schema(tmpdir):
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-1.2.1.offxml",
-                spec_name=None,
-                spec_file_name=invalid_spec_path,
+                workflow_name=None,
+                workflow_file_name=invalid_workflow_path,
             )
 
-    assert "The factory schema could not be parsed" in capture.get()
+    assert "The workflow could not be parsed" in capture.get()
 
 
 def test_submit_multi_molecule(tmpdir):
@@ -170,8 +173,8 @@ def test_submit_multi_molecule(tmpdir):
                 input_file_path=input_file_path,
                 molecule_smiles=None,
                 force_field_path="openff-2.0.0.offxml",
-                spec_name="debug",
-                spec_file_name=None,
+                workflow_name="debug",
+                workflow_file_name=None,
             )
 
     assert "only one molecule can currently" in capture.get()
@@ -189,8 +192,8 @@ def test_submit_invalid_schema(tmpdir):
             input_file_path=input_file_path,
             molecule_smiles=None,
             force_field_path="openff-2.0.0.offxml",
-            spec_name=None,
-            spec_file_name=None,
+            workflow_name=None,
+            workflow_file_name=None,
         )
 
 
@@ -226,8 +229,8 @@ def test_submit(tmpdir, file, smiles):
             input_file_path=file,
             molecule_smiles=smiles,
             force_field_path="openff-2.0.0.offxml",
-            spec_name="debug",
-            spec_file_name=None,
+            workflow_name="debug",
+            workflow_file_name=None,
         )
         response_id == "1"
 
@@ -249,7 +252,7 @@ def test_submit_cli(runner, tmpdir):
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
         output = runner.invoke(
-            submit_cli, args=["--file", input_file_path, "--spec", "debug"]
+            submit_cli, args=["--file", input_file_path, "--workflow", "debug"]
         )
 
     assert output.exit_code == 0
@@ -276,8 +279,8 @@ def test_submit_cli_mutual_exclusive_args(file, smiles):
             _submit_cli(
                 input_file_path=file,
                 molecule_smiles=smiles,
-                spec_name="default",
-                spec_file_name=None,
+                workflow_name="default",
+                workflow_file_name=None,
                 force_field_path=None,
             )
 
