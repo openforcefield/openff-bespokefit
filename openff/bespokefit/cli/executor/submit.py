@@ -45,23 +45,23 @@ def submit_options():
             "--spec",
             "spec_name",
             type=click.Choice(choices=["default", "debug"], case_sensitive=False),
-            help="The name of the built-in configuration to use",
+            help="The name of the built-in bespoke workflow specification to use.",
             required=False,
         ),
         click.option(
             "--spec-file",
             "spec_file_name",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
-            help="The path to a serialized bespoke workflow factory",
+            help="The path to a serialized bespoke workflow factory that encodes the "
+            "bespoke workflow to use.",
             required=False,
         ),
-        optgroup.group("Specification overrides"),
+        optgroup.group("Workflow overrides"),
         optgroup.option(
             "--force-field",
             "force_field_path",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
-            help="The initial force field to build upon. This will overwrite the value "
-            "in the workflow spec if provided.",
+            help="A custom initial force field to start the bespoke fits from.",
             default=None,
             show_default=True,
             required=False,

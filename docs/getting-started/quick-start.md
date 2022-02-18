@@ -69,8 +69,8 @@ Here we have specified that we wish to start the fit from the general OpenFF 2.0
 it with bespoke parameters generated according to the [default built-in workflow](workflow_chapter). 
 
 :::{note}
-Other available specifications can be viewed by running `openff-bespoke executor run --help`, or alternatively the 
-path to a [saved workflow factory](quick_start_config_factory) can also be provided using the `--spec-file` flag.
+Other available workflow specifications can be viewed by running `openff-bespoke executor run --help`, or alternatively 
+the path to a [saved workflow factory](quick_start_config_factory) can also be provided using the `--spec-file` flag.
 :::
 
 By default, BespokeFit will use only a single process for each step in the fitting workflow (e.g. generating QC data),
