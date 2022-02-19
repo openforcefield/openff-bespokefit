@@ -101,14 +101,12 @@ class BespokeExecutorOutput(BaseModel):
     @property
     def bespoke_force_field(self) -> Optional[ForceField]:
         """The final bespoke force field if the bespoke fitting workflow is complete."""
-        return (
-            None
-            if self.results is None
-            else (
-                ForceField(
-                    self.results.refit_force_field, allow_cosmetic_attributes=True
-                )
-            )
+
+        if self.results is None or self.results.refit_force_field is None:
+            return None
+
+        return ForceField(
+            self.results.refit_force_field, allow_cosmetic_attributes=True
         )
 
     @property

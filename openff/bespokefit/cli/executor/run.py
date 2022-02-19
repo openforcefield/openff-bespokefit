@@ -97,7 +97,7 @@ def _run_cli(
                     Padding(
                         f"the bespoke force field has been saved to "
                         f"[repr.filename]{output_force_field_path}[/repr.filename]",
-                        (1, 0, 1, 0),
+                        (0, 0, 1, 0),
                     )
                 )
 

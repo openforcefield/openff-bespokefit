@@ -64,9 +64,12 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         )
 
     @property
-    def refit_force_field(self) -> str:
+    def refit_force_field(self) -> Optional[str]:
         """Return the final refit force field."""
-        return self.stages[-1].refit_force_field
+
+        return (
+            None if not self.status == "success" else self.stages[-1].refit_force_field
+        )
 
     @property
     def refit_parameter_values(
@@ -74,9 +77,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     ) -> Optional[Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]]:
         """A list of the refit force field parameters."""
 
-        if self.input_schema is None or len(self.stages) != len(
-            self.input_schema.stages
-        ):
+        if self.input_schema is None or not self.status == "success":
             return None
 
         refit_force_field = ForceField(self.stages[-1].refit_force_field)

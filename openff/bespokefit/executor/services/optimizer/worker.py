@@ -49,7 +49,8 @@ def optimize(self, optimization_input_json: str) -> str:
         for i, stage in enumerate(input_schema.stages):
 
             optimizer = get_optimizer(stage.optimizer.type)
-            # If there are no parameters to optimise as they have all been cached mock the result
+            # If there are no parameters to optimise as they have all been cached mock
+            # the result
             if not stage.parameters:
                 result = OptimizationStageResults(
                     provenance={"skipped": True},
@@ -70,13 +71,22 @@ def optimize(self, optimization_input_json: str) -> str:
             stage_results.append(result)
 
             if result.status != "success":
-                break
+
+                raise (
+                    RuntimeError("an unknown error occurred")
+                    if result.error is None
+                    else RuntimeError(
+                        f"{result.error.type}: "
+                        f"{result.error.message}\n{result.error.traceback}"
+                    )
+                )
 
             input_force_field = ForceField(
                 ForceField(
                     result.refit_force_field, allow_cosmetic_attributes=True
                 ).to_string(discard_cosmetic_attributes=True)
             )
+
         if settings.BEFLOW_OPTIMIZER_KEEP_FILES:
             os.makedirs(os.path.join(home, input_schema.id), exist_ok=True)
             shutil.move(os.getcwd(), os.path.join(home, input_schema.id))
