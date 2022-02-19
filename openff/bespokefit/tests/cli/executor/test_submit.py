@@ -83,6 +83,7 @@ def test_to_input_schema_mutual_exclusive_args(
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-2.0.0.offxml",
+                target_torsion_smirks=tuple(),
                 workflow_name=workflow_name,
                 workflow_file_name=workflow_file_name,
             )
@@ -100,6 +101,7 @@ def test_to_input_schema(force_field_path):
         rich.get_console(),
         Molecule.from_smiles("CC"),
         force_field_path=force_field_path,
+        target_torsion_smirks=tuple(),
         workflow_name="debug",
         workflow_file_name=None,
     )
@@ -122,6 +124,7 @@ def test_to_input_schema_file_not_found(tmpdir):
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-1.2.1.offxml",
+                target_torsion_smirks=tuple(),
                 workflow_name="fake-workflow-name-123",
                 workflow_file_name=None,
             )
@@ -148,6 +151,7 @@ def test_to_input_schema_invalid_schema(tmpdir):
                 console,
                 Molecule.from_smiles("CC"),
                 force_field_path="openff-1.2.1.offxml",
+                target_torsion_smirks=tuple(),
                 workflow_name=None,
                 workflow_file_name=invalid_workflow_path,
             )
@@ -173,6 +177,7 @@ def test_submit_multi_molecule(tmpdir):
                 input_file_path=input_file_path,
                 molecule_smiles=None,
                 force_field_path="openff-2.0.0.offxml",
+                target_torsion_smirks=tuple(),
                 workflow_name="debug",
                 workflow_file_name=None,
             )
@@ -192,6 +197,7 @@ def test_submit_invalid_schema(tmpdir):
             input_file_path=input_file_path,
             molecule_smiles=None,
             force_field_path="openff-2.0.0.offxml",
+            target_torsion_smirks=tuple(),
             workflow_name=None,
             workflow_file_name=None,
         )
@@ -229,10 +235,11 @@ def test_submit(tmpdir, file, smiles):
             input_file_path=file,
             molecule_smiles=smiles,
             force_field_path="openff-2.0.0.offxml",
+            target_torsion_smirks=tuple(),
             workflow_name="debug",
             workflow_file_name=None,
         )
-        response_id == "1"
+        assert response_id == "1"
 
 
 def test_submit_cli(runner, tmpdir):
@@ -281,6 +288,7 @@ def test_submit_cli_mutual_exclusive_args(file, smiles):
                 molecule_smiles=smiles,
                 workflow_name="default",
                 workflow_file_name=None,
+                target_torsion_smirks=tuple(),
                 force_field_path=None,
             )
 
