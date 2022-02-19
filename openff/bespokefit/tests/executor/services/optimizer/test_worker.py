@@ -1,6 +1,7 @@
 import json
 
 from openff.fragmenter.fragment import WBOFragmenter
+from openff.toolkit.typing.engines.smirnoff import ForceField
 
 from openff.bespokefit.executor.services.optimizer import worker
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
@@ -28,7 +29,7 @@ def test_optimize(monkeypatch):
             OptimizationStageSchema(
                 parameters=[
                     ProperTorsionSMIRKS(
-                        smirks="[*:1]-[#6:2]-[#6:3]-[*:4]", attributes={"k1"}
+                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
                     )
                 ],
                 parameter_hyperparameters=[],
@@ -42,7 +43,13 @@ def test_optimize(monkeypatch):
 
     expected_output = BespokeOptimizationResults(
         input_schema=input_schema,
-        stages=[OptimizationStageResults(provenance={}, status="running")],
+        stages=[
+            OptimizationStageResults(
+                provenance={},
+                status="success",
+                refit_force_field=ForceField("openff-2.0.0.offxml").to_string(),
+            )
+        ],
     )
 
     received_schema = None

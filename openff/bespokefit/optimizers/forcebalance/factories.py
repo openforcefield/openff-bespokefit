@@ -21,7 +21,6 @@ from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
 from simtk import unit
-from tqdm import tqdm
 
 from openff.bespokefit.exceptions import OptimizerError, QCRecordMissMatchError
 from openff.bespokefit.optimizers.forcebalance.templates import (
@@ -247,9 +246,9 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         target_batches = cls._batch_qc_records(target, qc_records)
 
-        for target_name, target_records in tqdm(target_batches.items()):
+        for target_name, target_records in target_batches.items():
 
-            tqdm.write(f"generating target directory for {target_name}")
+            print(f"generating target directory for {target_name}")
 
             target_directory = os.path.join(root_directory, target_name)
             os.makedirs(target_directory, exist_ok=True)
