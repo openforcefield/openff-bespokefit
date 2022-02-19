@@ -1,5 +1,5 @@
 import os.path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import click
 import click.exceptions
@@ -62,9 +62,18 @@ def submit_options():
             "force_field_path",
             type=click.Path(exists=False, file_okay=True, dir_okay=False),
             help="A custom initial force field to start the bespoke fits from.",
-            default=None,
-            show_default=True,
             required=False,
+        ),
+        optgroup.option(
+            "--target-torsion",
+            "target_torsion_smirks",
+            type=str,
+            help="The SMIRKS pattern(s) that should be used to identify the **bonds** "
+            "in the input molecule to generate bespoke torsions around if requested. It "
+            "must only match the two atoms involved in the central bond. This argument "
+            "can be specified multiple times if you wish to provide multiple patterns.",
+            required=False,
+            multiple=True,
         ),
     ]
 
@@ -73,6 +82,7 @@ def _to_input_schema(
     console: "rich.Console",
     molecule: "Molecule",
     force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
@@ -107,6 +117,8 @@ def _to_input_schema(
 
         if force_field_path is not None:
             workflow_factory.initial_force_field = force_field_path
+        if len(target_torsion_smirks) > 0:
+            workflow_factory.target_torsion_smirks = [*target_torsion_smirks]
 
     except (FileNotFoundError, RuntimeError) as e:
 
@@ -147,6 +159,7 @@ def _submit(
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> str:
@@ -179,7 +192,12 @@ def _submit(
     with console.status("building fitting schemas"):
 
         input_schema = _to_input_schema(
-            console, molecule, force_field_path, workflow_name, workflow_file_name
+            console,
+            molecule,
+            force_field_path,
+            target_torsion_smirks,
+            workflow_name,
+            workflow_file_name,
         )
 
     console.print("[[green]✓[/green]] fitting schema generated")
@@ -196,6 +214,7 @@ def _submit_cli(
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ):
@@ -223,6 +242,7 @@ def _submit_cli(
             input_file_path=input_file_path,
             molecule_smiles=molecule_smiles,
             force_field_path=force_field_path,
+            target_torsion_smirks=target_torsion_smirks,
             workflow_name=workflow_name,
             workflow_file_name=workflow_file_name,
         )

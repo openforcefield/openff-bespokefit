@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import click
 import click.exceptions
@@ -17,6 +17,7 @@ def _run_cli(
     output_file_path: str,
     output_force_field_path: Optional[str],
     force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     directory: Optional[str],
@@ -72,6 +73,7 @@ def _run_cli(
                 input_file_path=input_file_path,
                 molecule_smiles=molecule_smiles,
                 force_field_path=force_field_path,
+                target_torsion_smirks=target_torsion_smirks,
                 workflow_name=workflow_name,
                 workflow_file_name=workflow_file_name,
             )
