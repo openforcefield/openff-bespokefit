@@ -1,5 +1,8 @@
 from openff.bespokefit.executor.services._settings import Settings
 
-settings = Settings()
 
-__all__ = ["settings", "Settings"]
+def current_settings() -> Settings:
+    return Settings()
+
+
+__all__ = ["current_settings", "Settings"]

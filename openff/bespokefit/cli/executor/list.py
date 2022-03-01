@@ -41,11 +41,13 @@ def list_cli():
     console = rich.get_console()
     print_header(console)
 
-    from openff.bespokefit.executor.services import settings
+    from openff.bespokefit.executor.services import current_settings
     from openff.bespokefit.executor.services.coordinator.models import (
         CoordinatorGETPageResponse,
     )
     from openff.bespokefit.executor.utilities import handle_common_errors
+
+    settings = current_settings()
 
     base_href = (
         f"http://127.0.0.1:"

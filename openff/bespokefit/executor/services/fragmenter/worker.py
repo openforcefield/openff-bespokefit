@@ -10,13 +10,15 @@ from openff.fragmenter.fragment import (
 from pydantic import parse_raw_as
 
 import openff.bespokefit
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 
+__settings = current_settings()
+
 redis_connection = redis.Redis(
-    host=settings.BEFLOW_REDIS_ADDRESS,
-    port=settings.BEFLOW_REDIS_PORT,
-    db=settings.BEFLOW_REDIS_DB,
+    host=__settings.BEFLOW_REDIS_ADDRESS,
+    port=__settings.BEFLOW_REDIS_PORT,
+    db=__settings.BEFLOW_REDIS_DB,
 )
 celery_app = configure_celery_app("fragmenter", redis_connection)
 

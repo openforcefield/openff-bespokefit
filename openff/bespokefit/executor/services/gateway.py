@@ -10,7 +10,7 @@ from fastapi import APIRouter, FastAPI
 from openff.utilities import temporary_cd
 from starlette.middleware.cors import CORSMiddleware
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 
 
 def __load_router(path: str) -> APIRouter:
@@ -28,10 +28,13 @@ def __load_router(path: str) -> APIRouter:
     return router
 
 
+__settings = current_settings()
+
+
 app = FastAPI(
     title="openff-bespoke",
-    openapi_url=f"{settings.BEFLOW_API_V1_STR}/openapi.json",
-    docs_url=f"{settings.BEFLOW_API_V1_STR}/docs",
+    openapi_url=f"{__settings.BEFLOW_API_V1_STR}/openapi.json",
+    docs_url=f"{__settings.BEFLOW_API_V1_STR}/docs",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -41,18 +44,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-api_router = APIRouter(prefix=settings.BEFLOW_API_V1_STR)
+api_router = APIRouter(prefix=__settings.BEFLOW_API_V1_STR)
 api_router.get("")(lambda: {})
 
-api_router.include_router(__load_router(settings.BEFLOW_COORDINATOR_ROUTER))
+api_router.include_router(__load_router(__settings.BEFLOW_COORDINATOR_ROUTER))
 api_router.include_router(
-    __load_router(settings.BEFLOW_FRAGMENTER_ROUTER), tags=["fragmenter"]
+    __load_router(__settings.BEFLOW_FRAGMENTER_ROUTER), tags=["fragmenter"]
 )
 api_router.include_router(
-    __load_router(settings.BEFLOW_QC_COMPUTE_ROUTER), tags=["qcgenerator"]
+    __load_router(__settings.BEFLOW_QC_COMPUTE_ROUTER), tags=["qcgenerator"]
 )
 api_router.include_router(
-    __load_router(settings.BEFLOW_OPTIMIZER_ROUTER), tags=["optimizer"]
+    __load_router(__settings.BEFLOW_OPTIMIZER_ROUTER), tags=["optimizer"]
 )
 
 app.include_router(api_router)
@@ -84,8 +87,8 @@ def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
             uvicorn.run(
                 "openff.bespokefit.executor.services.gateway:app",
                 host="0.0.0.0",
-                port=settings.BEFLOW_GATEWAY_PORT,
-                log_level=settings.BEFLOW_GATEWAY_LOG_LEVEL,
+                port=__settings.BEFLOW_GATEWAY_PORT,
+                log_level=__settings.BEFLOW_GATEWAY_LOG_LEVEL,
             )
 
 
@@ -98,7 +101,7 @@ def wait_for_gateway(n_retries: int = 40):
         try:
 
             ping = requests.get(
-                f"http://127.0.0.1:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}"
+                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}"
             )
             ping.raise_for_status()
 

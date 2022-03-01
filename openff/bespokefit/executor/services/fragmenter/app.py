@@ -5,7 +5,7 @@ from fastapi.responses import Response
 from openff.fragmenter.depiction import _oe_render_fragment
 from openff.fragmenter.fragment import FragmentationResult
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.fragmenter import worker
 from openff.bespokefit.executor.services.fragmenter.cache import (
     cached_fragmentation_task,
@@ -20,10 +20,12 @@ from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
 
 router = APIRouter()
 
-__GET_ENDPOINT = "/" + settings.BEFLOW_FRAGMENTER_PREFIX + "/{fragmentation_id}"
+__settings = current_settings()
+
+__GET_ENDPOINT = "/" + __settings.BEFLOW_FRAGMENTER_PREFIX + "/{fragmentation_id}"
 __GET_FRAGMENT_IMAGE_ENDPOINT = (
     "/"
-    + settings.BEFLOW_FRAGMENTER_PREFIX
+    + __settings.BEFLOW_FRAGMENTER_PREFIX
     + "/{fragmentation_id}/fragment/{fragment_id}/image"
 )
 
@@ -36,14 +38,14 @@ def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
 
     return FragmenterGETResponse(
         id=fragmentation_id,
-        self=settings.BEFLOW_API_V1_STR
+        self=__settings.BEFLOW_API_V1_STR
         + __GET_ENDPOINT.format(fragmentation_id=fragmentation_id),
         status=task_info["status"],
         result=task_result,
         error=json.dumps(task_info["error"]),
         _links={
             f"fragment-{i}-image": (
-                settings.BEFLOW_API_V1_STR
+                __settings.BEFLOW_API_V1_STR
                 + __GET_FRAGMENT_IMAGE_ENDPOINT.format(
                     fragmentation_id=fragmentation_id, fragment_id=i
                 )
@@ -55,7 +57,7 @@ def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
     )
 
 
-@router.post("/" + settings.BEFLOW_FRAGMENTER_PREFIX)
+@router.post("/" + __settings.BEFLOW_FRAGMENTER_PREFIX)
 def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
     # We use celery delay method in order to enqueue the task with the given
     # parameters
@@ -65,7 +67,7 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
     )
     return FragmenterPOSTResponse(
         id=task_id,
-        self=settings.BEFLOW_API_V1_STR
+        self=__settings.BEFLOW_API_V1_STR
         + __GET_ENDPOINT.format(fragmentation_id=task_id),
     )
 

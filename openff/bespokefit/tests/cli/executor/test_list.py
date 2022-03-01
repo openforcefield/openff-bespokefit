@@ -3,7 +3,7 @@ import requests_mock
 import rich
 
 from openff.bespokefit.cli.executor.list import _get_columns, list_cli
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETPageResponse,
     CoordinatorGETResponse,
@@ -12,6 +12,8 @@ from openff.bespokefit.executor.services.models import Link
 
 
 def test_get_columns():
+
+    settings = current_settings()
 
     with requests_mock.Mocker() as m:
 
@@ -42,6 +44,8 @@ def test_get_columns():
     [(0, "No optimizations were found"), (3, "The following optimizations were found")],
 )
 def test_list_cli(n_results, expected_message, runner):
+
+    settings = current_settings()
 
     with requests_mock.Mocker() as m:
 

@@ -4,7 +4,7 @@ import requests_mock
 from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.cli.executor.run import run_cli
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -17,6 +17,8 @@ def test_run(runner, tmpdir):
 
     input_file_path = os.path.join(tmpdir, "mol.sdf")
     Molecule.from_smiles("CC").to_file(input_file_path, "SDF")
+
+    settings = current_settings()
 
     with requests_mock.Mocker() as m:
 

@@ -7,7 +7,7 @@ from openff.utilities import temporary_cd
 from pydantic import parse_raw_as
 from qcelemental.util import serialize
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import cache_parameters
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import is_redis_available
@@ -18,10 +18,12 @@ from openff.bespokefit.schema.results import (
     OptimizationStageResults,
 )
 
+__settings = current_settings()
+
 redis_connection = redis.Redis(
-    host=settings.BEFLOW_REDIS_ADDRESS,
-    port=settings.BEFLOW_REDIS_PORT,
-    db=settings.BEFLOW_REDIS_DB,
+    host=__settings.BEFLOW_REDIS_ADDRESS,
+    port=__settings.BEFLOW_REDIS_PORT,
+    db=__settings.BEFLOW_REDIS_DB,
 )
 celery_app = configure_celery_app("optimizer", redis_connection)
 
@@ -64,7 +66,7 @@ def optimize(self, optimization_input_json: str) -> str:
                 result = optimizer.optimize(
                     schema=stage,
                     initial_force_field=input_force_field,
-                    keep_files=settings.BEFLOW_OPTIMIZER_KEEP_FILES,
+                    keep_files=__settings.BEFLOW_OPTIMIZER_KEEP_FILES,
                     root_directory=f"stage_{i}",
                 )
 
@@ -87,7 +89,7 @@ def optimize(self, optimization_input_json: str) -> str:
                 ).to_string(discard_cosmetic_attributes=True)
             )
 
-        if settings.BEFLOW_OPTIMIZER_KEEP_FILES:
+        if __settings.BEFLOW_OPTIMIZER_KEEP_FILES:
             os.makedirs(os.path.join(home, input_schema.id), exist_ok=True)
             shutil.move(os.getcwd(), os.path.join(home, input_schema.id))
 
@@ -95,7 +97,7 @@ def optimize(self, optimization_input_json: str) -> str:
     # cache the final parameters
     if (
         is_redis_available(
-            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+            host=__settings.BEFLOW_REDIS_ADDRESS, port=__settings.BEFLOW_REDIS_PORT
         )
         and result.refit_force_field is not None
     ):

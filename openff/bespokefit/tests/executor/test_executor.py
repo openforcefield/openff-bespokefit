@@ -12,7 +12,7 @@ from openff.bespokefit.executor import (
     BespokeExecutorStageOutput,
     wait_until_complete,
 )
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -22,6 +22,8 @@ from openff.bespokefit.executor.services.coordinator.models import (
 
 @contextmanager
 def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
+
+    settings = current_settings()
 
     mock_id = "mock-id"
 
@@ -287,6 +289,7 @@ class TestBespokeExecutor:
             executor._stop()
 
     def test_submit(self, bespoke_optimization_schema):
+        settings = current_settings()
 
         expected = CoordinatorPOSTResponse(id="mock-id", self="")
 
@@ -358,6 +361,8 @@ def test_query_coordinator():
         context.status_code = 200
         return mock_response.json(by_alias=True)
 
+    settings = current_settings()
+
     mock_href = (
         f"http://127.0.0.1:"
         f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -402,6 +407,8 @@ def test_wait_for_stage(status):
         n_requests += 1
 
         return response_json
+
+    settings = current_settings()
 
     mock_href = (
         f"http://127.0.0.1:"

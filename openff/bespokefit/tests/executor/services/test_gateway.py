@@ -3,7 +3,7 @@ from multiprocessing import Process
 
 import pytest
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import Settings
 from openff.bespokefit.executor.services.gateway import app, launch, wait_for_gateway
 
 
@@ -36,7 +36,7 @@ def test_launch(directory):
 
 def test_wait_for_gateway_timeout(monkeypatch):
 
-    monkeypatch.setattr(settings, "BEFLOW_GATEWAY_PORT", 111)
+    with Settings(BEFLOW_GATEWAY_PORT=111).apply_env():
 
-    with pytest.raises(RuntimeError, match="The gateway could not be reached"):
-        wait_for_gateway(n_retries=1)
+        with pytest.raises(RuntimeError, match="The gateway could not be reached"):
+            wait_for_gateway(n_retries=1)

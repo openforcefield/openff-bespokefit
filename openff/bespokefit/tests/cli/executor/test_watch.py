@@ -1,7 +1,7 @@
 import requests_mock
 
 from openff.bespokefit.cli.executor.watch import watch_cli
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -9,6 +9,8 @@ from openff.bespokefit.executor.services.coordinator.models import (
 
 
 def test_watch(runner):
+
+    settings = current_settings()
 
     with requests_mock.Mocker() as m:
 

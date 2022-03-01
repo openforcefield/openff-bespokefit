@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from openff.toolkit.topology import Molecule
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator import worker
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETPageResponse,
@@ -32,8 +32,10 @@ router = APIRouter()
 _logger = logging.getLogger(__name__)
 _worker_task: Optional[asyncio.Future] = None
 
+__settings = current_settings()
+
 __GET_TASK_IMAGE_ENDPOINT = (
-    "/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}/image"
+    "/" + __settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}/image"
 )
 
 
@@ -56,7 +58,7 @@ def _get_task(
     return CoordinatorTask.parse_obj(pickle.loads(task_pickle))
 
 
-@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX)
+@router.get("/" + __settings.BEFLOW_COORDINATOR_PREFIX)
 def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageResponse:
     """Retrieves all bespoke optimizations that have been submitted to this server."""
 
@@ -75,8 +77,8 @@ def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageRes
     contents = [
         Link(
             self=(
-                f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_COORDINATOR_PREFIX}/"
+                f"{__settings.BEFLOW_API_V1_STR}/"
+                f"{__settings.BEFLOW_COORDINATOR_PREFIX}/"
                 f"{optimization_id}"
             ),
             id=optimization_id,
@@ -89,26 +91,26 @@ def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageRes
 
     return CoordinatorGETPageResponse(
         self=(
-            f"{settings.BEFLOW_API_V1_STR}/"
-            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={skip}&limit={limit}"
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={skip}&limit={limit}"
         ),
         prev=None
         if prev_index >= skip
         else (
-            f"{settings.BEFLOW_API_V1_STR}/"
-            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={prev_index}&limit={limit}"
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={prev_index}&limit={limit}"
         ),
         next=None
         if (next_index <= skip or next_index == n_optimizations)
         else (
-            f"{settings.BEFLOW_API_V1_STR}/"
-            f"{settings.BEFLOW_COORDINATOR_PREFIX}?skip={next_index}&limit={limit}"
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={next_index}&limit={limit}"
         ),
         contents=contents,
     )
 
 
-@router.get("/" + settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}")
+@router.get("/" + __settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}")
 def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     """Retrieves a bespoke optimization that has been submitted to this server
     using its unique id."""
@@ -118,7 +120,7 @@ def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     )
     response.links = {
         "image": (
-            settings.BEFLOW_API_V1_STR
+            __settings.BEFLOW_API_V1_STR
             + __GET_TASK_IMAGE_ENDPOINT.format(optimization_id=optimization_id)
         )
     }
@@ -126,7 +128,7 @@ def get_optimization(optimization_id: str) -> CoordinatorGETResponse:
     return response
 
 
-@router.post("/" + settings.BEFLOW_COORDINATOR_PREFIX)
+@router.post("/" + __settings.BEFLOW_COORDINATOR_PREFIX)
 def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
     """Submit a bespoke optimization to be performed by the server."""
 
@@ -159,8 +161,8 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
     return CoordinatorPOSTResponse(
         id=task_id,
         self=(
-            f"{settings.BEFLOW_API_V1_STR}/"
-            f"{settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}/{task.id}"
         ),
     )
 

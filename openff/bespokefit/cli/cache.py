@@ -24,7 +24,7 @@ from openff.bespokefit.cli.utilities import (
     exit_with_messages,
     print_header,
 )
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
 from openff.bespokefit.schema.data import LocalQCData
@@ -159,6 +159,8 @@ def _update(
         )
 
     console.print(Padding("2. connecting to redis cache", (1, 0, 1, 0)))
+
+    settings = current_settings()
 
     if launch_redis_if_unavailable and not is_redis_available(
         host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT

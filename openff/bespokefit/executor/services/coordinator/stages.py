@@ -20,7 +20,7 @@ from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterGETResponse,
@@ -111,6 +111,8 @@ class FragmentationStage(_Stage):
 
     async def _enter(self, task: "CoordinatorTask"):
 
+        settings = current_settings()
+
         async with httpx.AsyncClient() as client:
 
             raw_response = await client.post(
@@ -142,6 +144,8 @@ class FragmentationStage(_Stage):
 
         if self.status == "errored":
             return
+
+        settings = current_settings()
 
         async with httpx.AsyncClient() as client:
 
@@ -209,6 +213,9 @@ class QCGenerationStage(_Stage):
         Returns:
             The list of generated smirks patterns including any cached values, and a list of fragments which require torsiondrives.
         """
+
+        settings = current_settings()
+
         cached_torsions = None
 
         if is_redis_available(
@@ -341,6 +348,8 @@ class QCGenerationStage(_Stage):
 
     async def _enter(self, task: "CoordinatorTask"):
 
+        settings = current_settings()
+
         fragment_stage = next(
             iter(
                 stage
@@ -422,6 +431,8 @@ class QCGenerationStage(_Stage):
         self.ids = {i: sorted(ids) for i, ids in qc_calc_ids.items()}
 
     async def _update(self):
+
+        settings = current_settings()
 
         if self.status == "errored":
             return
@@ -537,6 +548,8 @@ class OptimizationStage(_Stage):
 
     async def _enter(self, task: "CoordinatorTask"):
 
+        settings = current_settings()
+
         completed_stages = {stage.type: stage for stage in task.completed_stages}
 
         input_schema = task.input_schema.copy(deep=True)
@@ -580,6 +593,8 @@ class OptimizationStage(_Stage):
             self.id = response.id
 
     async def _update(self):
+
+        settings = current_settings()
 
         if self.status == "errored":
             return
