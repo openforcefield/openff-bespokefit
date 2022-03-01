@@ -5,7 +5,7 @@ import pytest
 import requests_mock
 
 from openff.bespokefit.cli.executor.retrieve import retrieve_cli
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -14,6 +14,7 @@ from openff.bespokefit.executor.services.coordinator.models import (
 
 @contextmanager
 def _mock_coordinator_get(status, results=None):
+    settings = current_settings()
 
     with requests_mock.Mocker() as m:
 

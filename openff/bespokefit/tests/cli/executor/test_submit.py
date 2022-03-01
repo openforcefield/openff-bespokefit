@@ -16,7 +16,7 @@ from openff.bespokefit.cli.executor.submit import (
     _to_input_schema,
     submit_cli,
 )
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
 )
@@ -220,6 +220,8 @@ def test_submit_invalid_schema(tmpdir):
 def test_submit(tmpdir, file, smiles):
     """Make sure to schema failures are cleanly handled."""
 
+    settings = current_settings()
+
     with requests_mock.Mocker() as m:
 
         mock_href = (
@@ -244,6 +246,8 @@ def test_submit(tmpdir, file, smiles):
 
 def test_submit_cli(runner, tmpdir):
     """Make sure to schema failures are cleanly handled."""
+
+    settings = current_settings()
 
     input_file_path = os.path.join(tmpdir, "mol.sdf")
     Molecule.from_smiles("CC").to_file(input_file_path, "SDF")

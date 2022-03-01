@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from pydantic import Field
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.stages import StageType
 from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
@@ -48,6 +48,8 @@ class CoordinatorGETStageStatus(BaseModel):
         else:
             raise NotImplementedError()
 
+        settings = current_settings()
+
         base_endpoint = f"{settings.BEFLOW_API_V1_STR}/"
 
         endpoints = {
@@ -90,6 +92,8 @@ class CoordinatorGETResponse(Link):
 
     @classmethod
     def from_task(cls, task: "CoordinatorTask"):
+
+        settings = current_settings()
 
         stages = [
             *task.pending_stages,

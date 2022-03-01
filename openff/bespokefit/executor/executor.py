@@ -19,7 +19,7 @@ from pydantic import Field
 from rich.padding import Padding
 from typing_extensions import Literal
 
-from openff.bespokefit.executor.services import Settings, settings
+from openff.bespokefit.executor.services import Settings, current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
     CoordinatorGETStageStatus,
@@ -41,12 +41,14 @@ _logger = logging.getLogger(__name__)
 
 
 def _base_endpoint():
+    settings = current_settings()
     return (
         f"http://127.0.0.1:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}/"
     )
 
 
 def _coordinator_endpoint():
+    settings = current_settings()
     return f"{_base_endpoint()}{settings.BEFLOW_COORDINATOR_PREFIX}"
 
 
@@ -251,6 +253,8 @@ class BespokeExecutor:
     def _launch_redis(self):
         """Launches a redis server if an existing one cannot be found."""
 
+        settings = current_settings()
+
         if self._launch_redis_if_unavailable and not is_redis_available(
             host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
         ):
@@ -275,22 +279,12 @@ class BespokeExecutor:
             BEFLOW_OPTIMIZER_WORKER_MAX_MEM=self._optimizer_worker_config.max_memory,
         ).apply_env():
 
-            for worker_settings, n_workers, config in (
-                (
-                    settings.fragmenter_settings,
-                    self._n_fragmenter_workers,
-                    self._fragmenter_worker_config,
-                ),
-                (
-                    settings.qc_compute_settings,
-                    self._n_qc_compute_workers,
-                    self._qc_compute_worker_config,
-                ),
-                (
-                    settings.optimizer_settings,
-                    self._n_optimizer_workers,
-                    self._optimizer_worker_config,
-                ),
+            settings = current_settings()
+
+            for worker_settings, n_workers in (
+                (settings.fragmenter_settings, self._n_fragmenter_workers),
+                (settings.qc_compute_settings, self._n_qc_compute_workers),
+                (settings.optimizer_settings, self._n_optimizer_workers),
             ):
 
                 if n_workers == 0:

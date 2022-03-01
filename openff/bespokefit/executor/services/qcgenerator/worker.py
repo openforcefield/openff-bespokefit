@@ -21,14 +21,16 @@ from qcelemental.models.procedures import (
 from qcelemental.util import serialize
 from qcengine.config import get_global
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
+__settings = current_settings()
+
 redis_connection = redis.Redis(
-    host=settings.BEFLOW_REDIS_ADDRESS,
-    port=settings.BEFLOW_REDIS_PORT,
-    db=settings.BEFLOW_REDIS_DB,
+    host=__settings.BEFLOW_REDIS_ADDRESS,
+    port=__settings.BEFLOW_REDIS_PORT,
+    db=__settings.BEFLOW_REDIS_DB,
 )
 celery_app = configure_celery_app("qcgenerator", redis_connection)
 
@@ -37,7 +39,7 @@ _task_logger: logging.Logger = get_task_logger(__name__)
 
 def _task_config() -> Dict[str, Any]:
 
-    worker_settings = settings.qc_compute_settings
+    worker_settings = __settings.qc_compute_settings
 
     n_cores = (
         get_global("ncores") if not worker_settings.n_cores else worker_settings.n_cores

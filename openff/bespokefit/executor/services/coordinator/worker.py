@@ -4,15 +4,17 @@ import pickle
 
 import redis
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 
 _logger = logging.getLogger(__name__)
 
+__settings = current_settings()
+
 redis_connection = redis.Redis(
-    host=settings.BEFLOW_REDIS_ADDRESS,
-    port=settings.BEFLOW_REDIS_PORT,
-    db=settings.BEFLOW_REDIS_DB,
+    host=__settings.BEFLOW_REDIS_ADDRESS,
+    port=__settings.BEFLOW_REDIS_PORT,
+    db=__settings.BEFLOW_REDIS_DB,
 )
 
 

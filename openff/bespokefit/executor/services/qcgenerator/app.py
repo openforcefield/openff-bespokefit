@@ -7,7 +7,7 @@ from pydantic import parse_obj_as
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 
-from openff.bespokefit.executor.services import settings
+from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task
 from openff.bespokefit.executor.services.qcgenerator.models import (
@@ -24,9 +24,11 @@ from openff.bespokefit.executor.utilities.depiction import (
 
 router = APIRouter()
 
-__GET_ENDPOINT = "/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}"
+__settings = current_settings()
+
+__GET_ENDPOINT = "/" + __settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}"
 __GET_IMAGE_ENDPOINT = (
-    "/" + settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}/image/molecule"
+    "/" + __settings.BEFLOW_QC_COMPUTE_PREFIX + "/{qc_calc_id}/image/molecule"
 )
 
 
@@ -40,7 +42,7 @@ def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETRespons
     # noinspection PyTypeChecker
     return {
         "id": qc_calc_id,
-        "self": settings.BEFLOW_API_V1_STR
+        "self": __settings.BEFLOW_API_V1_STR
         + __GET_ENDPOINT.format(qc_calc_id=qc_calc_id),
         "status": qc_task_info["status"],
         "type": qc_calc_type.decode(),
@@ -48,14 +50,14 @@ def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETRespons
         "error": json.dumps(qc_task_info["error"]),
         "_links": {
             "image": (
-                settings.BEFLOW_API_V1_STR
+                __settings.BEFLOW_API_V1_STR
                 + __GET_IMAGE_ENDPOINT.format(qc_calc_id=qc_calc_id)
             )
         },
     }
 
 
-@router.get("/" + settings.BEFLOW_QC_COMPUTE_PREFIX)
+@router.get("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def get_qc_results(
     ids: Optional[List[str]] = Query(None), results: bool = True
 ) -> QCGeneratorGETPageResponse:
@@ -64,7 +66,7 @@ def get_qc_results(
         raise NotImplementedError()
 
     response = QCGeneratorGETPageResponse(
-        self="/" + settings.BEFLOW_QC_COMPUTE_PREFIX,
+        self="/" + __settings.BEFLOW_QC_COMPUTE_PREFIX,
         prev=None,
         next=None,
         contents=[_retrieve_qc_result(qc_calc_id, results) for qc_calc_id in ids],
@@ -80,14 +82,14 @@ def get_qc_result(qc_calc_id: str, results: bool = True) -> QCGeneratorGETRespon
     return response
 
 
-@router.post("/" + settings.BEFLOW_QC_COMPUTE_PREFIX)
+@router.post("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
 
     task_id = cached_compute_task(body.input_schema, worker.redis_connection)
 
     return QCGeneratorPOSTResponse(
         id=task_id,
-        self=settings.BEFLOW_API_V1_STR + __GET_ENDPOINT.format(qc_calc_id=task_id),
+        self=__settings.BEFLOW_API_V1_STR + __GET_ENDPOINT.format(qc_calc_id=task_id),
     )
 
 
