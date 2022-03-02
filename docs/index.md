@@ -55,6 +55,7 @@ hidden: True
 users/bespoke-workflows
 users/bespoke-executor
 users/bespoke-results
+users/theory
 
 :::
 
