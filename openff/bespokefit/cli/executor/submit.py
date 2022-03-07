@@ -181,49 +181,6 @@ def _to_input_schema(
         return workflow_factory.optimization_schema_from_molecule(molecule)
 
 
-def _submit_cli(
-    input_file_path: Optional[str],
-    molecule_smiles: Optional[str],
-    force_field_path: Optional[str],
-    target_torsion_smirks: Tuple[str],
-    default_qc_spec: Optional[Tuple[str, str, str]],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
-):
-    """Submit a new bespoke optimization to a running executor."""
-
-    pretty.install()
-
-    console = rich.get_console()
-    print_header(console)
-
-    if (input_file_path is not None and molecule_smiles is not None) or (
-        input_file_path is None and molecule_smiles is None
-    ):
-        exit_with_messages(
-            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
-            "exclusive.",
-            console=console,
-            exit_code=2,
-        )
-
-    with handle_common_errors(console) as error_state:
-
-        _submit(
-            console=console,
-            input_file_path=input_file_path,
-            molecule_smiles=molecule_smiles,
-            force_field_path=force_field_path,
-            target_torsion_smirks=target_torsion_smirks,
-            default_qc_spec=default_qc_spec,
-            workflow_name=workflow_name,
-            workflow_file_name=workflow_file_name,
-        )
-
-    if error_state["has_errored"]:
-        raise click.exceptions.Exit(code=2)
-
-
 def _submit(
     console: "rich.Console",
     input_file_path: Optional[str],
@@ -280,6 +237,49 @@ def _submit(
     console.print(f"[[green]✓[/green]] workflow submitted: id={response_id}")
 
     return response_id
+
+
+def _submit_cli(
+    input_file_path: Optional[str],
+    molecule_smiles: Optional[str],
+    force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
+):
+    """Submit a new bespoke optimization to a running executor."""
+
+    pretty.install()
+
+    console = rich.get_console()
+    print_header(console)
+
+    if (input_file_path is not None and molecule_smiles is not None) or (
+        input_file_path is None and molecule_smiles is None
+    ):
+        exit_with_messages(
+            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
+            "exclusive.",
+            console=console,
+            exit_code=2,
+        )
+
+    with handle_common_errors(console) as error_state:
+
+        _submit(
+            console=console,
+            input_file_path=input_file_path,
+            molecule_smiles=molecule_smiles,
+            force_field_path=force_field_path,
+            target_torsion_smirks=target_torsion_smirks,
+            default_qc_spec=default_qc_spec,
+            workflow_name=workflow_name,
+            workflow_file_name=workflow_file_name,
+        )
+
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)
 
 
 submit_cli = create_command(
