@@ -75,6 +75,15 @@ def submit_options():
             required=False,
             multiple=True,
         ),
+        optgroup.option(
+            "--default-qc-spec",
+            type=(str, str, str),
+            help="The program, method, and basis to use by default when performing any "
+            "QC calculations, e.g. `--default-qc-spec xtb gfn2xtb none`. If no basis "
+            "is required to be specified for a particular method (e.g. for ANI or XTB) "
+            "then 'none' should be specified.",
+            required=False,
+        ),
     ]
 
 
@@ -83,9 +92,12 @@ def _to_input_schema(
     molecule: "Molecule",
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
+
+    from openff.qcsubmit.common_structures import QCSpec
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -119,6 +131,21 @@ def _to_input_schema(
             workflow_factory.initial_force_field = force_field_path
         if len(target_torsion_smirks) > 0:
             workflow_factory.target_torsion_smirks = [*target_torsion_smirks]
+        if default_qc_spec is not None:
+
+            program, method, basis = default_qc_spec
+
+            if basis.lower() == "none":
+                basis = None
+
+            workflow_factory.default_qc_specs = [
+                QCSpec(
+                    program=program,
+                    method=method,
+                    basis=basis,
+                    spec_description="CLI provided spec",
+                )
+            ]
 
     except (FileNotFoundError, RuntimeError) as e:
 
@@ -154,12 +181,56 @@ def _to_input_schema(
         return workflow_factory.optimization_schema_from_molecule(molecule)
 
 
+def _submit_cli(
+    input_file_path: Optional[str],
+    molecule_smiles: Optional[str],
+    force_field_path: Optional[str],
+    target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
+    workflow_name: Optional[str],
+    workflow_file_name: Optional[str],
+):
+    """Submit a new bespoke optimization to a running executor."""
+
+    pretty.install()
+
+    console = rich.get_console()
+    print_header(console)
+
+    if (input_file_path is not None and molecule_smiles is not None) or (
+        input_file_path is None and molecule_smiles is None
+    ):
+        exit_with_messages(
+            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
+            "exclusive.",
+            console=console,
+            exit_code=2,
+        )
+
+    with handle_common_errors(console) as error_state:
+
+        _submit(
+            console=console,
+            input_file_path=input_file_path,
+            molecule_smiles=molecule_smiles,
+            force_field_path=force_field_path,
+            target_torsion_smirks=target_torsion_smirks,
+            default_qc_spec=default_qc_spec,
+            workflow_name=workflow_name,
+            workflow_file_name=workflow_file_name,
+        )
+
+    if error_state["has_errored"]:
+        raise click.exceptions.Exit(code=2)
+
+
 def _submit(
     console: "rich.Console",
     input_file_path: Optional[str],
     molecule_smiles: Optional[str],
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> str:
@@ -196,6 +267,7 @@ def _submit(
             molecule,
             force_field_path,
             target_torsion_smirks,
+            default_qc_spec,
             workflow_name,
             workflow_file_name,
         )
@@ -208,47 +280,6 @@ def _submit(
     console.print(f"[[green]✓[/green]] workflow submitted: id={response_id}")
 
     return response_id
-
-
-def _submit_cli(
-    input_file_path: Optional[str],
-    molecule_smiles: Optional[str],
-    force_field_path: Optional[str],
-    target_torsion_smirks: Tuple[str],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
-):
-    """Submit a new bespoke optimization to a running executor."""
-
-    pretty.install()
-
-    console = rich.get_console()
-    print_header(console)
-
-    if (input_file_path is not None and molecule_smiles is not None) or (
-        input_file_path is None and molecule_smiles is None
-    ):
-        exit_with_messages(
-            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
-            "exclusive.",
-            console=console,
-            exit_code=2,
-        )
-
-    with handle_common_errors(console) as error_state:
-
-        _submit(
-            console=console,
-            input_file_path=input_file_path,
-            molecule_smiles=molecule_smiles,
-            force_field_path=force_field_path,
-            target_torsion_smirks=target_torsion_smirks,
-            workflow_name=workflow_name,
-            workflow_file_name=workflow_file_name,
-        )
-
-    if error_state["has_errored"]:
-        raise click.exceptions.Exit(code=2)
 
 
 submit_cli = create_command(

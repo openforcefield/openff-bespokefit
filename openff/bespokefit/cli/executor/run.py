@@ -18,6 +18,7 @@ def _run_cli(
     output_force_field_path: Optional[str],
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     directory: Optional[str],
@@ -74,6 +75,7 @@ def _run_cli(
                 molecule_smiles=molecule_smiles,
                 force_field_path=force_field_path,
                 target_torsion_smirks=target_torsion_smirks,
+                default_qc_spec=default_qc_spec,
                 workflow_name=workflow_name,
                 workflow_file_name=workflow_file_name,
             )

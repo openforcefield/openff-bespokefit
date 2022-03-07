@@ -72,6 +72,10 @@ it with bespoke parameters generated according to the [default built-in workflow
 :::{note}
 Other available workflow can be viewed by running `openff-bespoke executor run --help`, or alternatively, the path to a 
 [saved workflow factory](quick_start_config_factory) can also be provided using the `--workflow-file` flag.
+
+Alternatively, certain options defined by the workflow can be overridden from the CLI. For example, the default
+specification to use for any new QC calculations can be specified using the `--default-qc-spec` flag, e.g.
+`--default-qc-spec xtb gfn2xtb none`. See the `--help` for other available overrides.
 :::
 
 By default, BespokeFit will use create a single worker for each step in the fitting workflow (i.e. one for fragmenting 
