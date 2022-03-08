@@ -14,6 +14,12 @@ A BespokeFit run goes through five steps:
 
 A BespokeFit run begins by selecting target parameters from the target molecule. By default, BespokeFit only optimizes torsion parameters, and selects every rotatable bond whose torsion angle can be constructed without considering terminal hydrogen atoms. Other parameters can be chosen by setting the [`target_templates`] and [`target_torsion_smirks`] fields of the workflow factory.
 
+:::{figure-md} fig-target
+![2,6-dichloro-~{N}-[2-[[(2~{S})-2-ethyl-4-oxo-butanoyl]amino]-4-pyridyl]benzamide with selected bonds highlighted](img/theory/rotatable_nonterminal_bonds.svg)
+
+A hypothetical TYK2 ligand with each bond selected by the default BespokeFit workflow highlighted. The default BespokeFit workflow generates bespoke torsion parameters for the selected bonds.
+:::
+
 Parameter selection also involves selecting reference values for each target parameter. These reference values form a starting point for optimization later on, and are taken from the force field provided. By default, this is a mainline
 OpenFF force field, but it can be any force field in the SMIRNOFF format. The reference parameter is the value the parameter would take on if the reference force field were applied. Parameters missing from the reference force field have a reference value of zero. A BespokeFit run basically involves copying the reference parameters and making them bespoke to the target molecule to improve its accuracy in the augmented final force field.
 
@@ -37,10 +43,15 @@ Naively, a bond order is an integer; 1 for a single bond (single shared pair of 
 
 The fragmenter starts by identifying bonds associated with a target parameter and computing their WBO in the full molecule. It then treats each selected bond as a starting point and builds it up moiety by moiety towards the full molecule. The fragment stops growing when the the WBO in the fragment is within some disruption threshold of the WBO in the full molecule. This produces the minimum fragment for each bond that preserves the bond's chemical environment. See the [`openff-fragmenter` docs] for more information and a peer-reviewed reference.
 
+:::{figure-md} fig-target
+![Fragments generated from 2,6-dichloro-~{N}-[2-[[(2~{S})-2-ethyl-4-oxo-butanoyl]amino]-4-pyridyl]benzamide](img/theory/fragments.svg)
+
+Fragments generated from the above TYK2 ligand. The bond around which each fragment is built is highlighted and the original molecule is in light gray. Note that some fragments are repeated.
+:::
+
 [`openff-fragmenter`]: https://fragmenter.readthedocs.io/en/stable/index.html
 [`openff-fragmenter` docs]: https://fragmenter.readthedocs.io/en/stable/index.html
 
-<!-- - Maybe a picture of the parent molecule with rotatable bonds highlighted and arrows from the bond to the resulting fragment. Best to pick a molecule with some repeated fragments (the TYK2 series is a good example). -->
 
 ## SMIRKS Generation
 
