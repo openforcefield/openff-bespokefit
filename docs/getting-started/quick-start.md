@@ -126,8 +126,12 @@ openff-bespoke executor submit --file        "acetaminophen.sdf"   \
                                --workflow    "default"
 ```
 
-The `submit` command will print a unique ID that has been assigned by the executor to the submission. This ID can be 
-used to check on state of the submission:
+The `submit` command will also accept a combination of the two input forms as well as multiple occurrences of either. 
+After successfully submitting the molecules a table will be printed which maps the unique ID that has been assigned by 
+the executor to the submission to the molecule smiles and input file if appropriate. To keep track of submissions we can 
+also have the table saved to csv by add the corresponding `--save-submission-info` flag to the command.
+
+The ID's can be used to check on state of the submission:
 
 ```shell
 openff-bespoke executor watch --id "1"

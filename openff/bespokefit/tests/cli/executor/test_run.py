@@ -71,4 +71,4 @@ def test_run(runner, tmpdir):
         )
 
     assert output.exit_code == 0
-    assert "workflow submitted: id=1" in output.output
+    assert "the following workflows were submitted" in output.output

@@ -1,5 +1,5 @@
 import os.path
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import click
 import click.exceptions
@@ -9,6 +9,8 @@ from openff.utilities import get_data_file_path
 from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
+from rich.progress import track
+from rich.table import Table
 
 from openff.bespokefit.cli.utilities import (
     create_command,
@@ -25,7 +27,7 @@ if TYPE_CHECKING:
 
 # The run command inherits these options so be sure to take that into account when
 # making changes here.
-def submit_options():
+def submit_options(allow_multiple_molecules: bool = False):
     return [
         click.option(
             "--file",
@@ -33,6 +35,7 @@ def submit_options():
             type=click.Path(exists=True, file_okay=True, dir_okay=False),
             help="The file containing the molecule of interest",
             required=False,
+            multiple=allow_multiple_molecules,
         ),
         click.option(
             "--smiles",
@@ -40,6 +43,7 @@ def submit_options():
             type=click.STRING,
             help="The SMILES string representation of the input molecule.",
             required=False,
+            multiple=allow_multiple_molecules,
         ),
         click.option(
             "--workflow",
@@ -156,13 +160,15 @@ def _to_input_schema(
 
 def _submit(
     console: "rich.Console",
-    input_file_path: Optional[str],
-    molecule_smiles: Optional[str],
+    input_file_path: Optional[List[str]],
+    molecule_smiles: Optional[List[str]],
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
-) -> str:
+    allow_multiple_molecules: bool,
+    save_submission: bool,
+) -> List[str]:
 
     from openff.toolkit.topology import Molecule
 
@@ -170,53 +176,124 @@ def _submit(
 
     console.print(Padding("1. preparing the bespoke workflow", (0, 0, 1, 0)))
 
-    if input_file_path is not None:
+    all_molecules = []
+
+    if input_file_path:
         with console.status("loading the molecules"):
-            molecule = Molecule.from_file(input_file_path)
+            for input_file in input_file_path:
+                file_molecules = Molecule.from_file(input_file)
+                if isinstance(file_molecules, Molecule):
+                    file_molecules = [file_molecules]
 
-    else:
+                for m in file_molecules:
+                    m.properties["input_file"] = input_file
+                all_molecules.extend(file_molecules)
+
+    if molecule_smiles:
         with console.status("creating molecule from smiles"):
-            molecule = Molecule.from_smiles(molecule_smiles)
+            all_molecules.extend(
+                [Molecule.from_smiles(smiles) for smiles in molecule_smiles]
+            )
 
-    if not isinstance(molecule, Molecule) or "." in molecule.to_smiles():
+    if not allow_multiple_molecules and len(all_molecules) > 1:
 
         exit_with_messages(
-            "[[red]ERROR[/red]] only one molecule can currently be submitted at "
-            "a time",
+            "[[red]ERROR[/red] only one molecule can be submitted at once",
             console=console,
             exit_code=2,
         )
 
-    console.print("[[green]✓[/green]] [blue]1[/blue] molecule was found")
+    for molecule in all_molecules:
+        if "." in molecule.to_smiles():
 
-    with console.status("building fitting schemas"):
+            exit_with_messages(
+                f"[[red]ERROR[/red]] complexes are not supported, {molecule} can not be submitted!",
+                console=console,
+                exit_code=2,
+            )
 
-        input_schema = _to_input_schema(
-            console,
-            molecule,
-            force_field_path,
-            target_torsion_smirks,
-            workflow_name,
-            workflow_file_name,
+    console.print(
+        f"[[green]✓[/green]] [blue]{len(all_molecules)}[/blue] molecules found"
+    )
+
+    input_schemas = []
+    for molecule in track(
+        all_molecules,
+        description="building fitting schemas",
+        console=console,
+        transient=True,
+        total=len(all_molecules),
+    ):
+
+        input_schemas.append(
+            _to_input_schema(
+                console,
+                molecule,
+                force_field_path,
+                target_torsion_smirks,
+                workflow_name,
+                workflow_file_name,
+            )
         )
 
-    console.print("[[green]✓[/green]] fitting schema generated")
+    console.print("[[green]✓[/green]] fitting schemas generated")
 
     console.print(Padding("2. submitting the workflow", (1, 0, 1, 0)))
+    response_ids = []
+    for input_schema in track(
+        input_schemas,
+        description="submitting tasks",
+        total=len(input_schemas),
+        transient=True,
+        console=console,
+    ):
+        response_ids.append(BespokeExecutor.submit(input_schema))
 
-    response_id = BespokeExecutor.submit(input_schema)
-    console.print(f"[[green]✓[/green]] workflow submitted: id={response_id}")
+    console.print("[[green]✓[/green]] the following workflows were submitted")
+    table = Table()
+    table.add_column("ID", justify="center", no_wrap=True)
+    table.add_column("SMILES", overflow="fold")
+    table.add_column("NAME", overflow="fold")
+    table.add_column("FILE", no_wrap=True)
 
-    return response_id
+    for molecule, response_id in zip(all_molecules, response_ids):
+        table.add_row(
+            response_id,
+            molecule.to_smiles(explicit_hydrogens=False, mapped=False),
+            molecule.name,
+            molecule.properties.get("input_file", ""),
+        )
+
+    console.print(table)
+
+    if save_submission:
+        # also write the data to a csv file
+        import csv
+
+        with open("submission.csv", "w", newline="") as csv_file:
+            csv_table = csv.writer(csv_file)
+            csv_table.writerow(["ID", "SMILES", "NAME", "FILE"])
+            for molecule, response_id in zip(all_molecules, response_ids):
+                csv_table.writerow(
+                    [
+                        response_id,
+                        molecule.to_smiles(explicit_hydrogens=False, mapped=False),
+                        molecule.name,
+                        molecule.properties.get("input_file", ""),
+                    ]
+                )
+
+    return response_ids
 
 
 def _submit_cli(
-    input_file_path: Optional[str],
-    molecule_smiles: Optional[str],
-    force_field_path: Optional[str],
+    input_file_path: Optional[List[str]],
+    molecule_smiles: Optional[List[str]],
+    force_field_path: Optional[List[str]],
     target_torsion_smirks: Tuple[str],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
+    save_submission: bool,
 ):
     """Submit a new bespoke optimization to a running executor."""
 
@@ -224,16 +301,6 @@ def _submit_cli(
 
     console = rich.get_console()
     print_header(console)
-
-    if (input_file_path is not None and molecule_smiles is not None) or (
-        input_file_path is None and molecule_smiles is None
-    ):
-        exit_with_messages(
-            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
-            "exclusive.",
-            console=console,
-            exit_code=2,
-        )
 
     with handle_common_errors(console) as error_state:
 
@@ -245,14 +312,27 @@ def _submit_cli(
             target_torsion_smirks=target_torsion_smirks,
             workflow_name=workflow_name,
             workflow_file_name=workflow_file_name,
+            allow_multiple_molecules=True,
+            save_submission=save_submission,
         )
 
     if error_state["has_errored"]:
         raise click.exceptions.Exit(code=2)
 
 
+__submit_options = [*submit_options(allow_multiple_molecules=True)]
+__submit_options.insert(
+    4,
+    click.option(
+        "--save-submission-info/--no-save-submission-info",
+        "save_submission",
+        help="If the submission table printed in the terminal, which maps input molecules to an optimization ID, should be saved to a csv file.",
+        default=False,
+    ),
+)
+
 submit_cli = create_command(
     click_command=click.command("submit"),
-    click_options=submit_options(),
+    click_options=__submit_options,
     func=_submit_cli,
 )
