@@ -287,7 +287,7 @@ def _submit(
 
 
 def _submit_cli(
-    input_file_path: Optional[str],
+    input_file_path: Optional[List[str]],
     molecule_smiles: Optional[List[str]],
     force_field_path: Optional[List[str]],
     target_torsion_smirks: Tuple[str],

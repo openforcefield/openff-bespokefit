@@ -4,6 +4,7 @@ import os.path
 
 import click.exceptions
 import pytest
+import requests
 import requests_mock
 import rich
 from openff.toolkit.topology import Molecule
@@ -320,3 +321,33 @@ def test_submit_file_and_smiles_cli(runner, tmpdir):
     assert (
         "[✓] 3 molecules found" in output.output
     )  # make sure all input molecules are included in the submission
+
+
+def test_submit_cli_errors(tmpdir):
+    """Make sure errors are caught by submit_cli"""
+
+    console = rich.get_console()
+
+    settings = current_settings()
+
+    with requests_mock.Mocker() as m:
+        mock_href = (
+            f"http://127.0.0.1:"
+            f"{settings.BEFLOW_GATEWAY_PORT}"
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}"
+        )
+        m.register_uri(method="post", url=mock_href, exc=requests.ConnectionError)
+        with console.capture() as capture:
+            with pytest.raises(click.exceptions.Exit):
+                _submit_cli(
+                    input_file_path=None,
+                    molecule_smiles=["CC"],
+                    workflow_name="default",
+                    workflow_file_name=None,
+                    target_torsion_smirks=tuple(),
+                    force_field_path=None,
+                    save_submission=False,
+                )
+
+        assert "[ERROR] failed to connect to the bespoke executor" in capture.get()
