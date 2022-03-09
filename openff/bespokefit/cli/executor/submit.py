@@ -101,7 +101,7 @@ def _to_input_schema(
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
 
-    from openff.qcsubmit.common_structures import QCSpec
+    from openff.qcsubmit.common_structures import QCSpec, QCSpecificationError
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -151,11 +151,7 @@ def _to_input_schema(
                 )
             ]
 
-    except (FileNotFoundError, RuntimeError) as e:
-
-        # Need for QCSubmit #176
-        if isinstance(e, RuntimeError) and "could not be found" not in str(e):
-            raise e
+    except FileNotFoundError:
 
         exit_with_messages(
             Padding(
@@ -174,6 +170,19 @@ def _to_input_schema(
                 f"[[red]ERROR[/red]] The workflow could not be parsed. Make sure "
                 f"[repr.filename]{invalid_workflow_name}[/repr.filename] is a valid "
                 f"`BespokeWorkflowFactory` schema.",
+                (1, 0, 0, 0),
+            ),
+            Padding(str(e), (1, 1, 1, 1)),
+            console=console,
+            exit_code=2,
+        )
+
+    except QCSpecificationError as e:
+
+        exit_with_messages(
+            Padding(
+                f"[[red]ERROR[/red]] The QCSpecification is not valid. Make sure you have supplied a valid combination "
+                f"of program: {program}, method: {method}, and basis: {basis}",
                 (1, 0, 0, 0),
             ),
             Padding(str(e), (1, 1, 1, 1)),
@@ -261,7 +270,8 @@ def _submit(
                 target_torsion_smirks,
                 default_qc_spec,
                 workflow_name,
-                workflow_file_name,)
+                workflow_file_name,
+            )
         )
 
     console.print("[[green]✓[/green]] fitting schemas generated")

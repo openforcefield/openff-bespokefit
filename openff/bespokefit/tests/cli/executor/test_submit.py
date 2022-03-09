@@ -163,6 +163,48 @@ def test_to_input_schema_invalid_schema(tmpdir):
     assert "The workflow could not be parsed" in capture.get()
 
 
+def test_to_input_schema_overwrite_spec(tmpdir):
+    """Make sure the CLI spec overwrites the workflow spec"""
+
+    console = rich.get_console()
+
+    input_schema = _to_input_schema(
+        console=console,
+        molecule=Molecule.from_smiles("CC"),
+        force_field_path=None,
+        target_torsion_smirks=tuple(),
+        default_qc_spec=("xtb", "gfn2xtb", "none"),
+        workflow_name="debug",  # this workflow has a rdkit spec by default
+        workflow_file_name=None,
+    )
+
+    qc_spec = input_schema.stages[0].targets[0].calculation_specification
+    assert qc_spec.program == "xtb"
+    assert qc_spec.model.method == "gfn2xtb"
+    assert qc_spec.model.basis is None
+
+
+def test_to_input_schema_error_spec(tmpdir):
+    """Make sure specification validation errors are raised."""
+
+    console = rich.get_console()
+
+    with console.capture() as capture:
+        with pytest.raises(click.exceptions.Exit):
+
+            _to_input_schema(
+                console=console,
+                molecule=Molecule.from_smiles("CC"),
+                force_field_path=None,
+                target_torsion_smirks=tuple(),
+                default_qc_spec=("xtb", "gfn2xtb", "fake_basis"),
+                workflow_name="debug",
+                workflow_file_name=None,
+            )
+
+    assert "The QCSpecification is not valid." in capture.get()
+
+
 def test_submit_multi_molecule(tmpdir):
 
     console = rich.get_console()
