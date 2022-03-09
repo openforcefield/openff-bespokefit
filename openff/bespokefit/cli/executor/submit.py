@@ -176,21 +176,24 @@ def _submit(
 
     console.print(Padding("1. preparing the bespoke workflow", (0, 0, 1, 0)))
 
+    all_molecules = []
+
     if input_file_path:
         with console.status("loading the molecules"):
-            all_molecules = []
             for input_file in input_file_path:
                 file_molecules = Molecule.from_file(input_file)
                 if isinstance(file_molecules, Molecule):
-                    file_molecules.properties["input_file"] = input_file
-                    all_molecules.append(file_molecules)
-                else:
-                    for m in file_molecules:
-                        m.properties["input_file"] = input_file
-                    all_molecules.extend(file_molecules)
-    else:
+                    file_molecules = [file_molecules]
+
+                for m in file_molecules:
+                    m.properties["input_file"] = input_file
+                all_molecules.extend(file_molecules)
+
+    elif molecule_smiles:
         with console.status("creating molecule from smiles"):
-            all_molecules = [Molecule.from_smiles(smiles) for smiles in molecule_smiles]
+            all_molecules.extend(
+                [Molecule.from_smiles(smiles) for smiles in molecule_smiles]
+            )
 
     if not allow_multiple_molecules and len(all_molecules) > 1:
 
@@ -296,16 +299,6 @@ def _submit_cli(
 
     console = rich.get_console()
     print_header(console)
-
-    if (input_file_path and molecule_smiles) or (
-        not input_file_path and not molecule_smiles
-    ):
-        exit_with_messages(
-            "[[red]ERROR[/red]] The `file` and `smiles` arguments are mutually "
-            "exclusive.",
-            console=console,
-            exit_code=2,
-        )
 
     with handle_common_errors(console) as error_state:
 

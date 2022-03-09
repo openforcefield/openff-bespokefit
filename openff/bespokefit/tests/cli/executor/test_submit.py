@@ -283,34 +283,37 @@ def test_submit_cli(runner, tmpdir):
     assert "the following workflows were submitted" in output.output
 
 
-@pytest.mark.parametrize(
-    "file, smiles",
-    [
-        pytest.param("test.sdf", "CC", id="both defined."),
-        pytest.param(None, None, id="Both missing"),
-    ],
-)
-def test_submit_cli_mutual_exclusive_args(file, smiles):
-    """
-    Make sure an error is raised if we pass mutual exclusive args.
-    """
+def test_submit_file_and_smiles_cli(runner, tmpdir):
+    """Make sure we can accept files and smiles combinations."""
 
-    console = rich.get_console()
+    settings = current_settings()
 
-    with console.capture() as capture:
-        with pytest.raises(click.exceptions.Exit):
+    input_file_path = os.path.join(tmpdir, "mol.sdf")
+    Molecule.from_smiles("CC").to_file(input_file_path, "SDF")
 
-            _submit_cli(
-                input_file_path=file,
-                molecule_smiles=smiles,
-                workflow_name="default",
-                workflow_file_name=None,
-                target_torsion_smirks=tuple(),
-                force_field_path=None,
-                save_submission=False,
-            )
+    with requests_mock.Mocker() as m:
 
-    assert (
-        "[ERROR] The `file` and `smiles` arguments are mutually exclusive."
-        in capture.get()
-    )
+        mock_href = (
+            f"http://127.0.0.1:"
+            f"{settings.BEFLOW_GATEWAY_PORT}"
+            f"{settings.BEFLOW_API_V1_STR}/"
+            f"{settings.BEFLOW_COORDINATOR_PREFIX}"
+        )
+        m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
+
+        output = runner.invoke(
+            submit_cli,
+            args=[
+                "--file",
+                input_file_path,
+                "--workflow",
+                "debug",
+                "--smiles",
+                "CCO",
+                "--smiles",
+                "CCN",
+            ],
+        )
+
+    assert output.exit_code == 0
+    assert "the following workflows were submitted" in output.output
