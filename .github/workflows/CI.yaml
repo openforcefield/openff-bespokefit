@@ -26,7 +26,7 @@ jobs:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
     steps:
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v3
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2.1.1
