@@ -189,7 +189,7 @@ def _submit(
                     m.properties["input_file"] = input_file
                 all_molecules.extend(file_molecules)
 
-    elif molecule_smiles:
+    if molecule_smiles:
         with console.status("creating molecule from smiles"):
             all_molecules.extend(
                 [Molecule.from_smiles(smiles) for smiles in molecule_smiles]
@@ -221,6 +221,7 @@ def _submit(
         all_molecules,
         description="building fitting schemas",
         console=console,
+        transient=True,
         total=len(all_molecules),
     ):
 
@@ -243,6 +244,7 @@ def _submit(
         input_schemas,
         description="submitting tasks",
         total=len(input_schemas),
+        transient=True,
         console=console,
     ):
         response_ids.append(BespokeExecutor.submit(input_schema))

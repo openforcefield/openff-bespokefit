@@ -317,3 +317,6 @@ def test_submit_file_and_smiles_cli(runner, tmpdir):
 
     assert output.exit_code == 0
     assert "the following workflows were submitted" in output.output
+    assert (
+        "[✓] 3 molecules found" in output.output
+    )  # make sure all input molecules are included in the submission
