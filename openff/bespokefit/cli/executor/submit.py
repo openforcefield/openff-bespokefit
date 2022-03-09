@@ -79,6 +79,15 @@ def submit_options(allow_multiple_molecules: bool = False):
             required=False,
             multiple=True,
         ),
+        optgroup.option(
+            "--default-qc-spec",
+            type=(str, str, str),
+            help="The program, method, and basis to use by default when performing any "
+            "QC calculations, e.g. `--default-qc-spec xtb gfn2xtb none`. If no basis "
+            "is required to be specified for a particular method (e.g. for ANI or XTB) "
+            "then 'none' should be specified.",
+            required=False,
+        ),
     ]
 
 
@@ -87,9 +96,12 @@ def _to_input_schema(
     molecule: "Molecule",
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
+
+    from openff.qcsubmit.common_structures import QCSpec, QCSpecificationError
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -123,12 +135,23 @@ def _to_input_schema(
             workflow_factory.initial_force_field = force_field_path
         if len(target_torsion_smirks) > 0:
             workflow_factory.target_torsion_smirks = [*target_torsion_smirks]
+        if default_qc_spec is not None:
 
-    except (FileNotFoundError, RuntimeError) as e:
+            program, method, basis = default_qc_spec
 
-        # Need for QCSubmit #176
-        if isinstance(e, RuntimeError) and "could not be found" not in str(e):
-            raise e
+            if basis.lower() == "none":
+                basis = None
+
+            workflow_factory.default_qc_specs = [
+                QCSpec(
+                    program=program,
+                    method=method,
+                    basis=basis,
+                    spec_description="CLI provided spec",
+                )
+            ]
+
+    except FileNotFoundError:
 
         exit_with_messages(
             Padding(
@@ -154,6 +177,19 @@ def _to_input_schema(
             exit_code=2,
         )
 
+    except QCSpecificationError as e:
+
+        exit_with_messages(
+            Padding(
+                f"[[red]ERROR[/red]] The QCSpecification is not valid. Make sure you have supplied a valid combination "
+                f"of program: {program}, method: {method}, and basis: {basis}",
+                (1, 0, 0, 0),
+            ),
+            Padding(str(e), (1, 1, 1, 1)),
+            console=console,
+            exit_code=2,
+        )
+
     else:
         return workflow_factory.optimization_schema_from_molecule(molecule)
 
@@ -164,6 +200,7 @@ def _submit(
     molecule_smiles: Optional[List[str]],
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     allow_multiple_molecules: bool,
@@ -231,6 +268,7 @@ def _submit(
                 molecule,
                 force_field_path,
                 target_torsion_smirks,
+                default_qc_spec,
                 workflow_name,
                 workflow_file_name,
             )
@@ -291,6 +329,7 @@ def _submit_cli(
     molecule_smiles: Optional[List[str]],
     force_field_path: Optional[List[str]],
     target_torsion_smirks: Tuple[str],
+    default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     save_submission: bool,
@@ -310,6 +349,7 @@ def _submit_cli(
             molecule_smiles=molecule_smiles,
             force_field_path=force_field_path,
             target_torsion_smirks=target_torsion_smirks,
+            default_qc_spec=default_qc_spec,
             workflow_name=workflow_name,
             workflow_file_name=workflow_file_name,
             allow_multiple_molecules=True,
