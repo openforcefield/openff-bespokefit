@@ -70,8 +70,12 @@ def _run_cli(
 
             response_id = _submit(
                 console=console,
-                input_file_path=[input_file_path],
-                molecule_smiles=[molecule_smiles],
+                input_file_path=[input_file_path]
+                if input_file_path is not None
+                else [],
+                molecule_smiles=[molecule_smiles]
+                if molecule_smiles is not None
+                else [],
                 force_field_path=force_field_path,
                 target_torsion_smirks=target_torsion_smirks,
                 workflow_name=workflow_name,
