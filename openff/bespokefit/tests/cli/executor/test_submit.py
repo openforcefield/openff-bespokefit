@@ -1,14 +1,13 @@
+import csv
 import json
 import os.path
 
 import click.exceptions
-import numpy
 import pytest
 import requests_mock
 import rich
-from openff.toolkit.topology import Molecule, Topology
+from openff.toolkit.topology import Molecule
 from openff.utilities import get_data_file_path
-from openmm import unit
 
 from openff.bespokefit.cli.executor.submit import (
     _submit,
@@ -163,26 +162,21 @@ def test_submit_multi_molecule(tmpdir):
 
     console = rich.get_console()
 
-    input_file_path = os.path.join(tmpdir, "mol.pdb")
-
-    molecules = [Molecule.from_smiles(smiles) for smiles in ("ClCl", "BrBr")]
-    Topology.from_molecules(molecules).to_file(
-        input_file_path, positions=numpy.zeros((4, 3)) * unit.angstrom
-    )
-
     with console.capture() as capture:
         with pytest.raises(click.exceptions.Exit):
             _submit(
                 console,
-                input_file_path=input_file_path,
-                molecule_smiles=None,
+                input_file_path=[],
+                molecule_smiles=["[Cu+2].[O-]S(=O)(=O)[O-]"],
                 force_field_path="openff-2.0.0.offxml",
                 target_torsion_smirks=tuple(),
                 workflow_name="debug",
                 workflow_file_name=None,
+                save_submission=False,
+                allow_multiple_molecules=False,
             )
 
-    assert "only one molecule can currently" in capture.get()
+    assert "complexes are not supported" in capture.get()
 
 
 def test_submit_invalid_schema(tmpdir):
@@ -194,12 +188,16 @@ def test_submit_invalid_schema(tmpdir):
     with pytest.raises(click.exceptions.Exit):
         _submit(
             rich.get_console(),
-            input_file_path=input_file_path,
-            molecule_smiles=None,
+            input_file_path=[
+                input_file_path,
+            ],
+            molecule_smiles=[],
             force_field_path="openff-2.0.0.offxml",
             target_torsion_smirks=tuple(),
             workflow_name=None,
             workflow_file_name=None,
+            save_submission=False,
+            allow_multiple_molecules=False,
         )
 
 
@@ -207,41 +205,56 @@ def test_submit_invalid_schema(tmpdir):
     "file, smiles",
     [
         pytest.param(
-            get_data_file_path(
-                os.path.join("test", "molecules", "ethane.sdf"),
-                package_name="openff.bespokefit",
-            ),
-            None,
+            [
+                get_data_file_path(
+                    os.path.join("test", "molecules", "ethane.sdf"),
+                    package_name="openff.bespokefit",
+                )
+            ],
+            [],
             id="file path",
         ),
-        pytest.param(None, "CC", id="smiles"),
+        pytest.param([], ["CC"], id="smiles"),
     ],
 )
 def test_submit(tmpdir, file, smiles):
     """Make sure to schema failures are cleanly handled."""
 
-    settings = current_settings()
+    with tmpdir.as_cwd():
+        settings = current_settings()
 
-    with requests_mock.Mocker() as m:
+        with requests_mock.Mocker() as m:
 
-        mock_href = (
-            f"http://127.0.0.1:"
-            f"{settings.BEFLOW_GATEWAY_PORT}"
-            f"{settings.BEFLOW_API_V1_STR}/"
-            f"{settings.BEFLOW_COORDINATOR_PREFIX}"
-        )
-        m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
+            mock_href = (
+                f"http://127.0.0.1:"
+                f"{settings.BEFLOW_GATEWAY_PORT}"
+                f"{settings.BEFLOW_API_V1_STR}/"
+                f"{settings.BEFLOW_COORDINATOR_PREFIX}"
+            )
+            m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
-        response_id = _submit(
-            rich.get_console(),
-            input_file_path=file,
-            molecule_smiles=smiles,
-            force_field_path="openff-2.0.0.offxml",
-            target_torsion_smirks=tuple(),
-            workflow_name="debug",
-            workflow_file_name=None,
-        )
-        assert response_id == "1"
+            response_id = _submit(
+                rich.get_console(),
+                input_file_path=file,
+                molecule_smiles=smiles,
+                force_field_path="openff-2.0.0.offxml",
+                target_torsion_smirks=tuple(),
+                workflow_name="debug",
+                workflow_file_name=None,
+                save_submission=True,
+                allow_multiple_molecules=False,
+            )
+            assert response_id == [
+                "1",
+            ]
+            # check the submission file
+            with open("submission.csv") as csv_file:
+                submissions = csv.DictReader(csv_file)
+                for row in submissions:
+                    assert row["ID"] == "1"
+                    assert row["SMILES"] == "CC"
+                    if file:
+                        assert row["FILE"] == file[0]
 
 
 def test_submit_cli(runner, tmpdir):
@@ -267,7 +280,7 @@ def test_submit_cli(runner, tmpdir):
         )
 
     assert output.exit_code == 0
-    assert "workflow submitted: id=1" in output.output
+    assert "the following workflows were submitted" in output.output
 
 
 @pytest.mark.parametrize(
@@ -294,6 +307,7 @@ def test_submit_cli_mutual_exclusive_args(file, smiles):
                 workflow_file_name=None,
                 target_torsion_smirks=tuple(),
                 force_field_path=None,
+                save_submission=False,
             )
 
     assert (

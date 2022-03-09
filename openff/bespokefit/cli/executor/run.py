@@ -70,17 +70,19 @@ def _run_cli(
 
             response_id = _submit(
                 console=console,
-                input_file_path=input_file_path,
-                molecule_smiles=molecule_smiles,
+                input_file_path=[input_file_path],
+                molecule_smiles=[molecule_smiles],
                 force_field_path=force_field_path,
                 target_torsion_smirks=target_torsion_smirks,
                 workflow_name=workflow_name,
                 workflow_file_name=workflow_file_name,
+                allow_multiple_molecules=False,
+                save_submission=False,
             )
 
             console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
-            results = wait_until_complete(response_id)
+            results = wait_until_complete(response_id[0])
 
             console.print(
                 Padding(
@@ -109,7 +111,7 @@ def _run_cli(
             raise click.exceptions.Exit(code=2)
 
 
-__run_options = [*submit_options()]
+__run_options = [*submit_options(allow_multiple_molecules=False)]
 __run_options.insert(
     4,
     click.option(
