@@ -13,9 +13,7 @@ from pydantic import parse_raw_as
 import openff.bespokefit
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
-from openff.bespokefit.utilities.molecule import (
-    get_atom_symmetries,
-)
+from openff.bespokefit.utilities.molecule import get_atom_symmetries
 
 __settings = current_settings()
 
