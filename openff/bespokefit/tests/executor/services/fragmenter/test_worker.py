@@ -1,7 +1,13 @@
 import json
+import os
 
-from openff.fragmenter.fragment import FragmentationResult, PfizerFragmenter
+from openff.fragmenter.fragment import (
+    FragmentationResult,
+    PfizerFragmenter,
+    WBOFragmenter,
+)
 from openff.toolkit.topology import Molecule
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.executor.services.fragmenter import worker
 from openff.bespokefit.workflows.bespoke import _DEFAULT_ROTATABLE_SMIRKS
@@ -65,3 +71,42 @@ def test_fragmentation_skip(bace):
     )
 
     assert result_json == "null"
+
+
+def test_fragmentation_symmetry_fragments():
+    """Make sure symmetry equivalent fragments are filtered"""
+
+    # molecule has symmetry equivalent torsions
+    molecule = Molecule.from_smiles("COP(=O)(O)OC")
+
+    result_json = worker.fragment(
+        cmiles=molecule.to_smiles(mapped=True),
+        fragmenter_json=PfizerFragmenter().json(),
+        target_bond_smarts=[_DEFAULT_ROTATABLE_SMIRKS],
+    )
+    result = FragmentationResult.parse_raw(result_json)
+
+    assert len(result.fragments) == 1
+    assert len(result.fragment_molecules) == 1
+
+
+def test_fragmentation_equivalent_no_symmetry():
+    """Make sure duplicated fragments which are not symmetry equivalent are not filtered."""
+
+    molecule = Molecule.from_file(
+        file_path=get_data_file_path(
+            os.path.join("test", "molecules", "tyk2", "ejm31.sdf"), "openff.bespokefit"
+        ),
+        file_format="sdf",
+    )
+
+    result_json = worker.fragment(
+        cmiles=molecule.to_smiles(mapped=True),
+        fragmenter_json=WBOFragmenter().json(),
+        target_bond_smarts=[_DEFAULT_ROTATABLE_SMIRKS],
+    )
+
+    result = FragmentationResult.parse_raw(result_json)
+    assert len(result.fragments) == 5
+    unique_fragments = set([fragment.molecule for fragment in result.fragments])
+    assert len(unique_fragments) == 3
