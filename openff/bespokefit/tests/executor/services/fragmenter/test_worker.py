@@ -93,9 +93,13 @@ def test_fragmentation_symmetry_fragments():
 def test_fragmentation_equivalent_no_symmetry():
     """Make sure duplicated fragments which are not symmetry equivalent are not filtered."""
 
-    bace_folder = get_data_file_path(
-        os.path.join("test", "molecules", "bace"), "openff.bespokefit"
+    bace_folder = os.path.dirname(
+        get_data_file_path(
+            os.path.join("test", "molecules", "bace", "bace_parent.sdf"),
+            "openff.bespokefit",
+        )
     )
+
     molecule = Molecule.from_file(
         file_path=os.path.join(bace_folder, "bace_parent.sdf"),
         file_format="sdf",
