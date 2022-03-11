@@ -94,23 +94,23 @@ def _deduplicate_fragments(
     for fragments in fragments_by_smiles.values():
         if len(fragments) == 1:
             unique_fragments.extend(fragments)
+            continue
 
-        else:
-            symmetry_groups = set()
-            for fragment in fragments:
-                bond_map = fragment.bond_indices
-                fragment_mol = fragment.molecule
-                # get the index of the atoms in the fragment
-                atom1, atom2 = get_atom_index(
-                    fragment_mol, bond_map[0]
-                ), get_atom_index(fragment_mol, bond_map[1])
-                symmetry_classes = get_atom_symmetries(fragment_mol)
-                symmetry_group = tuple(
-                    sorted([symmetry_classes[atom1], symmetry_classes[atom2]])
-                )
-                if symmetry_group not in symmetry_groups:
-                    symmetry_groups.add(symmetry_group)
-                    unique_fragments.append(fragment)
+        symmetry_groups = set()
+        for fragment in fragments:
+            bond_map = fragment.bond_indices
+            fragment_mol = fragment.molecule
+            # get the index of the atoms in the fragment
+            atom1, atom2 = get_atom_index(fragment_mol, bond_map[0]), get_atom_index(
+                fragment_mol, bond_map[1]
+            )
+            symmetry_classes = get_atom_symmetries(fragment_mol)
+            symmetry_group = tuple(
+                sorted([symmetry_classes[atom1], symmetry_classes[atom2]])
+            )
+            if symmetry_group not in symmetry_groups:
+                symmetry_groups.add(symmetry_group)
+                unique_fragments.append(fragment)
 
     fragmentation_result.fragments = unique_fragments
 

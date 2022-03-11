@@ -93,10 +93,11 @@ def test_fragmentation_symmetry_fragments():
 def test_fragmentation_equivalent_no_symmetry():
     """Make sure duplicated fragments which are not symmetry equivalent are not filtered."""
 
+    bace_folder = get_data_file_path(
+        os.path.join("test", "molecules", "bace"), "openff.bespokefit"
+    )
     molecule = Molecule.from_file(
-        file_path=get_data_file_path(
-            os.path.join("test", "molecules", "tyk2", "ejm31.sdf"), "openff.bespokefit"
-        ),
+        file_path=os.path.join(bace_folder, "bace_parent.sdf"),
         file_format="sdf",
     )
 
@@ -107,6 +108,15 @@ def test_fragmentation_equivalent_no_symmetry():
     )
 
     result = FragmentationResult.parse_raw(result_json)
-    assert len(result.fragments) == 5
+    assert len(result.fragments) == 3
     unique_fragments = set([fragment.molecule for fragment in result.fragments])
-    assert len(unique_fragments) == 3
+    assert len(unique_fragments) == 2
+    reference_fragments = [
+        Molecule.from_file(
+            file_path=os.path.join(bace_folder, f"bace_frag{i + 1}.sdf"),
+            file_format="sdf",
+        )
+        for i in range(2)
+    ]
+    for fragment in reference_fragments:
+        assert fragment in unique_fragments
