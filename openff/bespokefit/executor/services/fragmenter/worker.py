@@ -6,12 +6,14 @@ from openff.fragmenter.fragment import (
     FragmentationResult,
     PfizerFragmenter,
     WBOFragmenter,
+    get_atom_index,
 )
 from pydantic import parse_raw_as
 
 import openff.bespokefit
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.utilities.molecule import get_atom_symmetries
 
 __settings = current_settings()
 
@@ -37,8 +39,8 @@ def fragment(
         fragmenter = parse_raw_as(
             Union[PfizerFragmenter, WBOFragmenter], fragmenter_json
         )
-        return fragmenter.fragment(
-            molecule, target_bond_smarts=target_bond_smarts
+        return _deduplicate_fragments(
+            fragmenter.fragment(molecule, target_bond_smarts=target_bond_smarts)
         ).json()
 
     elif fragmenter_json == "null" and target_bond_smarts:
@@ -67,8 +69,49 @@ def fragment(
                 "version": openff.bespokefit.__version__,
             },
         )
-        return result.json()
+        return _deduplicate_fragments(result).json()
 
     else:
         # no fragmentation and no mock fragments
         return "null"
+
+
+def _deduplicate_fragments(
+    fragmentation_result: FragmentationResult,
+) -> FragmentationResult:
+    """Remove symmetry equivalent fragments from the results."""
+    from collections import defaultdict
+
+    # group fragments which are the same
+    fragments_by_smiles = defaultdict(list)
+    for fragment_result in fragmentation_result.fragments:
+        fragments_by_smiles[
+            fragment_result.molecule.to_smiles(explicit_hydrogens=False)
+        ].append(fragment_result)
+
+    unique_fragments = []
+    # remove duplicated symmetry equivalent fragments
+    for fragments in fragments_by_smiles.values():
+        if len(fragments) == 1:
+            unique_fragments.extend(fragments)
+            continue
+
+        symmetry_groups = set()
+        for fragment in fragments:
+            bond_map = fragment.bond_indices
+            fragment_mol = fragment.molecule
+            # get the index of the atoms in the fragment
+            atom1, atom2 = get_atom_index(fragment_mol, bond_map[0]), get_atom_index(
+                fragment_mol, bond_map[1]
+            )
+            symmetry_classes = get_atom_symmetries(fragment_mol)
+            symmetry_group = tuple(
+                sorted([symmetry_classes[atom1], symmetry_classes[atom2]])
+            )
+            if symmetry_group not in symmetry_groups:
+                symmetry_groups.add(symmetry_group)
+                unique_fragments.append(fragment)
+
+    fragmentation_result.fragments = unique_fragments
+
+    return fragmentation_result
