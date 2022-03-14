@@ -3,4 +3,4 @@ from openff.bespokefit.executor.services.qcgenerator.qcengine import (
     TorsionDriveProcedureParallel,
 )
 
-__all__ = ["router"]
+__all__ = ["router", "TorsionDriveProcedureParallel"]
