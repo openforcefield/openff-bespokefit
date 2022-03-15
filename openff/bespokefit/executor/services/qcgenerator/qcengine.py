@@ -17,7 +17,7 @@ def _divide_config(config: TaskConfig, n_workers: int) -> TaskConfig:
     return TaskConfig(
         ncores=int(config.ncores / n_workers),
         memory=int(config.memory / n_workers),
-        retries=2,
+        retries=config.retries,
         nnodes=1,
     )
 
@@ -41,7 +41,15 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
         """
 
         settings = current_settings()
+        program = input_model.optimization_spec.keywords["program"]
         opts_per_worker = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS
+        if program == "psi4" and opts_per_worker == "auto":
+            # we recommend 8 cores per worker for psi4 from our qcfractal jobs
+            opts_per_worker = max([int(config.ncores / 8), 1])
+        elif opts_per_worker == "auto":
+            # for low cost methods like ani or xtb its often faster to not split the jobs
+            opts_per_worker = 1
+
         n_jobs = sum([len(value) for value in next_jobs.values()])
         if opts_per_worker > 1 and n_jobs > 1:
             # split the resources based on the number of tasks
