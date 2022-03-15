@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     BEFLOW_QC_COMPUTE_WORKER = "openff.bespokefit.executor.services.qcgenerator.worker"
     BEFLOW_QC_COMPUTE_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
     BEFLOW_QC_COMPUTE_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
-    BEFLOW_QC_COMPUTE_WORKER_N_TASKS: float = 1
+    BEFLOW_QC_COMPUTE_WORKER_N_TASKS: Union[int, Literal["auto"]] = "auto"
 
     BEFLOW_OPTIMIZER_PREFIX = "optimizations"
     BEFLOW_OPTIMIZER_ROUTER = "openff.bespokefit.executor.services.optimizer.app:router"
