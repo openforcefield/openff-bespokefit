@@ -1,4 +1,12 @@
 import pytest
+from openff.toolkit.topology import Molecule
+from qcelemental.models.common_models import DriverEnum, Model
+from qcelemental.models.procedures import (
+    OptimizationSpecification,
+    QCInputSpecification,
+    TDKeywords,
+    TorsionDriveInput,
+)
 from qcengine.config import TaskConfig
 
 from openff.bespokefit.executor.services.qcgenerator.qcengine import (
@@ -37,8 +45,24 @@ class TestTorsionDriveProcedureParallel:
 
         procedure = TorsionDriveProcedureParallel()
 
+        molecule: Molecule = Molecule.from_smiles("CC")
+        molecule.generate_conformers(n_conformers=1)
+
+        input_schema = TorsionDriveInput(
+            keywords=TDKeywords(dihedrals=[(0, 1, 2, 3)], grid_spacing=[15]),
+            initial_molecule=[molecule.to_qcschema(conformer=0)],
+            input_specification=QCInputSpecification(
+                model=Model(method="hf", basis="6-31G*"),
+                driver=DriverEnum.gradient,
+            ),
+            optimization_spec=OptimizationSpecification(
+                procedure="geometric",
+                keywords={"program": "geometric"},
+            ),
+        )
+
         results = procedure._spawn_optimizations(
-            {"(0,)": [[0], [1]], "(1,)": [[2], [3]]}, None, task_config
+            {"(0,)": [[0], [1]], "(1,)": [[2], [3]]}, input_schema, task_config
         )
 
         assert results == {"(0,)": [0, 1], "(1,)": [2, 3]}
