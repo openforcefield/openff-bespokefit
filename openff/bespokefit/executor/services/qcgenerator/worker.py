@@ -4,7 +4,6 @@ from typing import Any, Dict, List
 import psutil
 import qcelemental
 import qcengine
-import redis
 from celery.utils.log import get_task_logger
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicResult
@@ -23,23 +22,19 @@ from qcengine.config import get_global
 
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
-__settings = current_settings()
-
-redis_connection = redis.Redis(
-    host=__settings.BEFLOW_REDIS_ADDRESS,
-    port=__settings.BEFLOW_REDIS_PORT,
-    db=__settings.BEFLOW_REDIS_DB,
+celery_app = configure_celery_app(
+    "qcgenerator", connect_to_default_redis(validate=False)
 )
-celery_app = configure_celery_app("qcgenerator", redis_connection)
 
 _task_logger: logging.Logger = get_task_logger(__name__)
 
 
 def _task_config() -> Dict[str, Any]:
 
-    worker_settings = __settings.qc_compute_settings
+    worker_settings = current_settings().qc_compute_settings
 
     n_cores = (
         get_global("ncores") if not worker_settings.n_cores else worker_settings.n_cores

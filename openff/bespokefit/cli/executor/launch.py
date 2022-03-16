@@ -5,8 +5,13 @@ import click
 import rich
 from click_option_group import optgroup
 from rich import pretty
+from rich.padding import Padding
 
-from openff.bespokefit.cli.utilities import create_command, print_header
+from openff.bespokefit.cli.utilities import (
+    create_command,
+    exit_with_messages,
+    print_header,
+)
 
 
 # The run command inherits these options so be sure to take that into account when
@@ -92,6 +97,56 @@ def launch_options(
     ]
 
 
+def validate_redis_connection(console: "rich.Console", allow_existing: bool = True):
+    """Checks whether a redis server is already running and if so, that it is
+    compatible with BespokeFit.
+    """
+
+    from openff.bespokefit.executor.services import current_settings
+    from openff.bespokefit.executor.utilities.redis import (
+        RedisBadConfigurationError,
+        RedisNotConfiguredError,
+        connect_to_default_redis,
+        is_redis_available,
+    )
+
+    settings = current_settings()
+
+    if not is_redis_available(
+        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+    ):
+        return
+
+    if not allow_existing:
+
+        exit_with_messages(
+            f"[[red]ERROR[/red]] a redis server is already running at "
+            f"host={settings.BEFLOW_REDIS_ADDRESS} and "
+            f"port={settings.BEFLOW_REDIS_PORT}, continuing to run would likely cause"
+            f"unintended consequences.",
+            console=console,
+            exit_code=1,
+        )
+
+    console.print(
+        Padding(
+            "[[yellow]WARNING[/yellow]] a redis server is already running - this "
+            "will be connected to by default",
+            (0, 0, 1, 0),
+        )
+    )
+
+    try:
+        connect_to_default_redis()
+    except (RedisNotConfiguredError, RedisBadConfigurationError) as e:
+
+        exit_with_messages(
+            f"[[red]ERROR[/red]] {str(e)}",
+            console=console,
+            exit_code=1,
+        )
+
+
 def _launch_cli(
     directory: str,
     n_fragmenter_workers: int,
@@ -112,6 +167,8 @@ def _launch_cli(
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
+
+    validate_redis_connection(console)
 
     with BespokeExecutor(
         directory=directory,

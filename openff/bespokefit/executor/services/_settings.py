@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     BEFLOW_GATEWAY_LOG_LEVEL: str = "error"
 
     BEFLOW_REDIS_ADDRESS: str = "localhost"
-    BEFLOW_REDIS_PORT: int = 6379
+    BEFLOW_REDIS_PORT: int = 6363
     BEFLOW_REDIS_DB: int = 0
 
     BEFLOW_COORDINATOR_PREFIX = "tasks"
@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     BEFLOW_COORDINATOR_WORKER = (
         "openff.bespokefit.executor.services.coordinator.worker:"
     )
+    BEFLOW_COORDINATOR_MAX_UPDATE_INTERVAL: float = 5.0
+    BEFLOW_COORDINATOR_MAX_RUNNING_TASKS: int = 1000
 
     BEFLOW_FRAGMENTER_PREFIX = "fragmentations"
     BEFLOW_FRAGMENTER_ROUTER = (

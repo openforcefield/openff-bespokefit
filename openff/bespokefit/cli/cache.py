@@ -26,7 +26,11 @@ from openff.bespokefit.cli.utilities import (
 )
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
-from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
+from openff.bespokefit.executor.utilities.redis import (
+    connect_to_default_redis,
+    is_redis_available,
+    launch_redis,
+)
 from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.tasks import task_from_result
 
@@ -177,10 +181,8 @@ def _update(
         redis_process = None
 
     try:
-        # connect to redis
-        redis_connection = redis.Redis(
-            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
-        )
+
+        redis_connection = connect_to_default_redis()
 
         # run the update
         _update_from_qcsubmit_result(

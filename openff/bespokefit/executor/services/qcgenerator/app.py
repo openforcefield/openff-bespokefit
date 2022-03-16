@@ -21,6 +21,7 @@ from openff.bespokefit.executor.utilities.depiction import (
     IMAGE_UNAVAILABLE_SVG,
     smiles_to_image,
 )
+from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 
 router = APIRouter()
 
@@ -34,8 +35,10 @@ __GET_IMAGE_ENDPOINT = (
 
 def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETResponse:
 
+    redis_connection = connect_to_default_redis()
+
     qc_task_info = get_task_information(worker.celery_app, qc_calc_id)
-    qc_calc_type = worker.redis_connection.hget("qcgenerator:types", qc_calc_id)
+    qc_calc_type = redis_connection.hget("qcgenerator:types", qc_calc_id)
 
     # Because QCElemental models contain numpy arrays that aren't natively JSON
     # serializable we need to work with plain dicts of primitive types here.
@@ -85,7 +88,8 @@ def get_qc_result(qc_calc_id: str, results: bool = True) -> QCGeneratorGETRespon
 @router.post("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
 
-    task_id = cached_compute_task(body.input_schema, worker.redis_connection)
+    redis_connection = connect_to_default_redis()
+    task_id = cached_compute_task(body.input_schema, redis_connection)
 
     return QCGeneratorPOSTResponse(
         id=task_id,

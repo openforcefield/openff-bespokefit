@@ -34,7 +34,10 @@ from qcportal.models import (
 )
 from simtk import unit
 
-from openff.bespokefit.executor.utilities.redis import launch_redis
+from openff.bespokefit.executor.utilities.redis import (
+    expected_redis_config_version,
+    launch_redis,
+)
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
@@ -488,3 +491,6 @@ def redis_connection(redis_session) -> redis.Redis:
 def reset_redis(redis_connection, monkeypatch):
 
     redis_connection.flushdb()
+    redis_connection.set(
+        "openff-bespokefit:redis-version", expected_redis_config_version()
+    )
