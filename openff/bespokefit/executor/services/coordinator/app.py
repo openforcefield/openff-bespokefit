@@ -18,6 +18,7 @@ from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
 )
 from openff.bespokefit.executor.services.coordinator.storage import (
+    TaskStatus,
     create_task,
     get_n_tasks,
     get_task,
@@ -39,11 +40,13 @@ __GET_TASK_IMAGE_ENDPOINT = (
 
 
 @router.get("/" + __settings.BEFLOW_COORDINATOR_PREFIX)
-def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageResponse:
+def get_optimizations(
+    skip: int = 0, limit: int = 1000, status: Optional[TaskStatus] = None
+) -> CoordinatorGETPageResponse:
     """Retrieves all bespoke optimizations that have been submitted to this server."""
 
-    task_ids = get_task_ids(skip, limit)
-    n_total_tasks = get_n_tasks()
+    task_ids = get_task_ids(skip, limit, status=(None if status is None else {status}))
+    n_total_tasks = get_n_tasks(status)
 
     contents = [
         Link(
@@ -60,22 +63,33 @@ def get_optimizations(skip: int = 0, limit: int = 1000) -> CoordinatorGETPageRes
     prev_index = max(0, skip - limit)
     next_index = min(n_total_tasks, skip + limit)
 
+    status_url = "" if status is None else f"&status={status}"
+
     return CoordinatorGETPageResponse(
         self=(
             f"{__settings.BEFLOW_API_V1_STR}/"
-            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={skip}&limit={limit}"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+            f"?skip={skip}"
+            f"&limit={limit}"
+            f"{status_url}"
         ),
         prev=None
         if prev_index >= skip
         else (
             f"{__settings.BEFLOW_API_V1_STR}/"
-            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={prev_index}&limit={limit}"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+            f"?skip={prev_index}"
+            f"&limit={limit}"
+            f"{status_url}"
         ),
         next=None
         if (next_index <= skip or next_index == n_total_tasks)
         else (
             f"{__settings.BEFLOW_API_V1_STR}/"
-            f"{__settings.BEFLOW_COORDINATOR_PREFIX}?skip={next_index}&limit={limit}"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+            f"?skip={next_index}"
+            f"&limit={limit}"
+            f"{status_url}"
         ),
         contents=contents,
     )

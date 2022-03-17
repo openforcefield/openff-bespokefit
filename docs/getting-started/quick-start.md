@@ -147,6 +147,12 @@ A full list of submissions currently being processes can be printed with the `li
 openff-bespoke executor list
 ```
 
+or if you would only like to inspect those that have failed for example:
+
+```shell
+openff-bespoke executor list --status errored
+```
+
 Once finished, the final force field can be retrieved using the `retrieve` command:
 
 ```shell
