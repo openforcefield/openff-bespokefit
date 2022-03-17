@@ -61,6 +61,10 @@ def list_cli(status_filter: Status):
 
     settings = current_settings()
 
+    # In the coordinator we keep both successful and errored tasks in the same 'complete'
+    # queue to avoid having to maintain and query to separate lists in redis, so here we
+    # need to condense these two states into one and then apply a second filter when
+    # iterating over the returned ids.
     status_url = (
         None
         if status_filter is None
