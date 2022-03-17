@@ -8,22 +8,52 @@ from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
 )
 from openff.bespokefit.executor.services.coordinator.storage import (
+    TaskStatus,
     create_task,
     get_task,
+    pop_task_status,
+    push_task_status,
 )
 
 
 @pytest.mark.parametrize(
-    "skip, limit, expected_ids, prev_link, next_link",
+    "skip, limit, status, expected_ids, prev_link, next_link",
     [
-        (0, 3, {"1", "2", "3"}, None, None),
-        (0, 2, {"1", "2"}, None, "/api/v1/tasks?skip=2&limit=2"),
-        (1, 1, {"2"}, "/api/v1/tasks?skip=0&limit=1", "/api/v1/tasks?skip=2&limit=1"),
+        (0, 3, None, {"2", "3", "1"}, None, None),
+        (
+            0,
+            2,
+            None,
+            {
+                "2",
+                "3",
+            },
+            None,
+            "/api/v1/tasks?skip=2&limit=2",
+        ),
+        (
+            1,
+            1,
+            None,
+            {"3"},
+            "/api/v1/tasks?skip=0&limit=1",
+            "/api/v1/tasks?skip=2&limit=1",
+        ),
+        (
+            1,
+            1,
+            TaskStatus.waiting,
+            {"3"},
+            "/api/v1/tasks?skip=0&limit=1&status=waiting",
+            None,
+        ),
+        (0, 1, TaskStatus.complete, {"1"}, None, None),
     ],
 )
 def test_get_optimizations(
     skip,
     limit,
+    status,
     expected_ids,
     prev_link,
     next_link,
@@ -31,10 +61,14 @@ def test_get_optimizations(
     bespoke_optimization_schema,
 ):
 
-    for _ in range(3):
-        create_task(bespoke_optimization_schema)
+    for i in range(3):
+        create_task(bespoke_optimization_schema, stages=None if i != 2 else [])
 
-    request = coordinator_client.get(f"/tasks?skip={skip}&limit={limit}")
+    push_task_status(pop_task_status(TaskStatus.waiting), TaskStatus.complete)
+
+    status_url = "" if status is None else f"&status={status}"
+
+    request = coordinator_client.get(f"/tasks?skip={skip}&limit={limit}{status_url}")
     request.raise_for_status()
 
     response = CoordinatorGETPageResponse.parse_raw(request.text)
