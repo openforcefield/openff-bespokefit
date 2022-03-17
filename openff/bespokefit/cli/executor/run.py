@@ -6,7 +6,10 @@ import rich
 from rich import pretty
 from rich.padding import Padding
 
-from openff.bespokefit.cli.executor.launch import launch_options
+from openff.bespokefit.cli.executor.launch import (
+    launch_options,
+    validate_redis_connection,
+)
 from openff.bespokefit.cli.executor.submit import _submit, submit_options
 from openff.bespokefit.cli.utilities import create_command, print_header
 
@@ -50,6 +53,8 @@ def _run_cli(
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
+
+    validate_redis_connection(console, allow_existing=False)
 
     with BespokeExecutor(
         directory=directory,

@@ -1,14 +1,15 @@
-import pickle
-
 import pytest
 from openff.fragmenter.fragment import WBOFragmenter
 
-from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 from openff.bespokefit.executor.services.coordinator.stages import (
     FragmentationStage,
     QCGenerationStage,
 )
-from openff.bespokefit.executor.services.coordinator.worker import _cycle
+from openff.bespokefit.executor.services.coordinator.storage import (
+    create_task,
+    get_task,
+)
+from openff.bespokefit.executor.services.coordinator.worker import _process_task
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationStageSchema,
@@ -33,9 +34,7 @@ async def mock_update_errored(self):
 
 
 @pytest.mark.asyncio
-async def test_internal_cycle(redis_connection, monkeypatch):
-
-    task_key = "coordinator:optimization:1"
+async def test_process_task(redis_connection, monkeypatch):
 
     monkeypatch.setattr(FragmentationStage, "enter", mock_enter)
     monkeypatch.setattr(QCGenerationStage, "enter", mock_enter)
@@ -43,8 +42,7 @@ async def test_internal_cycle(redis_connection, monkeypatch):
     monkeypatch.setattr(FragmentationStage, "update", mock_update_success)
     monkeypatch.setattr(QCGenerationStage, "update", mock_update_errored)
 
-    task = CoordinatorTask(
-        id="1",
+    create_task(
         input_schema=BespokeOptimizationSchema(
             smiles="CC",
             initial_force_field="openff-2.0.0.offxml",
@@ -60,14 +58,11 @@ async def test_internal_cycle(redis_connection, monkeypatch):
             ],
             fragmentation_engine=WBOFragmenter(),
         ),
-        pending_stages=[FragmentationStage(), QCGenerationStage()],
+        stages=[FragmentationStage(), QCGenerationStage()],
     )
 
-    redis_connection.set(task_key, pickle.dumps(task.dict()))
-    redis_connection.zadd("coordinator:optimizations", {task_key: task.id})
-
-    await _cycle()
-    task = CoordinatorTask.parse_obj(pickle.loads(redis_connection.get(task_key)))
+    await _process_task(1)
+    task = get_task(1)
 
     assert len(task.pending_stages) == 1
     assert isinstance(task.pending_stages[0], QCGenerationStage)
@@ -79,8 +74,8 @@ async def test_internal_cycle(redis_connection, monkeypatch):
 
     assert task.status == "running"
 
-    await _cycle()
-    task = CoordinatorTask.parse_obj(pickle.loads(redis_connection.get(task_key)))
+    await _process_task(1)
+    task = get_task(1)
 
     assert len(task.pending_stages) == 0
 
@@ -92,4 +87,4 @@ async def test_internal_cycle(redis_connection, monkeypatch):
 
     assert task.status == "errored"
 
-    await _cycle()
+    await _process_task(1)

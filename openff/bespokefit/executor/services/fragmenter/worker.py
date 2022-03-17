@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 
-import redis
 from openff.fragmenter.fragment import (
     Fragment,
     FragmentationResult,
@@ -11,18 +10,13 @@ from openff.fragmenter.fragment import (
 from pydantic import parse_raw_as
 
 import openff.bespokefit
-from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
+from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.utilities.molecule import get_atom_symmetries
 
-__settings = current_settings()
-
-redis_connection = redis.Redis(
-    host=__settings.BEFLOW_REDIS_ADDRESS,
-    port=__settings.BEFLOW_REDIS_PORT,
-    db=__settings.BEFLOW_REDIS_DB,
+celery_app = configure_celery_app(
+    "fragmenter", connect_to_default_redis(validate=False)
 )
-celery_app = configure_celery_app("fragmenter", redis_connection)
 
 
 @celery_app.task(acks_late=True)

@@ -4,7 +4,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import httpx
-import redis
 from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
@@ -37,7 +36,10 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTBody,
     QCGeneratorPOSTResponse,
 )
-from openff.bespokefit.executor.utilities.redis import is_redis_available
+from openff.bespokefit.executor.utilities.redis import (
+    connect_to_default_redis,
+    is_redis_available,
+)
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
@@ -221,11 +223,8 @@ class QCGenerationStage(_Stage):
         if is_redis_available(
             host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
         ):
-            redis_connection = redis.Redis(
-                host=settings.BEFLOW_REDIS_ADDRESS,
-                port=settings.BEFLOW_REDIS_PORT,
-                db=settings.BEFLOW_REDIS_DB,
-            )
+            redis_connection = connect_to_default_redis()
+
             cached_force_field = get_cached_parameters(
                 fitting_schema=input_schema, redis_connection=redis_connection
             )

@@ -4,7 +4,11 @@ import shutil
 import pytest
 from redis import Redis
 
-from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
+from openff.bespokefit.executor.utilities.redis import (
+    expected_redis_config_version,
+    is_redis_available,
+    launch_redis,
+)
 
 
 def test_launch_redis(tmpdir):
@@ -12,16 +16,24 @@ def test_launch_redis(tmpdir):
     assert not is_redis_available("localhost", 1234)
 
     redis_process = launch_redis(port=1234, directory=str(tmpdir), persistent=True)
-    assert is_redis_available("localhost", 1234)
 
-    redis_connection = Redis(port=1234)
+    try:
+        assert is_redis_available("localhost", 1234)
 
-    assert redis_connection.get("test-key") is None
-    redis_connection.set("test-key", "set")
-    assert redis_connection.get("test-key") is not None
+        redis_connection = Redis(port=1234)
 
-    redis_process.terminate()
-    redis_process.wait()
+        assert (
+            int(redis_connection.get("openff-bespokefit:redis-version"))
+            == expected_redis_config_version()
+        )
+
+        assert redis_connection.get("test-key") is None
+        redis_connection.set("test-key", "set")
+        assert redis_connection.get("test-key") is not None
+
+    finally:
+        redis_process.terminate()
+        redis_process.wait()
 
     assert not is_redis_available("localhost", 1234)
 

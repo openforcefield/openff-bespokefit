@@ -17,6 +17,7 @@ from openff.bespokefit.executor.services.fragmenter.models import (
 )
 from openff.bespokefit.executor.utilities.celery import get_task_information
 from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
+from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 
 router = APIRouter()
 
@@ -63,7 +64,7 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
     # parameters
 
     task_id = cached_fragmentation_task(
-        task=body, redis_connection=worker.redis_connection
+        task=body, redis_connection=connect_to_default_redis()
     )
     return FragmenterPOSTResponse(
         id=task_id,

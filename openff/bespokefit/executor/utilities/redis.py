@@ -5,12 +5,87 @@ import shlex
 import shutil
 import subprocess
 import time
-from typing import IO, Optional, Union
+from typing import IO, Dict, Optional, Tuple, Union
 
 import redis
 
+from openff.bespokefit.executor.services import current_settings
 
-def is_redis_available(host: str, port: int = 6379) -> bool:
+__REDIS_VERSION: int = 1
+__CONNECTION_POOL: Dict[Tuple[str, int, Optional[int], bool], redis.Redis] = {}
+
+
+class RedisNotConfiguredError(BaseException):
+    """An exception raised when connecting to a redis server that doesn't appear to
+    have been configured by `openff-bespokefit`.
+    """
+
+
+class RedisBadConfigurationError(BaseException):
+    """An exception raised when connecting to a redis server that doesn't appear to
+    have been correctly configured for use with `openff-bespokefit`.
+    """
+
+
+def expected_redis_config_version() -> int:
+    return __REDIS_VERSION
+
+
+def connect_to_default_redis(validate: bool = True) -> redis.Redis:
+    """Connects to a redis server using the settings defined by the
+    `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT` and `BEFLOW_REDIS_PORT` settings.
+    """
+
+    settings = current_settings()
+
+    return connect_to_redis(
+        settings.BEFLOW_REDIS_ADDRESS,
+        settings.BEFLOW_REDIS_PORT,
+        settings.BEFLOW_REDIS_DB,
+        validate=validate,
+    )
+
+
+def connect_to_redis(
+    host: str, port: int, db: int, validate: bool = True
+) -> redis.Redis:
+    """Connects to a redis server using the specified settings."""
+
+    connection_key = (host, port, db, validate)
+
+    if connection_key in __CONNECTION_POOL:
+        return __CONNECTION_POOL[connection_key]
+
+    connection = redis.Redis(host=host, port=port, db=db)
+
+    if validate:
+
+        version = connection.get("openff-bespokefit:redis-version")
+
+        if version is None:
+
+            raise RedisNotConfiguredError(
+                f"The redis server at host={host} and port={port} does not contain a "
+                f"`openff-bespokefit:redis-version` key. This likely means it was not "
+                f"configured for use with OpenFF BespokeFit. Alternatively if you have "
+                f"just updated to a new version of OpenFF BespokeFit, try deleting any "
+                f"old `redis.db` files."
+            )
+
+        elif int(version) != __REDIS_VERSION:
+
+            raise RedisBadConfigurationError(
+                f"The redis server at host={host} and port={port} expects a version of "
+                f"OpenFF BespokeFit that supports a redis configurations with version "
+                f"{version}, while the current version only supports version "
+                f"{__REDIS_VERSION}."
+            )
+
+    __CONNECTION_POOL[connection_key] = connection
+    return connection
+
+
+def is_redis_available(host: str, port: int = 6363) -> bool:
     """Returns whether a server running on the local host on a particular port is
     available.
     """
@@ -31,7 +106,7 @@ def _cleanup_redis(redis_process: subprocess.Popen):
 
 
 def launch_redis(
-    port: int = 6379,
+    port: int = 6363,
     stderr_file: Optional[Union[IO, int]] = None,
     stdout_file: Optional[Union[IO, int]] = None,
     directory: Optional[str] = None,
@@ -59,6 +134,10 @@ def launch_redis(
 
     if is_redis_available("localhost", port):
         raise RuntimeError(f"There is already a server running at localhost:{port}")
+
+    redis_save_exists = os.path.isfile(
+        "redis.db" if not directory else os.path.join(directory, "redis.db")
+    )
 
     redis_command = f"redis-server --port {str(port)} --dbfilename redis.db"
 
@@ -92,5 +171,17 @@ def launch_redis(
 
     if timeout:
         raise RuntimeError("The redis server failed to start.")
+
+    try:
+        connect_to_redis("localhost", port, 0, validate=True)
+    except RedisNotConfiguredError:
+
+        if redis_save_exists:
+            raise
+
+        connection = connect_to_redis("localhost", port, 0, validate=False)
+        connection.set(
+            "openff-bespokefit:redis-version", expected_redis_config_version()
+        )
 
     return redis_process

@@ -110,7 +110,7 @@ def _to_input_schema(
     ):
 
         exit_with_messages(
-            "[[red]ERROR[/red] The `--workflow` and `--workflow-file` arguments are "
+            "[[red]ERROR[/red]] The `--workflow` and `--workflow-file` arguments are "
             "mutually exclusive",
             console=console,
             exit_code=2,
@@ -235,7 +235,7 @@ def _submit(
     if not allow_multiple_molecules and len(all_molecules) > 1:
 
         exit_with_messages(
-            "[[red]ERROR[/red] only one molecule can be submitted at once",
+            "[[red]ERROR[/red]] only one molecule can be submitted at once",
             console=console,
             exit_code=2,
         )
