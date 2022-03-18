@@ -52,7 +52,7 @@ If the ``bespoke_force_field`` returned is ``None``, it is likely that either th
 or an error was raised. You should consult the ``status`` and ``error`` fields for extra details in this
 case.
 
-# Combining force fields
+## Combining force fields
 
 Once a set of bespoke fit optimizations have completed you may want to create a single bespoke force field that can be 
 applied to this set of molecules, this maybe useful for example when studying a congeneric series using relative free energy
