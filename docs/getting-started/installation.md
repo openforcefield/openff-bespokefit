@@ -32,7 +32,7 @@ as a much faster surrogate when generating QC reference data (see [](quick_start
 conda install -c conda-forge xtb-python
 ```
 
-### TorchANI
+#### TorchANI
 
 TorchANI is a pytorch implementation of the ANI neural network potentials from the Roitberg group that can be used as 
 a much faster surrogate when generating QC reference data (see [](quick_start_chapter) for more details):
@@ -44,6 +44,7 @@ conda install -c conda-forge torchani
 :::{note}
 TorchANI potentials are only suitable for molecules with a net neutral charge and have limited element coverage 
 consisting of C, H, N, O, S, F and Cl
+:::
 
 #### OpenEye toolkits
 
