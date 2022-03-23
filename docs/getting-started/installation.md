@@ -23,6 +23,15 @@ recommended to be installed unless you intend to train against data generated us
 conda install -c conda-forge -c defaults -c psi4 psi4
 ```
 
+#### XTB
+
+The xtb package gives access to the XTB semi-empirical models produced by the Grimme group in Bonn which may be used 
+as a much faster surrogate when generating QC reference data (see [](quick_start_chapter) for more details):
+
+```shell
+conda install -c conda-forge xtb-python
+```
+
 #### OpenEye toolkits
 
 If you have access to the OpenEye toolkits (namely `oechem`, `oequacpac` and `oeomega`) we recommend installing
