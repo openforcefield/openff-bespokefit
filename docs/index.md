@@ -52,7 +52,7 @@ glob: True
 hidden: True
 ---
 
-users/bespoke-theory
+users/theory
 users/bespoke-workflows
 users/bespoke-executor
 users/bespoke-results
