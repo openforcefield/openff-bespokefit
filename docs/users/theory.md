@@ -21,7 +21,7 @@ The process by which bespoke parameters are generated generally follows five mai
 The first stage in the bespoke fitting workflow is identifying those features of a molecule that require parameters with 
 high specificity in order to achieve the best accuracy. 
 
-At present, this involves identifying all non-terminal rotatable bonds in a molecule. Ensuring the torsion profile 
+At present, this involves identifying all non-terminal rotatable bonds in a molecule. Accurately reproducing the torsion profile 
 around such bonds is critical to ensuring that the correct conformational preferences of a molecule are captured.
 
 :::{figure-md} fig-bonds
@@ -98,8 +98,7 @@ There are two aspects to this: we need to both select a sensible set of initial 
 generate a SMIRKS parameter that describes the chemical environment that the parameter will be applied to. 
 
 :::{note}
-SMIRKS patterns are used extensively within OpenFF force fields as a more flexible and robust alternative to atom types
-REF SMIRNOFF
+[SMIRKS].{cite}`smriks` patterns are used extensively within OpenFF force fields as a more flexible and robust alternative to atom types.
 
 <!-- add reference to original SMIRNOFF publication -->
 :::
@@ -160,15 +159,13 @@ The first fragment of the ligand, labelled with symmetry classes. Atoms with the
 symmetry-equivalent. Below, two symmetry-equivalent torsions for the fragment are highlighted.
 :::
 
-Once a minimal set of symmetry-equivalent torsions are collected, SMIRKS patterns are generated with [ChemPer]. 
-SMIRKS patterns are constructed to include as much chemical information about as many atoms as possible while being 
-consistent across the parent molecule and all of the torsion's fragments. This means that the torsion will be highly 
-specific to a single chemical environment while still being transferable between parent and fragment and to other 
+Once a minimal set of symmetry-equivalent torsions are collected, SMIRKS patterns are generated with [ChemPer]. We 
+consider the fragments to be the minimum electronically decoupled substructure around each torsion which preserves the 
+local chemical environment. Hence, SMIRKS patterns are constructed to include the maximum common substructure between 
+the parent and fragment giving them an ideal mix of specificity and transferability between parent and fragment and to other 
 molecules that share the computed fragment. 
 
-Since fragments electronically decouple a parameter from the greater molecule, and since SMIRKS patterns include the 
-entire fragment, torsion parameter SMIRKS are transferable not just among fragments within a parent molecule but also 
-between parent molecules. As a result, the common cores of congeneric series like the ligands of TYK2 (pictured) can be 
+As a result, the common cores of congeneric series like the ligands of TYK2 (pictured) can be 
 parameterized once and cached. When a new molecule produces the same torsion SMIRKS, the parameter can be reused from 
 the cache, saving the significant computational effort associated with a torsion drive.
 
@@ -203,7 +200,7 @@ These are the exact same fitting targets that are used in producing the mainline
 that any bespoke parameters yielded by the bespoke workflow are compatible with those in the starting general force 
 field. For more details, see the [OpenFF 1.0.0 Parsley paper].{cite}`parsley`
 
-Although in the future multiple optimization engines will be supported, by default the fitting workflow will emply 
+Although in the future multiple optimization engines will be supported, by default the fitting workflow will employ 
 [ForceBalance] to train the parameters against the fitting targets outlined above. 
 
 ForceBalance employs a Bayesian prior distribution to avoid over-fitting and to define the range of likely values the 
@@ -213,8 +210,9 @@ configured by setting a "prior width", which sets the range over which the param
 BespokeFit defaults to quite large priors on the torsion barrier heights ($k$) so that the optimization is not hindered 
 by a very general reference value.
 
-[OpenFF 1.0.0 Parsley paper]: https://chemrxiv.org/engage/chemrxiv/article-details/610d4bc7d800ad598c40d4a6
+[OpenFF 1.0.0 Parsley paper]: https://doi.org/10.1021/acs.jctc.1c00571
 [ForceBalance]: http://leeping.github.io/forcebalance/doc/html/index.html
+[SMIRKS]: https://doi.org/10.1021/acs.jctc.8b00640
 
 ## References
 
