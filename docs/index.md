@@ -52,10 +52,10 @@ glob: True
 hidden: True
 ---
 
+users/theory
 users/bespoke-workflows
 users/bespoke-executor
 users/bespoke-results
-users/theory
 
 :::
 
