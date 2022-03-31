@@ -75,7 +75,7 @@ maximal compatability between the two when mixing bespoke and general parameters
 
 :::{tip}
 See the [quick start guide](quick_start_chapter) for details on how to swap out the default level of theory for 
-a faster surrgate, such as ANI or XTB.
+a faster surrogate, such as ANI or XTB.
 :::
 
 The types of quantum calculation that will be performed depend on which types of bespoke parameters are being generated.
@@ -99,7 +99,7 @@ There are two aspects to this: we need to both select a sensible set of initial 
 generate a SMIRKS parameter that describes the chemical environment that the parameter will be applied to. 
 
 :::{note}
-[SMIRKS].{cite}`smriks` patterns are used extensively within OpenFF force fields as a more flexible and robust alternative to atom types.
+[SMIRKS].{cite}`smirks` patterns are used extensively within OpenFF force fields as a more flexible and robust alternative to atom types.
 
 <!-- add reference to original SMIRNOFF publication -->
 :::
