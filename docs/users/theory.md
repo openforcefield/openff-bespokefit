@@ -30,9 +30,10 @@ around such bonds is critical to ensuring that the correct conformational prefer
 A hypothetical TYK2 ligand, highlighting each rotatable bond as identified by the default BespokeFit workflow.
 :::
 
-By default, we define a 'rotatable bond' as any bond that is not in a ring, and is between two non-terminal, not 
-triple-bonded atoms. See the [bespoke workflow factory chapter](workflow_chapter) for details on overriding this 
-definition.
+By default, we define a 'rotatable bond' as any bond that is not in a ring, and is between two 'non-terminal', not 
+triple-bonded atoms. Any atoms that are bonded to at least two other non-hydrogen atoms are considered to be non-terminal. 
+See the [bespoke workflow factory chapter](workflow_chapter) for details on overriding this definition of a 'rotatable 
+bond'.
 
 ## Fragmentation
 
