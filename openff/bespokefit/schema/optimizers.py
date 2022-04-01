@@ -27,7 +27,7 @@ class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
 
     type: Literal["ForceBalance"] = "ForceBalance"
 
-    job_type: Literal["optimize"] = Field(
+    job_type: Literal["optimize", "single"] = Field(
         "optimize", description="The mode to run force balance in."
     )
 
