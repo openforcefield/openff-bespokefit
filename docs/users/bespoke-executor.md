@@ -1,22 +1,22 @@
 (executor_chapter)=
 # Bespoke executor
 
-The bespoke executor is the main workhorse within BespokeFit. Its role is to ingest and run bespoke fitting workflows, 
-namely by coordinating and launching the individual steps within a bespoke fitting workflow (e.g. generating QC 
-reference data) without any user intervention across multiple CPUs or even multiple nodes in a cluster.  
+The bespoke executor is the main workhorse within BespokeFit. Its role is to ingest and run bespoke fitting workflows,
+namely by coordinating and launching the individual steps within a bespoke fitting workflow (e.g. generating QC
+reference data) without any user intervention across multiple CPUs or even multiple nodes in a cluster.
 
-The executor operates by splitting the full bespoke workflow into individual stages:
+The executor operates by splitting the full bespoke workflow into simplified stages:
 
-1. **fragmentation**: the input molecule is fragmented into smaller pieces in a way that preserves key features of 
+1. **Fragmentation**: the input molecule is fragmented into smaller pieces in a way that preserves key features of
   the input molecule.
-2. **QC generation**: any bespoke QC data, for example 1D torsion scans of each rotatable bond in the input molecule, 
+2. **QC generation**: any bespoke QC data, for example 1D torsion scans of each rotatable bond in the input molecule,
    is generated using the smaller fragments for computational efficiency.
-3. **optimization**: the reference data, including any bespoke QC data, is fed into the optimizer (e.g. ForceBalance) 
+3. **Optimization**: the reference data, including any bespoke QC data, is fed into the optimizer (e.g. ForceBalance)
    specified by the workflow schema in order to train the bespoke parameters
 
-Each stage has its own set of 'workers' available to it making it easy to devote more compute where needed. Each worker 
-is in essence a program that is assigned a set of local resources, e.g. 2 CPUs, and can be sent a specific task, e.g. 
-perform this 1D torsion scan, to run on those resources.
+Each stage has its own set of 'workers' available to it making it easy to devote more compute where needed. Each worker
+is a process that is assigned a set of local resources and can be set to a specific task; for example, a worker may
+perform a 1D torsion scan on two CPU cores.
 
 :::{note}
 Workers and task scheduling within BespokeFit are handled behind the scenes by the [Celery] framework in combination
@@ -25,10 +25,10 @@ with [Redis] which handles any necessary storage of inputs and outputs for each 
 
 These workers are created and managed by the executor when it is created, and so most users will not need to worry
 about their details too much unless they are wanting to parallelize fits across multiple nodes in a cluster. The only
-choice a user needs to make is how many workers to spawn for each stage, and how many compute resources should each type 
+choice a user needs to make is how many workers to spawn for each stage, and how many compute resources should each type
 of worker be allowed to use.
 
-There are two main ways to launch a bespoke executor: [using the executor command-line interface](executor_using_cli) or 
+There are two main ways to launch a bespoke executor: [using the executor command-line interface](executor_using_cli) or
 [using the Python API](executor_using_api).
 
 (executor_using_cli)=
@@ -43,10 +43,10 @@ openff-bespoke executor launch --directory            "bespoke-executor" \
                                --n-qc-compute-workers 1
 ```
 
-By default, the executor will create a single worker for each stage, and will all said worker to access the full 
-set of resources on the machine it is running on. If you are spawning multiple workers for a stage, as you likely
-will want to for the QC compute stage, it is recommended to also specify the maximum number of cores / CPUs and the 
-maximum memory per core that the QC engine (e.g. `psi4`) can consume
+By default, the executor will create a single worker for each stage, and will allow each worker to access all of the
+resources on the machine it is running on. When spawning multiple workers for a stage it is recommended to specify
+resource limits to avoid over-subscription. For example, PSI4 may provide better performance running two QC
+calculations in parallel with 8 cores each than running one with 16:
 
 ```shell
 openff-bespoke executor launch --directory            "bespoke-executor" \
@@ -57,9 +57,10 @@ openff-bespoke executor launch --directory            "bespoke-executor" \
                                --qc-compute-max-mem   2.5
 ```
 
-where here we have request two workers each with access to eight CPUs and with 2.5 GB of memory per CPU (i.e. 16 CPUs in
-total and 40 GB of memory). The memory limit is not strictly enforced by the executor, and is instead passed to the 
-underlying QC engine as a rough guideline via the [QCEngine] interface.
+Here we request two workers, each with access to eight CPUs and 2.5 GB of memory per CPU (i.e. 16 CPUs in total and
+40 GB of memory). The memory limit is not strictly enforced by the executor, and is instead passed to the underlying QC
+engine via the [QCEngine] interface. Note that if multiple molecules have been submitted to the executor, molecules at
+different stages may run in parallel.
 
 See the [quick start guide](quick_start_chapter) for details on submitting jobs to a running bespoke executor.
 
@@ -88,8 +89,8 @@ executor = BespokeExecutor(
 )
 ```
 
-The [`BespokeWorkerConfig`] will control how many compute resources are assined to each worker. In the above example 
-the fragmenter and optimizer workers are only allowed to use a single core / CPU, while the QC compute worker will 
+The [`BespokeWorkerConfig`] will control how many compute resources are assigned to each worker. In the above example,
+the fragmenter and optimizer workers are only allowed to use a single core, while the QC compute worker will
 be allowed to use the full set of CPUs available on the machine (`n_cores="auto"`).
 
 The executor itself is a context manager and will not 'start' until the context is entered:
@@ -102,13 +103,13 @@ with executor:
     output = wait_until_complete(task_id)
 ```
 
-When an executor 'starts' it will spin up all the required child processes such as the per stage workers and a [Redis] 
-instance if requested (by default one will be created).
+When an executor 'starts' it will spin up all the required child processes, including each worker and a [Redis]
+instance (unless Redis is disabled).
 
-Within the executor context bespoke fits can be submitted using the [`submit()`] method. As soon as the context manager 
-exists the executor instance is closed, terminating any running jobs. To ensure the submission is allowed to finish we 
-can use the [`wait_until_complete()`] helper function. This function will block progress in the script until it can 
-return a result.
+Within the executor context bespoke fits can be submitted using the [`submit()`] method. As soon as the context manager
+exists the executor instance is closed, terminating any running jobs. To ensure the submission is allowed to finish,
+use the [`wait_until_complete()`] helper function. This function will block progress in the script until it can return
+a result.
 
 [Celery]: https://docs.celeryproject.org/en/stable/index.html
 [Redis]: https://redis.io/
