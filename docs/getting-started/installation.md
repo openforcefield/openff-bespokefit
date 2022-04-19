@@ -28,7 +28,7 @@ conda install -c conda-forge -c defaults -c psi4 psi4
 #### XTB
 
 The [`xtb-python`] package gives access to the XTB semi-empirical models produced by the Grimme group, which may be
-used as a much faster surrogate when generating QC reference data (see [](quick_start_chapter) for more details):
+used as a much faster surrogate when generating QC reference data:
 
 ```shell
 conda install -c conda-forge xtb-python
@@ -38,8 +38,8 @@ conda install -c conda-forge xtb-python
 
 #### TorchANI
 
-[TorchANI] is a pytorch implementation of the ANI neural network potentials from the Roitberg group that can be used as 
-a much faster surrogate when generating QC reference data (see [](quick_start_chapter) for more details):
+[TorchANI] is a PyTorch implementation of the ANI neural network potentials from the Roitberg group that can be used as 
+a much faster surrogate when generating QC reference data:
 
 ```shell
 conda install -c conda-forge torchani
@@ -77,7 +77,7 @@ Create a custom conda environment which contains the required dependencies and a
 conda env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
 conda activate openff-bespokefit
 ```
-Finally, install the package itself:
+Finally, install the package itself into the new environment:
 
 ```shell
 python setup.py develop
