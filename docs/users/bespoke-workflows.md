@@ -61,6 +61,8 @@ from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
 target = TorsionProfileTargetSchema()
 ```
 
+<!-- TODO: Describe the `smirk_settings` and `target_torsion_smirks` fields -->
+
 We can also specify at how we want to generate any reference data, including the program used, method, basis set, and 
 level of theory. This is specified with instances of the [`QCSpec`] class from [QCSubmit]. If multiple specifications 
 are provided, the factory will try them in order until it finds one that is both available on the executing machine and 
