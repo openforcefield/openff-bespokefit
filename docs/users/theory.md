@@ -183,9 +183,9 @@ cached. When a new molecule produces the same torsion SMIRKS, the parameter can 
 significant computational effort associated with a torsion drive.
 
 :::{figure-md} fig-variants
-![9 TYK2 ligands with a common motif highlighted](img/theory/tyk2_shared_core.svg)
+![Nine TYK2 ligands with a common motif highlighted](img/theory/tyk2_shared_core.svg)
 
-9 TYK2 ligands that share the binding fragment above. The highlighted fragment matches the SMIRKS code from
+Nine TYK2 ligands that share the binding fragment above. The highlighted fragment matches the SMIRKS code from
 [above], which allows the torsion to be cached and reused.
 
 [above]: fig-smirks
