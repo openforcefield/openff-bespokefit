@@ -53,6 +53,7 @@ dependencies:
   - sphinx-click
   - myst-parser
   - autodoc-pydantic
+  - sphinxcontrib-bibtex
 
   # Dependencies not available on Conda Forge
   - pip:
