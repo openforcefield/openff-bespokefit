@@ -14,7 +14,7 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 class QCGenerationTask(BaseModel, abc.ABC):
 
-    type: Literal["base-task"]
+    type: Literal["base-task"] = "base-task"
 
     program: str = Field(..., description="The program to use to evaluate the model.")
     model: Model = Field(..., description=str(Model.__doc__))
@@ -76,6 +76,10 @@ class Torsion1DTaskSpec(QCGenerationTask):
     n_conformers: conint(gt=0) = Field(
         10,
         description="The number of initial conformers to seed the torsion drive with.",
+    )
+    sp_specification: Optional[QCGenerationTask] = Field(
+        None,
+        description="An extra optional specification used to compute the reference energy surface on the optimised geometries.",
     )
 
 
