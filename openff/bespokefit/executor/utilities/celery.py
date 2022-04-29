@@ -55,7 +55,7 @@ def configure_celery_app(
     return celery_app
 
 
-def _spawn_worker(celery_app, concurrency: int = 1):
+def _spawn_worker(celery_app, concurrency: int = 1, pool: str = "prefork"):
 
     worker = celery_app.Worker(
         concurrency=concurrency,
@@ -63,12 +63,17 @@ def _spawn_worker(celery_app, concurrency: int = 1):
         logfile=f"celery-{celery_app.main}.log",
         quiet=True,
         hostname=celery_app.main,
+        pool=pool,
     )
     worker.start()
 
 
 def spawn_worker(
-    celery_app, concurrency: int = 1, asynchronous: bool = True
+    celery_app,
+    concurrency: int = 1,
+    asynchronous: bool = True,
+    daemon: bool = True,
+    pool: str = "prefork",
 ) -> Optional[multiprocessing.Process]:
 
     if concurrency < 1:
@@ -77,7 +82,7 @@ def spawn_worker(
     if asynchronous:  # pragma: no cover
 
         worker_process = multiprocessing.Process(
-            target=_spawn_worker, args=(celery_app, concurrency), daemon=True
+            target=_spawn_worker, args=(celery_app, concurrency, pool), daemon=daemon
         )
         worker_process.start()
 

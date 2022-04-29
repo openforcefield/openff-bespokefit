@@ -299,9 +299,19 @@ class BespokeExecutor:
                     worker_app, celery.Celery
                 ), "workers must be celery based"
 
-                self._worker_processes.append(
-                    spawn_worker(worker_app, concurrency=n_workers)
-                )
+                # We need non daemon solo workers so we can use a pool to run parallel optimisations
+                if "qcgenerator" in worker_settings.import_path.split("."):
+                    for _ in range(n_workers):
+                        self._worker_processes.append(
+                            spawn_worker(
+                                worker_app, concurrency=1, daemon=False, pool="solo"
+                            )
+                        )
+
+                else:
+                    self._worker_processes.append(
+                        spawn_worker(worker_app, concurrency=n_workers)
+                    )
 
     def _start(self, asynchronous=False):
         """Launch the executor, allowing it to receive and run bespoke optimizations.
