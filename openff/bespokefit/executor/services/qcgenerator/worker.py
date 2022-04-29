@@ -183,7 +183,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
 
         return_value = qcengine.compute_procedure(
             input_schema,
-            "torsiondriveparallel",
+            "torsiondrive",
             raise_error=True,
             local_options=_task_config(),
         )

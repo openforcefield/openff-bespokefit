@@ -130,10 +130,10 @@ class BespokeWorkflowFactory(ClassBase):
         "performing any new QC calculations",
     )
 
-    sp_qc_spec: Optional[QCSpec] = Field(
+    evaluation_qc_spec: Optional[QCSpec] = Field(
         default=None,
-        description="The single point specification (e.g method, basis and "
-        "program that should be used to refine a torsion PES.",
+        description="The specification (e.g method, basis and "
+        "program) that should be used to refine the default specification.",
     )
 
     @validator("initial_force_field")
@@ -428,7 +428,9 @@ class BespokeWorkflowFactory(ClassBase):
 
         methods = [
             self.default_qc_spec.method.lower(),
-            self.sp_qc_spec.method.lower() if self.sp_qc_spec is not None else None,
+            self.evaluation_qc_spec.method.lower()
+            if self.evaluation_qc_spec is not None
+            else None,
         ]
         molecule_elements = {atom.element.symbol for atom in molecule.atoms}
         ani_coverage = {
@@ -492,14 +494,14 @@ class BespokeWorkflowFactory(ClassBase):
                     else default_qc_spec.basis,
                 ),
             )
-            if task_type == "torsion1d" and self.sp_qc_spec is not None:
+            if task_type == "torsion1d" and self.evaluation_qc_spec is not None:
                 target_specification.sp_specification = QCGenerationTask(
-                    program=self.sp_qc_spec.program.lower(),
+                    program=self.evaluation_qc_spec.program.lower(),
                     model=Model(
-                        method=self.sp_qc_spec.method.lower(),
-                        basis=self.sp_qc_spec.basis.lower()
-                        if self.sp_qc_spec.basis is not None
-                        else self.sp_qc_spec.basis,
+                        method=self.evaluation_qc_spec.method.lower(),
+                        basis=self.evaluation_qc_spec.basis.lower()
+                        if self.evaluation_qc_spec.basis is not None
+                        else self.evaluation_qc_spec.basis,
                     ),
                 )
             # only overwrite with general settings if not configured

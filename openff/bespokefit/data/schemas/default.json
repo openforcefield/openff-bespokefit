@@ -81,8 +81,7 @@
     "heuristic": "path_length",
     "keep_non_rotor_ring_substituents": false
   },
-  "default_qc_specs": [
-    {
+  "default_qc_spec": {
       "method": "B3LYP-D3BJ",
       "basis": "DZVP",
       "program": "psi4",
@@ -98,6 +97,6 @@
         "mayer_indices"
       ],
       "keywords": null
-    }
-  ]
+  },
+  "evaluation_qc_spec": null
 }
