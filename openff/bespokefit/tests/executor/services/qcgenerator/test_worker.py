@@ -5,7 +5,11 @@ from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 
 from openff.bespokefit.executor.services.qcgenerator import worker
-from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
+from openff.bespokefit.schema.tasks import (
+    OptimizationTask,
+    QCGenerationTask,
+    Torsion1DTask,
+)
 
 
 def test_compute_torsion_drive():
@@ -17,6 +21,9 @@ def test_compute_torsion_drive():
         scan_range=(-180, 180),
         program="rdkit",
         model=Model(method="uff", basis=None),
+        sp_specification=QCGenerationTask(
+            program="rdkit", model=Model(method="mmff94", basis=None)
+        ),
     )
 
     result_json = worker.compute_torsion_drive(task.json())

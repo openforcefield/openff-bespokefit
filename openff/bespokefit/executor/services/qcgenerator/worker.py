@@ -3,7 +3,6 @@ import hashlib
 import json
 import logging
 import uuid
-from multiprocessing import Pool
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import psutil
@@ -26,7 +25,6 @@ from qcelemental.util import serialize
 from qcengine.config import get_global
 
 from openff.bespokefit.executor.services import current_settings
-from openff.bespokefit.executor.services.qcgenerator.qcengine import _divide_config
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.schema.tasks import (
@@ -238,43 +236,43 @@ def _compute_torsiondrive_sp(
     _task_logger.info(
         f"performing single point evaluations using {torsion_specification}"
     )
-    settings = current_settings()
-    program = torsion_specification.program
-    n_workers = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS
+    # settings = current_settings()
+    # program = torsion_specification.program
+    # n_workers = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS
     config["retries"] = 4
-    if program == "psi4" and n_workers == "auto":
-        # we recommend 8 cores per worker for psi4 from our qcfractal jobs
-        n_workers = max([int(config["ncores"] / 8), 1])
-    elif n_workers == "auto":
-        # for low cost methods like ani or xtb they are fast enough to not need splitting
-        n_workers = 1
-
-    opt_config = _divide_config(
-        config=qcengine.config.TaskConfig.parse_obj(config), n_workers=n_workers
-    )
-
-    if n_workers > 1:
-        # split the tasks between a pool of workers
-        with Pool(processes=n_workers) as pool:
-            tasks = {
-                grid_point: pool.apply_async(
-                    func=_single_point,
-                    args=(molecule, torsion_specification, opt_config),
-                )
-                for grid_point, molecule in torsiondrive_result.final_molecules.items()
-            }
-            energies = {
-                grid_point: result.get() for grid_point, result in tasks.items()
-            }
-    else:
-        energies = {
-            grid_point: _single_point(
-                molecule=molecule,
-                specification=torsion_specification,
-                config=opt_config.dict(),
-            ).return_result
-            for grid_point, molecule in torsiondrive_result.final_molecules.items()
-        }
+    # if program == "psi4" and n_workers == "auto":
+    #     # we recommend 8 cores per worker for psi4 from our qcfractal jobs
+    #     n_workers = max([int(config["ncores"] / 8), 1])
+    # elif n_workers == "auto":
+    #     # for low cost methods like ani or xtb they are fast enough to not need splitting
+    #     n_workers = 1
+    #
+    # opt_config = _divide_config(
+    #     config=qcengine.config.TaskConfig.parse_obj(config), n_workers=n_workers
+    # )
+    #
+    # if n_workers > 1:
+    #     # split the tasks between a pool of workers
+    #     with Pool(processes=n_workers) as pool:
+    #         tasks = {
+    #             grid_point: pool.apply_async(
+    #                 func=_single_point,
+    #                 args=(molecule, torsion_specification, opt_config),
+    #             )
+    #             for grid_point, molecule in torsiondrive_result.final_molecules.items()
+    #         }
+    #         energies = {
+    #             grid_point: result.get() for grid_point, result in tasks.items()
+    #         }
+    # else:
+    energies = {
+        grid_point: _single_point(
+            molecule=molecule,
+            specification=torsion_specification,
+            config=config,
+        ).return_result
+        for grid_point, molecule in torsiondrive_result.final_molecules.items()
+    }
     # format into a result
     final_result = torsiondrive_result.copy(deep=True)
     for grid_point, energy in energies.items():
