@@ -188,7 +188,7 @@ class AngleHyperparameters(BaseSMIRKSHyperparameters):
 
     type: Literal["Angles"] = "Angles"
 
-    priors: Dict[Literal["k", "length"], PositiveFloat] = Field(
+    priors: Dict[Literal["k", "angle"], PositiveFloat] = Field(
         {"k": 10.0, "angle": 10.0}, description=""
     )
 
