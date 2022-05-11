@@ -85,6 +85,7 @@ def test_to_input_schema_mutual_exclusive_args(
                 force_field_path="openff-2.0.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
+                evaluation_qc_spec=None,
                 workflow_name=workflow_name,
                 workflow_file_name=workflow_file_name,
             )
@@ -104,6 +105,7 @@ def test_to_input_schema(force_field_path):
         force_field_path=force_field_path,
         target_torsion_smirks=tuple(),
         default_qc_spec=None,
+        evaluation_qc_spec=None,
         workflow_name="debug",
         workflow_file_name=None,
     )
@@ -128,6 +130,7 @@ def test_to_input_schema_file_not_found(tmpdir):
                 force_field_path="openff-1.2.1.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
+                evaluation_qc_spec=None,
                 workflow_name="fake-workflow-name-123",
                 workflow_file_name=None,
             )
@@ -156,6 +159,7 @@ def test_to_input_schema_invalid_schema(tmpdir):
                 force_field_path="openff-1.2.1.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
+                evaluation_qc_spec=None,
                 workflow_name=None,
                 workflow_file_name=invalid_workflow_path,
             )
@@ -174,14 +178,19 @@ def test_to_input_schema_overwrite_spec(tmpdir):
         force_field_path=None,
         target_torsion_smirks=tuple(),
         default_qc_spec=("xtb", "gfn2xtb", "none"),
+        evaluation_qc_spec=("torchani", "ani2x", "none"),
         workflow_name="debug",  # this workflow has a rdkit spec by default
         workflow_file_name=None,
     )
 
     qc_spec = input_schema.stages[0].targets[0].calculation_specification
+    eval_spec = input_schema.stages[0].targets[0].reference_data.spec.sp_specification
     assert qc_spec.program == "xtb"
     assert qc_spec.model.method == "gfn2xtb"
     assert qc_spec.model.basis is None
+    assert eval_spec.program == "torchani"
+    assert eval_spec.model.basis is None
+    assert eval_spec.model.method == "ani2x"
 
 
 def test_to_input_schema_error_spec(tmpdir):
@@ -198,6 +207,7 @@ def test_to_input_schema_error_spec(tmpdir):
                 force_field_path=None,
                 target_torsion_smirks=tuple(),
                 default_qc_spec=("xtb", "gfn2xtb", "fake_basis"),
+                evaluation_qc_spec=None,
                 workflow_name="debug",
                 workflow_file_name=None,
             )
@@ -218,6 +228,7 @@ def test_submit_multi_molecule(tmpdir):
                 force_field_path="openff-2.0.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
+                evaluation_qc_spec=None,
                 workflow_name="debug",
                 workflow_file_name=None,
                 save_submission=False,
@@ -243,6 +254,7 @@ def test_submit_invalid_schema(tmpdir):
             force_field_path="openff-2.0.0.offxml",
             target_torsion_smirks=tuple(),
             default_qc_spec=None,
+            evaluation_qc_spec=None,
             workflow_name=None,
             workflow_file_name=None,
             save_submission=False,
@@ -289,6 +301,7 @@ def test_submit(tmpdir, file, smiles):
                 force_field_path="openff-2.0.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
+                evaluation_qc_spec=None,
                 workflow_name="debug",
                 workflow_file_name=None,
                 save_submission=True,
@@ -396,6 +409,7 @@ def test_submit_cli_errors(tmpdir):
                     workflow_file_name=None,
                     target_torsion_smirks=tuple(),
                     default_qc_spec=None,
+                    evaluation_qc_spec=None,
                     force_field_path=None,
                     save_submission=False,
                 )

@@ -88,6 +88,13 @@ def submit_options(allow_multiple_molecules: bool = False):
             "then 'none' should be specified.",
             required=False,
         ),
+        optgroup.option(
+            "--evaluation-qc-spec",
+            type=(str, str, str),
+            help="The program, method and basis used to refine the default specification. In the case of a torsion drive"
+            "this is the specification used to evaluate the PES on the geometries from the default spec.",
+            required=False,
+        ),
     ]
 
 
@@ -97,6 +104,7 @@ def _to_input_schema(
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
     default_qc_spec: Optional[Tuple[str, str, str]],
+    evaluation_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
@@ -135,21 +143,28 @@ def _to_input_schema(
             workflow_factory.initial_force_field = force_field_path
         if len(target_torsion_smirks) > 0:
             workflow_factory.target_torsion_smirks = [*target_torsion_smirks]
-        if default_qc_spec is not None:
+        for spec, name in [
+            (default_qc_spec, "default_qc_spec"),
+            (evaluation_qc_spec, "evaluation_qc_spec"),
+        ]:
+            if spec is not None:
 
-            program, method, basis = default_qc_spec
+                program, method, basis = spec
 
-            if basis.lower() == "none":
-                basis = None
+                if basis.lower() == "none":
+                    basis = None
 
-            workflow_factory.default_qc_specs = [
-                QCSpec(
-                    program=program,
-                    method=method,
-                    basis=basis,
-                    spec_description="CLI provided spec",
+                setattr(
+                    workflow_factory,
+                    name,
+                    QCSpec(
+                        program=program,
+                        method=method,
+                        basis=basis,
+                        spec_name=name,
+                        spec_description=f"CLI provided spec {name}",
+                    ),
                 )
-            ]
 
     except FileNotFoundError:
 
@@ -201,6 +216,7 @@ def _submit(
     force_field_path: Optional[str],
     target_torsion_smirks: Tuple[str],
     default_qc_spec: Optional[Tuple[str, str, str]],
+    evaluation_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     allow_multiple_molecules: bool,
@@ -269,6 +285,7 @@ def _submit(
                 force_field_path,
                 target_torsion_smirks,
                 default_qc_spec,
+                evaluation_qc_spec,
                 workflow_name,
                 workflow_file_name,
             )
@@ -330,6 +347,7 @@ def _submit_cli(
     force_field_path: Optional[List[str]],
     target_torsion_smirks: Tuple[str],
     default_qc_spec: Optional[Tuple[str, str, str]],
+    evaluation_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     save_submission: bool,
@@ -350,6 +368,7 @@ def _submit_cli(
             force_field_path=force_field_path,
             target_torsion_smirks=target_torsion_smirks,
             default_qc_spec=default_qc_spec,
+            evaluation_qc_spec=evaluation_qc_spec,
             workflow_name=workflow_name,
             workflow_file_name=workflow_file_name,
             allow_multiple_molecules=True,

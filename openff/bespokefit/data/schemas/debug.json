@@ -80,8 +80,7 @@
     "heuristic": "path_length",
     "keep_non_rotor_ring_substituents": false
   },
-  "default_qc_specs": [
-    {
+  "default_qc_spec": {
       "method": "uff",
       "basis": null,
       "program": "rdkit",
@@ -97,6 +96,6 @@
         "mayer_indices"
       ],
       "keywords": null
-    }
-  ]
+  },
+  "evaluation_qc_spec": null
 }

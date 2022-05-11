@@ -49,6 +49,7 @@ from openff.bespokefit.schema.targets import (
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
     OptimizationTaskSpec,
+    QCGenerationTask,
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities import parallel
@@ -123,13 +124,16 @@ class BespokeWorkflowFactory(ClassBase):
         "we use the WBO fragmenter by the Open Force Field Consortium.",
     )
 
-    default_qc_specs: List[QCSpec] = Field(
-        default_factory=lambda: [QCSpec()],
-        description="The default specification (e.g. method, basis) to use when "
-        "performing any new QC calculations. If multiple specs are provided, each spec "
-        "will be considered in order until one is found that i) is available based on "
-        "the installed dependencies, and ii) is compatible with the molecule of "
-        "interest.",
+    default_qc_spec: QCSpec = Field(
+        default=QCSpec(),
+        description="The default specification (e.g. method, basis and program) to use when "
+        "performing any new QC calculations",
+    )
+
+    evaluation_qc_spec: Optional[QCSpec] = Field(
+        default=None,
+        description="The specification (e.g method, basis and "
+        "program) that should be used to refine the default specification.",
     )
 
     @validator("initial_force_field")
@@ -416,16 +420,32 @@ class BespokeWorkflowFactory(ClassBase):
 
         return opt_schema
 
-    def _select_qc_spec(self, molecule: Molecule) -> QCSpec:
-        """Attempts to select a QC spec for a given molecule from the defaults list."""
+    def _validate_qc_spec(self, molecule: Molecule):
+        """Validates that the qc specifications would allow this molecule to be processed.
+        Here we only do very basic validation on the use of ANI models, xtb and psi4 cover all relevant elements.
+        """
+        from openff.qcsubmit.exceptions import MissingBasisCoverageError
 
-        if len(self.default_qc_specs) != 1:
+        methods = [
+            self.default_qc_spec.method.lower(),
+            self.evaluation_qc_spec.method.lower()
+            if self.evaluation_qc_spec is not None
+            else None,
+        ]
+        molecule_elements = {atom.element.symbol for atom in molecule.atoms}
+        ani_coverage = {
+            "ani1x": {"C", "H", "N", "O"},
+            "ani1ccx": {"C", "H", "N", "O"},
+            "ani2x": {"C", "H", "N", "O", "S", "F", "Cl"},
+        }
 
-            raise NotImplementedError(
-                "Currently only a single default QC spec must be specified."
-            )
-
-        return self.default_qc_specs[0]
+        for method in methods:
+            if method in ani_coverage:
+                difference = molecule_elements.difference(ani_coverage[method])
+                if difference:
+                    raise MissingBasisCoverageError(
+                        f"The following elements: {difference} are not covered by the method: {method} please use a different method."
+                    )
 
     def _build_optimization_schema(
         self,
@@ -434,6 +454,9 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data: Optional[Dict[str, LocalQCData]] = None,
     ) -> BespokeOptimizationSchema:
         """For a given molecule schema build an optimization schema."""
+
+        # validate our ability to use the chosen specifications with this molecule
+        self._validate_qc_spec(molecule=molecule)
 
         force_field_editor = ForceFieldEditor(self.initial_force_field)
         ff_hash = hashlib.sha512(
@@ -450,7 +473,7 @@ class BespokeWorkflowFactory(ClassBase):
             "optimization": OptimizationTaskSpec,
             "hessian": HessianTaskSpec,
         }
-        default_qc_spec = self._select_qc_spec(molecule)
+        default_qc_spec = self.default_qc_spec
 
         local_qc_data = {} if local_qc_data is None else local_qc_data
 
@@ -471,6 +494,16 @@ class BespokeWorkflowFactory(ClassBase):
                     else default_qc_spec.basis,
                 ),
             )
+            if task_type == "torsion1d" and self.evaluation_qc_spec is not None:
+                target_specification.sp_specification = QCGenerationTask(
+                    program=self.evaluation_qc_spec.program.lower(),
+                    model=Model(
+                        method=self.evaluation_qc_spec.method.lower(),
+                        basis=self.evaluation_qc_spec.basis.lower()
+                        if self.evaluation_qc_spec.basis is not None
+                        else self.evaluation_qc_spec.basis,
+                    ),
+                )
             # only overwrite with general settings if not configured
             if target_schema.calculation_specification is None:
                 target_schema.calculation_specification = target_specification

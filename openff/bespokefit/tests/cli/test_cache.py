@@ -131,9 +131,9 @@ def test_update_from_qcsubmit(redis_connection):
     # find the result in redis
     task_id = redis_connection.hget(
         name="qcgenerator:task-ids",
-        key="3e44753b523c792590fbfbec096b238630d170165772021360b01e47712c49f2d5639cdb947dea31efa35a640bebd5d233871553a8c56d1a316b91305d699a04",
-    )
-    assert redis_connection.hget("qcgenerator:types", task_id) == b"torsion1d"
+        key="21212802afd507cae91fa9b8af76d7fa76174cc1ba4ab04b7c251aa5263598fbb79d9d85a7d0654257afe684312db399bbdbeb174366425a981ab20a31eb6938",
+    ).decode()
+    assert redis_connection.hget("qcgenerator:types", task_id).decode() == "torsion1d"
 
 
 def test_cache_cli_fractal(runner, tmpdir):
