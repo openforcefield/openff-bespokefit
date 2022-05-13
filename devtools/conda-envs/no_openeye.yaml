@@ -1,4 +1,4 @@
-name: test
+name: bespokefit-no-openeye
 
 channels:
   - conda-forge
