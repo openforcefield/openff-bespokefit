@@ -13,7 +13,7 @@ on:
 jobs:
   test:
 
-    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}
+    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 👁️=${{ matrix.openeye }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -21,6 +21,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         python-version: [3.8]
+        openeye: [true, false]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -28,8 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Conda Environment
+      - name: Install with OpenEye Toolkits
         uses: conda-incubator/setup-miniconda@v2.1.1
+        if: ${{ matrix.openeye == true }}
         with:
           python-version: ${{ matrix.python-version }}
           environment-file: devtools/conda-envs/test-env.yaml
@@ -41,8 +43,23 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
 
+      - name: Install with AmberTools
+        uses: conda-incubator/setup-miniconda@v2.1.1
+        if: ${{ matrix.openeye == false }}
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: devtools/conda-envs/no_openeye.yaml
+
+          channels: conda-forge,defaults
+
+          activate-environment: test
+          auto-update-conda: true
+          auto-activate-base: false
+          show-channel-urls: true
+
       - name: License OpenEye
         shell: bash -l {0}
+        if: ${{ matrix.openeye == true }}
         run: |
           echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
           python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"

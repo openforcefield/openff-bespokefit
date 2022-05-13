@@ -1,0 +1,57 @@
+name: test
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+
+    # Base depends
+  - python
+  - pip
+
+    ### Core dependencies.
+
+  - numpy
+  - pydantic
+  - pyyaml
+  - tqdm
+  - rich
+  - click
+  - click-option-group
+  - rdkit
+  - openff-utilities
+  - openff-toolkit =0.10.6
+  - openff-forcefields
+  - openff-qcsubmit
+  - openmm >=7.6.0
+
+    # Optional
+  - forcebalance >=1.9.2
+  - openff-fragmenter-base >=0.1.2
+
+    ### Bespoke dependencies
+
+  - qcportal >=0.15.6
+  - qcelemental >=0.24.0
+  - qcengine >=0.23.0
+  - chemper
+  - geometric
+  - torsiondrive
+
+    # Executor
+  - uvicorn
+  - fastapi
+  - celery
+  - httpx
+  - redis-server
+  - redis-py
+
+    ### Testing
+
+  - pytest
+  - pytest-cov
+  - pytest-asyncio
+  - pytest-celery
+  - codecov
+  - requests-mock

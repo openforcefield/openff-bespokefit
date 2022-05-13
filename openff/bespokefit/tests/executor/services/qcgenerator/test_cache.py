@@ -1,4 +1,5 @@
 import pytest
+from openff.utilities import skip_if_missing
 from qcelemental.models.common_models import Model
 
 from openff.bespokefit.executor.services.qcgenerator import worker
@@ -10,6 +11,7 @@ from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsio
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
+@skip_if_missing("openeye.oechem")
 def test_canonicalize_torsion_task():
 
     original_task = Torsion1DTask(
