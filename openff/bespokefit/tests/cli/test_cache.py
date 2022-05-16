@@ -133,6 +133,12 @@ def test_update_from_qcsubmit(redis_connection):
         name="qcgenerator:task-ids",
         key="3e44753b523c792590fbfbec096b238630d170165772021360b01e47712c49f2d5639cdb947dea31efa35a640bebd5d233871553a8c56d1a316b91305d699a04",
     )
+    if task_id is None:
+        # try and find the rdkit based hash
+        task_id = redis_connection.hget(
+            name="qcgenerator:task-ids",
+            key="5c60537dc9cf29e482d88d9a9043a2871c6701c11e36947bda1835bdd4f946e75bcc7628ae416f472d121e6c947b5626705d41194b0675a29e5f7628bb33fad7"
+        )
     assert redis_connection.hget("qcgenerator:types", task_id) == b"torsion1d"
 
 
