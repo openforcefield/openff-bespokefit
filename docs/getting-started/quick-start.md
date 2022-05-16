@@ -20,7 +20,8 @@ The recommended way to install `openff-bespokefit` is via the `conda` package ma
 dependencies, and a good starting environment is:
 
 ```shell
-conda create -n bespokefit -c conda-forge openff-bespokefit xtb-python ambertools
+conda install -y mamba
+mamba create -y -n bespokefit -c conda-forge openff-bespokefit xtb-python ambertools
 conda activate bespokefit
 ```
 
