@@ -322,6 +322,7 @@ def _update_from_qcsubmit_result(
         task = task_from_result(result=result)
         con_task = _canonicalize_task(task=task)
         task_hash = hashlib.sha512(con_task.json().encode()).hexdigest()
+        print(task_hash)
         task_id = redis_connection.hget("qcgenerator:task-ids", task_hash)
 
         if task_id is None:
