@@ -1,6 +1,13 @@
 (quick_start_chapter)=
 # Quick start
 
+:::{warning}
+To reduce runtime, the first sections of this "Quick start" guide use a fast semiempirical model, "GFN2-xTB", 
+to generate training data, 
+rather than the ["default" method](default_qc_method) used to train mainline OpenFF force fields. Details on how to 
+set up an environment for a "default" fit using Psi4 are available in the [installation guide](installation_chapter).
+:::
+
 BespokeFit aims to provide an automated pipeline that ingests a general molecular force field and a set of 
 molecules of interest, and produce a new bespoke force field that has been augmented with highly specific 
 force field parameters trained to accurately capture the important features and phenomenology of the input set. 
@@ -9,10 +16,12 @@ Such features may include generating bespoke torsion parameters that have been t
 to capture as closely as possible the torsion profiles of the rotatable bonds in the target molecule 
 which have a large impact on conformational preferences.
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager:
+The recommended way to install `openff-bespokefit` is via the `conda` package manager. There are several optional
+dependencies, and a good starting environment is:
 
 ```shell
-conda install -c conda-forge openff-bespokefit
+conda create -n bespokefit -c conda-forge openff-bespokefit xtb-python ambertools
+conda activate bespokefit
 ```
 
 although [several other methods are available](installation_chapter).
@@ -49,8 +58,9 @@ openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
                             --workflow           "default"               \
                             --output             "acetaminophen.json"    \
                             --output-force-field "acetaminophen.offxml"  \
-                            --n-qc-compute-workers 2                     \
-                            --qc-compute-n-cores   8
+                            --n-qc-compute-workers 4                     \
+                            --qc-compute-n-cores   1                     \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 or the path to an SDF (or similar) file
@@ -60,8 +70,9 @@ openff-bespoke executor run --file               "acetaminophen.sdf"    \
                             --workflow           "default"              \
                             --output             "acetaminophen.json"   \
                             --output-force-field "acetaminophen.offxml" \
-                            --n-qc-compute-workers 2                    \
-                            --qc-compute-n-cores   8
+                            --n-qc-compute-workers 4                    \
+                            --qc-compute-n-cores   1                    \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 in addition to arguments defining how the bespoke fit should be performed and parallelized.
@@ -88,7 +99,8 @@ openff-bespoke executor run --file                 "acetaminophen.sdf" \
                             --n-fragmenter-workers 1                   \
                             --n-optimizer-workers  1                   \
                             --n-qc-compute-workers 2                   \
-                            --qc-compute-n-cores   8
+                            --qc-compute-n-cores   1                   \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising fits.
@@ -107,7 +119,7 @@ seamlessly coordinates every step of the fitting workflow from molecule fragment
 openff-bespoke executor launch --n-fragmenter-workers 1 \
                                --n-optimizer-workers  1 \
                                --n-qc-compute-workers 2 \
-                               --qc-compute-n-cores   8
+                               --qc-compute-n-cores   1 \
 ```
 
 The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general, we recommend devoting 
@@ -120,14 +132,16 @@ the `submit` command either in the form of a SMILES pattern:
 
 ```shell
 openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
-                               --workflow    "default"
+                               --workflow    "default"               \
+                               --default-qc-spec xtb gfn2xtb none
 ```
 
 or loading the molecule from an SDF (or similar) file:
 
 ```shell
 openff-bespoke executor submit --file        "acetaminophen.sdf"   \
-                               --workflow    "default"
+                               --workflow    "default"             \
+                               --default-qc-spec xtb gfn2xtb none
 ```
 
 The `submit` command will also accept a combination of the two input forms as well as multiple occurrences of either. 
@@ -165,6 +179,19 @@ See the [results chapter](bespoke_results_chapter) for more details on retrievin
 
 (quick_start_using_api)=
 ## Using the API
+
+Instead of using the fast semiempirical method available via xTB, this section will use the 
+[default method](default_qc_method) available through Psi4.
+
+:::{warning}
+This section will only work on Linux (not Mac) computers, due to an incompatibility between AmberTools and Psi4.
+Mac users should proceed directly to the [next section](quick_start_config_factory), which shows how to run the Python
+workflow using xTB.
+:::
+
+```shell
+conda install -c psi4 -c defaults psi4
+```
 
 For the more Python oriented user, or for users who are looking for more control over how the bespoke fit will be
 performed, BespokeFit exposes a full Python API.
@@ -214,7 +241,7 @@ with BespokeExecutor(
     n_fragmenter_workers = 1,
     n_optimizer_workers = 1,
     n_qc_compute_workers = 2,
-    qc_compute_worker_config=BespokeWorkerConfig(n_cores=8)
+    qc_compute_worker_config=BespokeWorkerConfig(n_cores=2)
 ) as executor:
     # Submit our workflow to the executor
     task_id = executor.submit(input_schema=workflow_schema)

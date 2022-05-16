@@ -18,7 +18,7 @@ It is a Python library in the [Open Force Field ecosystem] that emphasises:
   directly from the command line without touching a line of Python 
 
 :::{warning}
-Please note that BespokeFit is experimental, pre-production software. It does
+Please note that BespokeFit is under continuous development. It does
 not promise to have a stable API and may in cases produce inaccurate results. 
 We are always looking to improve this framwork so if you do find any undesirable 
 or irritating behaviour, please [file an issue!]
