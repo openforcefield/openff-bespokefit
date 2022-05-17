@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import temporary_cd
+from openff.utilities import skip_if_missing, temporary_cd
 from qcelemental.models.procedures import TorsionDriveResult
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
@@ -81,6 +81,7 @@ def test_local_to_qc_records(result_fixture, request):
         )
 
 
+@skip_if_missing("openeye.oechem")
 @pytest.mark.parametrize(
     "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
 )
@@ -139,6 +140,7 @@ def test_generate_ab_initio_target(result_fixture, with_gradients, request):
         #         assert coord == data.molecule.geometry.flatten().tolist()
 
 
+@skip_if_missing("openeye.oechem")
 @pytest.mark.parametrize(
     "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
 )
