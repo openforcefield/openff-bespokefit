@@ -19,9 +19,9 @@ The recommended way to install `openff-bespokefit` is via the `conda` package ma
 dependencies, and a good starting environment is:
 
 ```shell
-conda install -y mamba
-mamba create -y -n bespokefit -c conda-forge openff-bespokefit xtb-python ambertools python=3.9
-conda activate bespokefit
+conda create -n bespokefit -y -c conda-forge mamba python=3.9
+conda activate bespokefit 
+mamba install -y -c conda-forge openff-bespokefit xtb-python ambertools 
 ```
 
 although [several other methods are available](installation_chapter).
@@ -217,7 +217,7 @@ factory = BespokeWorkflowFactory(
 Similar to the previous steps, here we override the default 
 ["default" QC specification](default_qc_method) to use GFN2-xTB. If we had Psi4
 installed, we could remove the `default_qc_specs` argument and the factory would instead use our mainline
-[fitting QC method]](default_qc_method). 
+[fitting QC method](default_qc_method). 
 The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.0.0 force field 
 with bespoke torsion parameters for all non-terminal *rotatable* bonds in the molecule that have been trained 
 to quantum chemical torsion scan data generated for said molecule.
