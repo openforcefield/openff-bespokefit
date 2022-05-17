@@ -6,13 +6,38 @@ package manager.
 
 ## Using conda
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager:
+The recommended way to install `openff-bespokefit` is via the `conda` package manager.
+A working installation also requires at least one package from each of the two sections below 
+("Fragmentation Backends" and "Reference Data Generators")
 
 ```shell
 conda install -c conda-forge openff-bespokefit
 ```
 
-### Optional dependencies
+
+
+### Fragmentation Backends
+
+#### AmberTools Antechamber
+
+AmberTools is free and open-source, and can generally be used fragment molecules up to 40 heavy atoms in under 
+10 minutes.
+
+```shell
+conda install -c conda-forge ambertools
+````
+
+#### OpenEye Toolkits
+
+If you have access to the OpenEye toolkits (namely `oechem`, `oequacpac` and `oeomega`) we recommend installing
+these also as they can speed up certain operations significantly. OpenEye software requires a free-for-academics 
+license to run.
+
+```shell
+conda install -c openeye openeye-toolkits
+```
+
+### Reference Data Generators
 
 #### Psi4
 
@@ -22,6 +47,11 @@ recommended to be installed unless you intend to train against data generated us
 ```shell
 conda install -c conda-forge -c defaults -c psi4 psi4
 ```
+
+:::{warning}
+There is an incompatibility between the AmberTools and Psi4 conda packages on Mac, and it is not possible to
+create a working conda environment containing both. 
+:::
 
 #### XTB
 
@@ -45,15 +75,6 @@ conda install -c conda-forge torchani
 TorchANI potentials are only suitable for molecules with a net neutral charge and have limited element coverage 
 consisting of C, H, N, O, S, F and Cl
 :::
-
-#### OpenEye toolkits
-
-If you have access to the OpenEye toolkits (namely `oechem`, `oequacpac` and `oeomega`) we recommend installing
-these also as these can speed up certain operations significantly.
-
-```shell
-conda install -c openeye openeye-toolkits
-```
 
 ## From source
 

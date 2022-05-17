@@ -67,6 +67,8 @@ step.
 [`openff-fragmenter`]: https://fragmenter.readthedocs.io/en/stable/index.html
 [may be specified]: workflow_chapter
 
+(default_qc_method)=
+
 ## QC Generation
 
 The third stage in the bespoke fitting workflow is generating any reference quantum chemical data that the bespoke
