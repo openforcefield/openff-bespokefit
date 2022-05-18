@@ -2,7 +2,6 @@ name: Make single-file installers
 
 on:
   workflow_dispatch:
-  push:  # Development only - remove before merging!
 
 jobs:
   test:
@@ -82,9 +81,6 @@ jobs:
           exit 1
         fi
 
-        # The toolkit's action does not require installing optional and test-only
-        # dependencies, not sure if/why they need to be brought in here
-        conda install "forcebalance >=1.9.2" "openff-fragmenter-base >=0.1.2" -c conda-forge -yq
         conda install pytest pytest-cov pytest-asyncio pytest-celery codecov requests-mock -c conda-forge -yq
 
         echo "Done installing, here's the conda env:"
