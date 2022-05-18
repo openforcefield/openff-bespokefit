@@ -2,7 +2,7 @@ name: bespokefit-no-openeye
 
 channels:
   - conda-forge
-  - defaults
+  - nodefaults
 
 dependencies:
 
