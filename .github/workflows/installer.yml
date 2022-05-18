@@ -30,6 +30,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
+        mamba-version: "*"
         activate-environment: constructor
         environment-file: devtools/conda-envs/installer.yaml
         auto-activate-base: false

@@ -34,6 +34,7 @@ jobs:
         if: ${{ matrix.openeye == true }}
         with:
           python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
           environment-file: devtools/conda-envs/test-env.yaml
 
           channels: openeye,conda-forge,defaults
