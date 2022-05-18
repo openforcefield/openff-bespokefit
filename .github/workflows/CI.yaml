@@ -19,12 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [ubuntu-latest, macOS-latest]
-        # python-version: [3.8]
-        # openeye: [true, false]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macOS-latest]
         python-version: [3.8]
-        openeye: [false]
+        openeye: [true, false]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
