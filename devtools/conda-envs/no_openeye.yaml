@@ -2,7 +2,7 @@ name: bespokefit-no-openeye
 
 channels:
   - conda-forge
-  - defaults
+  - nodefaults
 
 dependencies:
 
@@ -12,18 +12,19 @@ dependencies:
 
     ### Core dependencies.
 
-  - numpy
+  - numpy >=1.18
   - pydantic
   - pyyaml
   - tqdm
   - rich
   - click
   - click-option-group
-  - rdkit
+  - rdkit >=22
+  - ambertools >=22
   - openff-utilities
-  - openff-toolkit =0.10.6
-  - openff-forcefields
-  - openff-qcsubmit
+  - openff-toolkit-base =0.10.6
+  - openff-forcefields >=2.0.0
+  - openff-qcsubmit >=0.3.0
   - openmm >=7.6.0
 
     # Optional

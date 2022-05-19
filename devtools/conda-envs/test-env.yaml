@@ -3,7 +3,7 @@ name: test
 channels:
   - openeye
   - conda-forge
-  - defaults
+  - nodefaults
 
 dependencies:
 
