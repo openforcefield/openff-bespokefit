@@ -7,13 +7,10 @@ to generate training data,
 rather than the ["default" method](default_qc_method) used to train mainline OpenFF force fields.
 :::
 
-BespokeFit aims to provide an automated pipeline that ingests a general molecular force field and a set of 
-molecules of interest, and produce a new bespoke force field that has been augmented with highly specific 
-force field parameters trained to accurately capture the important features and phenomenology of the input set. 
-
-Such features may include generating bespoke torsion parameters that have been trained 
-to capture as closely as possible the torsion profiles of the rotatable bonds in the target molecule 
-which have a large impact on conformational preferences.
+BespokeFit aims to provide an automated pipeline to augment a molecular mechanics force field with highly specific force
+field parameters trained to accurately capture the important features and phenomenology of an input set of molecules.
+It produces bespoke torsion parameters that have been trained to capture as closely as possible the torsion profiles of
+the rotatable bonds in the target molecule, which collectively have a large impact on conformational preferences.
 
 The recommended way to install `openff-bespokefit` is via the `conda` package manager. There are several optional
 dependencies, and a good starting environment is:
@@ -39,8 +36,6 @@ interface]. A full list of the available commands, as well as help about each, c
 openff-bespoke executor --help 
 ```
 
-Of particular interest are the `run`, `launch`, `submit`, `retrieve` and `watch` commands.
-
 ### One-off fits
 
 The `run` command is most useful if you are wanting to perform a quick one-off bespoke fit for a single molecule using
@@ -51,7 +46,7 @@ You should only have one `run` command running at once. If you want to compute b
 molecules at once see the [section on production fits](production_fits_section). 
 :::
 
-It will accept either a SMILES pattern
+It will accept either a SMILES pattern:
 
 ```shell
 openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
@@ -63,7 +58,7 @@ openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
                             --default-qc-spec xtb gfn2xtb none
 ```
 
-or the path to an SDF (or similar) file
+Or the path to an SDF (or similar) file:
 
 ```shell
 openff-bespoke executor run --file               "acetaminophen.sdf"    \
@@ -75,7 +70,7 @@ openff-bespoke executor run --file               "acetaminophen.sdf"    \
                             --default-qc-spec xtb gfn2xtb none
 ```
 
-in addition to arguments defining how the bespoke fit should be performed and parallelized.
+The `run` command also takes arguments defining how the bespoke fit should be performed and parallelized.
 
 :::{note}
 Sometimes bespoke commands will raise `RuntimeError: The gateway could not be reached`. This can usually be resolved
@@ -86,14 +81,11 @@ Here we have specified that we wish to start the fit from the general OpenFF 2.0
 it with bespoke parameters generated according to the 
 [default built-in workflow using GFN2-xTB reference data](workflow_chapter). 
 
-:::{note}
-Other available workflow can be viewed by running `openff-bespoke executor run --help`, or alternatively, the path to a 
+Other available workflows can be viewed by running `openff-bespoke executor run --help`, and the path to a 
 [saved workflow factory](quick_start_config_factory) can also be provided using the `--workflow-file` flag.
-
 Alternatively, certain options defined by the workflow can be overridden from the CLI. For example, the default
 specification to use for any new QC calculations can be specified using the `--default-qc-spec` flag, e.g.
 `--default-qc-spec xtb gfn2xtb none`. See the `--help` for other available overrides.
-:::
 
 By default, BespokeFit will use create a single worker for each step in the fitting workflow (i.e. one for fragmenting 
 larger molecules, one for generating any needed reference QC data, and one for doing the final bespoke fit), however 
@@ -109,17 +101,17 @@ openff-bespoke executor run --file                 "acetaminophen.sdf" \
                             --default-qc-spec xtb gfn2xtb none
 ```
 
-See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising fits.
+See the chapter on the [bespoke executor](executor_chapter) for more information about parallelizing fits.
 
 (production_fits_section)=
 ### Production fits
 
-If you are intending to create bespoke parameters for multiple molecules such as a particular lead series, it is 
-recommended to instead launch a dedicated bespoke executor. This has the added benefits of being able to re-use
-data from previous fits, such as common QC calculations, and easily retrieve previous bespoke fits.
+To create bespoke parameters for multiple molecules, such as a particular lead series, it is recommended to instead
+launch a dedicated bespoke executor. This allows BespokeFit to re-use data from previous fits, such as common QC
+calculations, and easily retrieve previous bespoke fits.
 
-The first step is to launch a [bespoke executor](executor_chapter). The executor is the workhorse of BespokeFit, and 
-seamlessly coordinates every step of the fitting workflow from molecule fragmentation to QC data generation:
+The first step is to launch a [bespoke executor](executor_chapter). The executor is the workhorse of BespokeFit; it 
+coordinates every step of the fitting workflow from molecule fragmentation to QC data generation:
 
 ```shell
 openff-bespoke executor launch --n-fragmenter-workers 1 \
@@ -128,13 +120,13 @@ openff-bespoke executor launch --n-fragmenter-workers 1 \
                                --qc-compute-n-cores   1
 ```
 
-The number of workers dedicated to each bespoke fitting stage can be tweaked here. In general, we recommend devoting 
-most of your compute power to the QC compute stage as this stage is both the most expensive, and most the 
-parallelisable. See the chapter on the [bespoke executor](executor_chapter) for more information about parallelising 
+The number of workers dedicated to each bespoke fitting stage can be configured here. In general, we recommend devoting 
+most of your compute power to the QC compute stage, as this stage is both the most expensive and the most 
+parallelizable. See the chapter on the [bespoke executor](executor_chapter) for more information about parallelizing 
 fits.
 
-Once the executor has been launched, we can submit molecules to have bespoke parameters trained by the executor using 
-the `submit` command either in the form of a SMILES pattern:
+Once the executor has been launched, we can submit molecules to the executor for optimization with the `submit`
+command. Molecules can be specified either in the form of a SMILES pattern:
 
 ```shell
 openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
@@ -142,7 +134,7 @@ openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
                                --default-qc-spec xtb gfn2xtb none
 ```
 
-or loading the molecule from an SDF (or similar) file:
+Or by loading the molecule from an SDF (or similar) file:
 
 ```shell
 openff-bespoke executor submit --file        "acetaminophen.sdf"   \
@@ -150,24 +142,24 @@ openff-bespoke executor submit --file        "acetaminophen.sdf"   \
                                --default-qc-spec xtb gfn2xtb none
 ```
 
-The `submit` command will also accept a combination of the two input forms as well as multiple occurrences of either. 
-After successfully submitting the molecules a table will be printed which maps the unique ID that has been assigned by 
-the executor to the submission to the molecule smiles and input file if appropriate. To keep track of submissions we can 
-also have the table saved to csv by add the corresponding `--save-submission-info` flag to the command.
+The `submit` command also accepts a combination of the two input forms, as well as multiple occurrences of either. After
+the molecules are successfully submitted, the executor will print a table which maps a unique molecule ID to each
+molecule SMILES or input file. These IDs can later be used to query the executor about the molecule. This table can be
+saved to a .CSV file by adding the `--save-submission-info` flag to the command.
 
-The ID's can be used to check on state of the submission:
+A particular fitting procedure can be monitored with the `watch` command: 
 
 ```shell
 openff-bespoke executor watch --id "1"
 ```
 
-A full list of submissions currently being processes can be printed with the `list` command:
+A full list of submissions currently being processed can be printed with the `list` command:
 
 ```shell
 openff-bespoke executor list
 ```
 
-or if you would only like to inspect those that have failed for example:
+`list` can be filtered by status; for example, if you would only like to inspect those that have failed:
 
 ```shell
 openff-bespoke executor list --status errored
@@ -186,12 +178,13 @@ See the [results chapter](bespoke_results_chapter) for more details on retrievin
 (quick_start_using_api)=
 ## Using the API
 
-For the more Python oriented user, or for users who are looking for more control over how the bespoke fit will be
-performed, BespokeFit exposes a full Python API.
+For users who prefer Python or who are looking for more control over how the fit will be performed, BespokeFit exposes a
+full Python API.
 
-At the heart of the fitting pipeline is the [`BespokeWorkflowFactory`]. The [`BespokeWorkflowFactory`] encodes the 
-full ensemble of settings that will feed into and control the bespoke fitting pipeline for *any* input molecule, and 
-is used to create the workflows that fully describe how bespoke parameters will be generated *for a specific* molecule:
+At the heart of the fitting pipeline is the [`BespokeWorkflowFactory`]. The [`BespokeWorkflowFactory`] encodes all of
+the settings that will feed into and control the bespoke fitting pipeline for *any* input molecule. The workflow
+factory transforms a particular molecule into a [workflow](workflow_chapter), which fully describes how bespoke
+parameters will be generated for *that specific* molecule:
 
 ```python
 from openff.bespokefit.workflows import BespokeWorkflowFactory
@@ -214,6 +207,7 @@ factory = BespokeWorkflowFactory(
 )
 ```
 
+
 Similar to the previous steps, here we override the default 
 ["default" QC specification](default_qc_method) to use GFN2-xTB. If we had Psi4
 installed, we could remove the `default_qc_specs` argument and the factory would instead use our mainline
@@ -223,7 +217,7 @@ with bespoke torsion parameters for all non-terminal *rotatable* bonds in the mo
 to quantum chemical torsion scan data generated for said molecule.
 
 :::{note}
-See the [configuration section](quick_start_config_factory) for more info on customising the workflow factory.
+See the [configuration section](quick_start_config_factory) for more info on customizing the workflow factory.
 :::
 
 The workflow factory will ingest any molecule that can be represented by the OpenFF Toolkit's [`Molecule`] class
@@ -239,10 +233,10 @@ workflow_schema = factory.optimization_schema_from_molecule(
 )
 ```
 
-This schema encodes the full workflow that will produce the bespoke parameters for *this specific molecule*, including 
-details about how any reference QC data should be generated and at what level of theory, the types of bespoke parameters 
-to generate and hyperparameters about how they should be trained, and the sequence of fitting steps (e.g. fit a 
-charge model, then re-fit the torsion and valence parameters using the new charge model) that should be performed.
+This schema encodes the full workflow that will produce the bespoke parameters for this specific molecule, including how
+any reference QC data should be generated and at what level of theory, the types of bespoke parameters to generate,
+hyperparameters defining how they should be trained, and the sequence of fitting steps that should be performed (e.g. fit
+a charge model, then re-fit the torsion and valence parameters using the new charge model).
 
 Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 
@@ -276,7 +270,7 @@ can be executed efficiently in parallel. The `BespokeExecutor` is described in m
 (quick_start_config_factory)=
 ### Configuring the workflow factory
 
-There workflow factory is largely customisable in order to accommodate different fitting experiments or protocols
+There workflow factory is largely customizable in order to accommodate different fitting experiments or protocols
 that you may wish to use:
 
 ```python

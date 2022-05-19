@@ -92,6 +92,9 @@ autodoc_default_options = {
 autodoc_preserve_defaults = True
 autodoc_inherit_docstrings = False
 autodoc_typehints_format = "short"
+# Workaround for autodoc_typehints_format not working for attributes
+# see https://github.com/sphinx-doc/sphinx/issues/10290#issuecomment-1079740009
+python_use_unqualified_type_names = True
 
 autodoc_pydantic_model_member_order = "groupwise"
 autodoc_pydantic_model_signature_prefix = "model"

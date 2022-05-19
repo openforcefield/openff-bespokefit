@@ -16,9 +16,10 @@ API can change without notice.*
 
 ## Getting Started
 
-To start using this framework we recommend looking over [the documentation](https://openff-bespokefit.readthedocs.io/en/latest/index.html),
-especially the [installation](https://openff-bespokefit.readthedocs.io/en/latest/getting-started/installation.html) and 
-[quick start](https://openff-bespokefit.readthedocs.io/en/latest/getting-started/quick-start.html) guides.
+To start using this framework we recommend looking over [the documentation](https://openff-bespokefit.readthedocs.io/en/latest/index.html).
+If you'd like to run some basic examples immediately, see the [quick start guide](https://openff-bespokefit.readthedocs.io/en/latest/getting-started/quick-start.html), 
+or if you plan to explore the functionality in more depth, begin with the [installation guide](https://openff-bespokefit.readthedocs.io/en/latest/getting-started/installation.html). 
+
 
 ## License
 
