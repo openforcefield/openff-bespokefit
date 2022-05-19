@@ -45,7 +45,7 @@ openff-bespoke executor launch --directory            "bespoke-executor" \
 
 By default, the executor will create a single worker for each stage, and will allow each worker to access all of the
 resources on the machine it is running on. When spawning multiple workers for a stage it is recommended to specify
-resource limits to avoid over-subscription. For example, PSI4 may provide better performance running two QC
+resource limits to avoid over-subscription. For example, Psi4 may provide better performance running two QC
 calculations in parallel with 8 cores each than running one with 16:
 
 ```shell
