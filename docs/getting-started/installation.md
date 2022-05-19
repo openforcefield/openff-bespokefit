@@ -30,12 +30,14 @@ conda install -c conda-forge ambertools
 #### OpenEye Toolkits
 
 If you have access to the OpenEye toolkits (namely `oechem`, `oequacpac` and `oeomega`) we recommend installing
-these also as they can speed up certain operations significantly. OpenEye software requires a free-for-academics 
-license to run.
+these also as they can speed up certain operations significantly. OpenEye software requires a 
+[free-for-academics license] to run.
 
 ```shell
 conda install -c openeye openeye-toolkits
 ```
+
+[free-for-academics license]: https://www.eyesopen.com/academic-licensing
 
 ### Reference Data Generators
 
@@ -81,15 +83,6 @@ consisting of C, H, N, O, S, F and Cl
 :::
 
 [TorchANI]: https://github.com/aiqm/torchani
-
-#### OpenEye toolkits
-
-If you have access to the OpenEye toolkits (namely `oechem`, `oequacpac` and `oeomega`) we recommend installing
-them also, as they can speed up certain operations significantly.
-
-```shell
-conda install -c openeye openeye-toolkits
-```
 
 ## From source
 
