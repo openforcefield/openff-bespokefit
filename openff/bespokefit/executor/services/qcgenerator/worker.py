@@ -1,17 +1,14 @@
-import datetime
-import hashlib
-import json
 import logging
-import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import psutil
 import qcelemental
 import qcengine
+from celery import Task
 from celery.utils.log import get_task_logger
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicInput, AtomicResult
-from qcelemental.models.common_models import DriverEnum
+from qcelemental.models.common_models import DriverEnum, Model, Provenance
 from qcelemental.models.procedures import (
     OptimizationInput,
     OptimizationResult,
@@ -27,14 +24,7 @@ from qcengine.config import get_global
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
-from openff.bespokefit.schema.tasks import (
-    OptimizationTask,
-    QCGenerationTask,
-    Torsion1DTask,
-)
-
-if TYPE_CHECKING:
-    from redis import Redis
+from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
 celery_app = configure_celery_app(
     "qcgenerator", connect_to_default_redis(validate=False)
@@ -74,229 +64,132 @@ def _select_atom(atoms: List[Atom]) -> int:
     return candidate.molecule_atom_index
 
 
-def _load_cached_torsiondrive(
-    redis_connection: "Redis", task_hash: str
-) -> Optional[TorsionDriveResult]:
-    """
-    Try and load a cached torsiondrive from the redis connection
-    """
-    td_result = None
-    task_id = redis_connection.hget("qcgenerator:task-ids", task_hash)
-    if task_id is not None:
-        task_id = task_id.decode()
-        _task_logger.info(f"found cached torsiondrive with id:{task_id}")
-        task_meta = json.loads(redis_connection.get(f"celery-task-meta-{task_id}"))
-        td_result = TorsionDriveResult.parse_raw(task_meta["result"])
-
-    return td_result
-
-
 @celery_app.task(acks_late=True)
-def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
+def compute_torsion_drive(task_json: str) -> str:
     """Runs a torsion drive using QCEngine."""
 
     task = Torsion1DTask.parse_raw(task_json)
 
-    return_value = None
-    # look up the geometry optimisation
-    # here we drop the single point specification and search
-    sp_specification = (
-        task.sp_specification.copy(deep=True)
-        if task.sp_specification is not None
-        else None
-    )
-    task.sp_specification = None
-    redis_connection = connect_to_default_redis()
-    task_hash = hashlib.sha512(task.json().encode()).hexdigest()
+    _task_logger.info(f"running 1D scan with {_task_config()}")
 
-    # only look up if there is a sp specification otherwise we get back this task
-    if sp_specification is not None:
-        return_value = _load_cached_torsiondrive(
-            redis_connection=redis_connection, task_hash=task_hash
-        )
+    molecule: Molecule = Molecule.from_smiles(task.smiles)
+    molecule.generate_conformers(n_conformers=task.n_conformers)
 
-    if return_value is None:
-        # run the geometry optimisation if not in the cache
-        _task_logger.info(f"running 1D scan with {_task_config()}")
+    map_to_atom_index = {
+        map_index: atom_index
+        for atom_index, map_index in molecule.properties["atom_map"].items()
+    }
 
-        molecule: Molecule = Molecule.from_smiles(task.smiles)
-        molecule.generate_conformers(n_conformers=task.n_conformers)
+    index_2 = map_to_atom_index[task.central_bond[0]]
+    index_3 = map_to_atom_index[task.central_bond[1]]
 
-        map_to_atom_index = {
-            map_index: atom_index
-            for atom_index, map_index in molecule.properties["atom_map"].items()
-        }
+    index_1_atoms = [
+        atom
+        for atom in molecule.atoms[index_2].bonded_atoms
+        if atom.molecule_atom_index != index_3
+    ]
+    index_4_atoms = [
+        atom
+        for atom in molecule.atoms[index_3].bonded_atoms
+        if atom.molecule_atom_index != index_2
+    ]
 
-        index_2 = map_to_atom_index[task.central_bond[0]]
-        index_3 = map_to_atom_index[task.central_bond[1]]
+    del molecule.properties["atom_map"]
 
-        index_1_atoms = [
-            atom
-            for atom in molecule.atoms[index_2].bonded_atoms
-            if atom.molecule_atom_index != index_3
-        ]
-        index_4_atoms = [
-            atom
-            for atom in molecule.atoms[index_3].bonded_atoms
-            if atom.molecule_atom_index != index_2
-        ]
-
-        del molecule.properties["atom_map"]
-
-        input_schema = TorsionDriveInput(
-            keywords=TDKeywords(
-                dihedrals=[
-                    (
-                        _select_atom(index_1_atoms),
-                        index_2,
-                        index_3,
-                        _select_atom(index_4_atoms),
-                    )
-                ],
-                grid_spacing=[task.grid_spacing],
-                dihedral_ranges=[task.scan_range]
-                if task.scan_range is not None
-                else None,
-            ),
-            extras={
-                "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                    isomeric=True, explicit_hydrogens=True, mapped=True
+    input_schema = TorsionDriveInput(
+        keywords=TDKeywords(
+            dihedrals=[
+                (
+                    _select_atom(index_1_atoms),
+                    index_2,
+                    index_3,
+                    _select_atom(index_4_atoms),
                 )
-            },
-            initial_molecule=[
-                molecule.to_qcschema(conformer=i) for i in range(molecule.n_conformers)
             ],
-            input_specification=QCInputSpecification(
-                model=task.model,
-                driver=DriverEnum.gradient,
-            ),
-            optimization_spec=OptimizationSpecification(
-                procedure=task.optimization_spec.program,
-                keywords={
-                    **task.optimization_spec.dict(exclude={"program", "constraints"}),
-                    "program": task.program,
-                },
-            ),
-        )
-
-        return_value = qcengine.compute_procedure(
-            input_schema,
-            "torsiondrive",
-            raise_error=True,
-            local_options=_task_config(),
-        )
-
-        if isinstance(return_value, TorsionDriveResult):
-
-            return_value = TorsionDriveResult(
-                **return_value.dict(
-                    exclude={"optimization_history", "stdout", "stderr"}
-                ),
-                optimization_history={},
+            grid_spacing=[task.grid_spacing],
+            dihedral_ranges=[task.scan_range] if task.scan_range is not None else None,
+        ),
+        extras={
+            "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
+                isomeric=True, explicit_hydrogens=True, mapped=True
             )
-        # cache the result of the geometry optimisation only if there is a single point spec
-        if sp_specification is not None:
-            task_id = str(uuid.uuid4())
-            redis_connection.hset("qcgenerator:types", task_id, task.type)
-            redis_connection.hset("qcgenerator:task-ids", task_hash, task_id)
-            # mock a result
-            task_meta = {
-                "status": "SUCCESS",
-                "result": return_value.json(),
-                "traceback": None,
-                "children": [],
-                "date_done": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
-                "task_id": task_id,
-            }
-            redis_connection.set(f"celery-task-meta-{task_id}", json.dumps(task_meta))
-            _task_logger.info(f"caching torsiondrive result {task_id}")
+        },
+        initial_molecule=[
+            molecule.to_qcschema(conformer=i) for i in range(molecule.n_conformers)
+        ],
+        input_specification=QCInputSpecification(
+            model=task.model,
+            driver=DriverEnum.gradient,
+        ),
+        optimization_spec=OptimizationSpecification(
+            procedure=task.optimization_spec.program,
+            keywords={
+                **task.optimization_spec.dict(exclude={"program", "constraints"}),
+                "program": task.program,
+            },
+        ),
+    )
 
-    # check if we need to do single points
-    if sp_specification is not None:
-        # no need for final cache as this is saved at the top level
-        return_value = _compute_torsiondrive_sp(
-            torsiondrive_result=return_value,
-            torsion_specification=sp_specification,
-            config=_task_config(),
+    return_value = qcengine.compute_procedure(
+        input_schema, "torsiondrive", raise_error=True, local_options=_task_config()
+    )
+
+    if isinstance(return_value, TorsionDriveResult):
+
+        return_value = TorsionDriveResult(
+            **return_value.dict(exclude={"optimization_history", "stdout", "stderr"}),
+            optimization_history={},
         )
 
-    # noinspection PyTypeChecker
     return return_value.json()
 
 
-def _compute_torsiondrive_sp(
-    torsiondrive_result: TorsionDriveResult,
-    torsion_specification: QCGenerationTask,
-    config: Dict[str, Any],
+@celery_app.task(acks_late=True)
+def evaluate_torsion_drive(
+    result_json: str,
+    model: Model,
+    program: str,
 ) -> TorsionDriveResult:
     """
-    Compute single points along the final optimised geometries from a torsion drive using the single point specification
-    on the task.
+    Re-evaluates the energies at each optimised geometry along a torsion drive
+    at a new level of theory.
     """
+
     _task_logger.info(
-        f"performing single point evaluations using {torsion_specification}"
+        f"performing single point evaluations using {model} and {program}"
     )
-    # settings = current_settings()
-    # program = torsion_specification.program
-    # n_workers = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS
-    config["retries"] = 4
-    # if program == "psi4" and n_workers == "auto":
-    #     # we recommend 8 cores per worker for psi4 from our qcfractal jobs
-    #     n_workers = max([int(config["ncores"] / 8), 1])
-    # elif n_workers == "auto":
-    #     # for low cost methods like ani or xtb they are fast enough to not need splitting
-    #     n_workers = 1
-    #
-    # opt_config = _divide_config(
-    #     config=qcengine.config.TaskConfig.parse_obj(config), n_workers=n_workers
-    # )
-    #
-    # if n_workers > 1:
-    #     # split the tasks between a pool of workers
-    #     with Pool(processes=n_workers) as pool:
-    #         tasks = {
-    #             grid_point: pool.apply_async(
-    #                 func=_single_point,
-    #                 args=(molecule, torsion_specification, opt_config),
-    #             )
-    #             for grid_point, molecule in torsiondrive_result.final_molecules.items()
-    #         }
-    #         energies = {
-    #             grid_point: result.get() for grid_point, result in tasks.items()
-    #         }
-    # else:
+
+    original_result = TorsionDriveResult.parse_raw(result_json)
+
+    qcengine_config = _task_config()
+    qcengine_config["retries"] = 4  # TODO: expose via env. variable
+
     energies = {
-        grid_point: _single_point(
+        grid_point: _compute_single_point(
             molecule=molecule,
-            specification=torsion_specification,
-            config=config,
+            model=model,
+            program=program,
+            config=qcengine_config,
         ).return_result
-        for grid_point, molecule in torsiondrive_result.final_molecules.items()
+        for grid_point, molecule in original_result.final_molecules.items()
     }
-    # format into a result
-    final_result = torsiondrive_result.copy(deep=True)
-    for grid_point, energy in energies.items():
-        final_result.final_energies[grid_point] = energy
+
+    final_result = TorsionDriveResult(
+        keywords=original_result.keywords,
+        extras=original_result.extras,
+        input_specification=QCInputSpecification(driver=DriverEnum.energy, model=model),
+        initial_molecule=original_result.initial_molecule,
+        optimization_spec=original_result.optimization_spec,
+        final_energies=energies,
+        final_molecules=original_result.final_molecules,
+        optimization_history={},
+        success=True,
+        provenance=Provenance(
+            creator="openff-bespokefit", routine="evaluate_torsion_drive"
+        ),
+    )
+
     return final_result
-
-
-def _single_point(
-    molecule: qcelemental.models.Molecule,
-    specification: QCGenerationTask,
-    config: Dict[str, Any],
-) -> AtomicResult:
-    """
-    Perform a single point calculation on the input qcelemental molecule.
-    """
-    sp_task = AtomicInput(
-        molecule=molecule, driver=DriverEnum.energy, model=specification.model
-    )
-    return qcengine.compute(
-        input_data=sp_task,
-        program=specification.program,
-        raise_error=True,
-        local_options=config,
-    )
 
 
 @celery_app.task
@@ -363,3 +256,33 @@ def compute_optimization(
 def compute_hessian(task_json: str) -> AtomicResult:
     """Runs a set of hessian evaluations using QCEngine."""
     raise NotImplementedError()
+
+
+def _compute_single_point(
+    molecule: qcelemental.models.Molecule,
+    model: Model,
+    program: str,
+    config: Dict[str, Any],
+) -> AtomicResult:
+    """
+    Perform a single point calculation on the input ``qcelemental`` molecule.
+    """
+
+    qc_input = AtomicInput(molecule=molecule, driver=DriverEnum.energy, model=model)
+    return qcengine.compute(
+        input_data=qc_input,
+        program=program,
+        raise_error=True,
+        local_options=config,
+    )
+
+
+@celery_app.task(bind=True, max_retries=None, ignore_result=True)
+def wait_for_task(self: Task, task_id, interval=10):
+
+    result = celery_app.AsyncResult(task_id)
+
+    if result.failed():
+        result.throw()
+    elif not result.ready():
+        self.retry(countdown=interval)
