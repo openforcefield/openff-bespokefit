@@ -24,7 +24,7 @@ always build this factory by simply instantiating the `BespokeWorkflowFactory` c
 The default workflow has five steps:
 
 1. **Parameter selection:** Choose the features of the molecule to create bespoke 
-    parameters for
+    parameters for.
 2. **Fragmentation:** Break the molecule into parts large enough to have accurate
     chemistry, but small enough for efficient quantum chemical calculations.
 3. **QC Generation:** Perform quantum chemical calculations on the fragments to
