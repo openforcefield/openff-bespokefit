@@ -1,15 +1,24 @@
 (quick_start_chapter)=
 # Quick start
 
+:::{warning}
+To reduce runtime, this "Quick start" guide uses a fast semiempirical model, "GFN2-xTB", 
+to generate training data, 
+rather than the ["default" method](default_qc_method) used to train mainline OpenFF force fields.
+:::
+
 BespokeFit aims to provide an automated pipeline to augment a molecular mechanics force field with highly specific force
 field parameters trained to accurately capture the important features and phenomenology of an input set of molecules.
 It produces bespoke torsion parameters that have been trained to capture as closely as possible the torsion profiles of
 the rotatable bonds in the target molecule, which collectively have a large impact on conformational preferences.
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager:
+The recommended way to install `openff-bespokefit` is via the `conda` package manager. There are several optional
+dependencies, and a good starting environment is:
 
 ```shell
-conda install -c conda-forge openff-bespokefit
+conda create -n bespokefit -y -c conda-forge mamba python=3.9
+conda activate bespokefit 
+mamba install -y -c conda-forge openff-bespokefit xtb-python ambertools 
 ```
 
 although [several other methods are available](installation_chapter).
@@ -45,7 +54,8 @@ openff-bespoke executor run --smiles             "CC(=O)NC1=CC=C(C=C1)O" \
                             --output             "acetaminophen.json"    \
                             --output-force-field "acetaminophen.offxml"  \
                             --n-qc-compute-workers 2                     \
-                            --qc-compute-n-cores   8
+                            --qc-compute-n-cores   1                     \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 Or the path to an SDF (or similar) file:
@@ -56,12 +66,20 @@ openff-bespoke executor run --file               "acetaminophen.sdf"    \
                             --output             "acetaminophen.json"   \
                             --output-force-field "acetaminophen.offxml" \
                             --n-qc-compute-workers 2                    \
-                            --qc-compute-n-cores   8
+                            --qc-compute-n-cores   1                    \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 The `run` command also takes arguments defining how the bespoke fit should be performed and parallelized.
+
+:::{note}
+Sometimes bespoke commands will raise `RuntimeError: The gateway could not be reached`. This can usually be resolved
+by rerunning the command a few times. 
+:::
+
 Here we have specified that we wish to start the fit from the general OpenFF 2.0.0 (Sage) force field, augmenting
-it with bespoke parameters generated according to the [default built-in workflow](workflow_chapter). 
+it with bespoke parameters generated according to the 
+[default built-in workflow using GFN2-xTB reference data](workflow_chapter). 
 
 Other available workflows can be viewed by running `openff-bespoke executor run --help`, and the path to a 
 [saved workflow factory](quick_start_config_factory) can also be provided using the `--workflow-file` flag.
@@ -76,10 +94,11 @@ extra workers can easily be requested to speed things up:
 ```shell
 openff-bespoke executor run --file                 "acetaminophen.sdf" \
                             --workflow             "default"           \
-                            --n-fragmenter-workers 1                   \
-                            --n-optimizer-workers  1                   \
+                            --n-fragmenter-workers 2                   \
+                            --n-optimizer-workers  2                   \
                             --n-qc-compute-workers 2                   \
-                            --qc-compute-n-cores   8
+                            --qc-compute-n-cores   1                   \
+                            --default-qc-spec xtb gfn2xtb none
 ```
 
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelizing fits.
@@ -96,9 +115,9 @@ coordinates every step of the fitting workflow from molecule fragmentation to QC
 
 ```shell
 openff-bespoke executor launch --n-fragmenter-workers 1 \
-                               --n-optimizer-workers  1 \
-                               --n-qc-compute-workers 2 \
-                               --qc-compute-n-cores   8
+                               --n-optimizer-workers  2 \
+                               --n-qc-compute-workers 4 \
+                               --qc-compute-n-cores   1
 ```
 
 The number of workers dedicated to each bespoke fitting stage can be configured here. In general, we recommend devoting 
@@ -111,14 +130,16 @@ command. Molecules can be specified either in the form of a SMILES pattern:
 
 ```shell
 openff-bespoke executor submit --smiles      "CC(=O)NC1=CC=C(C=C1)O" \
-                               --workflow    "default"
+                               --workflow    "default"               \
+                               --default-qc-spec xtb gfn2xtb none
 ```
 
 Or by loading the molecule from an SDF (or similar) file:
 
 ```shell
 openff-bespoke executor submit --file        "acetaminophen.sdf"   \
-                               --workflow    "default"
+                               --workflow    "default"             \
+                               --default-qc-spec xtb gfn2xtb none
 ```
 
 The `submit` command also accepts a combination of the two input forms, as well as multiple occurrences of either. After
@@ -167,13 +188,33 @@ parameters will be generated for *that specific* molecule:
 
 ```python
 from openff.bespokefit.workflows import BespokeWorkflowFactory
+from openff.qcsubmit.common_structures import QCSpec
 
-factory = BespokeWorkflowFactory()
+factory = BespokeWorkflowFactory(
+    # Define the starting force field that will be augmented with bespoke 
+    # parameters.
+    initial_force_field="openff-2.0.0.offxml",
+    # Change the level of theory that the reference QC data is generated at
+    default_qc_specs=[
+        QCSpec(
+            method="gfn2xtb",
+            basis=None,
+            program="xtb",
+            spec_name="xtb",
+            spec_description="gfn2xtb",
+        )
+    ]
+)
 ```
 
-The default factory will produce workflows that augment the OpenFF 2.0.0 force field with bespoke torsion parameters for
-all non-terminal rotatable bonds in the molecule. These parameters will have been trained to reproduce quantum chemical
-torsion scan data generated for the molecule using the [Psi4] quantum chemistry package.
+
+Similar to the previous steps, here we override the default 
+["default" QC specification](default_qc_method) to use GFN2-xTB. If we had Psi4
+installed, we could remove the `default_qc_specs` argument and the factory would instead use our mainline
+[fitting QC method](default_qc_method). 
+The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.0.0 force field 
+with bespoke torsion parameters for all non-terminal *rotatable* bonds in the molecule that have been trained 
+to quantum chemical torsion scan data generated for said molecule.
 
 :::{note}
 See the [configuration section](quick_start_config_factory) for more info on customizing the workflow factory.
@@ -206,7 +247,7 @@ with BespokeExecutor(
     n_fragmenter_workers = 1,
     n_optimizer_workers = 1,
     n_qc_compute_workers = 2,
-    qc_compute_worker_config=BespokeWorkerConfig(n_cores=8)
+    qc_compute_worker_config=BespokeWorkerConfig(n_cores=1)
 ) as executor:
     # Submit our workflow to the executor
     task_id = executor.submit(input_schema=workflow_schema)

@@ -2,7 +2,6 @@ import json
 
 from fastapi import APIRouter
 from fastapi.responses import Response
-from openff.fragmenter.depiction import _oe_render_fragment
 from openff.fragmenter.fragment import FragmentationResult
 
 from openff.bespokefit.executor.services import current_settings
@@ -88,12 +87,25 @@ def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
 
     fragment = result.fragments[fragment_id]
 
-    svg_content = _oe_render_fragment(
-        result.parent_molecule,
-        fragment.molecule,
-        fragment.bond_indices,
-        image_width=200,
-        image_height=200,
-    )
+    try:
+        from openff.fragmenter.depiction import _oe_render_fragment
+
+        svg_content = _oe_render_fragment(
+            result.parent_molecule,
+            fragment.molecule,
+            fragment.bond_indices,
+            image_width=200,
+            image_height=200,
+        )
+    except ModuleNotFoundError:
+        from openff.fragmenter.depiction import _rd_render_fragment
+
+        svg_content = _rd_render_fragment(
+            result.parent_molecule,
+            fragment.molecule,
+            fragment.bond_indices,
+            image_width=200,
+            image_height=200,
+        )
 
     return Response(svg_content, media_type="image/svg+xml")
