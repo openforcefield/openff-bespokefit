@@ -5,6 +5,7 @@ import psutil
 import qcelemental
 import qcengine
 from celery import Task
+from celery.result import AsyncResult
 from celery.utils.log import get_task_logger
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicInput, AtomicResult
@@ -147,13 +148,15 @@ def compute_torsion_drive(task_json: str) -> str:
 @celery_app.task(acks_late=True)
 def evaluate_torsion_drive(
     result_json: str,
-    model: Model,
+    model_json: str,
     program: str,
-) -> TorsionDriveResult:
+) -> str:
     """
     Re-evaluates the energies at each optimised geometry along a torsion drive
     at a new level of theory.
     """
+
+    model = Model.parse_raw(model_json)
 
     _task_logger.info(
         f"performing single point evaluations using {model} and {program}"
@@ -177,7 +180,9 @@ def evaluate_torsion_drive(
     final_result = TorsionDriveResult(
         keywords=original_result.keywords,
         extras=original_result.extras,
-        input_specification=QCInputSpecification(driver=DriverEnum.energy, model=model),
+        input_specification=QCInputSpecification(
+            driver=DriverEnum.gradient, model=model
+        ),
         initial_molecule=original_result.initial_molecule,
         optimization_spec=original_result.optimization_spec,
         final_energies=energies,
@@ -189,10 +194,10 @@ def evaluate_torsion_drive(
         ),
     )
 
-    return final_result
+    return final_result.json()
 
 
-@celery_app.task
+@celery_app.task(acks_late=True)
 def compute_optimization(
     task_json: str,
 ) -> List[OptimizationResult]:
@@ -252,7 +257,7 @@ def compute_optimization(
     return serialize(return_values, "json")
 
 
-@celery_app.task
+@celery_app.task(acks_late=True)
 def compute_hessian(task_json: str) -> AtomicResult:
     """Runs a set of hessian evaluations using QCEngine."""
     raise NotImplementedError()
@@ -277,12 +282,14 @@ def _compute_single_point(
     )
 
 
-@celery_app.task(bind=True, max_retries=None, ignore_result=True)
+@celery_app.task(bind=True, max_retries=None, ignore_result=True, acks_late=True)
 def wait_for_task(self: Task, task_id, interval=10):
 
-    result = celery_app.AsyncResult(task_id)
+    result: AsyncResult = celery_app.AsyncResult(task_id)
 
     if result.failed():
         result.throw()
     elif not result.ready():
         self.retry(countdown=interval)
+
+    return result.result

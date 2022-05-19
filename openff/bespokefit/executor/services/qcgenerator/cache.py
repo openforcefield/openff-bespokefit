@@ -102,13 +102,18 @@ def _compute_torsion_drive_task(
         return torsion_drive_id
 
     single_point_id = (
-        (worker.wait_for_task.si(torsion_drive_id) | worker.evaluate_torsion_drive.si())
+        (
+            worker.wait_for_task.s(torsion_drive_id)
+            | worker.evaluate_torsion_drive.s(
+                model_json=task.sp_specification.model.json(),
+                program=task.sp_specification.program,
+            )
+        )
         .delay()
         .id
     )
 
     _cache_task_id(single_point_id, task.type, task_hash, redis_connection)
-
     return single_point_id
 
 
