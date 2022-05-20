@@ -5,7 +5,12 @@ import redis
 from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.executor.services.qcgenerator import worker
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
+from openff.bespokefit.schema.tasks import (
+    HessianTask,
+    OptimizationTask,
+    QCGenerationTask,
+    Torsion1DTask,
+)
 from openff.bespokefit.utilities.molecule import canonical_order_atoms
 
 if TYPE_CHECKING:
@@ -54,8 +59,9 @@ def _canonicalize_task(task: _T) -> _T:
     return task
 
 
-def _sha256_hash(contents: str) -> str:
-    return hashlib.sha512(contents.encode()).hexdigest()
+def _hash_task(task: QCGenerationTask) -> str:
+    """Returns a hashed representation of a QC task"""
+    return hashlib.sha512(task.json().encode()).hexdigest()
 
 
 def _retrieve_cached_task_id(
@@ -71,6 +77,7 @@ def _retrieve_cached_task_id(
 def _cache_task_id(
     task_id: str, task_type: str, task_hash: str, redis_connection: redis.Redis
 ):
+    """Store the ID of a running QC task in the QC task cache."""
 
     redis_connection.hset("qcgenerator:types", task_id, task_type)
     # Make sure to only set the hash after the type is set in case the connection
@@ -81,17 +88,15 @@ def _cache_task_id(
 def _compute_torsion_drive_task(
     task: Torsion1DTask, redis_connection: redis.Redis
 ) -> str:
+    """Submit a torsion drive to celery, optionally chaining together a torsion
+    drive followed by a single point energy re-evaluation."""
 
-    task_hash = _sha256_hash(task.json())
-    task_id = _retrieve_cached_task_id(task_hash, redis_connection)
-
-    if task_id is not None:
-        return task_id
+    task_id = None
 
     torsion_drive_task = task.copy(deep=True)
     torsion_drive_task.sp_specification = None
 
-    torsion_drive_hash = _sha256_hash(torsion_drive_task.json())
+    torsion_drive_hash = _hash_task(torsion_drive_task)
     torsion_drive_id = _retrieve_cached_task_id(torsion_drive_hash, redis_connection)
 
     if torsion_drive_id is None:
@@ -99,9 +104,11 @@ def _compute_torsion_drive_task(
         # There are no cached torsion drives at the 'pre-optimise' level of theory
         # we need to run a torsion drive and then optionally a single point
         if task.sp_specification is None:
+
             torsion_drive_id = worker.compute_torsion_drive.delay(
                 task_json=task.json()
             ).id
+
         else:
 
             task_future: AsyncResult = (
@@ -138,7 +145,6 @@ def _compute_torsion_drive_task(
             .id
         )
 
-    _cache_task_id(task_id, task.type, task_hash, redis_connection)
     return task_id
 
 
@@ -150,25 +156,23 @@ def cached_compute_task(
     worker.
     """
 
-    if isinstance(task, Torsion1DTask):
-        return _compute_torsion_drive_task(task, redis_connection)
-    elif isinstance(task, OptimizationTask):
-        compute = worker.compute_optimization
-    elif isinstance(task, HessianTask):
-        compute = worker.compute_hessian
-    else:
-        raise NotImplementedError()
-
     # Canonicalize the task to improve the cache hit rate.
     task = _canonicalize_task(task)
 
-    task_hash = _sha256_hash(task.json())
+    task_hash = _hash_task(task)
     task_id = _retrieve_cached_task_id(task_hash, redis_connection)
 
     if task_id is not None:
         return task_id
 
-    task_id = compute.delay(task_json=task.json()).id
-    _cache_task_id(task_id, task.type, task_hash, redis_connection)
+    if isinstance(task, Torsion1DTask):
+        task_id = _compute_torsion_drive_task(task, redis_connection)
+    elif isinstance(task, OptimizationTask):
+        task_id = worker.compute_optimization.delay(task_json=task.json()).id
+    elif isinstance(task, HessianTask):
+        task_id = worker.compute_hessian.delay(task_json=task.json()).id
+    else:
+        raise NotImplementedError()
 
+    _cache_task_id(task_id, task.type, task_hash, redis_connection)
     return task_id
