@@ -1,5 +1,5 @@
 import hashlib
-from typing import Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Optional, TypeVar, Union
 
 import redis
 from openff.toolkit.topology import Molecule
@@ -7,6 +7,10 @@ from openff.toolkit.topology import Molecule
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
 from openff.bespokefit.utilities.molecule import canonical_order_atoms
+
+if TYPE_CHECKING:
+    # Only use as a type hint. Use `celery_app.AsyncResult` to initialize
+    from celery.result import AsyncResult
 
 _T = TypeVar("_T", HessianTask, OptimizationTask, Torsion1DTask)
 
@@ -92,7 +96,24 @@ def _compute_torsion_drive_task(
 
     if torsion_drive_id is None:
 
-        torsion_drive_id = worker.compute_torsion_drive.delay(task_json=task.json()).id
+        # There are no cached torsion drives at the 'pre-optimise' level of theory
+        # we need to run a torsion drive and then optionally a single point
+        if task.sp_specification is None:
+            torsion_drive_id = worker.compute_torsion_drive.delay(
+                task_json=task.json()
+            ).id
+        else:
+
+            task_future: AsyncResult = (
+                worker.compute_torsion_drive.s(task_json=task.json())
+                | worker.evaluate_torsion_drive.s(
+                    model_json=task.sp_specification.model.json(),
+                    program=task.sp_specification.program,
+                )
+            ).delay()
+
+            torsion_drive_id = task_future.parent.id
+            task_id = task_future.id
 
         _cache_task_id(
             torsion_drive_id, task.type, torsion_drive_hash, redis_connection
@@ -101,20 +122,24 @@ def _compute_torsion_drive_task(
     if task.sp_specification is None:
         return torsion_drive_id
 
-    single_point_id = (
-        (
-            worker.wait_for_task.s(torsion_drive_id)
-            | worker.evaluate_torsion_drive.s(
-                model_json=task.sp_specification.model.json(),
-                program=task.sp_specification.program,
-            )
-        )
-        .delay()
-        .id
-    )
+    if task_id is None:
 
-    _cache_task_id(single_point_id, task.type, task_hash, redis_connection)
-    return single_point_id
+        # Handle the case where we have a running torsion drive that we need to
+        # append a single point calculation to the end of.
+        task_id = (
+            (
+                worker.wait_for_task.s(torsion_drive_id)
+                | worker.evaluate_torsion_drive.s(
+                    model_json=task.sp_specification.model.json(),
+                    program=task.sp_specification.program,
+                )
+            )
+            .delay()
+            .id
+        )
+
+    _cache_task_id(task_id, task.type, task_hash, redis_connection)
+    return task_id
 
 
 def cached_compute_task(
