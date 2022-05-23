@@ -7,7 +7,6 @@ from openff.bespokefit.executor.services.qcgenerator.cache import (
     cached_compute_task,
 )
 from openff.bespokefit.schema.tasks import (
-    HessianTask,
     OptimizationSpec,
     OptimizationTask,
     Torsion1DTask,
@@ -56,16 +55,16 @@ def test_canonicalize_torsion_task():
             ),
             "compute_optimization",
         ),
-        (
-            HessianTask(
-                smiles="[CH2:1][CH2:2]",
-                optimization_spec=OptimizationSpec(
-                    program="rdkit",
-                    model=Model(method="uff", basis=None),
-                ),
-            ),
-            "compute_hessian",
-        ),
+        # (
+        #     HessianTask(
+        #         smiles="[CH2:1][CH2:2]",
+        #         optimization_spec=OptimizationSpec(
+        #             program="rdkit",
+        #             model=Model(method="uff", basis=None),
+        #         ),
+        #     ),
+        #     "compute_hessian",
+        # ),
     ],
 )
 def test_cached_compute_task(

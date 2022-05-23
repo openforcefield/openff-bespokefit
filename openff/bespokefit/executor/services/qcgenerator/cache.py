@@ -124,20 +124,21 @@ def _compute_torsion_drive_task(
 
         # There are no cached torsion drives at the 'pre-optimise' level of theory
         # we need to run a torsion drive and then optionally a single point
+        compute_torsion_drive_func = worker.compute_torsion_drive.s(
+            smiles=task.smiles,
+            central_bond=task.central_bond,
+            grid_spacing=task.grid_spacing,
+            scan_range=task.scan_range,
+            optimization_spec_json=task.optimization_spec.json(),
+            n_conformers=task.n_conformers,
+        )
+
         if task.evaluation_spec is None:
-
-            torsion_drive_id = worker.compute_torsion_drive.delay(
-                smiles=task.smiles,
-                central_bond=task.central_bond,
-                grid_spacing=task.grid_spacing,
-                scan_range=task.scan_range,
-                optimization_spec_json=task.optimization_spec,
-            ).id
-
+            torsion_drive_id = compute_torsion_drive_func.delay().id
         else:
 
             task_future: AsyncResult = (
-                worker.compute_torsion_drive.s(task_json=task.json())
+                compute_torsion_drive_func
                 | worker.re_evaluate_torsion_drive.s(
                     evaluation_spec_json=task.evaluation_spec.json(),
                 )

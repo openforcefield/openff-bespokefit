@@ -131,7 +131,7 @@ def test_update_from_qcsubmit(redis_connection):
     # find the result in redis
     task_id = redis_connection.hget(
         name="qcgenerator:task-ids",
-        key="21212802afd507cae91fa9b8af76d7fa76174cc1ba4ab04b7c251aa5263598fbb79d9d85a7d0654257afe684312db399bbdbeb174366425a981ab20a31eb6938",
+        key="d68837c929ff61fb0d8eeda94648ad0da29146214452c5ad4e4c68b911099e05638a984e6101b3bf102ee639281893da85937457863d598b0931fe20253009c1",
     ).decode()
     assert redis_connection.hget("qcgenerator:types", task_id).decode() == "torsion1d"
 

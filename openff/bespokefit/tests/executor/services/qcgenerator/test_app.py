@@ -13,7 +13,6 @@ from qcelemental.models.procedures import (
 
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.app import _retrieve_qc_result
-from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
 from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorGETPageResponse,
     QCGeneratorGETResponse,
@@ -22,7 +21,6 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
 )
 from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
 from openff.bespokefit.schema.tasks import (
-    HessianTask,
     OptimizationSpec,
     OptimizationTask,
     Torsion1DTask,
@@ -170,16 +168,16 @@ def test_get_qc_result(
             ),
             "compute_optimization",
         ),
-        (
-            HessianTask(
-                smiles="[CH2:1][CH2:2]",
-                optimization_spec=OptimizationSpec(
-                    program="rdkit",
-                    model=Model(method="uff", basis=None),
-                ),
-            ),
-            "compute_hessian",
-        ),
+        # (
+        #     HessianTask(
+        #         smiles="[CH2:1][CH2:2]",
+        #         optimization_spec=OptimizationSpec(
+        #             program="rdkit",
+        #             model=Model(method="uff", basis=None),
+        #         ),
+        #     ),
+        #     "compute_hessian",
+        # ),
     ],
 )
 def test_post_qc_result(
@@ -193,7 +191,9 @@ def test_post_qc_result(
     )
     request.raise_for_status()
 
-    assert submitted_task_kwargs["task_json"] == _canonicalize_task(task).json()
+    assert (
+        submitted_task_kwargs["optimization_spec_json"] == task.optimization_spec.json()
+    )
     assert redis_connection.hget("qcgenerator:types", "1").decode() == task.type
 
     result = QCGeneratorPOSTResponse.parse_raw(request.text)
