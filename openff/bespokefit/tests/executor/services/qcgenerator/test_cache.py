@@ -6,7 +6,11 @@ from openff.bespokefit.executor.services.qcgenerator.cache import (
     _canonicalize_task,
     cached_compute_task,
 )
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
+from openff.bespokefit.schema.tasks import (
+    OptimizationSpec,
+    OptimizationTask,
+    Torsion1DTask,
+)
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
@@ -15,8 +19,10 @@ def test_canonicalize_torsion_task():
     original_task = Torsion1DTask(
         smiles="[H:1][C:2]([H:3])([H:4])[O:5][H:6]",
         central_bond=(2, 5),
-        program="rdkit",
-        model=Model(method="uff", basis=None),
+        optimization_spec=OptimizationSpec(
+            program="rdkit",
+            model=Model(method="uff", basis=None),
+        ),
     )
     canonical_task = _canonicalize_task(original_task)
 
@@ -31,8 +37,10 @@ def test_canonicalize_torsion_task():
             Torsion1DTask(
                 smiles="[CH2:1][CH2:2]",
                 central_bond=(1, 2),
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                optimization_spec=OptimizationSpec(
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
             ),
             "compute_torsion_drive",
         ),
@@ -40,19 +48,23 @@ def test_canonicalize_torsion_task():
             OptimizationTask(
                 smiles="[CH2:1][CH2:2]",
                 n_conformers=1,
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                optimization_spec=OptimizationSpec(
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
             ),
             "compute_optimization",
         ),
-        (
-            HessianTask(
-                smiles="[CH2:1][CH2:2]",
-                program="rdkit",
-                model=Model(method="uff", basis=None),
-            ),
-            "compute_hessian",
-        ),
+        # (
+        #     HessianTask(
+        #         smiles="[CH2:1][CH2:2]",
+        #         optimization_spec=OptimizationSpec(
+        #             program="rdkit",
+        #             model=Model(method="uff", basis=None),
+        #         ),
+        #     ),
+        #     "compute_hessian",
+        # ),
     ],
 )
 def test_cached_compute_task(

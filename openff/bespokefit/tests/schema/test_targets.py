@@ -4,7 +4,11 @@ from qcelemental.models.common_models import Model
 
 from openff.bespokefit.schema.data import BespokeQCData
 from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
-from openff.bespokefit.schema.tasks import HessianTaskSpec, Torsion1DTaskSpec
+from openff.bespokefit.schema.tasks import (
+    HessianTaskSpec,
+    OptimizationSpec,
+    Torsion1DTaskSpec,
+)
 
 
 def test_check_reference_data(qc_torsion_drive_results):
@@ -16,7 +20,9 @@ def test_check_reference_data(qc_torsion_drive_results):
     TorsionProfileTargetSchema(
         reference_data=BespokeQCData(
             spec=Torsion1DTaskSpec(
-                program="rdkit", model=Model(method="uff", basis=None)
+                optimization_spec=OptimizationSpec(
+                    program="rdkit", model=Model(method="uff", basis=None)
+                )
             )
         )
     )
@@ -27,7 +33,9 @@ def test_check_reference_data(qc_torsion_drive_results):
         TorsionProfileTargetSchema(
             reference_data=BespokeQCData(
                 spec=HessianTaskSpec(
-                    program="rdkit", model=Model(method="uff", basis=None)
+                    optimization_spec=OptimizationSpec(
+                        program="rdkit", model=Model(method="uff", basis=None)
+                    )
                 )
             )
         )
