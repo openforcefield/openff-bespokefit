@@ -183,11 +183,13 @@ def test_to_input_schema_overwrite_spec(tmpdir):
         workflow_file_name=None,
     )
 
-    qc_spec = input_schema.stages[0].targets[0].calculation_specification
-    eval_spec = input_schema.stages[0].targets[0].reference_data.spec.sp_specification
-    assert qc_spec.program == "xtb"
-    assert qc_spec.model.method == "gfn2xtb"
-    assert qc_spec.model.basis is None
+    opt_spec = (
+        input_schema.stages[0].targets[0].calculation_specification.optimization_spec
+    )
+    eval_spec = input_schema.stages[0].targets[0].reference_data.spec.evaluation_spec
+    assert opt_spec.program == "xtb"
+    assert opt_spec.model.method == "gfn2xtb"
+    assert opt_spec.model.basis is None
     assert eval_spec.program == "torchani"
     assert eval_spec.model.basis is None
     assert eval_spec.model.method == "ani2x"

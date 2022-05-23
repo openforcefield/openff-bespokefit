@@ -5,28 +5,22 @@ from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 
 from openff.bespokefit.executor.services.qcgenerator import worker
-from openff.bespokefit.schema.tasks import (
-    OptimizationTask,
-    QCGenerationTask,
-    Torsion1DTask,
-)
+from openff.bespokefit.schema.tasks import OptimizationSpec
 
 
 def test_compute_torsion_drive():
 
-    task = Torsion1DTask(
+    result_json = worker.compute_torsion_drive(
         smiles="[F][CH2:1][CH2:2][F]",
         central_bond=(1, 2),
         grid_spacing=180,
         scan_range=(-180, 180),
-        program="rdkit",
-        model=Model(method="uff", basis=None),
-        sp_specification=QCGenerationTask(
-            program="rdkit", model=Model(method="mmff94", basis=None)
-        ),
+        optimization_spec_json=OptimizationSpec(
+            program="rdkit",
+            model=Model(method="uff", basis=None),
+        ).json(),
+        n_conformers=1,
     )
-
-    result_json = worker.compute_torsion_drive(task.json())
     assert isinstance(result_json, str)
 
     result_dict = json.loads(result_json)
@@ -50,14 +44,13 @@ def test_compute_torsion_drive():
 
 def test_compute_optimization():
 
-    task = OptimizationTask(
+    result_json = worker.compute_optimization(
         smiles="CCCCC",
+        optimization_spec_json=OptimizationSpec(
+            program="rdkit", model=Model(method="uff", basis=None)
+        ).json(),
         n_conformers=2,
-        program="rdkit",
-        model=Model(method="uff", basis=None),
     )
-
-    result_json = worker.compute_optimization(task.json())
     assert isinstance(result_json, str)
 
     result_dicts = json.loads(result_json)

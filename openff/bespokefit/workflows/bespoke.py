@@ -48,8 +48,9 @@ from openff.bespokefit.schema.targets import (
 )
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
+    OptimizationSpec,
     OptimizationTaskSpec,
-    QCGenerationTask,
+    SinglePointSpec,
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities import parallel
@@ -485,17 +486,19 @@ class BespokeWorkflowFactory(ClassBase):
             # set the calculation specification for provenance and caching
             task_type = target_schema.bespoke_task_type()
             target_specification = task_type_to_spec[task_type](
-                program=default_qc_spec.program.lower(),
-                # lower to hit the cache more often
-                model=Model(
-                    method=default_qc_spec.method.lower(),
-                    basis=default_qc_spec.basis.lower()
-                    if default_qc_spec.basis is not None
-                    else default_qc_spec.basis,
-                ),
+                optimization_spec=OptimizationSpec(
+                    program=default_qc_spec.program.lower(),
+                    # lower to hit the cache more often
+                    model=Model(
+                        method=default_qc_spec.method.lower(),
+                        basis=default_qc_spec.basis.lower()
+                        if default_qc_spec.basis is not None
+                        else default_qc_spec.basis,
+                    ),
+                )
             )
             if task_type == "torsion1d" and self.evaluation_qc_spec is not None:
-                target_specification.sp_specification = QCGenerationTask(
+                target_specification.evaluation_spec = SinglePointSpec(
                     program=self.evaluation_qc_spec.program.lower(),
                     model=Model(
                         method=self.evaluation_qc_spec.method.lower(),

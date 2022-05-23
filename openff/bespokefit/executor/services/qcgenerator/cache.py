@@ -6,9 +6,9 @@ from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.schema.tasks import (
+    BaseTaskSpec,
     HessianTask,
     OptimizationTask,
-    QCGenerationTask,
     Torsion1DTask,
 )
 from openff.bespokefit.utilities.molecule import canonical_order_atoms
@@ -48,18 +48,21 @@ def _canonicalize_task(task: _T) -> _T:
 
         task.central_bond = (1, 2)
 
-    else:
+    elif isinstance(task, (HessianTask, OptimizationTask)):
 
         canonical_smiles = canonical_molecule.to_smiles(
             isomeric=True, explicit_hydrogens=True, mapped=False
         )
+
+    else:
+        raise NotImplementedError()
 
     task.smiles = canonical_smiles
 
     return task
 
 
-def _hash_task(task: QCGenerationTask) -> str:
+def _hash_task(task: BaseTaskSpec) -> str:
     """Returns a hashed representation of a QC task"""
     return hashlib.sha512(task.json().encode()).hexdigest()
 
@@ -85,6 +88,24 @@ def _cache_task_id(
     redis_connection.hset("qcgenerator:task-ids", task_hash, task_id)
 
 
+def _compute_hessian_task() -> str:
+    raise NotImplementedError()
+
+
+def _compute_optimization_task(task: OptimizationTask):
+
+    if task.pre_optimization_spec is not None or task.evaluation_spec is not None:
+        raise NotImplementedError()
+
+    task_id = worker.compute_optimization.delay(
+        smiles=task.smiles,
+        optimization_spec_json=task.optimization_spec.json(),
+        n_conformers=task.n_conformers,
+    ).id
+
+    return task_id
+
+
 def _compute_torsion_drive_task(
     task: Torsion1DTask, redis_connection: redis.Redis
 ) -> str:
@@ -94,7 +115,7 @@ def _compute_torsion_drive_task(
     task_id = None
 
     torsion_drive_task = task.copy(deep=True)
-    torsion_drive_task.sp_specification = None
+    torsion_drive_task.evaluation_spec = None
 
     torsion_drive_hash = _hash_task(torsion_drive_task)
     torsion_drive_id = _retrieve_cached_task_id(torsion_drive_hash, redis_connection)
@@ -103,19 +124,22 @@ def _compute_torsion_drive_task(
 
         # There are no cached torsion drives at the 'pre-optimise' level of theory
         # we need to run a torsion drive and then optionally a single point
-        if task.sp_specification is None:
+        if task.evaluation_spec is None:
 
             torsion_drive_id = worker.compute_torsion_drive.delay(
-                task_json=task.json()
+                smiles=task.smiles,
+                central_bond=task.central_bond,
+                grid_spacing=task.grid_spacing,
+                scan_range=task.scan_range,
+                optimization_spec_json=task.optimization_spec,
             ).id
 
         else:
 
             task_future: AsyncResult = (
                 worker.compute_torsion_drive.s(task_json=task.json())
-                | worker.evaluate_torsion_drive.s(
-                    model_json=task.sp_specification.model.json(),
-                    program=task.sp_specification.program,
+                | worker.re_evaluate_torsion_drive.s(
+                    evaluation_spec_json=task.evaluation_spec.json(),
                 )
             ).delay()
 
@@ -126,7 +150,7 @@ def _compute_torsion_drive_task(
             torsion_drive_id, task.type, torsion_drive_hash, redis_connection
         )
 
-    if task.sp_specification is None:
+    if task.evaluation_spec is None:
         return torsion_drive_id
 
     if task_id is None:
@@ -136,9 +160,8 @@ def _compute_torsion_drive_task(
         task_id = (
             (
                 worker.wait_for_task.s(torsion_drive_id)
-                | worker.evaluate_torsion_drive.s(
-                    model_json=task.sp_specification.model.json(),
-                    program=task.sp_specification.program,
+                | worker.re_evaluate_torsion_drive.s(
+                    evaluation_spec_json=task.evaluation_spec.json(),
                 )
             )
             .delay()
@@ -168,9 +191,9 @@ def cached_compute_task(
     if isinstance(task, Torsion1DTask):
         task_id = _compute_torsion_drive_task(task, redis_connection)
     elif isinstance(task, OptimizationTask):
-        task_id = worker.compute_optimization.delay(task_json=task.json()).id
+        task_id = _compute_optimization_task(task)
     elif isinstance(task, HessianTask):
-        task_id = worker.compute_hessian.delay(task_json=task.json()).id
+        task_id = _compute_hessian_task()
     else:
         raise NotImplementedError()
 

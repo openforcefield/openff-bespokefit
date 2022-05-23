@@ -21,7 +21,12 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
     QCGeneratorPOSTResponse,
 )
 from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
-from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
+from openff.bespokefit.schema.tasks import (
+    HessianTask,
+    OptimizationSpec,
+    OptimizationTask,
+    Torsion1DTask,
+)
 from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
@@ -147,8 +152,10 @@ def test_get_qc_result(
             Torsion1DTask(
                 smiles="[CH2:1][CH2:2]",
                 central_bond=(1, 2),
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                optimization_spec=OptimizationSpec(
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
             ),
             "compute_torsion_drive",
         ),
@@ -156,16 +163,20 @@ def test_get_qc_result(
             OptimizationTask(
                 smiles="[CH2:1][CH2:2]",
                 n_conformers=1,
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                optimization_spec=OptimizationSpec(
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
             ),
             "compute_optimization",
         ),
         (
             HessianTask(
                 smiles="[CH2:1][CH2:2]",
-                program="rdkit",
-                model=Model(method="uff", basis=None),
+                optimization_spec=OptimizationSpec(
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
             ),
             "compute_hessian",
         ),

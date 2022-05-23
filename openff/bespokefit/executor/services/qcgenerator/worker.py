@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
 import qcelemental
@@ -9,7 +9,7 @@ from celery.result import AsyncResult
 from celery.utils.log import get_task_logger
 from openff.toolkit.topology import Atom, Molecule
 from qcelemental.models import AtomicInput, AtomicResult
-from qcelemental.models.common_models import DriverEnum, Model, Provenance
+from qcelemental.models.common_models import DriverEnum, Provenance
 from qcelemental.models.procedures import (
     OptimizationInput,
     OptimizationResult,
@@ -25,7 +25,7 @@ from qcengine.config import get_global
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
-from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
+from openff.bespokefit.schema.tasks import OptimizationSpec, SinglePointSpec
 
 celery_app = configure_celery_app(
     "qcgenerator", connect_to_default_redis(validate=False)
@@ -66,23 +66,30 @@ def _select_atom(atoms: List[Atom]) -> int:
 
 
 @celery_app.task(acks_late=True)
-def compute_torsion_drive(task_json: str) -> str:
+def compute_torsion_drive(
+    smiles: str,
+    central_bond: Tuple[int, int],
+    grid_spacing: int,
+    scan_range: Optional[Tuple[int, int]],
+    optimization_spec_json: str,
+    n_conformers: int,
+) -> str:
     """Runs a torsion drive using QCEngine."""
-
-    task = Torsion1DTask.parse_raw(task_json)
 
     _task_logger.info(f"running 1D scan with {_task_config()}")
 
-    molecule: Molecule = Molecule.from_smiles(task.smiles)
-    molecule.generate_conformers(n_conformers=task.n_conformers)
+    optimization_spec = OptimizationSpec.parse_raw(optimization_spec_json)
+
+    molecule: Molecule = Molecule.from_smiles(smiles)
+    molecule.generate_conformers(n_conformers=n_conformers)
 
     map_to_atom_index = {
         map_index: atom_index
         for atom_index, map_index in molecule.properties["atom_map"].items()
     }
 
-    index_2 = map_to_atom_index[task.central_bond[0]]
-    index_3 = map_to_atom_index[task.central_bond[1]]
+    index_2 = map_to_atom_index[central_bond[0]]
+    index_3 = map_to_atom_index[central_bond[1]]
 
     index_1_atoms = [
         atom
@@ -107,8 +114,8 @@ def compute_torsion_drive(task_json: str) -> str:
                     _select_atom(index_4_atoms),
                 )
             ],
-            grid_spacing=[task.grid_spacing],
-            dihedral_ranges=[task.scan_range] if task.scan_range is not None else None,
+            grid_spacing=[grid_spacing],
+            dihedral_ranges=[scan_range] if scan_range is not None else None,
         ),
         extras={
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -119,14 +126,14 @@ def compute_torsion_drive(task_json: str) -> str:
             molecule.to_qcschema(conformer=i) for i in range(molecule.n_conformers)
         ],
         input_specification=QCInputSpecification(
-            model=task.model,
+            model=optimization_spec.model,
             driver=DriverEnum.gradient,
         ),
         optimization_spec=OptimizationSpecification(
-            procedure=task.optimization_spec.program,
+            procedure=optimization_spec.procedure.program,
             keywords={
-                **task.optimization_spec.dict(exclude={"program", "constraints"}),
-                "program": task.program,
+                **optimization_spec.procedure.dict(exclude={"program", "constraints"}),
+                "program": optimization_spec.program,
             },
         ),
     )
@@ -146,21 +153,18 @@ def compute_torsion_drive(task_json: str) -> str:
 
 
 @celery_app.task(acks_late=True)
-def evaluate_torsion_drive(
+def re_evaluate_torsion_drive(
     result_json: str,
-    model_json: str,
-    program: str,
+    evaluation_spec_json: str,
 ) -> str:
     """
     Re-evaluates the energies at each optimised geometry along a torsion drive
     at a new level of theory.
     """
 
-    model = Model.parse_raw(model_json)
+    evaluation_spec = SinglePointSpec.parse_raw(evaluation_spec_json)
 
-    _task_logger.info(
-        f"performing single point evaluations using {model} and {program}"
-    )
+    _task_logger.info(f"performing single point evaluations using {evaluation_spec}")
 
     original_result = TorsionDriveResult.parse_raw(result_json)
 
@@ -170,8 +174,7 @@ def evaluate_torsion_drive(
     energies = {
         grid_point: _compute_single_point(
             molecule=molecule,
-            model=model,
-            program=program,
+            spec=evaluation_spec,
             config=qcengine_config,
         ).return_result
         for grid_point, molecule in original_result.final_molecules.items()
@@ -181,7 +184,7 @@ def evaluate_torsion_drive(
         keywords=original_result.keywords,
         extras=original_result.extras,
         input_specification=QCInputSpecification(
-            driver=DriverEnum.gradient, model=model
+            driver=DriverEnum.gradient, model=evaluation_spec.model
         ),
         initial_molecule=original_result.initial_molecule,
         optimization_spec=original_result.optimization_spec,
@@ -199,24 +202,26 @@ def evaluate_torsion_drive(
 
 @celery_app.task(acks_late=True)
 def compute_optimization(
-    task_json: str,
+    smiles: str,
+    optimization_spec_json: str,
+    n_conformers: int,
 ) -> List[OptimizationResult]:
     """Runs a set of geometry optimizations using QCEngine."""
     # TODO: should we only return the lowest energy optimization?
-    # or the first optimisation to work?
-
-    task = OptimizationTask.parse_raw(task_json)
+    #       or the first optimisation to work?
 
     _task_logger.info(f"running opt with {_task_config()}")
 
-    molecule: Molecule = Molecule.from_smiles(task.smiles)
-    molecule.generate_conformers(n_conformers=task.n_conformers)
+    optimization_spec = OptimizationSpec.parse_raw(optimization_spec_json)
+
+    molecule: Molecule = Molecule.from_smiles(smiles)
+    molecule.generate_conformers(n_conformers=n_conformers)
 
     input_schemas = [
         OptimizationInput(
             keywords={
-                **task.optimization_spec.dict(exclude={"program", "constraints"}),
-                "program": task.program,
+                **optimization_spec.procedure.dict(exclude={"program", "constraints"}),
+                "program": optimization_spec.program,
             },
             extras={
                 "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -224,7 +229,7 @@ def compute_optimization(
                 )
             },
             input_specification=QCInputSpecification(
-                model=task.model,
+                model=optimization_spec.model,
                 driver=DriverEnum.gradient,
             ),
             initial_molecule=molecule.to_qcschema(conformer=i),
@@ -238,7 +243,7 @@ def compute_optimization(
 
         return_value = qcengine.compute_procedure(
             input_schema,
-            task.optimization_spec.program,
+            optimization_spec.procedure.program,
             raise_error=True,
             local_options=_task_config(),
         )
@@ -257,26 +262,27 @@ def compute_optimization(
     return serialize(return_values, "json")
 
 
-@celery_app.task(acks_late=True)
-def compute_hessian(task_json: str) -> AtomicResult:
-    """Runs a set of hessian evaluations using QCEngine."""
-    raise NotImplementedError()
+# @celery_app.task(acks_late=True)
+# def compute_hessian() -> AtomicResult:
+#     """Runs a set of hessian evaluations using QCEngine."""
+#     raise NotImplementedError()
 
 
 def _compute_single_point(
     molecule: qcelemental.models.Molecule,
-    model: Model,
-    program: str,
+    spec: SinglePointSpec,
     config: Dict[str, Any],
 ) -> AtomicResult:
     """
     Perform a single point calculation on the input ``qcelemental`` molecule.
     """
 
-    qc_input = AtomicInput(molecule=molecule, driver=DriverEnum.energy, model=model)
+    qc_input = AtomicInput(
+        molecule=molecule, driver=DriverEnum.energy, model=spec.model
+    )
     return qcengine.compute(
         input_data=qc_input,
-        program=program,
+        program=spec.program,
         raise_error=True,
         local_options=config,
     )
