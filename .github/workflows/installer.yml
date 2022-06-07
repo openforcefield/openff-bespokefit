@@ -19,6 +19,9 @@ jobs:
           # 3.7
           # 3.8
           - 3.9
+        psi4:
+          - false
+          - true
 
     env:
       CI_OS: ${{ matrix.os }}
@@ -46,13 +49,20 @@ jobs:
 
         git clone https://github.com/openforcefield/toolkit-installer-constructor
         cd toolkit-installer-constructor
-        git fetch --all
-        git checkout origin/bespokefit
 
         python ../devtools/scripts/build_cookiecutter_json.py $LATEST_TAG $PYVER $CI_OS
-        cp new_cookiecutter.json cookiecutter/cookiecutter.json
-
         cat new_cookiecutter.json
+
+        if [[ ${{ matrix.psi4}} == false ]]; then
+          cp new_cookiecutter.json cookiecutter/cookiecutter.json
+          cp ../devtools/cookiecutter/default/construct.yaml cookiecutter/\{\{\ cookiecutter.name\ \}\}-\{\{\ cookiecutter.release\ \}\}-py\{\{\ cookiecutter.python\ \}\}-\{\{\ cookiecutter.platform\ \}\}/construct.yaml
+        fi
+
+        if [[ ${{ matrix.psi4}} == true ]]; then
+          cp new_cookiecutter.json cookiecutter/cookiecutter.json
+          cp ../devtools/cookiecutter/psi4/construct.yaml cookiecutter/\{\{\ cookiecutter.name\ \}\}-\{\{\ cookiecutter.release\ \}\}-py\{\{\ cookiecutter.python\ \}\}-\{\{\ cookiecutter.platform\ \}\}/construct.yaml
+        fi
+
 
         python run.py
 

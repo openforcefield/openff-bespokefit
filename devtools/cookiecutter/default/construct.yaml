@@ -1,0 +1,27 @@
+name: {{ cookiecutter.name }}
+
+version: "{{ cookiecutter.release }}"
+
+installer_filename: {{ cookiecutter.name }}-{{ cookiecutter.release }}-py{{ cookiecutter.python | replace(".", "") }}-{{ cookiecutter.platform }}.sh
+
+specs:
+  - openff-bespokefit >=0.1.2
+  - ambertools
+  - xtb-python
+  - python {{ cookiecutter.python }}*
+
+post_install: post_install.sh  [unix]
+
+channels: &id1
+  - https://conda.anaconda.org/conda-forge
+  - http://repo.anaconda.com/pkgs/main/
+
+conda_default_channels: *id1
+
+install_in_dependency_order: true
+
+ignore_duplicate_files: true
+
+keep_pkgs: false
+
+initialize_by_default: false

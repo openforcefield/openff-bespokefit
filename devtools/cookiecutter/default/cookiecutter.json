@@ -1,0 +1,12 @@
+{
+  "name": "openff-bespokefit",
+  "channel": "conda-forge",
+  "python": [
+    "3.9"
+  ],
+  "platform": [
+    "osx-64",
+    "linux-64"
+  ],
+  "release": "0.1.2"
+}
