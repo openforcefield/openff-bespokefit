@@ -58,7 +58,7 @@ create a working conda environment containing both.
 :::
 
 :::{note}
-Installing Psi4 into an existing environment sometimes fails because of subtle differences in
+On Linux, installing Psi4 into an existing environment sometimes fails because of subtle differences in
 compiled dependencies found in multiple channels. An alternative is to install everything when
 initially creating the environment using, with AmberTools:
 
