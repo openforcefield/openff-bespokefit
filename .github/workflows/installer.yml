@@ -1,7 +1,7 @@
 name: Make single-file installers
 
 on:
-  workflow_dispatch:
+  push  # Dev only - REVERT BEFORE MERGE
 
 jobs:
   test:
