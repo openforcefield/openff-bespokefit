@@ -84,6 +84,17 @@ conda install -c conda-forge xtb-python
 
 [`xtb-python`]: https://github.com/grimme-lab/xtb-python
 
+`xtb-python` can _optionally_ be configured to use MKL as its compute backend by running
+
+```shell
+conda install -c conda-forge xtb-python "libblas=*=*mkl"
+```
+
+This likely provides better performance on Intel CPUs. Note that use of the MKL backend may be subject to additional
+license agreements with Intel. We currently understand it to be free for use by academics and companies generally, but
+it is not strictly open source.
+
+
 #### TorchANI
 
 [TorchANI] is a PyTorch implementation of the ANI neural network potentials from the Roitberg group that can be used as 
