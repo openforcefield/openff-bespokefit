@@ -1,4 +1,4 @@
-# Fervently Anticipated Questions (FAQ)
+# Frequently Asked Questions (FAQ)
 
 ## Should I use XTB or TorchANI to speed up QC calculations?
 
