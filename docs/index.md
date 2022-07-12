@@ -40,6 +40,7 @@ hidden: True
 getting-started/installation
 getting-started/quick-start
 getting-started/bespoke-cli
+FAQ <getting-started/faq.md>
 
 :::
 
