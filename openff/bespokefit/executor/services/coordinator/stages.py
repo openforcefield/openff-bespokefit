@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import httpx
-from openff.fragmenter.fragment import Fragment, FragmentationResult
+from openff.fragmenter.fragment import Fragment, FragmentationResult, Molecule
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -51,6 +51,7 @@ from openff.bespokefit.schema.smirnoff import (
     ProperTorsionSMIRKS,
     VdWSMIRKS,
 )
+from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTask
 from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.smirks import (
@@ -512,7 +513,9 @@ class OptimizationStage(_Stage):
         input_schema: BespokeOptimizationSchema,
     ):
 
-        targets = [target for stage in input_schema.stages for target in stage.targets]
+        targets: List[TargetSchema] = [
+            target for stage in input_schema.stages for target in stage.targets
+        ]
         for i, target in enumerate(targets):
 
             if not isinstance(target.reference_data, BespokeQCData):
@@ -529,6 +532,20 @@ class OptimizationStage(_Stage):
             )
 
             target.reference_data = local_qc_data
+
+            from qcelemental.molutil import guess_connectivity
+
+            # Check that connectivity still matches the input molecule
+            original_mol: Molecule = Molecule.from_smiles(input_schema.smiles)
+            for qc_record in local_qc_data.qc_records:
+                for name, mol in qc_record.final_molecules.items():
+                    mol = Molecule.from_qcschema(mol)
+                    if not original_mol.is_isomorphic_with(mol):
+                        raise RuntimeError(
+                            f"Target {input_schema.smiles} record {name}: Reference"
+                            + f" data connectivity does not match original molecule.\n"
+                            + f"{mol.to_smiles()} != {original_mol.to_smiles()}"
+                        )
 
         targets_missing_qc_data = [
             target
