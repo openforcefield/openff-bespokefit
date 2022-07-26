@@ -15,6 +15,7 @@ from openff.toolkit.typing.engines.smirnoff import (
 )
 from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
+from qcelemental.molutil import guess_connectivity
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
@@ -533,18 +534,32 @@ class OptimizationStage(_Stage):
 
             target.reference_data = local_qc_data
 
-            from qcelemental.molutil import guess_connectivity
-
             # Check that connectivity still matches the input molecule
-            original_mol: Molecule = Molecule.from_smiles(input_schema.smiles)
             for qc_record in local_qc_data.qc_records:
-                for name, mol in qc_record.final_molecules.items():
-                    mol = Molecule.from_qcschema(mol)
-                    if not original_mol.is_isomorphic_with(mol):
+                for name, qcschema in qc_record.final_molecules.items():
+                    fragment = Molecule.from_qcschema(qcschema)
+
+                    expected_connectivity = {
+                        tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
+                        for bond in fragment.bonds
+                    }
+
+                    actual_connectivity = {
+                        tuple(sorted([a + 1, b + 1]))
+                        for a, b in guess_connectivity(
+                            qcschema.symbols, qcschema.geometry
+                        )
+                    }
+
+                    if expected_connectivity != actual_connectivity:
                         raise RuntimeError(
-                            f"Target {input_schema.smiles} record {name}: Reference"
-                            + f" data connectivity does not match original molecule.\n"
-                            + f"{mol.to_smiles()} != {original_mol.to_smiles()}"
+                            f"Target {qcschema.schema_name} record {name}: "
+                            + f"Reference data does not match target.\n"
+                            + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
+                            + f"The following connections were expected but not found: "
+                            + f"{expected_connectivity - actual_connectivity}\n"
+                            + f"The following connections were found but not expected: "
+                            + f"{actual_connectivity - expected_connectivity}\n"
                         )
 
         targets_missing_qc_data = [
