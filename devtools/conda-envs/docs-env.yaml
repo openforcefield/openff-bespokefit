@@ -37,6 +37,7 @@ dependencies:
   - chemper
   - geometric
   - torsiondrive
+  - pymbar <4
 
     # Executor
   - uvicorn
