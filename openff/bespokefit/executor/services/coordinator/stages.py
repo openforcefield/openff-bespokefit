@@ -554,11 +554,11 @@ class OptimizationStage(_Stage):
                     if expected_connectivity != actual_connectivity:
                         raise RuntimeError(
                             f"Target {qcschema.schema_name} record {name}: "
-                            + f"Reference data does not match target.\n"
+                            + "Reference data does not match target.\n"
                             + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
-                            + f"The following connections were expected but not found: "
+                            + "The following connections were expected but not found: "
                             + f"{expected_connectivity - actual_connectivity}\n"
-                            + f"The following connections were found but not expected: "
+                            + "The following connections were found but not expected: "
                             + f"{actual_connectivity - expected_connectivity}\n"
                         )
 
