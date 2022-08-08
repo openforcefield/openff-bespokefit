@@ -47,7 +47,7 @@ conda install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-conda install -c conda-forge -c defaults -c psi4 psi4
+conda install -c psi4 -c conda-forge -c defaults psi4
 ```
 
 [Psi4]: https://psicode.org/
@@ -55,6 +55,22 @@ conda install -c conda-forge -c defaults -c psi4 psi4
 :::{warning}
 There is an incompatibility between the AmberTools and Psi4 conda packages on Mac, and it is not possible to
 create a working conda environment containing both. 
+:::
+
+:::{note}
+On Linux, installing Psi4 into an existing environment sometimes fails because of subtle differences in
+compiled dependencies found in multiple channels. An alternative is to install everything when
+initially creating the environment using, with AmberTools:
+
+```shell
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools "h5py<3.2"
+```
+
+or with OpenEye Toolkits:
+
+```shell
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits "h5py<3.2"
+```
 :::
 
 #### XTB
@@ -67,6 +83,17 @@ conda install -c conda-forge xtb-python
 ```
 
 [`xtb-python`]: https://github.com/grimme-lab/xtb-python
+
+`xtb-python` can _optionally_ be configured to use MKL as its compute backend by running
+
+```shell
+conda install -c conda-forge xtb-python "libblas=*=*mkl"
+```
+
+This likely provides better performance on Intel CPUs. Note that use of the MKL backend may be subject to additional
+license agreements with Intel. We currently understand it to be free for use by academics and companies generally, but
+it is not strictly open source.
+
 
 #### TorchANI
 

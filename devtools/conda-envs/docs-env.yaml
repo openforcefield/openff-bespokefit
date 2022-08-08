@@ -48,7 +48,7 @@ dependencies:
 
     ### Documentation dependencies
 
-  - sphinx
+  - sphinx >=4.4,<5
   - sphinx-notfound-page
   - sphinx-click
   - myst-parser
