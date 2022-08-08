@@ -7,5 +7,6 @@ channels:
 dependencies:
   - conda-build
   - conda
+  - mamba
   - constructor=>3.1
   - cookiecutter
