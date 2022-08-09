@@ -4,9 +4,9 @@ from qcelemental.models.common_models import Model
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.targets import (
-    TorsionProfileTargetSchema,
     AbInitioTargetSchema,
     OptGeoTargetSchema,
+    TorsionProfileTargetSchema,
 )
 from openff.bespokefit.schema.tasks import HessianTaskSpec, Torsion1DTaskSpec
 

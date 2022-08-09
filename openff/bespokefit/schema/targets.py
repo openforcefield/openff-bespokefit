@@ -1,14 +1,16 @@
 import abc
-from typing import Any, Dict, Optional, Union, TypeVar
+from typing import Any, Dict, Optional, Set, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
+from openff.qcsubmit.results.results import Tuple
 from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveFloat, validator
 from qcelemental.models import AtomicResult
+from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
 from typing_extensions import Literal
@@ -20,6 +22,74 @@ from openff.bespokefit.schema.tasks import (
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities.pydantic import SchemaBase
+
+
+def _check_connectivity(
+    qcschema: QCEMolecule,
+    name: str,
+    fragment: Molecule,
+    expected_connectivity: Optional[Set[Tuple[int, int]]] = None,
+):
+    """
+    Raise an exception if the geometry of ``qcschema`` does not match ``fragment``
+
+    Parameters
+    ==========
+
+    qcschema
+        A QCElemental ``Molecule`` representing the final geometry of a QC
+        computation
+    name
+        A name for the current calculation. Used in the exception raised by this
+        method.
+    fragment
+        An OpenFF ``Molecule`` representing the true chemical identity of the
+        molecule.
+    expected_connectivity
+        The expected connectivity of ``qcschema``. If not provided, will be
+        computed from ``fragment``. Provide this if you can compute the expected
+        connectivity once for several calls to this function.
+
+    Returns
+    =======
+
+    None
+
+    Raises
+    ======
+
+    ValueError
+        If the connectivity does not match.
+    """
+    # If expected connectivity is not provided, compute it from the fragment
+    if expected_connectivity is None:
+        expected_connectivity = _offmol_to_connectivity(fragment)
+
+    # Guess found connectivity from the output geometry
+    actual_connectivity = {
+        tuple(sorted([a + 1, b + 1]))
+        for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
+    }
+
+    if expected_connectivity != actual_connectivity:
+        # Pydantic validators must raise ValueError, TypeError or AssertionError
+        raise ValueError(
+            f"Target record {name}: "
+            + "Reference data does not match target.\n"
+            + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
+            + "The following connections were expected but not found: "
+            + f"{expected_connectivity - actual_connectivity}\n"
+            + "The following connections were found but not expected: "
+            + f"{actual_connectivity - expected_connectivity}\n"
+        )
+
+
+def _offmol_to_connectivity(mol: Molecule) -> Set[Tuple[int, int]]:
+    """Compute set of all bonds represented as 1-based atom index pairs"""
+    return {
+        tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
+        for bond in mol.bonds
+    }
 
 
 R = TypeVar(
@@ -34,7 +104,7 @@ R = TypeVar(
 )
 
 
-def _check_connectivity(
+def _validate_connectivity(
     cls,
     ref_data: R,
 ) -> R:
@@ -65,65 +135,25 @@ def _check_connectivity(
             for name, qcschema in final_molecules.items():
                 fragment = Molecule.from_qcschema(qcschema)
 
-                # Get correct connectivity from the schema's SMILES
-                expected_connectivity = {
-                    tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
-                    for bond in fragment.bonds
-                }
-
-                # Get computed connectivity guessed from the output geometry
-                actual_connectivity = {
-                    tuple(sorted([a + 1, b + 1]))
-                    for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
-                }
-
-                if expected_connectivity != actual_connectivity:
-                    # Pydantic validators must raise ValueError, TypeError or AssertionError
-                    raise ValueError(
-                        f"Target record {name}: "
-                        + "Reference data does not match target.\n"
-                        + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
-                        + "The following connections were expected but not found: "
-                        + f"{expected_connectivity - actual_connectivity}\n"
-                        + "The following connections were found but not expected: "
-                        + f"{actual_connectivity - expected_connectivity}\n"
-                    )
+                _check_connectivity(qcschema, name, fragment)
 
     elif isinstance(
         ref_data, (TorsionDriveResultCollection, OptimizationResultCollection)
     ):
         for qc_record, fragment in ref_data.to_records():
             # Get correct connectivity from the schema's SMILES
-            expected_connectivity = {
-                tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
-                for bond in fragment.bonds
-            }
+            expected_connectivity = _offmol_to_connectivity(fragment)
 
-            # Some qc records (eg, TorsionDriveResult) use .final_molecules (plural),
-            # others (eg, OptimizationResult) use .final_molecule (singular)
+            # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
+            # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
             try:
                 final_molecules = qc_record.get_final_molecules()
             except AttributeError:
                 final_molecules = {"opt": qc_record.get_final_molecule()}
 
             for name, qcschema in final_molecules.items():
-                # Get computed connectivity guessed from the output geometry
-                actual_connectivity = {
-                    tuple(sorted([a + 1, b + 1]))
-                    for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
-                }
+                _check_connectivity(qcschema, name, fragment, expected_connectivity)
 
-                if expected_connectivity != actual_connectivity:
-                    # Pydantic validators must raise ValueError, TypeError or AssertionError
-                    raise ValueError(
-                        f"Target record {name}: "
-                        + "Reference data does not match target.\n"
-                        + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
-                        + "The following connections were expected but not found: "
-                        + f"{expected_connectivity - actual_connectivity}\n"
-                        + "The following connections were found but not expected: "
-                        + f"{actual_connectivity - expected_connectivity}\n"
-                    )
     # No connectivity changes found, so return the unchanged input as validated
     return ref_data
 
@@ -176,7 +206,7 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _check_connectivity
+        _validate_connectivity
     )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
@@ -214,7 +244,7 @@ class AbInitioTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _check_connectivity
+        _validate_connectivity
     )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
@@ -284,7 +314,7 @@ class OptGeoTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _check_connectivity
+        _validate_connectivity
     )
     calculation_specification: Optional[OptimizationTaskSpec] = Field(
         None,
