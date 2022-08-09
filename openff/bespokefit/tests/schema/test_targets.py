@@ -87,10 +87,16 @@ def test_check_connectivity_local_negative(
         + r"reference_data\n"
         + r"  Target record (opt|\[-165\]): Reference data "
         + r"does not match target\.\n"
-        + r"Expected mapped SMILES: \[H:13\]\[c:1\]1\[c:3\]\(\[c:7\]\(\[c:11\]"
-        + r"\(\[c:8\]\(\[c:4\]1\[H:16\]\)\[H:20\]\)\[c:12\]2\[c:9\]\(\[c:5\]\("
-        + r"\[c:2\]\(\[c:6\]\(\[c:10\]2\[H:22\]\)\[H:18\]\)\[H:14\]\)\[H:17\]\)"
-        + r"\[H:21\]\)\[H:19\]\)\[H:15\]\n"
+        + r"Expected mapped SMILES: "
+        # This regex for the mapped SMILES is probably extremely fragile;
+        # if this test breaks after an RDkit/OpenEye update, try replacing it
+        # with something like `+ r".*"`
+        + r"(\(?\[("
+        + r"H:13|c:1|c:3|c:7|c:11|c:8|c:4|H:16|H:20|c:12|c:9|c:5|c:2|c:6|c:10"
+        + r"|H:22|H:18|H:14|H:17|H:21|H:19|H:15"
+        + r")\]1?2?\)?){22}"
+        # End fragile regex
+        + r"\n"
         + r"The following connections were expected but not found: "
         + r"{\(1, 13\), \(1, 3\), \(1, 4\)}\n"
         + r"The following connections were found but not expected: "
