@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TypeVar
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
@@ -22,10 +22,22 @@ from openff.bespokefit.schema.tasks import (
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
+R = TypeVar(
+    "R",
+    None,
+    LocalQCData[TorsionDriveResult],
+    LocalQCData[OptimizationResult],
+    BespokeQCData[Torsion1DTaskSpec],
+    BespokeQCData[OptimizationTaskSpec],
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
+)
+
+
 def _check_connectivity(
     cls,
-    ref_data: Optional[Union[LocalQCData[Any], Any]],
-):
+    ref_data: R,
+) -> R:
     """
     Check that connectivity has not changed over the course of QC computation.
 
@@ -43,14 +55,23 @@ def _check_connectivity(
     """
     if isinstance(ref_data, LocalQCData):
         for qc_record in ref_data.qc_records:
-            for name, qcschema in qc_record.final_molecules.items():
+            # Some qc records (eg, TorsionDriveResult) use .final_molecules (plural),
+            # others (eg, OptimizationResult) use .final_molecule (singular)
+            try:
+                final_molecules = qc_record.final_molecules
+            except AttributeError:
+                final_molecules = {"opt": qc_record.final_molecule}
+
+            for name, qcschema in final_molecules.items():
                 fragment = Molecule.from_qcschema(qcschema)
 
+                # Get correct connectivity from the schema's SMILES
                 expected_connectivity = {
                     tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
                     for bond in fragment.bonds
                 }
 
+                # Get computed connectivity guessed from the output geometry
                 actual_connectivity = {
                     tuple(sorted([a + 1, b + 1]))
                     for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
@@ -59,7 +80,7 @@ def _check_connectivity(
                 if expected_connectivity != actual_connectivity:
                     # Pydantic validators must raise ValueError, TypeError or AssertionError
                     raise ValueError(
-                        f"Target {qcschema.schema_name} record {name}: "
+                        f"Target record {name}: "
                         + "Reference data does not match target.\n"
                         + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
                         + "The following connections were expected but not found: "
@@ -67,6 +88,7 @@ def _check_connectivity(
                         + "The following connections were found but not expected: "
                         + f"{actual_connectivity - expected_connectivity}\n"
                     )
+    # No connectivity changes found, so return the unchanged input as validated
     return ref_data
 
 
