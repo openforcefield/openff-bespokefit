@@ -88,6 +88,42 @@ def _check_connectivity(
                         + "The following connections were found but not expected: "
                         + f"{actual_connectivity - expected_connectivity}\n"
                     )
+
+    elif isinstance(
+        ref_data, (TorsionDriveResultCollection, OptimizationResultCollection)
+    ):
+        for qc_record, fragment in ref_data.to_records():
+            # Get correct connectivity from the schema's SMILES
+            expected_connectivity = {
+                tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
+                for bond in fragment.bonds
+            }
+
+            # Some qc records (eg, TorsionDriveResult) use .final_molecules (plural),
+            # others (eg, OptimizationResult) use .final_molecule (singular)
+            try:
+                final_molecules = qc_record.get_final_molecules()
+            except AttributeError:
+                final_molecules = {"opt": qc_record.get_final_molecule()}
+
+            for name, qcschema in final_molecules.items():
+                # Get computed connectivity guessed from the output geometry
+                actual_connectivity = {
+                    tuple(sorted([a + 1, b + 1]))
+                    for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
+                }
+
+                if expected_connectivity != actual_connectivity:
+                    # Pydantic validators must raise ValueError, TypeError or AssertionError
+                    raise ValueError(
+                        f"Target record {name}: "
+                        + "Reference data does not match target.\n"
+                        + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
+                        + "The following connections were expected but not found: "
+                        + f"{expected_connectivity - actual_connectivity}\n"
+                        + "The following connections were found but not expected: "
+                        + f"{actual_connectivity - expected_connectivity}\n"
+                    )
     # No connectivity changes found, so return the unchanged input as validated
     return ref_data
 

@@ -101,3 +101,84 @@ def test_check_connectivity_local_negative(
         TargetSchema(
             reference_data=LocalQCData(qc_records=[torsiondrive_result_disconnection])
         )
+
+
+@pytest.mark.parametrize(
+    "TargetSchema,qc_result_fixture",
+    [
+        (TorsionProfileTargetSchema, "qc_torsion_drive_results"),
+        (AbInitioTargetSchema, "qc_torsion_drive_results"),
+        (OptGeoTargetSchema, "qc_optimization_results"),
+    ],
+)
+def test_check_connectivity_qcfractal_positive(
+    TargetSchema,
+    qc_result_fixture,
+    request,
+):
+    torsiondrive_result_collection = request.getfixturevalue(qc_result_fixture)
+
+    TargetSchema(reference_data=torsiondrive_result_collection)
+
+
+@pytest.mark.parametrize(
+    "TargetSchema,qc_result_fixture",
+    [
+        (TorsionProfileTargetSchema, "qc_torsion_drive_results"),
+        (AbInitioTargetSchema, "qc_torsion_drive_results"),
+        (OptGeoTargetSchema, "qc_optimization_results"),
+    ],
+)
+def test_check_connectivity_qcfractal_negative(
+    TargetSchema,
+    qc_result_fixture,
+    request,
+):
+    collection = request.getfixturevalue(qc_result_fixture)
+
+    [(record, _)] = collection.to_records()
+
+    # Get the first of the final molecules, and prepare an update function so
+    # that changes are preserved across calls to get_final_molecule(s)()
+    try:
+        final_molecules = record.get_final_molecules()
+        key, first_final_mol = next(iter(record.cache["final_molecules"].items()))
+
+        def update_record(updated_mol):
+            final_molecules.update({key: updated_mol})
+            record.__dict__["get_final_molecules"] = lambda: final_molecules
+
+    except AttributeError:
+        first_final_mol = record.get_final_molecule()
+
+        def update_record(updated_mol):
+            record.__dict__["get_final_molecule"] = lambda: updated_mol
+
+    # Swap the first two atoms' coordinates to break their connectivity
+    geom = first_final_mol.geometry.copy()
+    geom[0], geom[1] = geom[1], geom[0]
+    updated_mol = first_final_mol.copy(update={"geometry": geom})
+
+    # Update the record with the new geometry
+    update_record(updated_mol)
+
+    # Create the target schema, which should fail to validate
+    expected_err = (
+        r"1 validation error for "
+        + TargetSchema.__name__
+        + r"\n"
+        + r"reference_data\n"
+        + r"  Target record (opt|\[-165\]): Reference data "
+        + r"does not match target\.\n"
+        + r"Expected mapped SMILES: \[H:13\]\[c:1\]1\[c:3\]\(\[c:7\]\(\[c:11\]"
+        + r"\(\[c:8\]\(\[c:4\]1\[H:16\]\)\[H:20\]\)\[c:12\]2\[c:9\]\(\[c:5\]\("
+        + r"\[c:2\]\(\[c:6\]\(\[c:10\]2\[H:22\]\)\[H:18\]\)\[H:14\]\)\[H:17\]\)"
+        + r"\[H:21\]\)\[H:19\]\)\[H:15\]\n"
+        + r"The following connections were expected but not found: "
+        + r"{\(1, 13\), \(1, 3\), \(1, 4\)}\n"
+        + r"The following connections were found but not expected: "
+        + r"{\(1, 6\), \(1, 2\), \(1, 14\), \(1, 5\)}\n"
+        + r" \(type=value_error\)"
+    )
+    with pytest.raises(ValidationError, match=expected_err):
+        TargetSchema(reference_data=collection)
