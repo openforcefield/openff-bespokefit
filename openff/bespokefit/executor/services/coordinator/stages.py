@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import httpx
-from openff.fragmenter.fragment import Fragment, FragmentationResult, Molecule
+from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
