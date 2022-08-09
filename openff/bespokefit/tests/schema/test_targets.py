@@ -91,7 +91,7 @@ def test_check_connectivity_local_negative(
         # This regex for the mapped SMILES is probably extremely fragile;
         # if this test breaks after an RDkit/OpenEye update, try replacing it
         # with something like `+ r".*"`
-        + r"(\(?\[("
+        + r"(\(?[-+]?\[("
         + r"H:13|c:1|c:3|c:7|c:11|c:8|c:4|H:16|H:20|c:12|c:9|c:5|c:2|c:6|c:10"
         + r"|H:22|H:18|H:14|H:17|H:21|H:19|H:15"
         + r")\]1?2?\)?){22}"
