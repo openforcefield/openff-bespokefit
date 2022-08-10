@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Optional, Set, TypeVar, Union, Tuple
+from typing import Any, Dict, Optional, Set, Tuple, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
