@@ -1,12 +1,11 @@
 import abc
-from typing import Any, Dict, Optional, Set, TypeVar, Union
+from typing import Any, Dict, Optional, Set, TypeVar, Union, Tuple
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.qcsubmit.results.results import Tuple
 from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveFloat, validator
 from qcelemental.models import AtomicResult
