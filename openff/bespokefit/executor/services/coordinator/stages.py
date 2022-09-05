@@ -532,6 +532,7 @@ class OptimizationStage(_Stage):
             )
 
             target.reference_data = local_qc_data
+            target.validate_reference_data()
 
         targets_missing_qc_data = [
             target

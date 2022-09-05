@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from qcelemental.models.common_models import Model
+from openff.bespokefit.exceptions import TargetConnectivityChanged
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.targets import (
@@ -49,11 +50,7 @@ class TestCheckConnectivity:
     @pytest.fixture()
     def expected_err(self, TargetSchema) -> str:
         return (
-            r"1 validation error for "
-            + TargetSchema.__name__
-            + r"\n"
-            + r"reference_data\n"
-            + r"  Target record (opt|\[-165\]): Reference data "
+            r"Target record (opt|\[-165\]): Reference data "
             + r"does not match target\.\n"
             + r"Expected mapped SMILES: "
             # This regex for the mapped SMILES is probably extremely fragile;
@@ -70,8 +67,6 @@ class TestCheckConnectivity:
             + r"The following connections were found but not expected: "
             + r"{\(1, 6\), \(1, 2\), \(1, 14\), \(1, 5\)}\n"
             + r"The reference geometry is: \[(\[.*\]\n ){21}\[.*\]\]"
-            # + r"The reference geometry is: \[.*\]"
-            + r" \(type=value_error\)"
         )
 
     @pytest.fixture()
@@ -98,7 +93,8 @@ class TestCheckConnectivity:
         TargetSchema,
         ref_data_local,
     ):
-        TargetSchema(reference_data=LocalQCData(qc_records=ref_data_local))
+        target = TargetSchema(reference_data=LocalQCData(qc_records=ref_data_local))
+        target.validate_reference_data()
 
     def test_check_connectivity_local_negative(
         self,
@@ -116,19 +112,19 @@ class TestCheckConnectivity:
             geom = torsiondrive_result_disconnection.final_molecule.geometry
         geom[0], geom[1] = geom[1], geom[0]
 
-        with pytest.raises(ValidationError, match=expected_err):
-            TargetSchema(
-                reference_data=LocalQCData(
-                    qc_records=[torsiondrive_result_disconnection]
-                )
-            )
+        target = TargetSchema(
+            reference_data=LocalQCData(qc_records=[torsiondrive_result_disconnection])
+        )
+        with pytest.raises(TargetConnectivityChanged, match=expected_err):
+            target.validate_reference_data()
 
     def test_check_connectivity_qcfractal_positive(
         self,
         TargetSchema,
         ref_data_qcfractal,
     ):
-        TargetSchema(reference_data=ref_data_qcfractal)
+        target = TargetSchema(reference_data=ref_data_qcfractal)
+        target.validate_reference_data()
 
     def test_check_connectivity_qcfractal_negative(
         self,
@@ -162,6 +158,7 @@ class TestCheckConnectivity:
         # Update the record with the new geometry
         update_record(updated_mol)
 
+        target = TargetSchema(reference_data=ref_data_qcfractal)
         # Create the target schema, which should fail to validate
-        with pytest.raises(ValidationError, match=expected_err):
-            TargetSchema(reference_data=ref_data_qcfractal)
+        with pytest.raises(TargetConnectivityChanged, match=expected_err):
+            target.validate_reference_data()
