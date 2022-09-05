@@ -81,6 +81,7 @@ def _check_connectivity(
             + f"{expected_connectivity - actual_connectivity}\n"
             + "The following connections were found but not expected: "
             + f"{actual_connectivity - expected_connectivity}\n"
+            + f"The reference geometry is: {qcschema.geometry}"
         )
 
 

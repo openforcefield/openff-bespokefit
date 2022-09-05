@@ -69,6 +69,8 @@ class TestCheckConnectivity:
             + r"{\(1, 13\), \(1, 3\), \(1, 4\)}\n"
             + r"The following connections were found but not expected: "
             + r"{\(1, 6\), \(1, 2\), \(1, 14\), \(1, 5\)}\n"
+            + r"The reference geometry is: \[(\[.*\]\n ){21}\[.*\]\]"
+            # + r"The reference geometry is: \[.*\]"
             + r" \(type=value_error\)"
         )
 
