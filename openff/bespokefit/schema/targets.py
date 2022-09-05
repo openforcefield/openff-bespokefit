@@ -26,8 +26,7 @@ from openff.bespokefit.utilities.pydantic import SchemaBase
 def _check_connectivity(
     qcschema: QCEMolecule,
     name: str,
-    fragment: Molecule,
-    expected_connectivity: Optional[Set[Tuple[int, int]]] = None,
+    fragment: Optional[Molecule] = None,
 ):
     """
     Raise an exception if the geometry of ``qcschema`` does not match ``fragment``
@@ -43,11 +42,7 @@ def _check_connectivity(
         method.
     fragment
         An OpenFF ``Molecule`` representing the true chemical identity of the
-        molecule.
-    expected_connectivity
-        The expected connectivity of ``qcschema``. If not provided, will be
-        computed from ``fragment``. Provide this if you can compute the expected
-        connectivity once for several calls to this function.
+        fragment.
 
     Returns
     =======
@@ -61,8 +56,14 @@ def _check_connectivity(
         If the connectivity does not match.
     """
     # If expected connectivity is not provided, compute it from the fragment
-    if expected_connectivity is None:
-        expected_connectivity = _offmol_to_connectivity(fragment)
+    if fragment is None:
+        fragment = Molecule.from_qcschema(qcschema)
+
+    # Get expected connectivity from bonds
+    expected_connectivity = {
+        tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
+        for bond in fragment.bonds
+    }
 
     # Guess found connectivity from the output geometry
     actual_connectivity = {
@@ -81,14 +82,6 @@ def _check_connectivity(
             + "The following connections were found but not expected: "
             + f"{actual_connectivity - expected_connectivity}\n"
         )
-
-
-def _offmol_to_connectivity(mol: Molecule) -> Set[Tuple[int, int]]:
-    """Compute set of all bonds represented as 1-based atom index pairs"""
-    return {
-        tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
-        for bond in mol.bonds
-    }
 
 
 R = TypeVar(
@@ -132,17 +125,12 @@ def _validate_connectivity(
                 final_molecules = {"opt": qc_record.final_molecule}
 
             for name, qcschema in final_molecules.items():
-                fragment = Molecule.from_qcschema(qcschema)
-
-                _check_connectivity(qcschema, name, fragment)
+                _check_connectivity(qcschema, name)
 
     elif isinstance(
         ref_data, (TorsionDriveResultCollection, OptimizationResultCollection)
     ):
         for qc_record, fragment in ref_data.to_records():
-            # Get correct connectivity from the schema's SMILES
-            expected_connectivity = _offmol_to_connectivity(fragment)
-
             # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
             # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
             try:
@@ -151,7 +139,7 @@ def _validate_connectivity(
                 final_molecules = {"opt": qc_record.get_final_molecule()}
 
             for name, qcschema in final_molecules.items():
-                _check_connectivity(qcschema, name, fragment, expected_connectivity)
+                _check_connectivity(qcschema, name, fragment)
 
     # No connectivity changes found, so return the unchanged input as validated
     return ref_data
