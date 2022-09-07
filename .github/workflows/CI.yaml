@@ -27,7 +27,7 @@ jobs:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.0.2
 
       - name: Install with OpenEye Toolkits
         uses: conda-incubator/setup-miniconda@v2.1.1
