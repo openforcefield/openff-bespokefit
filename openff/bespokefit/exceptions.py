@@ -1,7 +1,7 @@
 """Exceptions for BespokeFit"""
 
 import traceback
-from typing import Tuple, Set
+from typing import Set, Tuple
 
 from numpy.typing import NDArray
 

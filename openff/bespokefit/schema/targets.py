@@ -10,14 +10,11 @@ from openff.toolkit.topology import Molecule
 from pydantic import Field, PositiveFloat
 from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
-from qcelemental.models.procedures import (
-    OptimizationResult,
-    TorsionDriveResult,
-)
+from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
 from typing_extensions import Literal
-from openff.bespokefit.exceptions import TargetConnectivityChanged
 
+from openff.bespokefit.exceptions import TargetConnectivityChanged
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
