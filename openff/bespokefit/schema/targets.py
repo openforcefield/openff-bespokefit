@@ -116,7 +116,10 @@ def _validate_connectivity(
             ...
 
     """
-    if isinstance(ref_data, LocalQCData):
+    if ref_data is None or isinstance(ref_data, BespokeQCData):
+        # Reference data has not been computed, so the connectivity is intact
+        return ref_data
+    elif isinstance(ref_data, LocalQCData):
         for qc_record in ref_data.qc_records:
             # Some qc records (eg, TorsionDriveResult) use .final_molecules (plural),
             # others (eg, OptimizationResult) use .final_molecule (singular)
@@ -128,9 +131,7 @@ def _validate_connectivity(
             for name, qcschema in final_molecules.items():
                 _check_connectivity(qcschema, name)
 
-    elif isinstance(
-        ref_data, (TorsionDriveResultCollection, OptimizationResultCollection)
-    ):
+    elif hasattr(ref_data, "to_records"):
         for qc_record, fragment in ref_data.to_records():
             # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
             # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
