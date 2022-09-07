@@ -1,9 +1,6 @@
 """Exceptions for BespokeFit"""
 
 import traceback
-from typing import Set, Tuple
-
-from numpy.typing import NDArray
 
 
 class BespokeFitException(Exception):
@@ -151,40 +148,3 @@ class MissingTorsionTargetSMARTS(BespokeFitException):
 
     error_type = "missing_torsion_target_smarts"
     header = "Missing Torsion Target SMARTS"
-
-
-class TargetConnectivityChanged(BespokeFitException):
-    """
-    Raised when a target's reference data's connectivity has changed during QC
-    """
-
-    error_type = "target_connectivity_changed"
-    header = "Target Connectivity Changed"
-
-    def __init__(
-        self,
-        record_name: str,
-        fragment_smiles: str,
-        missing_connections: Set[Tuple[int, int]],
-        unexpected_connections: Set[Tuple[int, int]],
-        geometry: NDArray,
-    ):
-
-        message = (
-            f"Target record {record_name}: "
-            + "Reference data does not match target.\n"
-            + f"Expected mapped SMILES: {fragment_smiles}\n"
-            + "The following connections were expected but not found: "
-            + f"{missing_connections}\n"
-            + "The following connections were found but not expected: "
-            + f"{unexpected_connections}\n"
-            + f"The reference geometry is: {geometry}"
-        )
-
-        super().__init__(message)
-
-        self.record_name = record_name
-        self.fragment_smiles = fragment_smiles
-        self.missing_connections = missing_connections
-        self.unexpected_connections = unexpected_connections
-        self.geometry = geometry

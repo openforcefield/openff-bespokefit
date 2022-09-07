@@ -50,7 +50,11 @@ class TestCheckConnectivity:
     @pytest.fixture()
     def expected_err(self, TargetSchema) -> str:
         return (
-            r"Target record (opt|\[-165\]): Reference data "
+            r"1 validation error for "
+            + TargetSchema.__name__
+            + r"\n"
+            + r"reference_data\n"
+            + r"  Target record (opt|\[-165\]): Reference data "
             + r"does not match target\.\n"
             + r"Expected mapped SMILES: "
             # This regex for the mapped SMILES is probably extremely fragile;
@@ -67,6 +71,8 @@ class TestCheckConnectivity:
             + r"The following connections were found but not expected: "
             + r"{\(1, 6\), \(1, 2\), \(1, 14\), \(1, 5\)}\n"
             + r"The reference geometry is: \[(\[.*\]\n ){21}\[.*\]\]"
+            # + r"The reference geometry is: \[.*\]"
+            + r" \(type=value_error\)"
         )
 
     @pytest.fixture()
@@ -93,8 +99,7 @@ class TestCheckConnectivity:
         TargetSchema,
         ref_data_local,
     ):
-        target = TargetSchema(reference_data=LocalQCData(qc_records=ref_data_local))
-        target.validate_reference_data()
+        TargetSchema(reference_data=LocalQCData(qc_records=ref_data_local))
 
     def test_check_connectivity_local_negative(
         self,
@@ -112,19 +117,19 @@ class TestCheckConnectivity:
             geom = torsiondrive_result_disconnection.final_molecule.geometry
         geom[0], geom[1] = geom[1], geom[0]
 
-        target = TargetSchema(
-            reference_data=LocalQCData(qc_records=[torsiondrive_result_disconnection])
-        )
-        with pytest.raises(TargetConnectivityChanged, match=expected_err):
-            target.validate_reference_data()
+        with pytest.raises(ValidationError, match=expected_err):
+            TargetSchema(
+                reference_data=LocalQCData(
+                    qc_records=[torsiondrive_result_disconnection]
+                )
+            )
 
     def test_check_connectivity_qcfractal_positive(
         self,
         TargetSchema,
         ref_data_qcfractal,
     ):
-        target = TargetSchema(reference_data=ref_data_qcfractal)
-        target.validate_reference_data()
+        TargetSchema(reference_data=ref_data_qcfractal)
 
     def test_check_connectivity_qcfractal_negative(
         self,
@@ -158,7 +163,6 @@ class TestCheckConnectivity:
         # Update the record with the new geometry
         update_record(updated_mol)
 
-        target = TargetSchema(reference_data=ref_data_qcfractal)
         # Create the target schema, which should fail to validate
-        with pytest.raises(TargetConnectivityChanged, match=expected_err):
-            target.validate_reference_data()
+        with pytest.raises(ValidationError, match=expected_err):
+            TargetSchema(reference_data=ref_data_qcfractal)
