@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Optional, Set, Tuple, TypeVar, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
@@ -14,7 +14,6 @@ from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
 from typing_extensions import Literal
 
-from openff.bespokefit.exceptions import TargetConnectivityChanged
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,

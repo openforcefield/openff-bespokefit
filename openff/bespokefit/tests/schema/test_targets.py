@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 from qcelemental.models.common_models import Model
 
-from openff.bespokefit.exceptions import TargetConnectivityChanged
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
