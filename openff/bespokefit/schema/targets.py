@@ -1,14 +1,17 @@
 import abc
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from pydantic import Field, PositiveFloat
+from openff.toolkit.topology import Molecule
+from pydantic import Field, PositiveFloat, validator
 from qcelemental.models import AtomicResult
+from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
+from qcelemental.molutil import guess_connectivity
 from typing_extensions import Literal
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
@@ -18,6 +21,130 @@ from openff.bespokefit.schema.tasks import (
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities.pydantic import SchemaBase
+
+
+def _check_connectivity(
+    qcschema: QCEMolecule,
+    name: str,
+    fragment: Optional[Molecule] = None,
+):
+    """
+    Raise an exception if the geometry of ``qcschema`` does not match ``fragment``
+
+    Parameters
+    ==========
+
+    qcschema
+        A QCElemental ``Molecule`` representing the final geometry of a QC
+        computation
+    name
+        A name for the current calculation. Used in the exception raised by this
+        method.
+    fragment
+        An OpenFF ``Molecule`` representing the true chemical identity of the
+        fragment.
+
+    Returns
+    =======
+
+    None
+
+    Raises
+    ======
+
+    ValueError
+        If the connectivity does not match.
+    """
+    # If expected connectivity is not provided, compute it from the fragment
+    if fragment is None:
+        fragment = Molecule.from_qcschema(qcschema)
+
+    # Get expected connectivity from bonds
+    expected_connectivity = {
+        tuple(sorted([bond.atom1_index + 1, bond.atom2_index + 1]))
+        for bond in fragment.bonds
+    }
+
+    # Guess found connectivity from the output geometry
+    actual_connectivity = {
+        tuple(sorted([a + 1, b + 1]))
+        for a, b in guess_connectivity(qcschema.symbols, qcschema.geometry)
+    }
+
+    if expected_connectivity != actual_connectivity:
+        # Pydantic validators must raise ValueError, TypeError or AssertionError
+        raise ValueError(
+            f"Target record {name}: "
+            + "Reference data does not match target.\n"
+            + f"Expected mapped SMILES: {fragment.to_smiles(mapped=True)}\n"
+            + "The following connections were expected but not found: "
+            + f"{expected_connectivity - actual_connectivity}\n"
+            + "The following connections were found but not expected: "
+            + f"{actual_connectivity - expected_connectivity}\n"
+            + f"The reference geometry is: {qcschema.geometry}"
+        )
+
+
+R = TypeVar(
+    "R",
+    None,
+    LocalQCData[TorsionDriveResult],
+    LocalQCData[OptimizationResult],
+    BespokeQCData[Torsion1DTaskSpec],
+    BespokeQCData[OptimizationTaskSpec],
+    OptimizationResultCollection,
+    TorsionDriveResultCollection,
+)
+
+
+def _validate_connectivity(
+    cls,
+    ref_data: R,
+) -> R:
+    """
+    Check that connectivity has not changed over the course of QC computation.
+
+    This function can be used as a validator for the ``reference_data`` field of
+    a target schema if the connectivity may change over the course of computing
+    the target:
+
+        def __init__(...):
+            ...
+            _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
+                _check_connectivity
+            )
+            ...
+
+    """
+    if ref_data is None or isinstance(ref_data, BespokeQCData):
+        # Reference data has not been computed, so the connectivity is intact
+        return ref_data
+    elif isinstance(ref_data, LocalQCData):
+        for qc_record in ref_data.qc_records:
+            # Some qc records (eg, TorsionDriveResult) use .final_molecules (plural),
+            # others (eg, OptimizationResult) use .final_molecule (singular)
+            try:
+                final_molecules = qc_record.final_molecules
+            except AttributeError:
+                final_molecules = {"opt": qc_record.final_molecule}
+
+            for name, qcschema in final_molecules.items():
+                _check_connectivity(qcschema, name)
+
+    elif hasattr(ref_data, "to_records"):
+        for qc_record, fragment in ref_data.to_records():
+            # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
+            # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
+            try:
+                final_molecules = qc_record.get_final_molecules()
+            except AttributeError:
+                final_molecules = {"opt": qc_record.get_final_molecule()}
+
+            for name, qcschema in final_molecules.items():
+                _check_connectivity(qcschema, name, fragment)
+
+    # No connectivity changes found, so return the unchanged input as validated
+    return ref_data
 
 
 class BaseTargetSchema(SchemaBase, abc.ABC):
@@ -67,6 +194,9 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
+    _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
+        _validate_connectivity
+    )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
         description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
@@ -101,6 +231,9 @@ class AbInitioTargetSchema(BaseTargetSchema):
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
+    )
+    _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
+        _validate_connectivity
     )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
@@ -168,6 +301,9 @@ class OptGeoTargetSchema(BaseTargetSchema):
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
+    )
+    _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
+        _validate_connectivity
     )
     calculation_specification: Optional[OptimizationTaskSpec] = Field(
         None,

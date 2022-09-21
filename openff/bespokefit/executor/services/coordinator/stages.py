@@ -51,6 +51,7 @@ from openff.bespokefit.schema.smirnoff import (
     ProperTorsionSMIRKS,
     VdWSMIRKS,
 )
+from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTask
 from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.smirks import (
@@ -512,7 +513,9 @@ class OptimizationStage(_Stage):
         input_schema: BespokeOptimizationSchema,
     ):
 
-        targets = [target for stage in input_schema.stages for target in stage.targets]
+        targets: List[TargetSchema] = [
+            target for stage in input_schema.stages for target in stage.targets
+        ]
         for i, target in enumerate(targets):
 
             if not isinstance(target.reference_data, BespokeQCData):
