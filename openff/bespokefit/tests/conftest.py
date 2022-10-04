@@ -16,6 +16,7 @@ from openff.qcsubmit.results import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.units import unit
 from openff.utilities import get_data_file_path
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model, Provenance
@@ -32,7 +33,6 @@ from qcportal.models import (
     ResultRecord,
     TorsionDriveRecord,
 )
-from simtk import unit
 
 from openff.bespokefit.executor.utilities.redis import (
     expected_redis_config_version,

@@ -7,8 +7,8 @@ from chemper.graphs.environment import ChemicalEnvironment
 from openff.fragmenter.utils import get_atom_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
+from openff.units import unit
 from pydantic import Field
-from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.exceptions import SMIRKSTypeError

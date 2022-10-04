@@ -10,8 +10,8 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
+from openff.units import unit
 from openff.utilities import get_data_file_path
-from openmm import unit
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import validate_smirks
@@ -113,7 +113,7 @@ def test_get_cached_torsion(bace):
     assert "cached" in cached_parameter._cosmetic_attribs
     # make sure the k value is updated
     assert cached_parameter.k[0] == unit.Quantity(
-        value=0.9155269008137, unit=unit.kilocalories_per_mole
+        0.9155269008137, unit.kilocalories_per_mole
     )
     # make sure the smirks has not changed
     assert cached_parameter.smirks == "[#6H1:1]@[#6:2]-!@[#6:3]@[#6H1:4]"

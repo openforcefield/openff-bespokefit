@@ -6,8 +6,8 @@ import os
 
 import numpy as np
 from openff.toolkit.topology import Molecule
+from openff.units import unit
 from openff.utilities import get_data_file_path
-from simtk import unit
 
 from openff.bespokefit.schema.smirnoff import (
     AngleSMIRKS,
@@ -48,14 +48,14 @@ def test_adding_new_smirks_types():
     assert np.isclose(
         ff.force_field["vdW"]
         .parameters[new_parameter.smirks]
-        .rmin_half.value_in_unit(unit.angstrom),
+        .rmin_half.m_as(unit.angstrom),
         123.0,
     )
     assert np.isclose(
         ff.force_field["vdW"]
         .parameters[existing_parameter.smirks]
-        .rmin_half.value_in_unit(unit.angstrom),
-        existing_parameter.rmin_half.value_in_unit(unit.angstrom),
+        .rmin_half.m_as(unit.angstrom),
+        existing_parameter.rmin_half.m_as(unit.angstrom),
     )
 
 
@@ -141,7 +141,7 @@ def test_get_initial_parameters():
             if not isinstance(new_parameter[key], unit.Quantity):
                 continue
 
-            new_value = new_parameter[key].value_in_unit(old_parameter[key].unit)
-            old_value = old_parameter[key].value_in_unit(old_parameter[key].unit)
+            new_value = new_parameter[key].m_as(old_parameter[key].units)
+            old_value = old_parameter[key].m_as(old_parameter[key].units)
 
             assert np.isclose(new_value, old_value)

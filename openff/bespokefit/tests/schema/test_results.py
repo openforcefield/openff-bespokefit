@@ -1,4 +1,4 @@
-from simtk import unit
+from openff.units import unit
 
 
 def test_initial_parameter_values(bespoke_optimization_results):
