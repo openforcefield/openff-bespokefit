@@ -31,7 +31,7 @@ def test_canonicalize_torsion_task():
     [
         (
             Torsion1DTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 central_bond=(1, 2),
                 program="rdkit",
                 model=Model(method="uff", basis=None),
@@ -40,7 +40,7 @@ def test_canonicalize_torsion_task():
         ),
         (
             OptimizationTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 n_conformers=1,
                 program="rdkit",
                 model=Model(method="uff", basis=None),
@@ -49,7 +49,7 @@ def test_canonicalize_torsion_task():
         ),
         (
             HessianTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 program="rdkit",
                 model=Model(method="uff", basis=None),
             ),
