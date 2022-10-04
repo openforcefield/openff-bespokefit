@@ -310,7 +310,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         fb_molecule.Data = {
             "resname": ["UNK"] * off_molecule.n_atoms,
             "resid": [0] * off_molecule.n_atoms,
-            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "elem": [atom.symbol for atom in off_molecule.atoms],
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
@@ -542,7 +542,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         fb_molecule.Data = {
             "resname": ["UNK"] * off_molecule.n_atoms,
             "resid": [0] * off_molecule.n_atoms,
-            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "elem": [atom.symbol for atom in off_molecule.atoms],
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
@@ -615,7 +615,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
             fb_molecule.Data = {
                 "resname": ["UNK"] * off_molecule.n_atoms,
                 "resid": [0] * off_molecule.n_atoms,
-                "elem": [atom.element.symbol for atom in off_molecule.atoms],
+                "elem": [atom.symbol for atom in off_molecule.atoms],
                 "bonds": [
                     (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
                 ],
