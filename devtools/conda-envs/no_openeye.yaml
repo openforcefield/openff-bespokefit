@@ -60,6 +60,6 @@ dependencies:
 
   # Temporary branches
   - pip:
-    - git+https://github.com/openforcefield/openff-toolkit.git@deepcopy_properties
+    - git+https://github.com/openforcefield/openff-toolkit.git@main
     - git+https://github.com/yoshanuikabundi/openff-qcsubmit.git@toolkit_011_support
     - git+https://github.com/Yoshanuikabundi/QCEngine.git@off_toolkit_011_support
