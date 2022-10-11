@@ -14,7 +14,6 @@ import celery
 import requests
 import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import temporary_cd
 from pydantic import Field
 from rich.padding import Padding
 from typing_extensions import Literal
@@ -34,6 +33,7 @@ from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 _T = TypeVar("_T")
 

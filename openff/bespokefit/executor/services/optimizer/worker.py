@@ -2,7 +2,6 @@ import os
 import shutil
 from typing import Union
 
-from openff.utilities import temporary_cd
 from pydantic import parse_raw_as
 from qcelemental.util import serialize
 
@@ -19,6 +18,7 @@ from openff.bespokefit.schema.results import (
     BespokeOptimizationResults,
     OptimizationStageResults,
 )
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 celery_app = configure_celery_app("optimizer", connect_to_default_redis(validate=False))
 

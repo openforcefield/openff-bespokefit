@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import skip_if_missing, temporary_cd
+from openff.utilities import skip_if_missing
 from qcelemental.models.procedures import TorsionDriveResult
 
 from openff.bespokefit.optimizers.forcebalance.factories import (
@@ -26,6 +26,7 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 
 def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.array]]:

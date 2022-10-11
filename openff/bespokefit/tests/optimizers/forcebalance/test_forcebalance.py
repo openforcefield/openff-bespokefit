@@ -9,12 +9,13 @@ import subprocess
 import numpy as np
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import get_data_file_path, temporary_cd
+from openff.utilities import get_data_file_path
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import OptimizationStageResults
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 
 @pytest.fixture()

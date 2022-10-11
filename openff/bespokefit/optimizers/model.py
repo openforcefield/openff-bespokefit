@@ -10,13 +10,13 @@ from collections import defaultdict
 from typing import Dict, Optional, Type
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import temporary_cd
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.schema.fitting import OptimizationStageSchema
 from openff.bespokefit.schema.optimizers import OptimizerSchema
 from openff.bespokefit.schema.results import OptimizationStageResults
 from openff.bespokefit.schema.targets import BaseTargetSchema
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 TargetSchemaType = Type[BaseTargetSchema]
 
