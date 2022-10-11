@@ -487,9 +487,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             )
 
         # Get the list of masses for the molecule to be consistent with ForceBalance
-        masses = np.array(
-            [atom.mass.m_as(unit.dalton) for atom in off_molecule.atoms]
-        )
+        masses = np.array([atom.mass.m_as(unit.dalton) for atom in off_molecule.atoms])
 
         # Compute the mass-weighted hessian
         invert_sqrt_mass_array_repeat = 1.0 / np.sqrt(masses.repeat(3))
