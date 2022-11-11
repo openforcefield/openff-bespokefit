@@ -22,7 +22,7 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base =0.11
+  - openff-toolkit-base >=0.11.3
   - openff-forcefields >=2.0.0
   - openff-qcsubmit >=0.3.0
   - openmm >=7.6.0
@@ -34,8 +34,8 @@ dependencies:
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
-  - qcelemental >=0.24.0
-  - qcengine >=0.23.0
+  - qcelemental >=0.25.1
+  - qcengine >=0.25
   - chemper
   - geometric
   - torsiondrive
@@ -60,6 +60,4 @@ dependencies:
 
   # Temporary branches
   - pip:
-    - git+https://github.com/openforcefield/openff-toolkit.git@main
     - git+https://github.com/yoshanuikabundi/openff-qcsubmit.git@toolkit_011_support
-    - git+https://github.com/Yoshanuikabundi/QCEngine.git@off_toolkit_011_support
