@@ -22,9 +22,9 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base =0.10.6
-  - openff-forcefields >=2
-  - openff-qcsubmit >=0.3
+  - openff-toolkit-base >=0.10.6,<0.11
+  - openff-forcefields
+  - openff-qcsubmit
   - openmm >=7.6.0
 
   # Shim
