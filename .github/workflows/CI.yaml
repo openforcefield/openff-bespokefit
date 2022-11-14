@@ -36,6 +36,7 @@ jobs:
           environment-file: devtools/conda-envs/test-env.yaml
           extra-specs: |
             python=${{ matrix.python-version }}
+            mamba
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
@@ -64,6 +65,8 @@ jobs:
         run: |
           conda info
           conda list
+          mamba repoquery whoneeds importlib_metadata
+          mamba repoquery whoneeds importlib-metadata
 
       - name: Run Tests
         shell: bash -l {0}
