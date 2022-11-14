@@ -45,6 +45,7 @@ jobs:
           environment-file: devtools/conda-envs/no_openeye.yaml
           extra-specs: |
             python=${{ matrix.python-version }}
+            mamba
 
       - name: License OpenEye
         shell: bash -l {0}
