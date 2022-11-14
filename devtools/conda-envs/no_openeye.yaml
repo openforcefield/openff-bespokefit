@@ -12,7 +12,7 @@ dependencies:
 
     ### Core dependencies.
 
-  - numpy >=1.18
+  - numpy
   - pydantic
   - pyyaml
   - tqdm
@@ -23,8 +23,8 @@ dependencies:
   - ambertools >=22
   - openff-utilities
   - openff-toolkit-base =0.10.6
-  - openff-forcefields >=2.0.0
-  - openff-qcsubmit >=0.3.0
+  - openff-forcefields >=2
+  - openff-qcsubmit >=0.3
   - openmm >=7.6.0
 
     # Optional

@@ -1,4 +1,4 @@
-name: test
+name: bespokefit-test
 
 channels:
   - openeye
@@ -22,12 +22,10 @@ dependencies:
   - click-option-group
   - rdkit
   - openff-utilities
-  - openff-toolkit-base ==0.10.6
-  - openff-forcefields
-  - openff-qcsubmit
+  - openff-toolkit-base =0.10.6
+  - openff-forcefields >=2
+  - openff-qcsubmit >=0.3
   - openmm >=7.6.0
-
-  - importlib-metadata =4
 
     # Optional
   - forcebalance >=1.9.2
