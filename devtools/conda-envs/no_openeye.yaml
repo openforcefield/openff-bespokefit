@@ -57,3 +57,6 @@ dependencies:
   - pytest-celery
   - codecov
   - requests-mock
+
+  - importlib-metadata >=4
+  - importlib_metadata >=4
