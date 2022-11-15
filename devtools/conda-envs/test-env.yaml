@@ -46,7 +46,7 @@ dependencies:
 
     # Executor
   - uvicorn
-  - fastapi
+  - fastapi =0.85
   - celery
   - httpx
   - redis-server
