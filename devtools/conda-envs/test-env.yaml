@@ -25,7 +25,7 @@ dependencies:
   - openff-toolkit-base >=0.11.3
   - openff-forcefields
   - openff-units
-  - openff-qcsubmit
+  - openff-qcsubmit >=0.4
   - openmm >=7.6.0
 
     # Optional
@@ -60,7 +60,3 @@ dependencies:
   - pytest-celery
   - codecov
   - requests-mock
-
-  # Temporary branches
-  - pip:
-    - git+https://github.com/yoshanuikabundi/openff-qcsubmit.git@toolkit_011_support
