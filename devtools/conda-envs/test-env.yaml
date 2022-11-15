@@ -39,7 +39,7 @@ dependencies:
   - qcelemental >=0.24.0
   - qcengine >=0.23.0
   - chemper
-  - geometric <1
+  - geometric
   - torsiondrive
   - pymbar <4
 
