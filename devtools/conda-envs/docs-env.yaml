@@ -18,7 +18,7 @@ dependencies:
   - click-option-group
   - rdkit
   - openff-utilities
-  - openff-toolkit-base >=0.10.0
+  - openff-toolkit-base >=0.10.6
   - openff-forcefields
   - openff-qcsubmit
   - openmm >=7.6.0
@@ -35,7 +35,7 @@ dependencies:
   - qcelemental >=0.24.0
   - qcengine >=0.21.0
   - chemper
-  - geometric
+  - geometric <1
   - torsiondrive
   - pymbar <4
 
