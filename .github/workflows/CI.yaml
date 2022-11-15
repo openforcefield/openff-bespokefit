@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install with OpenEye Toolkits
-        uses: conda-incubator/setup-miniconda@v2.1.1
+        uses: conda-incubator/setup-miniconda@v2
         if: ${{ matrix.openeye == true }}
         with:
           python-version: ${{ matrix.python-version }}
