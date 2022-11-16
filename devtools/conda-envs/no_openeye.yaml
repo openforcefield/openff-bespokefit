@@ -48,6 +48,7 @@ dependencies:
     # Executor
   - uvicorn
   - fastapi
+  - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
   - celery
   - httpx
   - redis-server
@@ -61,3 +62,6 @@ dependencies:
   - pytest-celery
   - codecov
   - requests-mock
+
+  - importlib-metadata >=4
+  - importlib_metadata >=4
