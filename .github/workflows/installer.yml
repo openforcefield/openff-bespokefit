@@ -27,13 +27,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
+    - name: Install conda environment
+      uses: mamba-org/provision-with-micromamba@main
       with:
-        python-version: ${{ matrix.python-version }}
-        mamba-version: "*"
-        activate-environment: constructor
         environment-file: devtools/conda-envs/installer.yaml
-        auto-activate-base: false
+        extra-specs: |
+          python=${{ matrix.python-version }}
 
     - name: Prepare and run the constructor
       shell: bash -l {0}
@@ -82,7 +81,7 @@ jobs:
           exit 1
         fi
 
-        conda install pytest pytest-cov pytest-asyncio pytest-celery codecov requests-mock -c conda-forge -yq
+        micromamba install pytest pytest-cov pytest-asyncio pytest-celery codecov requests-mock -c conda-forge -yq
 
         echo "Done installing, here's the conda env:"
         conda info

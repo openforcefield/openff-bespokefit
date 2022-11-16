@@ -12,7 +12,7 @@ dependencies:
 
     ### Core dependencies.
 
-  - numpy >=1.18
+  - numpy
   - pydantic
   - pyyaml
   - tqdm
@@ -22,10 +22,14 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base =0.10.6
-  - openff-forcefields >=2.0.0
-  - openff-qcsubmit >=0.3.0
+  - openff-toolkit-base >=0.10.6,<0.11
+  - openff-forcefields
+  - openff-qcsubmit
   - openmm >=7.6.0
+
+  # Shim
+  - importlib-metadata >=4
+  - importlib_metadata >=4
 
     # Optional
   - forcebalance >=1.9.2
@@ -37,13 +41,14 @@ dependencies:
   - qcelemental >=0.24.0
   - qcengine >=0.23.0
   - chemper
-  - geometric
+  - geometric <1
   - torsiondrive
   - pymbar <4
 
     # Executor
   - uvicorn
   - fastapi
+  - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
   - celery
   - httpx
   - redis-server
@@ -57,3 +62,6 @@ dependencies:
   - pytest-celery
   - codecov
   - requests-mock
+
+  - importlib-metadata >=4
+  - importlib_metadata >=4
