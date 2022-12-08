@@ -23,13 +23,13 @@ dependencies:
   - ambertools >=22
   - openff-utilities
   - openff-toolkit-base >=0.11.3
-  - openff-forcefields >=2.0.0
-  - openff-qcsubmit >=0.4.0
+  - openff-forcefields
+  - openff-qcsubmit
   - openmm >=7.6.0
 
     # Optional
-  - forcebalance >=1.9.2
-  - openff-fragmenter-base >=0.1.2
+  - forcebalance
+  - openff-fragmenter-base
 
     ### Bespoke dependencies
 
@@ -39,7 +39,7 @@ dependencies:
   - chemper
   - geometric
   - torsiondrive
-  - pymbar <4
+  - pymbar
 
     # Executor
   - uvicorn
