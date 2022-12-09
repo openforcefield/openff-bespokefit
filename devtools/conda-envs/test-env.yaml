@@ -50,12 +50,8 @@ dependencies:
 
     # Executor
   - uvicorn
-<<<<<<< HEAD
-  - fastapi =0.85
-=======
   - fastapi
   - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
->>>>>>> upstream/main
   - celery
   - httpx
   - redis-server
