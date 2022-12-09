@@ -1,4 +1,4 @@
-name: test
+name: bespokefit-test
 
 channels:
   - openeye
@@ -28,6 +28,10 @@ dependencies:
   - openff-qcsubmit
   - openmm >=7.6.0
 
+  # Shim
+  - importlib-metadata >=4
+  - importlib_metadata >=4
+
     # Optional
   - forcebalance
   - openff-fragmenter-base
@@ -40,13 +44,18 @@ dependencies:
   - qcelemental >=0.25.1
   - qcengine >=0.25
   - chemper
-  - geometric
+  - geometric <1
   - torsiondrive
   - pymbar
 
     # Executor
   - uvicorn
+<<<<<<< HEAD
   - fastapi =0.85
+=======
+  - fastapi
+  - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
+>>>>>>> upstream/main
   - celery
   - httpx
   - redis-server
@@ -60,3 +69,6 @@ dependencies:
   - pytest-celery
   - codecov
   - requests-mock
+
+  - importlib-metadata >=4
+  - importlib_metadata >=4
