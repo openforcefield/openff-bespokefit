@@ -27,6 +27,8 @@ jobs:
       - name: Install isort / flake8 / black
         run: |
           pip install isort flake8 black
+          # https://github.com/PyCQA/isort/issues/2031
+          pip install colorama
 
       - name: Run isort
         run: |
