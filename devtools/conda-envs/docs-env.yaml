@@ -18,26 +18,26 @@ dependencies:
   - click-option-group
   - rdkit
   - openff-utilities
-  - openff-toolkit-base =0.10.6
+  - openff-toolkit-base >=0.11.3
   - openff-forcefields
   - openff-qcsubmit
   - openmm >=7.6.0
 
     # Optional
-  - forcebalance >=1.9.2
-  - openff-fragmenter-base >=0.1.2
+  - forcebalance
+  - openff-fragmenter-base
 
   - openeye-toolkits
 
     ### Bespoke dependencies
 
   - qcportal >=0.15.6
-  - qcelemental >=0.24.0
-  - qcengine >=0.21.0
+  - qcelemental >=0.25.1
+  - qcengine >=0.25
   - chemper
   - geometric <1
   - torsiondrive
-  - pymbar <4
+  - pymbar
 
     # Executor
   - uvicorn

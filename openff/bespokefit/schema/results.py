@@ -2,8 +2,8 @@ import abc
 from typing import Any, Dict, List, Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.units import unit
 from pydantic import Field
-from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.schema import Error, Status

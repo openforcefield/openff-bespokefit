@@ -3,7 +3,8 @@ from typing import List, Optional
 
 import click
 import rich
-from openff.toolkit.typing.engines.smirnoff import ForceField, ParameterLookupError
+from openff.toolkit import ForceField
+from openff.toolkit.utils.exceptions import ParameterLookupError
 from rich import pretty
 from rich.padding import Padding
 

@@ -6,17 +6,17 @@ from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import numpy as np
-from openff.toolkit import topology as off
+from openff.toolkit import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
     ForceField,
     ImproperTorsionHandler,
-    ParameterLookupError,
     ParameterType,
     ProperTorsionHandler,
     vdWHandler,
 )
+from openff.toolkit.utils.exceptions import ParameterLookupError
 
 if TYPE_CHECKING:
     from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
@@ -116,7 +116,7 @@ class ForceFieldEditor:
         return added_parameters
 
     def label_molecule(
-        self, molecule: off.Molecule
+        self, molecule: Molecule
     ) -> Dict[str, Dict[Tuple[int, ...], ParameterType]]:
         """
         Type the molecule with the forcefield and return a molecule parameter dictionary.
@@ -131,7 +131,7 @@ class ForceFieldEditor:
         return self.force_field.label_molecules(molecule.to_topology())[0]
 
     def get_parameters(
-        self, molecule: off.Molecule, atoms_by_type: Dict[str, List[Tuple[int, ...]]]
+        self, molecule: Molecule, atoms_by_type: Dict[str, List[Tuple[int, ...]]]
     ) -> List[ParameterType]:
         """
         For a given molecule label it and get back the smirks patterns and parameters
@@ -153,7 +153,7 @@ class ForceFieldEditor:
 
     def get_initial_parameters(
         self,
-        molecule: off.Molecule,
+        molecule: Molecule,
         smirks: List["SMIRNOFFParameter"],
     ) -> List[ParameterType]:
         """

@@ -4,8 +4,8 @@ from typing import Dict, List, Optional
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.units import unit
 from pydantic import Field, conlist
-from simtk import unit
 from typing_extensions import Literal
 
 from openff.bespokefit.fragmentation import FragmentationEngine

@@ -159,8 +159,8 @@ def test_forcebalance_collect_general_results(
             initial_value = initial_values[parameter_smirks][attribute]
             refit_value = refit_values[parameter_smirks][attribute]
 
-            refit_value = refit_value.value_in_unit(initial_value.unit)
-            initial_value = initial_value.value_in_unit(initial_value.unit)
+            refit_value = refit_value.m_as(initial_value.units)
+            initial_value = initial_value.m_as(initial_value.units)
 
             assert not np.isclose(initial_value, refit_value)
 

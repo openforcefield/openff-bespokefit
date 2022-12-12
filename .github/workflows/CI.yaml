@@ -68,7 +68,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
+          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v3.1.1

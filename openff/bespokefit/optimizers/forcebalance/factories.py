@@ -15,12 +15,12 @@ from openff.qcsubmit.results import (
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.units import unit
 from openff.utilities import temporary_cd
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
-from simtk import unit
 
 from openff.bespokefit.exceptions import OptimizerError, QCRecordMissMatchError
 from openff.bespokefit.optimizers.forcebalance.templates import (
@@ -297,7 +297,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             raise NotImplementedError()
 
         grid_conformers = {
-            tuple(json.loads(grid_id)): conformer.value_in_unit(unit.angstrom)
+            tuple(json.loads(grid_id)): conformer.m_as(unit.angstrom)
             for grid_id, conformer in zip(
                 off_molecule.properties["grid_ids"], off_molecule.conformers
             )
@@ -310,7 +310,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         fb_molecule.Data = {
             "resname": ["UNK"] * off_molecule.n_atoms,
             "resid": [0] * off_molecule.n_atoms,
-            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "elem": [atom.symbol for atom in off_molecule.atoms],
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
@@ -487,9 +487,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             )
 
         # Get the list of masses for the molecule to be consistent with ForceBalance
-        masses = np.array(
-            [atom.mass.value_in_unit(unit.dalton) for atom in off_molecule.atoms]
-        )
+        masses = np.array([atom.mass.m_as(unit.dalton) for atom in off_molecule.atoms])
 
         # Compute the mass-weighted hessian
         invert_sqrt_mass_array_repeat = 1.0 / np.sqrt(masses.repeat(3))
@@ -542,12 +540,12 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         fb_molecule.Data = {
             "resname": ["UNK"] * off_molecule.n_atoms,
             "resid": [0] * off_molecule.n_atoms,
-            "elem": [atom.element.symbol for atom in off_molecule.atoms],
+            "elem": [atom.symbol for atom in off_molecule.atoms],
             "bonds": [
                 (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
             ],
             "name": f"{qc_record_id}",
-            "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
+            "xyzs": [off_molecule.conformers[0].m_as(unit.angstrom)],
         }
 
         # form a Molecule object from the first torsion grid data
@@ -615,12 +613,12 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
             fb_molecule.Data = {
                 "resname": ["UNK"] * off_molecule.n_atoms,
                 "resid": [0] * off_molecule.n_atoms,
-                "elem": [atom.element.symbol for atom in off_molecule.atoms],
+                "elem": [atom.symbol for atom in off_molecule.atoms],
                 "bonds": [
                     (bond.atom1_index, bond.atom2_index) for bond in off_molecule.bonds
                 ],
                 "name": f"{qc_record_id}",
-                "xyzs": [off_molecule.conformers[0].value_in_unit(unit.angstrom)],
+                "xyzs": [off_molecule.conformers[0].m_as(unit.angstrom)],
             }
 
             fb_molecule.write(f"{record_name}.pdb")

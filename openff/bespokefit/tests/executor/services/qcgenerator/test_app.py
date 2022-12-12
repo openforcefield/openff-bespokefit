@@ -145,7 +145,7 @@ def test_get_qc_result(
     [
         (
             Torsion1DTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 central_bond=(1, 2),
                 program="rdkit",
                 model=Model(method="uff", basis=None),
@@ -154,7 +154,7 @@ def test_get_qc_result(
         ),
         (
             OptimizationTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 n_conformers=1,
                 program="rdkit",
                 model=Model(method="uff", basis=None),
@@ -163,7 +163,7 @@ def test_get_qc_result(
         ),
         (
             HessianTask(
-                smiles="[CH2:1][CH2:2]",
+                smiles="[CH2:1]=[CH2:2]",
                 program="rdkit",
                 model=Model(method="uff", basis=None),
             ),
