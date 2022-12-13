@@ -83,5 +83,6 @@ hidden: True
 ---
 
 developers/schemas
+releasehistory
 
 :::
