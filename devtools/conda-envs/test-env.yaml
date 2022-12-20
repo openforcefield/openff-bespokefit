@@ -13,7 +13,7 @@ dependencies:
 
     ### Core dependencies.
 
-  - numpy
+  - numpy =1.24
   - pydantic
   - pyyaml
   - tqdm
