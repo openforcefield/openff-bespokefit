@@ -58,18 +58,18 @@ create a working conda environment containing both.
 :::
 
 :::{note}
-On Linux, installing Psi4 into an existing environment sometimes fails because of subtle differences in
+Installing Psi4 into an existing environment sometimes fails because of subtle differences in
 compiled dependencies found in multiple channels. An alternative is to install everything when
 initially creating the environment using, with AmberTools:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools "h5py<3.2"
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits "h5py<3.2"
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits
 ```
 :::
 
