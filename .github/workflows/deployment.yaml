@@ -82,6 +82,5 @@ jobs:
 
       - name: Run tests
         run: |
-          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
-          python -m pytest -v openff/bespokefit/tests/executor/services/coordinator/test_app.py::test_get_molecule_image
+          python -m pytest -v openff/bespokefit/tests
 
