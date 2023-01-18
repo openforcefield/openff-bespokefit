@@ -168,6 +168,14 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
         result = {"error": None}
 
+        try:
+            with open(os.path.join(root_directory, "optimize.err")) as err:
+                errlog = err.read()
+                if "Traceback" in errlog:
+                    raise ValueError(f"ForceBalance job failed: {errlog}")
+        except IOError:
+            pass
+
         with open(os.path.join(root_directory, "optimize.out")) as log:
 
             for line in log.readlines():
