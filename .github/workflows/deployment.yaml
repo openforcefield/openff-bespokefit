@@ -83,6 +83,10 @@ jobs:
 
           cd -
 
+      - name: Checkout 0.1.3
+        run: |
+          git checkout 0.1.3
+
       - name: Run tests
         if: ${{ matrix.openeye == true }}
         run: |
