@@ -22,7 +22,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
         python-version: [3.8]
         openeye: [true, false]
-        integration: [true, false]
+        integration: [true]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -67,13 +67,11 @@ jobs:
           conda list
 
       - name: Run Tests
-        if: ${{ matrix.integration == false }}
         shell: bash -l {0}
         run: |
           pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
       - name: Codecov
-        if: ${{ matrix.integration == false }}
         uses: codecov/codecov-action@v3.1.1
         with:
           file: ./coverage.xml
