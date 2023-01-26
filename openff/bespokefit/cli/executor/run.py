@@ -118,7 +118,7 @@ def _run_cli(
 
                 results.bespoke_force_field.to_file(output_force_field_path)
 
-        if error_state["has_errored"]:
+        if error_state["has_errored"] or results.status == "errored":
             raise click.exceptions.Exit(code=2)
 
 

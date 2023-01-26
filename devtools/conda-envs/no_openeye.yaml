@@ -24,6 +24,7 @@ dependencies:
   - openff-utilities
   - openff-toolkit-base >=0.11.3
   - openff-forcefields
+  - openff-interchange
   - openff-qcsubmit
   - openmm >=7.6.0
 
@@ -34,6 +35,7 @@ dependencies:
     # Optional
   - forcebalance
   - openff-fragmenter-base
+  - xtb-python
 
     ### Bespoke dependencies
 

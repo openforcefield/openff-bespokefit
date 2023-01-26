@@ -108,3 +108,4 @@ ENV/
 
 # BespokeFit
 bespoke-executor/
+output.json
