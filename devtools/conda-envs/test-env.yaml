@@ -35,7 +35,7 @@ dependencies:
     # Optional
   - forcebalance
   - openff-fragmenter-base
-
+  - xtb-python
   - openeye-toolkits
 
     ### Bespoke dependencies
