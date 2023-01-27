@@ -29,12 +29,7 @@ dependencies:
   - openff-qcsubmit
   - openmm >=7.6.0
 
-  # Shim
-  - importlib-metadata >=4
-  - importlib_metadata >=4
-
     # Optional
-  - forcebalance
   - openff-fragmenter-base
   - xtb-python
   - openeye-toolkits
@@ -47,7 +42,6 @@ dependencies:
   - chemper
   - geometric <1
   - torsiondrive
-  - pymbar
 
     # Executor
   - uvicorn
@@ -67,5 +61,8 @@ dependencies:
   - codecov
   - requests-mock
 
-  - importlib-metadata >=4
-  - importlib_metadata >=4
+    # `openff-forcebalance` and dependencies
+  - pymbar =3 # Implicit constraint, can remove after `openff-forcebalance` package
+  - lxml # Implicit dependency, can remove after `openff-forcebalance` package
+  - pip:
+    - git+https://github.com/openforcefield/openff-forcebalance.git

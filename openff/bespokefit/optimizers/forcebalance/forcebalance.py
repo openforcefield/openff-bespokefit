@@ -45,11 +45,11 @@ class ForceBalanceOptimizer(BaseOptimizer):
         """
         Collect the provenance information for forcebalance.
         """
-        import forcebalance
+        import openff.forcebalance
         import openff.toolkit
 
         versions = {
-            "forcebalance": forcebalance.__version__,
+            "forcebalance": openff.forcebalance.__version__,
             "openff.toolkit": openff.toolkit.__version__,
         }
 
@@ -70,7 +70,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
     @classmethod
     def is_available(cls) -> bool:
         try:
-            importlib.import_module("forcebalance")
+            importlib.import_module("openff.forcebalance")
             return True
         except ImportError:
             return False
@@ -99,12 +99,12 @@ class ForceBalanceOptimizer(BaseOptimizer):
         cls, schema: OptimizationStageSchema, initial_force_field: ForceField
     ) -> OptimizationStageResults:
 
-        with open("log.txt", "w") as log:
+        with open("optimize.out", "w") as log:
 
-            _logger.debug("Launching Forcebalance")
+            _logger.debug("Launching openff-forcebalance")
 
             subprocess.run(
-                "ForceBalance optimize.in",
+                "openff-forcebalance optimize -i optimize.in",
                 shell=True,
                 stdout=log,
                 stderr=log,

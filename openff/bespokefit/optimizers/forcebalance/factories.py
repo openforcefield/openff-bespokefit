@@ -273,7 +273,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         ],
     ):
 
-        from forcebalance.molecule import Molecule as FBMolecule
+        from openff.forcebalance.molecule import Molecule as FBMolecule
 
         if isinstance(target, AbInitioTargetSchema) and target.fit_force is True:
             raise NotImplementedError()
@@ -528,7 +528,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         qc_records: List[Tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
     ):
 
-        from forcebalance.molecule import Molecule as FBMolecule
+        from openff.forcebalance.molecule import Molecule as FBMolecule
 
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
@@ -590,7 +590,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         ],
     ):
 
-        from forcebalance.molecule import Molecule as FBMolecule
+        from openff.forcebalance.molecule import Molecule as FBMolecule
 
         record_names = []
 

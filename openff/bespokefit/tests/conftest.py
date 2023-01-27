@@ -79,24 +79,9 @@ def bace() -> Molecule:
 def clear_force_balance_caches():
     """A fixture which will clean the incredibly bug prone ``smirnoff_hack`` caches prior
     to each test running."""
+    from openff.forcebalance.smirnoff_hack import use_caches
 
-    from forcebalance.smirnoff_hack import (
-        AT_TOOLKIT_CACHE_assign_partial_charges,
-        OE_TOOLKIT_CACHE_assign_partial_charges,
-        OE_TOOLKIT_CACHE_find_smarts_matches,
-        OE_TOOLKIT_CACHE_molecule_conformers,
-        RDK_TOOLKIT_CACHE_find_smarts_matches,
-        RDK_TOOLKIT_CACHE_molecule_conformers,
-        TOOLKIT_CACHE_ChemicalEnvironment_validate,
-    )
-
-    OE_TOOLKIT_CACHE_find_smarts_matches.clear()
-    RDK_TOOLKIT_CACHE_find_smarts_matches.clear()
-    TOOLKIT_CACHE_ChemicalEnvironment_validate.clear()
-    OE_TOOLKIT_CACHE_assign_partial_charges.clear()
-    AT_TOOLKIT_CACHE_assign_partial_charges.clear()
-    OE_TOOLKIT_CACHE_molecule_conformers.clear()
-    RDK_TOOLKIT_CACHE_molecule_conformers.clear()
+    use_caches()
 
 
 @pytest.fixture(scope="module")
