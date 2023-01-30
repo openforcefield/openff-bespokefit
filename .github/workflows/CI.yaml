@@ -56,6 +56,7 @@ jobs:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Install Package
+        id: install_package
         shell: bash -l {0}
         run: |
           python setup.py develop --no-deps
@@ -69,7 +70,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml --ignore=openff/bespokefit/tests/optimizers/forcebalance/test_forcebalance.py
+          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v3.1.1
@@ -78,7 +79,9 @@ jobs:
           fail_ci_if_error: false
 
       - name: Run Integration Tests
-        if: ${{ matrix.integration == true }}
+        # Run even if unit tests fail as long as bespokefit was installed successfully and
+        # integration tests are on in the matrix
+        if: ${{ always() && matrix.integration == true && steps.install_package.outcome == 'success' }}
         shell: bash -l {0}
         run: |
           openff-bespoke executor run --smiles                 'CC'               \
