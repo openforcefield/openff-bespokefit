@@ -4,7 +4,10 @@ Here we register all optimizers with bespokefit.
 from typing import Dict, List, Type, Union
 
 from openff.bespokefit.exceptions import OptimizerError
-from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
+from openff.bespokefit.optimizers.forcebalance import (
+    OpenFFForceBalanceOptimizer,
+    ForceBalanceOptimizer,
+)
 from openff.bespokefit.optimizers.model import BaseOptimizer
 
 _optimizers: Dict[str, Type[BaseOptimizer]] = {}
@@ -110,3 +113,4 @@ def list_optimizers() -> List[str]:
 
 # register the built in optimizers
 register_optimizer(ForceBalanceOptimizer)
+register_optimizer(OpenFFForceBalanceOptimizer)

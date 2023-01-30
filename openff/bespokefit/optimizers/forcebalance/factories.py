@@ -206,57 +206,57 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         return qc_records
 
-    @classmethod
-    def generate(cls, root_directory: Union[str, Path], target: T):
-        """Creates the input files for a target schema in a specified directory.
+    # @classmethod
+    # def generate(cls, root_directory: Union[str, Path], target: T):
+    #     """Creates the input files for a target schema in a specified directory.
 
-        Args:
-            root_directory: The root directory to create the inputs in.
-            target: The target to create the inputs for. A single target schema may map
-                to several new ForceBalance targets, typically one per QC record
-                referenced by the schema.
-        """
+    #     Args:
+    #         root_directory: The root directory to create the inputs in.
+    #         target: The target to create the inputs for. A single target schema may map
+    #             to several new ForceBalance targets, typically one per QC record
+    #             referenced by the schema.
+    #     """
 
-        # The optimizer should have swapped out a bespoke QC data set
-        # with an existing set?
-        if isinstance(
-            target.reference_data,
-            (
-                BasicResultCollection,
-                OptimizationResultCollection,
-                TorsionDriveResultCollection,
-            ),
-        ):
+    #     # The optimizer should have swapped out a bespoke QC data set
+    #     # with an existing set?
+    #     if isinstance(
+    #         target.reference_data,
+    #         (
+    #             BasicResultCollection,
+    #             OptimizationResultCollection,
+    #             TorsionDriveResultCollection,
+    #         ),
+    #     ):
 
-            qc_records = target.reference_data.to_records()
+    #         qc_records = target.reference_data.to_records()
 
-        elif isinstance(target.reference_data, BespokeQCData):
+    #     elif isinstance(target.reference_data, BespokeQCData):
 
-            raise RuntimeError(
-                "`BespokeQCData` must be converted into `LocalQCData` before generating "
-                "targets."
-            )
+    #         raise RuntimeError(
+    #             "`BespokeQCData` must be converted into `LocalQCData` before generating "
+    #             "targets."
+    #         )
 
-        elif isinstance(target.reference_data, LocalQCData):
+    #     elif isinstance(target.reference_data, LocalQCData):
 
-            qc_records = cls._local_to_qc_records(target.reference_data)
+    #         qc_records = cls._local_to_qc_records(target.reference_data)
 
-        else:
-            raise NotImplementedError()
+    #     else:
+    #         raise NotImplementedError()
 
-        target_batches = cls._batch_qc_records(target, qc_records)
+    #     target_batches = cls._batch_qc_records(target, qc_records)
 
-        for target_name, target_records in target_batches.items():
+    #     for target_name, target_records in target_batches.items():
 
-            print(f"generating target directory for {target_name}")
+    #         print(f"generating target directory for {target_name}")
 
-            target_directory = os.path.join(root_directory, target_name)
-            os.makedirs(target_directory, exist_ok=True)
+    #         target_directory = os.path.join(root_directory, target_name)
+    #         os.makedirs(target_directory, exist_ok=True)
 
-            with temporary_cd(target_directory):
-                cls._generate_target(target, target_records)
+    #         with temporary_cd(target_directory):
+    #             cls._generate_target(target, target_records)
 
-        return cls._generate_targets_section(target, [*target_batches])
+    #     return cls._generate_targets_section(target, [*target_batches])
 
 
 class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):

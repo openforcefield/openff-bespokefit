@@ -1,4 +1,11 @@
 from openff.bespokefit.optimizers.forcebalance.factories import ForceBalanceInputFactory
-from openff.bespokefit.optimizers.forcebalance.forcebalance import ForceBalanceOptimizer
+from openff.bespokefit.optimizers.forcebalance.forcebalance import (
+    ForceBalanceOptimizer,
+    OpenFFForceBalanceOptimizer,
+)
 
-__all__ = ["ForceBalanceInputFactory", "ForceBalanceOptimizer"]
+__all__ = [
+    "ForceBalanceInputFactory",
+    "ForceBalanceOptimizer",
+    "OpenFFForceBalanceOptimizer",
+]

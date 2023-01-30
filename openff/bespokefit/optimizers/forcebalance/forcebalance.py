@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 import subprocess
+import abc
 from typing import Any, Dict
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
@@ -24,21 +25,20 @@ from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 _logger = logging.getLogger(__name__)
 
 
-class ForceBalanceOptimizer(BaseOptimizer):
+class ForceBalanceOptimizerBase(BaseOptimizer):
     """
     An optimizer class which controls the interface with ForceBalance.
     """
 
-    @classmethod
-    def name(cls) -> str:
-        return "ForceBalance"
+    _module_path: str = None
+    _results_filename: str = None
+    _cli_command: str = None
 
     @classmethod
-    def description(cls) -> str:
-        return (
-            "A systematic force field optimization tool: "
-            "https://github.com/leeping/forcebalance"
-        )
+    @abc.abstractmethod
+    def _fb_version(cls) -> str:
+        """Returns the version of ForceBalance."""
+        raise NotImplementedError()
 
     @classmethod
     def provenance(cls) -> Dict:
@@ -49,7 +49,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         import openff.toolkit
 
         versions = {
-            "forcebalance": openff.forcebalance.__version__,
+            "forcebalance": cls._fb_version(),
             "openff.toolkit": openff.toolkit.__version__,
         }
 
@@ -70,7 +70,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
     @classmethod
     def is_available(cls) -> bool:
         try:
-            importlib.import_module("openff.forcebalance")
+            importlib.import_module(cls._module_path)
             return True
         except ImportError:
             return False
@@ -99,12 +99,12 @@ class ForceBalanceOptimizer(BaseOptimizer):
         cls, schema: OptimizationStageSchema, initial_force_field: ForceField
     ) -> OptimizationStageResults:
 
-        with open("optimize.out", "w") as log:
+        with open(cls._results_filename, "w") as log:
 
-            _logger.debug("Launching openff-forcebalance")
+            _logger.debug(f"Launching {cls.name()}")
 
             subprocess.run(
-                "openff-forcebalance optimize -i optimize.in",
+                cls._cli_command.format("optimize.in"),
                 shell=True,
                 stdout=log,
                 stderr=log,
@@ -172,11 +172,11 @@ class ForceBalanceOptimizer(BaseOptimizer):
             with open(os.path.join(root_directory, "optimize.err")) as err:
                 errlog = err.read()
                 if "Traceback" in errlog:
-                    raise ValueError(f"ForceBalance job failed: {errlog}")
+                    raise ValueError(f"{cls.name()} job failed: {errlog}")
         except IOError:
             pass
 
-        with open(os.path.join(root_directory, "optimize.out")) as log:
+        with open(os.path.join(root_directory, cls._results_filename)) as log:
 
             for line in log.readlines():
 
@@ -206,8 +206,60 @@ class ForceBalanceOptimizer(BaseOptimizer):
         return result
 
 
+class OpenFFForceBalanceOptimizer(ForceBalanceOptimizerBase):
+    _module_path = "openff.forcebalance"
+    _results_filename = "optimize.out"
+    _cli_command = "openff-forcebalance optimize -i {}"
+
+    @classmethod
+    def name(cls) -> str:
+        return "OpenFF ForceBalance"
+
+    @classmethod
+    def description(cls) -> str:
+        return (
+            "A systematic force field optimization tool: "
+            "https://github.com/openforcefield/openff-forcebalance"
+        )
+
+    @classmethod
+    def _fb_version(cls) -> str:
+        import openff.forcebalance
+
+        return openff.forcebalance.__version__
+
+
+class ForceBalanceOptimizer(ForceBalanceOptimizerBase):
+    _module_path = "forcebalance"
+    _results_filename = "log.txt"
+    _cli_command = "ForceBalance {}"
+
+    @classmethod
+    def name(cls) -> str:
+        return "ForceBalance"
+
+    @classmethod
+    def description(cls) -> str:
+        return (
+            "A systematic force field optimization tool: "
+            "https://github.com/leeping/forcebalance"
+        )
+
+    @classmethod
+    def _fb_version(cls) -> str:
+        import forcebalance
+
+        return forcebalance.__version__
+
+
 # register all of the available targets.
 ForceBalanceOptimizer.register_target(AbInitioTargetSchema)
 ForceBalanceOptimizer.register_target(TorsionProfileTargetSchema)
 ForceBalanceOptimizer.register_target(OptGeoTargetSchema)
 ForceBalanceOptimizer.register_target(VibrationTargetSchema)
+
+# register all of the available targets.
+OpenFFForceBalanceOptimizer.register_target(AbInitioTargetSchema)
+OpenFFForceBalanceOptimizer.register_target(TorsionProfileTargetSchema)
+OpenFFForceBalanceOptimizer.register_target(OptGeoTargetSchema)
+OpenFFForceBalanceOptimizer.register_target(VibrationTargetSchema)
