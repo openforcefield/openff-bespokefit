@@ -33,7 +33,6 @@ _task_logger: logging.Logger = get_task_logger(__name__)
 
 
 def _task_config() -> Dict[str, Any]:
-
     worker_settings = current_settings().qc_compute_settings
 
     n_cores = (
@@ -134,7 +133,6 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     )
 
     if isinstance(return_value, TorsionDriveResult):
-
         return_value = TorsionDriveResult(
             **return_value.dict(exclude={"optimization_history", "stdout", "stderr"}),
             optimization_history={},
@@ -182,7 +180,6 @@ def compute_optimization(
     return_values = []
 
     for input_schema in input_schemas:
-
         return_value = qcengine.compute_procedure(
             input_schema,
             task.optimization_spec.program,
@@ -191,7 +188,6 @@ def compute_optimization(
         )
 
         if isinstance(return_value, OptimizationResult):
-
             # Strip the extra **heavy** data
             return_value = OptimizationResult(
                 **return_value.dict(exclude={"trajectory", "stdout", "stderr"}),

@@ -12,7 +12,6 @@ from openff.bespokefit.executor.utilities.typing import Status
 
 
 class TaskInformation(TypedDict):
-
     id: str
 
     status: Status
@@ -22,7 +21,6 @@ class TaskInformation(TypedDict):
 
 
 def get_status(task_result: AsyncResult) -> Status:
-
     return {
         "PENDING": "waiting",
         "STARTED": "running",
@@ -35,7 +33,6 @@ def get_status(task_result: AsyncResult) -> Status:
 def configure_celery_app(
     app_name: str, redis_connection: Redis, include: List[str] = None
 ):
-
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
     redis_db = redis_connection.connection_pool.connection_kwargs["db"]
@@ -56,7 +53,6 @@ def configure_celery_app(
 
 
 def _spawn_worker(celery_app, concurrency: int = 1):
-
     worker = celery_app.Worker(
         concurrency=concurrency,
         loglevel="INFO",
@@ -70,12 +66,10 @@ def _spawn_worker(celery_app, concurrency: int = 1):
 def spawn_worker(
     celery_app, concurrency: int = 1, asynchronous: bool = True
 ) -> Optional[multiprocessing.Process]:
-
     if concurrency < 1:
         return
 
     if asynchronous:  # pragma: no cover
-
         worker_process = multiprocessing.Process(
             target=_spawn_worker, args=(celery_app, concurrency), daemon=True
         )
@@ -84,12 +78,10 @@ def spawn_worker(
         return worker_process
 
     else:
-
         _spawn_worker(celery_app, concurrency)
 
 
 def get_task_information(app: Celery, task_id: str) -> TaskInformation:
-
     task_result = AsyncResult(task_id, app=app)
 
     task_output = (

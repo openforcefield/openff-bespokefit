@@ -18,7 +18,6 @@ from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS
 
 
 def test_optimize(monkeypatch):
-
     input_schema = BespokeOptimizationSchema(
         id="test",
         smiles="CC",

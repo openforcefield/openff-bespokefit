@@ -13,7 +13,6 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class QCGenerationTask(BaseModel, abc.ABC):
-
     type: Literal["base-task"]
 
     program: str = Field(..., description="The program to use to evaluate the model.")
@@ -21,7 +20,6 @@ class QCGenerationTask(BaseModel, abc.ABC):
 
 
 class HessianTaskSpec(QCGenerationTask):
-
     type: Literal["hessian"] = "hessian"
 
     n_conformers: conint(gt=0) = Field(
@@ -38,7 +36,6 @@ class HessianTaskSpec(QCGenerationTask):
 
 
 class HessianTask(HessianTaskSpec):
-
     smiles: str = Field(
         ...,
         description="A fully indexed SMILES representation of the molecule to compute "
@@ -51,7 +48,6 @@ class OptimizationTaskSpec(HessianTaskSpec):
 
 
 class OptimizationTask(OptimizationTaskSpec):
-
     smiles: str = Field(
         ...,
         description="A fully indexed SMILES representation of the molecule to optimize.",
@@ -59,7 +55,6 @@ class OptimizationTask(OptimizationTaskSpec):
 
 
 class Torsion1DTaskSpec(QCGenerationTask):
-
     type: Literal["torsion1d"] = "torsion1d"
 
     grid_spacing: int = Field(15, description="The spacing between grid angles.")
@@ -80,7 +75,6 @@ class Torsion1DTaskSpec(QCGenerationTask):
 
 
 class Torsion1DTask(Torsion1DTaskSpec):
-
     smiles: str = Field(
         ...,
         description="An indexed SMILES representation of the molecule to drive.",

@@ -138,7 +138,6 @@ def test_compare_smirks_graphs(smirks1, smirks2, expected):
     ],
 )
 def test_validate_smirks(smirks, n_tags, expected_raises):
-
     with expected_raises:
         validate_smirks(smirks, n_tags)
 
@@ -273,7 +272,6 @@ def test_get_all_bespoke_smirks_fragment(bace_fragment_data):
     matches_by_type = defaultdict(list)
 
     for parameter in bespoke_parameters:
-
         parent_matches = parent_molecule.chemical_environment_matches(parameter.smirks)
         assert len(parent_matches) > 0
 
@@ -396,7 +394,6 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
     assert len(parameter_types) == 1
 
     for parameter in parameters:
-
         if expand_torsions:
             assert len(parameter.k) == 4
             assert parameter.periodicity == [1, 2, 3, 4]

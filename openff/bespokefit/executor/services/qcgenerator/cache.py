@@ -12,7 +12,6 @@ _T = TypeVar("_T", HessianTask, OptimizationTask, Torsion1DTask)
 
 
 def _canonicalize_task(task: _T) -> _T:
-
     task = task.copy(deep=True)
 
     # Ensure the SMILES has a canonical ordering to help ensure cache hits.
@@ -21,7 +20,6 @@ def _canonicalize_task(task: _T) -> _T:
     )
 
     if isinstance(task, Torsion1DTask):
-
         map_to_atom_index = {
             j: i for i, j in canonical_molecule.properties["atom_map"].items()
         }
@@ -40,7 +38,6 @@ def _canonicalize_task(task: _T) -> _T:
         task.central_bond = (1, 2)
 
     else:
-
         canonical_smiles = canonical_molecule.to_smiles(
             isomeric=True, explicit_hydrogens=True, mapped=False
         )

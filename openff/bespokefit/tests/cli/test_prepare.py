@@ -16,7 +16,6 @@ from openff.bespokefit.optimizers import ForceBalanceOptimizer
     ],
 )
 def test_prepare_errors(runner, schema_contents, force_field_path, expected_match):
-
     with open("input.json", "w") as file:
         file.write(schema_contents)
 
@@ -29,7 +28,6 @@ def test_prepare_errors(runner, schema_contents, force_field_path, expected_matc
 
 
 def test_prepare(runner, bespoke_optimization_schema, monkeypatch):
-
     monkeypatch.setattr(ForceBalanceOptimizer, "prepare", lambda *args, **kwargs: None)
 
     with open("input.json", "w") as file:

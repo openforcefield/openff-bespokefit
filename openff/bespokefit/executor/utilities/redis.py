@@ -59,11 +59,9 @@ def connect_to_redis(
     connection = redis.Redis(host=host, port=port, db=db)
 
     if validate:
-
         version = connection.get("openff-bespokefit:redis-version")
 
         if version is None:
-
             raise RedisNotConfiguredError(
                 f"The redis server at host={host} and port={port} does not contain a "
                 f"`openff-bespokefit:redis-version` key. This likely means it was not "
@@ -73,7 +71,6 @@ def connect_to_redis(
             )
 
         elif int(version) != __REDIS_VERSION:
-
             raise RedisBadConfigurationError(
                 f"The redis server at host={host} and port={port} expects a version of "
                 f"OpenFF BespokeFit that supports a redis configurations with version "
@@ -113,11 +110,9 @@ def launch_redis(
     persistent: bool = True,
     terminate_at_exit: bool = True,
 ) -> subprocess.Popen:
-
     redis_server_path = shutil.which("redis-server")
 
     if redis_server_path is None:
-
         raise RuntimeError(
             "The `redis-server` command could not be found. Please make sure `redis` is "
             "correctly installed."
@@ -126,7 +121,6 @@ def launch_redis(
     redis_cli_path = shutil.which("redis-cli")
 
     if redis_cli_path is None:
-
         raise RuntimeError(
             "The `redis-cli` command could not be found. Please make sure `redis` is "
             "correctly installed."
@@ -162,7 +156,6 @@ def launch_redis(
     timeout = True
 
     for i in range(0, 60):
-
         if is_redis_available("localhost", port):
             timeout = False
             break
@@ -175,7 +168,6 @@ def launch_redis(
     try:
         connect_to_redis("localhost", port, 0, validate=True)
     except RedisNotConfiguredError:
-
         if redis_save_exists:
             raise
 

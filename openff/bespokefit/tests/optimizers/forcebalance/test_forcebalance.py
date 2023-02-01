@@ -19,7 +19,6 @@ from openff.bespokefit.schema.results import OptimizationStageResults
 
 @pytest.fixture()
 def forcebalance_results_directory(tmpdir):
-
     # copy the file over
     shutil.copy(
         get_data_file_path(
@@ -92,7 +91,6 @@ def test_forcebalance_read_output(output):
     file_name, status, error_type = output
 
     with temporary_cd():
-
         # copy the output file over
         shutil.copy(
             get_data_file_path(
@@ -153,9 +151,7 @@ def test_forcebalance_collect_general_results(
     }
 
     for parameter_smirks in initial_values:
-
         for attribute in initial_values[parameter_smirks]:
-
             initial_value = initial_values[parameter_smirks][attribute]
             refit_value = refit_values[parameter_smirks][attribute]
 
@@ -168,7 +164,6 @@ def test_forcebalance_collect_general_results(
 def test_forcebalance_optimize(
     forcebalance_results_directory, general_optimization_schema, monkeypatch
 ):
-
     # Patch the call to ForceBalance so that it doesn't need to run.
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
 

@@ -11,7 +11,6 @@ from openff.bespokefit.schema.smirnoff import (
 
 
 def test_vdw_check_smirks():
-
     # The passing case
     VdWSMIRKS(smirks="[#6:1]", attributes={"epsilon"})
 
@@ -21,7 +20,6 @@ def test_vdw_check_smirks():
 
 
 def test_bond_check_smirks():
-
     # The passing case
     BondSMIRKS(smirks="[#6:1]-[#6:2]", attributes={"k"})
 
@@ -31,7 +29,6 @@ def test_bond_check_smirks():
 
 
 def test_angle_check_smirks():
-
     # The passing case
     AngleSMIRKS(smirks="[#6:1]-[#6:2]-[#6:3]", attributes={"k"})
 
@@ -41,7 +38,6 @@ def test_angle_check_smirks():
 
 
 def test_proper_torsion_check_smirks():
-
     # The passing case
     ProperTorsionSMIRKS(smirks="[#6:1]-[#6:2]-[#6:3]-[#6:4]", attributes={"k1"})
 
@@ -51,7 +47,6 @@ def test_proper_torsion_check_smirks():
 
 
 def test_improper_torsion_check_smirks():
-
     # The passing case
     ImproperTorsionSMIRKS(smirks="[#6:1]-[#6:2]-[#6:3]-[#6:4]", attributes={"k1"})
 

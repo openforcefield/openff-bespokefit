@@ -18,7 +18,6 @@ from openff.bespokefit.utilities.molecule import (
 
 @pytest.fixture()
 def with_oe_backend(monkeypatch):
-
     oechem = pytest.importorskip("openeye.oechem")
 
     if not oechem.OEChemIsLicensed():
@@ -29,7 +28,6 @@ def with_oe_backend(monkeypatch):
 
 @pytest.fixture()
 def with_rd_backend(monkeypatch):
-
     pytest.importorskip("rdkit")
     monkeypatch.setitem(sys.modules, "openeye", None)
     monkeypatch.setitem(sys.modules, "openeye.oechem", None)
@@ -63,7 +61,6 @@ def test_rd_fixture(with_rd_backend, module, package):
     ],
 )
 def test_get_atom_symmetries(get_symmetries, backend, request):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
 
     request.getfixturevalue(backend)
@@ -72,7 +69,6 @@ def test_get_atom_symmetries(get_symmetries, backend, request):
         atom_symmetries = get_symmetries(molecule)
 
     except ModuleNotFoundError as e:
-
         pytest.skip(f"missing optional dependency - {e.name}")
         return
 
@@ -85,14 +81,12 @@ def test_get_atom_symmetries(get_symmetries, backend, request):
     [_oe_canonical_atom_order, _rd_canonical_atom_order],
 )
 def test_canonical_atom_order(canonical_order_func):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
 
     try:
         atom_order = canonical_order_func(molecule)
 
     except ModuleNotFoundError as e:
-
         pytest.skip(f"missing optional dependency - {e.name}")
         return
 
@@ -103,7 +97,6 @@ def test_canonical_atom_order(canonical_order_func):
 
 @pytest.mark.parametrize("backend", ["with_rd_backend", "with_oe_backend"])
 def test_canonical_order_atoms(backend, request):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
     molecule.properties["atom_map"] = {i: i + 1 for i in range(molecule.n_atoms)}
 
@@ -136,7 +129,6 @@ def test_canonical_order_atoms(backend, request):
     ],
 )
 def test_group_by_symmetry(valence_terms, expected_values):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
 
     valence_groups = group_valence_by_symmetry(molecule, valence_terms)
@@ -168,7 +160,6 @@ def test_group_by_symmetry(valence_terms, expected_values):
     ],
 )
 def test_get_torsion_indices(smiles, central_bond, expected_values):
-
     molecule = Molecule.from_mapped_smiles(smiles)
 
     torsion_indices = get_torsion_indices(molecule, central_bond)
