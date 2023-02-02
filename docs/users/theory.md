@@ -202,7 +202,7 @@ data generating in the earlier stage.
 
 The optimization first constructs a loss function to minimize. The loss function measures the deviations between a
 trained result and the reference value. In BespokeFit, we refer to the different contributions to the loss function
-as *'fitting targets'*. This terminology is consistent with the brilliant[ForceBalance] force field optimization
+as *'fitting targets'*. This terminology is consistent with the brilliant [ForceBalance] force field optimization
 framework.
 
 BespokeFit supports three main fitting targets, which measure the deviations of:
