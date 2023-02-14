@@ -23,7 +23,7 @@ Please include the output, including full tracebacks of any errors, resulting fr
 
 - Which operating system and version are you using?
 - How did you install BespokeFit?
-- Are you using Apple Silicon? If so, are you running BespokeFit in Rosetta or directly?
+- Are you using Apple Silicon? If so, are you running BespokeFit in Rosetta (`osx-64`) or natively (`osx-arm64`)?
 - What is the output of running `conda list`?
 
 <details><summary>Output of <code>conda list</code></summary><pre>
