@@ -1,6 +1,9 @@
 ---
 name: Feature request
-about: Suggest an improvement to BespokeFit 
+about: Suggest an improvement to BespokeFit
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
