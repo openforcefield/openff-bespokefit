@@ -12,7 +12,7 @@ import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
-from openff.bespokefit.optimizers import ForceBalanceOptimizer
+from openff.bespokefit.optimizers import OpenFFForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import OptimizationStageResults
@@ -44,24 +44,24 @@ def forcebalance_results_directory(tmpdir):
 
 
 def test_forcebalance_name():
-    assert ForceBalanceOptimizer.name() == "ForceBalance"
+    assert OpenFFForceBalanceOptimizer.name() == "OpenFF ForceBalance"
 
 
 def test_forcebalance_description():
     expected_message = "A systematic force field optimization tool"
-    assert expected_message in ForceBalanceOptimizer.description()
+    assert expected_message in OpenFFForceBalanceOptimizer.description()
 
 
 def test_forcebalance_provenance():
     """
     Make sure the correct forcebalance version is returned.
     """
-    import forcebalance
+    import openff.forcebalance
     import openff.toolkit
 
-    provenance = ForceBalanceOptimizer.provenance()
+    provenance = OpenFFForceBalanceOptimizer.provenance()
 
-    assert provenance["forcebalance"] == forcebalance.__version__
+    assert provenance["openff.forcebalance"] == openff.forcebalance.__version__
     assert provenance["openff.toolkit"] == openff.toolkit.__version__
 
 
@@ -70,11 +70,11 @@ def test_forcebalance_available():
     Make sure forcebalance is correctly found when installed.
     """
 
-    assert ForceBalanceOptimizer.is_available() is True
+    assert OpenFFForceBalanceOptimizer.is_available() is True
 
 
 def test_forcebalance_schema_class():
-    assert ForceBalanceOptimizer._schema_class() == ForceBalanceSchema
+    assert OpenFFForceBalanceOptimizer._schema_class() == ForceBalanceSchema
 
 
 @pytest.mark.parametrize(
@@ -109,7 +109,7 @@ def test_forcebalance_read_output(output):
         with open(os.path.join(results_folder, "force-field.offxml"), "w") as xml:
             xml.write("test")
 
-        result = ForceBalanceOptimizer._read_output("")
+        result = OpenFFForceBalanceOptimizer._read_output("")
 
         assert result["status"] == status
 
@@ -134,7 +134,9 @@ def test_forcebalance_collect_general_results(
 
     input_schema: BaseOptimizationSchema = request.getfixturevalue(input_schema_fixture)
 
-    results = ForceBalanceOptimizer._collect_results(forcebalance_results_directory)
+    results = OpenFFForceBalanceOptimizer._collect_results(
+        forcebalance_results_directory
+    )
 
     assert isinstance(results, OptimizationStageResults)
 
@@ -173,8 +175,8 @@ def test_forcebalance_optimize(
     subprocess_run = subprocess.run
 
     def run_monkeypatch(cmd, *args, **kwargs):
-        if cmd[0] == "ForceBalance" or (
-            isinstance(cmd, str) and cmd.startswith("ForceBalance")
+        if cmd[0] == "openff-forcebalance" or (
+            isinstance(cmd, str) and cmd.startswith("openff-forcebalance")
         ):
             Path("optimize.out").write_text("Optimization converged!")
         else:
@@ -184,7 +186,7 @@ def test_forcebalance_optimize(
 
     # Attempt an optimization
     with temporary_cd(str(forcebalance_results_directory)):
-        results = ForceBalanceOptimizer._optimize(
+        results = OpenFFForceBalanceOptimizer._optimize(
             general_optimization_schema.stages[0],
             ForceField(general_optimization_schema.initial_force_field),
         )

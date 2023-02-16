@@ -7,7 +7,10 @@ from openff.bespokefit.optimizers.base import (
     list_optimizers,
     register_optimizer,
 )
-from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
+from openff.bespokefit.optimizers.forcebalance import (
+    ForceBalanceOptimizer,
+    OpenFFForceBalanceOptimizer,
+)
 
 __all__ = [
     "BaseOptimizer",
@@ -16,4 +19,5 @@ __all__ = [
     "list_optimizers",
     "register_optimizer",
     "ForceBalanceOptimizer",
+    "OpenFFForceBalanceOptimizer",
 ]

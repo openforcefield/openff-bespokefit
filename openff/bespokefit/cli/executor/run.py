@@ -30,6 +30,7 @@ def _run_cli(
     qc_compute_n_cores: Optional[int],
     qc_compute_max_mem: Optional[float],
     n_optimizer_workers: int,
+    optimizer: Optional[str],
     launch_redis_if_unavailable: bool,
 ):
     """Run bespoke optimization using a temporary executor.
@@ -89,6 +90,7 @@ def _run_cli(
                 workflow_file_name=workflow_file_name,
                 allow_multiple_molecules=False,
                 save_submission=False,
+                optimizer=optimizer,
             )
 
             console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
