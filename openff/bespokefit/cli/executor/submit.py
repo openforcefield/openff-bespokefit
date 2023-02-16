@@ -18,6 +18,7 @@ from openff.bespokefit.cli.utilities import (
     print_header,
 )
 from openff.bespokefit.executor.utilities import handle_common_errors
+from openff.bespokefit.optimizers.base import _optimizers
 
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
@@ -88,6 +89,12 @@ def submit_options(allow_multiple_molecules: bool = False):
             "then 'none' should be specified.",
             required=False,
         ),
+        optgroup.option(
+            "--optimizer",
+            type=str,
+            help=f"The name of the optimizer to use, one of {[*_optimizers]}",
+            required=False,
+        ),
     ]
 
 
@@ -99,6 +106,7 @@ def _to_input_schema(
     default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
+    optimizer: Optional[str],
 ) -> "BespokeOptimizationSchema":
 
     from openff.qcsubmit.common_structures import QCSpec, QCSpecificationError
@@ -150,6 +158,8 @@ def _to_input_schema(
                     spec_description="CLI provided spec",
                 )
             ]
+        if optimizer is not None:
+            workflow_factory.optimizer.type = _optimizers[optimizer].name()
 
     except FileNotFoundError:
 
@@ -203,6 +213,7 @@ def _submit(
     default_qc_spec: Optional[Tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
+    optimizer: Optional[str],
     allow_multiple_molecules: bool,
     save_submission: bool,
 ) -> List[str]:
@@ -271,6 +282,7 @@ def _submit(
                 default_qc_spec,
                 workflow_name,
                 workflow_file_name,
+                optimizer,
             )
         )
 
