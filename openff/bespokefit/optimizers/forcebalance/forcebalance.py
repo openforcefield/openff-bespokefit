@@ -98,9 +98,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
     def _optimize(
         cls, schema: OptimizationStageSchema, initial_force_field: ForceField
     ) -> OptimizationStageResults:
-
         with open("log.txt", "w") as log:
-
             _logger.debug("Launching Forcebalance")
 
             subprocess.run(
@@ -177,16 +175,12 @@ class ForceBalanceOptimizer(BaseOptimizer):
             pass
 
         with open(os.path.join(root_directory, "optimize.out")) as log:
-
             for line in log.readlines():
-
                 if "optimization converged" in line.lower():
-
                     result["status"] = "success"
                     break
 
                 elif "convergence failure" in line.lower():
-
                     result["status"] = "errored"
 
                     result["error"] = Error(
@@ -197,7 +191,6 @@ class ForceBalanceOptimizer(BaseOptimizer):
                     break
 
             else:
-
                 result["status"] = "running"
 
         force_field_dir = os.path.join(root_directory, "result", "optimize")

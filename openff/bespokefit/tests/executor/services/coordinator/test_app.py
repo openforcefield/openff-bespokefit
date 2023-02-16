@@ -60,7 +60,6 @@ def test_get_optimizations(
     coordinator_client,
     bespoke_optimization_schema,
 ):
-
     for i in range(3):
         create_task(bespoke_optimization_schema, stages=None if i != 2 else [])
 
@@ -81,7 +80,6 @@ def test_get_optimizations(
 
 
 def test_get_optimization(coordinator_client, bespoke_optimization_schema):
-
     for _ in range(2):
         create_task(bespoke_optimization_schema)
 
@@ -149,7 +147,6 @@ def test_post_optimization_error(coordinator_client, bespoke_optimization_schema
 
 
 def test_get_molecule_image(coordinator_client, bespoke_optimization_schema):
-
     create_task(bespoke_optimization_schema)
 
     request = coordinator_client.get("/tasks/1/image")

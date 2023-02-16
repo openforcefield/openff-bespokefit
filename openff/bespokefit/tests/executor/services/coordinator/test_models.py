@@ -29,7 +29,6 @@ def mock_task(
     running_stage: Optional[StageType],
     completed_stages: List[StageType],
 ) -> CoordinatorTask:
-
     force_field = ForceField("openff_unconstrained-1.0.0.offxml")
     ff_hash = hashlib.sha512(force_field.to_string().encode()).hexdigest()
 
@@ -94,7 +93,6 @@ def mock_task(
     ],
 )
 def test_get_status_from_stage(stage, expected):
-
     actual = CoordinatorGETStageStatus.from_stage(stage)
 
     assert actual.type == expected.type
@@ -158,7 +156,6 @@ def test_get_status_from_stage(stage, expected):
     ],
 )
 def test_get_from_task(task, expected):
-
     actual = CoordinatorGETResponse.from_task(task)
 
     assert actual.id == expected.id

@@ -20,7 +20,6 @@ def test_task_id_to_key():
 
 
 def test_get_task(bespoke_optimization_schema):
-
     with pytest.raises(IndexError, match="1 was not found"):
         get_task(1)
 
@@ -45,7 +44,6 @@ def test_get_task(bespoke_optimization_schema):
     ],
 )
 def test_get_task_ids(skip, limit, expected_ids, status, bespoke_optimization_schema):
-
     for i in range(3):
         create_task(bespoke_optimization_schema, stages=None if i != 2 else [])
 
@@ -55,7 +53,6 @@ def test_get_task_ids(skip, limit, expected_ids, status, bespoke_optimization_sc
 
 
 def test_create_task(redis_connection, bespoke_optimization_schema):
-
     assert redis_connection.get("coordinator:id-counter") is None
 
     task_id = create_task(bespoke_optimization_schema)
@@ -68,7 +65,6 @@ def test_create_task(redis_connection, bespoke_optimization_schema):
 
 
 def test_peek_pop_push_task_state(redis_connection, bespoke_optimization_schema):
-
     for _ in range(2):
         create_task(bespoke_optimization_schema)
 
@@ -88,7 +84,6 @@ def test_peek_pop_push_task_state(redis_connection, bespoke_optimization_schema)
 
 
 def test_save_task(bespoke_optimization_schema):
-
     task = get_task(create_task(bespoke_optimization_schema))
     assert len(task.pending_stages) == 3
 

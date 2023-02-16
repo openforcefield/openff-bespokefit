@@ -21,7 +21,6 @@ __GET_ENDPOINT = "/" + __settings.BEFLOW_OPTIMIZER_PREFIX + "/{optimization_id}"
 
 @router.get(__GET_ENDPOINT)
 def get_optimization(optimization_id: str) -> OptimizerGETResponse:
-
     task_info = get_task_information(worker.celery_app, optimization_id)
 
     # noinspection PyTypeChecker

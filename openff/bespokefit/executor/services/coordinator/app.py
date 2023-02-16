@@ -127,7 +127,6 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
 
         body.input_schema.smiles = molecule.to_smiles(mapped=True)
     except BaseException as e:
-
         raise HTTPException(
             status_code=400, detail="molecule could not be understood"
         ) from e
@@ -167,7 +166,6 @@ def startup():
     _worker_task = asyncio.ensure_future(worker.cycle(), loop=main_loop)
 
     def _handle_task_result(task: asyncio.Task) -> None:
-
         # noinspection PyBroadException
         try:
             task.result()
@@ -176,7 +174,6 @@ def startup():
             pass
 
         except BaseException:
-
             _logger.exception(
                 "Exception raised by the main loop. This should never happen."
             )
@@ -188,6 +185,5 @@ def startup():
 
 @router.on_event("shutdown")
 def shutdown():
-
     if _worker_task is not None:
         _worker_task.cancel()

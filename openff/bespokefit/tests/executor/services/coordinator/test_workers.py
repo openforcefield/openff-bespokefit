@@ -22,20 +22,17 @@ async def mock_enter(self, task):
 
 
 async def mock_update_success(self):
-
     assert self.status == "running"
     self.status = "success"
 
 
 async def mock_update_errored(self):
-
     assert self.status == "running"
     self.status = "errored"
 
 
 @pytest.mark.asyncio
 async def test_process_task(redis_connection, monkeypatch):
-
     monkeypatch.setattr(FragmentationStage, "enter", mock_enter)
     monkeypatch.setattr(QCGenerationStage, "enter", mock_enter)
 

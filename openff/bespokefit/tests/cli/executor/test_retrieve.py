@@ -17,7 +17,6 @@ def _mock_coordinator_get(status, results=None):
     settings = current_settings()
 
     with requests_mock.Mocker() as m:
-
         mock_href = (
             f"http://127.0.0.1:"
             f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -44,7 +43,6 @@ def _mock_coordinator_get(status, results=None):
 
 
 def test_retrieve_one_output(runner):
-
     output = runner.invoke(retrieve_cli, args=["--id", "1"])
 
     assert output.exit_code == 2
@@ -61,9 +59,7 @@ def test_retrieve_one_output(runner):
     ],
 )
 def test_retrieve_output(runner, status, expected_message):
-
     with _mock_coordinator_get(status):
-
         output = runner.invoke(
             retrieve_cli, args=["--id", "1", "--output", "output.json"]
         )
@@ -85,11 +81,9 @@ def test_retrieve_output(runner, status, expected_message):
 def test_retrieve_force_field(
     runner, status, expected_message, should_exist, bespoke_optimization_results
 ):
-
     with _mock_coordinator_get(
         status, results=None if status != "success" else bespoke_optimization_results
     ):
-
         output = runner.invoke(
             retrieve_cli, args=["--id", "1", "--force-field", "output.offxml"]
         )
@@ -100,7 +94,6 @@ def test_retrieve_force_field(
 
 
 def test_retrieve_errored(runner):
-
     output = runner.invoke(retrieve_cli, args=["--id", "1", "--output", "output.json"])
 
     assert output.exit_code == 2

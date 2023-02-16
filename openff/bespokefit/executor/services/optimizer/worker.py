@@ -25,7 +25,6 @@ celery_app = configure_celery_app("optimizer", connect_to_default_redis(validate
 
 @celery_app.task(bind=True, acks_late=True)
 def optimize(self, optimization_input_json: str) -> str:
-
     from openff.toolkit.typing.engines.smirnoff import ForceField
 
     settings = current_settings()
@@ -46,7 +45,6 @@ def optimize(self, optimization_input_json: str) -> str:
 
     with temporary_cd():
         for i, stage in enumerate(input_schema.stages):
-
             optimizer = get_optimizer(stage.optimizer.type)
             # If there are no parameters to optimise as they have all been cached mock
             # the result
@@ -70,7 +68,6 @@ def optimize(self, optimization_input_json: str) -> str:
             stage_results.append(result)
 
             if result.status != "success":
-
                 raise (
                     RuntimeError("an unknown error occurred")
                     if result.error is None

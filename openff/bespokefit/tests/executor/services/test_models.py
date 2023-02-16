@@ -51,7 +51,6 @@ def test_link_comparison(link_a, op, link_b, expected):
 
 
 def test_link_hash():
-
     link_a = Link(id="a", self="localhost:8000/a")
     link_b = Link(id="b", self="localhost:8000/b")
 

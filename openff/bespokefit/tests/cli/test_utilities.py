@@ -11,7 +11,6 @@ from openff.bespokefit.cli.utilities import (
 
 
 def test_print_header():
-
     console = rich.get_console()
 
     with console.capture() as capture:
@@ -21,7 +20,6 @@ def test_print_header():
 
 
 def test_create_command(runner):
-
     mock_command = create_command(
         click_command=click.command(name="test-command"),
         click_options=[
@@ -42,7 +40,6 @@ def test_create_command(runner):
 
 
 def test_exit_with_messages():
-
     console = rich.get_console()
 
     with console.capture() as capture:

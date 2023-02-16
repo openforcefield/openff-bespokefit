@@ -66,7 +66,6 @@ if TYPE_CHECKING:
 
 
 class _Stage(BaseModel, abc.ABC):
-
     type: Literal["base-stage"] = "base-stage"
 
     status: Status = Field("waiting", description="The status of this stage.")
@@ -76,22 +75,18 @@ class _Stage(BaseModel, abc.ABC):
     )
 
     async def enter(self, task: "CoordinatorTask"):
-
         try:
             return await self._enter(task)
 
         except BaseException as e:  # lgtm [py/catch-base-exception]
-
             self.status = "errored"
             self.error = json.dumps(f"{e.__class__.__name__}: {str(e)}")
 
     async def update(self):
-
         try:
             return await self._update()
 
         except BaseException as e:  # lgtm [py/catch-base-exception]
-
             self.status = "errored"
             self.error = json.dumps(f"{e.__class__.__name__}: {str(e)}")
 
@@ -105,7 +100,6 @@ class _Stage(BaseModel, abc.ABC):
 
 
 class FragmentationStage(_Stage):
-
     type: Literal["fragmentation"] = "fragmentation"
 
     id: Optional[str] = Field(None, description="")
@@ -113,11 +107,9 @@ class FragmentationStage(_Stage):
     result: Optional[FragmentationResult] = Field(None, description="")
 
     async def _enter(self, task: "CoordinatorTask"):
-
         settings = current_settings()
 
         async with httpx.AsyncClient() as client:
-
             raw_response = await client.post(
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -131,7 +123,6 @@ class FragmentationStage(_Stage):
             )
 
             if raw_response.status_code != 200:
-
                 self.error = json.dumps(raw_response.text)
                 self.status = "errored"
 
@@ -144,14 +135,12 @@ class FragmentationStage(_Stage):
         self.id = post_response.id
 
     async def _update(self):
-
         if self.status == "errored":
             return
 
         settings = current_settings()
 
         async with httpx.AsyncClient() as client:
-
             raw_response = await client.get(
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -160,7 +149,6 @@ class FragmentationStage(_Stage):
             )
 
             if raw_response.status_code != 200:
-
                 self.error = json.dumps(raw_response.text)
                 self.status = "errored"
 
@@ -176,7 +164,6 @@ class FragmentationStage(_Stage):
             isinstance(self.result, FragmentationResult)
             and len(self.result.fragments) == 0
         ):
-
             self.error = json.dumps(
                 "No fragments could be generated for the parent molecule. This likely "
                 "means that the bespoke parameters that you have generated and are "
@@ -186,13 +173,11 @@ class FragmentationStage(_Stage):
             self.status = "errored"
 
         else:
-
             self.error = get_response.error
             self.status = get_response.status
 
 
 class QCGenerationStage(_Stage):
-
     type: Literal["qc-generation"] = "qc-generation"
 
     ids: Optional[Dict[int, List[str]]] = Field(None, description="")
@@ -347,7 +332,6 @@ class QCGenerationStage(_Stage):
         return fragment_jobs
 
     async def _enter(self, task: "CoordinatorTask"):
-
         settings = current_settings()
 
         fragment_stage = next(
@@ -368,7 +352,6 @@ class QCGenerationStage(_Stage):
                 input_schema=input_schema,
             )
         except BaseException as e:  # lgtm [py/catch-base-exception]
-
             self.status = "errored"
             self.error = json.dumps(
                 f"Failed to generate SMIRKS patterns that match both the parent and "
@@ -384,12 +367,10 @@ class QCGenerationStage(_Stage):
         ]
 
         for i, target in enumerate(targets):
-
             if not isinstance(target.reference_data, BespokeQCData):
                 continue
 
             if target.bespoke_task_type() == "torsion1d":
-
                 target_qc_tasks[i].extend(
                     Torsion1DTask(
                         smiles=fragment.smiles,
@@ -405,11 +386,8 @@ class QCGenerationStage(_Stage):
         qc_calc_ids = defaultdict(set)
 
         async with httpx.AsyncClient() as client:
-
             for i, qc_tasks in target_qc_tasks.items():
-
                 for qc_task in qc_tasks:
-
                     raw_response = await client.post(
                         f"http://127.0.0.1:"
                         f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -419,7 +397,6 @@ class QCGenerationStage(_Stage):
                     )
 
                     if raw_response.status_code != 200:
-
                         self.error = json.dumps(raw_response.text)
                         self.status = "errored"
 
@@ -431,7 +408,6 @@ class QCGenerationStage(_Stage):
         self.ids = {i: sorted(ids) for i, ids in qc_calc_ids.items()}
 
     async def _update(self):
-
         settings = current_settings()
 
         if self.status == "errored":
@@ -441,7 +417,6 @@ class QCGenerationStage(_Stage):
             len([qc_id for target_ids in self.ids.values() for qc_id in target_ids])
             == 0
         ):
-
             # Handle the case were there was no bespoke QC data to generate.
             self.status = "success"
             self.results = {}
@@ -449,7 +424,6 @@ class QCGenerationStage(_Stage):
             return
 
         async with httpx.AsyncClient() as client:
-
             id_query = "&ids=".join(qc_id for i in self.ids for qc_id in self.ids[i])
 
             raw_response = await client.get(
@@ -461,7 +435,6 @@ class QCGenerationStage(_Stage):
             contents = raw_response.text
 
             if raw_response.status_code != 200:
-
                 self.error = json.dumps(raw_response.text)
                 self.status = "errored"
 
@@ -487,7 +460,6 @@ class QCGenerationStage(_Stage):
             self.status = "waiting"
 
         elif statuses == {"success"}:
-
             self.status = "success"
 
             self.results = {
@@ -496,7 +468,6 @@ class QCGenerationStage(_Stage):
 
 
 class OptimizationStage(_Stage):
-
     type: Literal["optimization"] = "optimization"
 
     id: Optional[str] = Field(
@@ -512,12 +483,10 @@ class OptimizationStage(_Stage):
         qc_generation_stage: QCGenerationStage,
         input_schema: BespokeOptimizationSchema,
     ):
-
         targets: List[TargetSchema] = [
             target for stage in input_schema.stages for target in stage.targets
         ]
         for i, target in enumerate(targets):
-
             if not isinstance(target.reference_data, BespokeQCData):
                 continue
 
@@ -541,7 +510,6 @@ class OptimizationStage(_Stage):
         n_targets_missing_qc_data = len(targets_missing_qc_data)
 
         if n_targets_missing_qc_data > 0 and qc_generation_stage.results:
-
             raise RuntimeError(
                 f"{n_targets_missing_qc_data} targets were missing QC data - this "
                 f"should likely never happen. Please raise an issue on the GitHub "
@@ -549,7 +517,6 @@ class OptimizationStage(_Stage):
             )
 
     async def _enter(self, task: "CoordinatorTask"):
-
         settings = current_settings()
 
         completed_stages = {stage.type: stage for stage in task.completed_stages}
@@ -563,7 +530,6 @@ class OptimizationStage(_Stage):
         try:
             await self._inject_bespoke_qc_data(qc_generation_stage, input_schema)
         except BaseException as e:  # lgtm [py/catch-base-exception]
-
             self.status = "errored"
             self.error = json.dumps(
                 f"Failed to inject the bespoke QC data into the optimization "
@@ -573,7 +539,6 @@ class OptimizationStage(_Stage):
             return
 
         async with httpx.AsyncClient() as client:
-
             raw_response = await client.post(
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -585,7 +550,6 @@ class OptimizationStage(_Stage):
             )
 
             if raw_response.status_code != 200:
-
                 self.error = json.dumps(raw_response.text)
                 self.status = "errored"
 
@@ -595,14 +559,12 @@ class OptimizationStage(_Stage):
             self.id = response.id
 
     async def _update(self):
-
         settings = current_settings()
 
         if self.status == "errored":
             return
 
         async with httpx.AsyncClient() as client:
-
             raw_response = await client.get(
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -612,7 +574,6 @@ class OptimizationStage(_Stage):
             contents = raw_response.text
 
             if raw_response.status_code != 200:
-
                 self.error = json.dumps(raw_response.text)
                 self.status = "errored"
 

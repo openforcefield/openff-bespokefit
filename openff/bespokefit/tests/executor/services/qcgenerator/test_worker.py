@@ -9,7 +9,6 @@ from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
 
 def test_compute_torsion_drive():
-
     task = Torsion1DTask(
         smiles="[F][CH2:1][CH2:2][F]",
         central_bond=(1, 2),
@@ -42,7 +41,6 @@ def test_compute_torsion_drive():
 
 
 def test_compute_optimization():
-
     task = OptimizationTask(
         smiles="CCCCC",
         n_conformers=2,
@@ -59,7 +57,6 @@ def test_compute_optimization():
     assert 0 < len(result_dicts) <= 2
 
     for result_dict in result_dicts:
-
         result = OptimizationResult.parse_obj(result_dict)
         assert result.success
 

@@ -109,3 +109,6 @@ ENV/
 # BespokeFit
 bespoke-executor/
 output.json
+
+# macOS
+.DS_Store

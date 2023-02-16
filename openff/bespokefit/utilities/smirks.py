@@ -249,7 +249,6 @@ class SMIRKSGenerator(SMIRKSettings):
         """
 
         if not self.target_smirks:
-
             raise SMIRKSTypeError(
                 "No smirks targets were provided so no new patterns were made, set a "
                 "target and run again."
@@ -261,7 +260,6 @@ class SMIRKSGenerator(SMIRKSettings):
             ff = ForceFieldEditor(force_field=self.initial_force_field)
 
         if self.generate_bespoke_terms:
-
             new_parameters = self._get_bespoke_parameters(
                 force_field_editor=ff,
                 parent=parent,
@@ -270,7 +268,6 @@ class SMIRKSGenerator(SMIRKSettings):
             )
 
         else:
-
             new_parameters = self._get_existing_parameters(
                 force_field_editor=ff,
                 molecule=parent,
@@ -279,9 +276,7 @@ class SMIRKSGenerator(SMIRKSettings):
 
         # now we need to check if we need to expand any torsion smirks
         if self.expand_torsion_terms:
-
             for parameter in new_parameters:
-
                 if not isinstance(parameter, ProperTorsionHandler.ProperTorsionType):
                     continue
 
@@ -406,12 +401,10 @@ class SMIRKSGenerator(SMIRKSettings):
         valence_groups = [*group_valence_by_symmetry(fragment, valence_terms).values()]
 
         for valence_group in valence_groups:
-
             target_atoms = [valence_group]
             target_molecules = [fragment]
 
             if not fragment_is_parent:
-
                 parent_atoms = self._get_parent_valence_terms(
                     parent, fragment, valence_group
                 )
@@ -437,7 +430,6 @@ class SMIRKSGenerator(SMIRKSettings):
         smirks_type: SMIRKSType,
         torsion_bond: Optional[Tuple[int, int]] = None,
     ) -> List[Tuple[int, ...]]:
-
         if smirks_type == SMIRKSType.Vdw:
             return [(i,) for i in range(molecule.n_atoms)]
 
@@ -445,7 +437,6 @@ class SMIRKSGenerator(SMIRKSettings):
             return [(bond.atom1_index, bond.atom2_index) for bond in molecule.bonds]
 
         elif smirks_type == SMIRKSType.Angles:
-
             return [
                 tuple([atom.molecule_atom_index for atom in angle])
                 for angle in molecule.angles
@@ -478,9 +469,7 @@ class SMIRKSGenerator(SMIRKSettings):
         parent_terms = []
 
         for fragment_term in fragment_valence_terms:
-
             try:
-
                 parent_valence = tuple(
                     parent_map_to_atom_index[fragment_atom_to_map_index[i]]
                     for i in fragment_term

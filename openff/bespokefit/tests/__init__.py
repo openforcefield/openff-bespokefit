@@ -8,7 +8,6 @@ try:
         oechem.OEChemIsLicensed()
         and oechem.OEGetMemPoolMode() == oechem.OEMemPoolMode_Default
     ):
-
         oechem.OESetMemPoolMode(
             oechem.OEMemPoolMode_Mutexed | oechem.OEMemPoolMode_UnboundedCache
         )

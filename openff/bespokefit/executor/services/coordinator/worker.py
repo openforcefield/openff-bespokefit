@@ -19,7 +19,6 @@ _logger = logging.getLogger(__name__)
 
 
 async def _process_task(task_id: int) -> bool:
-
     task = get_task(task_id)
     task_status = task.status
 
@@ -57,16 +56,13 @@ async def _process_task(task_id: int) -> bool:
 
 
 async def cycle():  # pragma: no cover
-
     settings = current_settings()
     n_connection_errors = 0
 
     while True:
-
         sleep_time = settings.BEFLOW_COORDINATOR_MAX_UPDATE_INTERVAL
 
         try:
-
             start_time = time.perf_counter()
 
             # First update any running tasks, pushing them to the 'complete' queue if
@@ -77,7 +73,6 @@ async def cycle():  # pragma: no cover
             processed_task_ids = set()
 
             while task_id is not None:
-
                 if task_id in processed_task_ids:
                     break
 
@@ -102,7 +97,6 @@ async def cycle():  # pragma: no cover
             )
 
             for _ in range(n_tasks_to_queue):
-
                 push_task_status(
                     pop_task_status(TaskStatus.waiting), TaskStatus.running
                 )
@@ -113,7 +107,6 @@ async def cycle():  # pragma: no cover
             sleep_time = max(sleep_time - (time.perf_counter() - start_time), 0.0)
 
         except (KeyboardInterrupt, asyncio.CancelledError):
-
             break
 
         except (
@@ -121,14 +114,12 @@ async def cycle():  # pragma: no cover
             redis.exceptions.ConnectionError,
             redis.exceptions.BusyLoadingError,
         ) as e:
-
             n_connection_errors += 1
 
             if n_connection_errors >= 3:
                 raise e
 
             if isinstance(e, redis.exceptions.RedisError):
-
                 _logger.warning(
                     f"Failed to connect to Redis - {3 - n_connection_errors} attempts "
                     f"remaining."
