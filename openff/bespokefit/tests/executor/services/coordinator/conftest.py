@@ -10,7 +10,6 @@ from openff.bespokefit.tests.executor import patch_settings
 
 @pytest.fixture(scope="module")
 def coordinator_client() -> TestClient:
-
     mock_app = FastAPI(title="coordinator")
     mock_app.include_router(app.router)
 
@@ -19,8 +18,6 @@ def coordinator_client() -> TestClient:
 
 @pytest.fixture(scope="module", autouse=True)
 def configure_redis(redis_connection):
-
     with patch_settings(redis_connection):
-
         reload(worker)
         yield

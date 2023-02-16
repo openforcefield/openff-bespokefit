@@ -10,7 +10,6 @@ _T = TypeVar("_T")
 
 
 class Error(BaseModel):
-
     type: str = Field(..., description="The type of exception that was raised.")
     message: str = Field(..., description="The message associated with the exception.")
 
@@ -20,7 +19,6 @@ class Error(BaseModel):
 
 
 class Link(BaseModel):
-
     self: str = Field(..., description="The API endpoint associated with this object.")
     id: str = Field(..., description="The unique id associated with this object.")
 
@@ -45,7 +43,6 @@ class Link(BaseModel):
 
 
 class PaginatedCollection(GenericModel, Generic[_T]):
-
     self: str = Field(..., description="The API endpoint associated with this object.")
 
     prev: Optional[str] = Field(

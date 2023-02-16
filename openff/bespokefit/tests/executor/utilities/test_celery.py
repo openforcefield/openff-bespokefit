@@ -39,7 +39,6 @@ def test_get_status(task_result, expected_status):
 
 
 def test_configure_celery_app(redis_connection):
-
     celery_app = configure_celery_app(
         app_name="test-app-name",
         redis_connection=redis_connection,
@@ -68,7 +67,6 @@ def test_spawn_no_worker(celery_app):
     [_spawn_worker, functools.partial(spawn_worker, asynchronous=False)],
 )
 def test_spawn_worker(spawn_function, celery_app, monkeypatch):
-
     started = False
 
     def mock_start(self):
@@ -82,7 +80,6 @@ def test_spawn_worker(spawn_function, celery_app, monkeypatch):
 
 
 def test_get_task_information_success(celery_app, celery_worker):
-
     task_result = mock_task_success.delay()
     task_result.get(timeout=10)
 
@@ -95,7 +92,6 @@ def test_get_task_information_success(celery_app, celery_worker):
 
 
 def test_get_task_information_error(celery_app, celery_worker):
-
     task_result = mock_task_error.delay()
     task_result.get(propagate=False, timeout=10)
 

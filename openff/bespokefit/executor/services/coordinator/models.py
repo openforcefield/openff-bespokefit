@@ -16,7 +16,6 @@ class CoordinatorGETPageResponse(PaginatedCollection[Link]):
 
 
 class CoordinatorGETStageStatus(BaseModel):
-
     type: str = Field(..., description="The type of stage.")
 
     status: Status = Field(..., description="The status of the stage.")
@@ -30,7 +29,6 @@ class CoordinatorGETStageStatus(BaseModel):
 
     @classmethod
     def from_stage(cls, stage: StageType):
-
         stage_ids = stage.id if hasattr(stage, "id") else stage.ids
 
         if isinstance(stage_ids, str):
@@ -72,7 +70,6 @@ class CoordinatorGETStageStatus(BaseModel):
 
 
 class CoordinatorGETResponse(Link):
-
     smiles: str = Field(
         ...,
         description="The SMILES representation of the molecule that the bespoke "
@@ -92,7 +89,6 @@ class CoordinatorGETResponse(Link):
 
     @classmethod
     def from_task(cls, task: "CoordinatorTask"):
-
         settings = current_settings()
 
         stages = [
@@ -123,7 +119,6 @@ class CoordinatorGETResponse(Link):
 
 
 class CoordinatorPOSTBody(BaseModel):
-
     input_schema: BespokeOptimizationSchema = Field(..., description="")
 
 
@@ -148,7 +143,6 @@ class CoordinatorTask(BaseModel):
 
     @property
     def status(self) -> Status:
-
         if (
             self.running_stage is None
             and len(self.completed_stages) == 0

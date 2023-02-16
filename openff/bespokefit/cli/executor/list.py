@@ -19,7 +19,6 @@ _STATUS_STRINGS = {
 
 
 def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "Status"]:
-
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
@@ -81,7 +80,6 @@ def list_cli(status_filter: Status):
     )
 
     with handle_common_errors(console) as error_state:
-
         request = requests.get(base_href)
         request.raise_for_status()
 
@@ -92,7 +90,6 @@ def list_cli(status_filter: Status):
     records = []
 
     for item in response.contents:
-
         smiles, status = _get_columns(console, item.id)
 
         if status_filter is not None and status != status_filter:
@@ -101,7 +98,6 @@ def list_cli(status_filter: Status):
         records.append((item.id, smiles, status))
 
     if len(records) == 0:
-
         status_message = (
             "."
             if status_filter is None
@@ -118,7 +114,6 @@ def list_cli(status_filter: Status):
     table.add_column("STATUS", no_wrap=True)
 
     for record_id, smiles, status in records:
-
         smiles, status = _get_columns(console, record_id)
 
         if status_filter is not None and status != status_filter:

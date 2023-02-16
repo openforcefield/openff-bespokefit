@@ -12,11 +12,9 @@ from openff.bespokefit.executor.services.models import Link
 
 
 def test_get_columns():
-
     settings = current_settings()
 
     with requests_mock.Mocker() as m:
-
         mock_response = CoordinatorGETResponse(
             self="self-page",
             id="1",
@@ -44,11 +42,9 @@ def test_get_columns():
     [(0, "No optimizations were found"), (3, "The following optimizations were found")],
 )
 def test_list_cli(n_results, expected_message, runner):
-
     settings = current_settings()
 
     with requests_mock.Mocker() as m:
-
         mock_response = CoordinatorGETPageResponse(
             self="self-page",
             contents=[

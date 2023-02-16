@@ -29,7 +29,6 @@ QCTaskSpec = TypeVar(
 
 
 class BespokeQCData(GenericModel, Generic[QCTaskSpec]):
-
     type: Literal["bespoke"] = "bespoke"
 
     spec: QCTaskSpec = Field(
@@ -57,14 +56,12 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     def _optimization_record_to_optimization_result(
         cls, record: OptimizationRecord, molecule: Molecule
     ) -> OptimizationResult:
-
         raise NotImplementedError()
 
     @classmethod
     def _torsion_drive_record_to_torsion_drive_result(
         cls, record: TorsionDriveRecord, molecule: Molecule
     ) -> TorsionDriveResult:
-
         assert record.status == RecordStatusEnum.complete
         # add the program to the model which we need for the cache
         extras = record.extras
@@ -117,7 +114,6 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
 
     @classmethod
     def from_remote_records(cls, qc_records):
-
         record_types = list({type(qc_record) for qc_record, _ in qc_records})
         assert len(record_types) == 1, "records must be the same type"
 

@@ -32,7 +32,6 @@ def test_get_optimizer(optimizer_name, expected):
 
 
 def test_get_optimizer_missing():
-
     expected_match = "The optimizer fake-optimizer was not registered with bespokefit."
 
     with pytest.raises(OptimizerError, match=expected_match):
@@ -55,18 +54,15 @@ def test_register_deregister_optimizer():
 
 
 def test_deregister_optimizer_error():
-
     with pytest.raises(OptimizerError, match="was not registered with"):
         deregister_optimizer("fake-name")
 
 
 def test_register_optimizer_type_error():
-
     with pytest.raises(OptimizerError, match="must be a subclass"):
         register_optimizer(float)
 
 
 def test_register_optimizer_already_registered_error():
-
     with pytest.raises(OptimizerError, match="An optimizer is already registered"):
         register_optimizer(ForceBalanceOptimizer)

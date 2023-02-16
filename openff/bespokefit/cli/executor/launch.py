@@ -23,7 +23,6 @@ def launch_options(
     n_optimizer_workers: Optional[int] = 1,
     launch_redis_if_unavailable: Optional[bool] = True,
 ):
-
     return [
         optgroup("Executor configuration"),
         optgroup.option(
@@ -118,7 +117,6 @@ def validate_redis_connection(console: "rich.Console", allow_existing: bool = Tr
         return
 
     if not allow_existing:
-
         exit_with_messages(
             f"[[red]ERROR[/red]] a redis server is already running at "
             f"host={settings.BEFLOW_REDIS_ADDRESS} and "
@@ -139,7 +137,6 @@ def validate_redis_connection(console: "rich.Console", allow_existing: bool = Tr
     try:
         connect_to_default_redis()
     except (RedisNotConfiguredError, RedisBadConfigurationError) as e:
-
         exit_with_messages(
             f"[[red]ERROR[/red]] {str(e)}",
             console=console,
@@ -181,7 +178,6 @@ def _launch_cli(
         n_optimizer_workers=n_optimizer_workers,
         launch_redis_if_unavailable=launch_redis_if_unavailable,
     ):
-
         executor_status.stop()
         console.print("[[green]✓[/green]] bespoke executor launched")
 

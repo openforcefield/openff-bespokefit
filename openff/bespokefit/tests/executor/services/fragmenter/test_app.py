@@ -12,7 +12,6 @@ from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 def _mock_fragment(monkeypatch, status: str = "SUCCESS") -> FragmentationResult:
-
     mock_fragmentation_result = FragmentationResult(
         parent_smiles="[H:1][C:2]#[C:3][H:4]",
         fragments=[
@@ -32,7 +31,6 @@ def _mock_fragment(monkeypatch, status: str = "SUCCESS") -> FragmentationResult:
 
 
 def test_get_fragment(fragmenter_client, monkeypatch):
-
     mock_fragmentation_result = _mock_fragment(monkeypatch)
 
     request = fragmenter_client.get("/fragmentations/1")
@@ -50,7 +48,6 @@ def test_get_fragment(fragmenter_client, monkeypatch):
 
 
 def test_post_fragment(fragmenter_client, redis_connection, monkeypatch):
-
     submitted_task_kwargs = mock_celery_task(worker, "fragment", monkeypatch)
 
     request = fragmenter_client.post(
@@ -74,7 +71,6 @@ def test_post_fragment(fragmenter_client, redis_connection, monkeypatch):
 
 
 def test_get_molecule_image(fragmenter_client, monkeypatch):
-
     _mock_fragment(monkeypatch)
 
     request = fragmenter_client.get("/fragmentations/1/fragment/0/image")

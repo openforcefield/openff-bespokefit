@@ -13,7 +13,6 @@ from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 @skip_if_missing("openeye.oechem")
 def test_canonicalize_torsion_task():
-
     original_task = Torsion1DTask(
         smiles="[H:1][C:2]([H:3])([H:4])[O:5][H:6]",
         central_bond=(2, 5),
@@ -60,7 +59,6 @@ def test_canonicalize_torsion_task():
 def test_cached_compute_task(
     qcgenerator_client, redis_connection, monkeypatch, task, compute_function
 ):
-
     mock_celery_task(worker, compute_function, monkeypatch, "task-1")
 
     task_id = cached_compute_task(task, redis_connection)

@@ -29,7 +29,6 @@ class BaseTargetTemplate(Generic[T]):
 
     @classmethod
     def generate(cls, schema: T, target_names: List[str]) -> str:
-
         template_file_name = get_data_file_path(
             os.path.join("templates", "force-balance", cls.template_name()),
             "openff.bespokefit",
@@ -86,7 +85,6 @@ class OptGeoOptionsTemplate:
 
     @classmethod
     def generate(cls, target: OptGeoTargetSchema, record_ids: List[str]) -> str:
-
         template_file_name = get_data_file_path(
             os.path.join("templates", "force-balance", "opt-geo-options.txt"),
             "openff.bespokefit",
@@ -109,7 +107,6 @@ class InputOptionsTemplate:
         priors: Dict[str, float],
         targets_section: str,
     ) -> str:
-
         template_file_name = get_data_file_path(
             os.path.join("templates", "force-balance", "optimize.txt"),
             "openff.bespokefit",

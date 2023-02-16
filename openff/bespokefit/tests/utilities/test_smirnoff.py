@@ -78,7 +78,6 @@ def test_label_molecule():
 
 
 def test_get_parameters():
-
     ff = ForceFieldEditor(force_field="openff-1.0.0.offxml")
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
 
@@ -105,7 +104,6 @@ def test_get_parameters():
 
 
 def test_get_initial_parameters():
-
     molecule = Molecule.from_mapped_smiles("[H:1]-[C:2]#[C:3]-[H:4]")
     smirks = [
         VdWSMIRKS(smirks="[#6:1]", attributes=set()),
@@ -132,12 +130,10 @@ def test_get_initial_parameters():
     assert len(initial_parameters) == len(expected_values)
 
     for new_smirks, (handler_type, old_smirks) in expected_values.items():
-
         new_parameter = initial_parameters[new_smirks].to_dict()
         old_parameter = ff.force_field[handler_type].parameters[old_smirks].to_dict()
 
         for key in new_parameter:
-
             if not isinstance(new_parameter[key], unit.Quantity):
                 continue
 

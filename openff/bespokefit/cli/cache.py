@@ -181,7 +181,6 @@ def _update(
         redis_process = None
 
     try:
-
         redis_connection = connect_to_default_redis()
 
         # run the update
@@ -191,7 +190,6 @@ def _update(
             redis_connection=redis_connection,
         )
     finally:
-
         if redis_process is not None:
             # close redis
             console.print(Padding("5. closing redis", (0, 0, 1, 0)))
@@ -245,7 +243,6 @@ def _connect_to_qcfractal(
             else:
                 client = FractalClient(address=qcf_address)
         except BaseException as e:
-
             exit_with_messages(
                 Padding(
                     "[[red]ERROR[/red]] Unable to connect to QCFractal due to the "
@@ -270,7 +267,6 @@ def _results_from_client(
     """Connect to qcfractal and create a qcsubmit results object."""
 
     with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
-
         if qcf_datatype == "torsion":
             qcsubmit_result = TorsionDriveResultCollection.from_server(
                 client=client, datasets=qcf_dataset_name, spec_name=qcf_specification

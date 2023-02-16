@@ -98,7 +98,6 @@ class BaseOptimizer(abc.ABC):
         """
 
         if not issubclass(target_type, BaseTargetSchema):
-
             raise TargetRegisterError(
                 f"The {target_type.__name__} does not inherit from the "
                 f"``BaseTargetSchema`` target base class."
@@ -150,7 +149,6 @@ class BaseOptimizer(abc.ABC):
         """
 
         if not isinstance(schema.optimizer, cls._schema_class()):
-
             raise OptimizerError(
                 f"The ``{cls.__name__}`` optimizer can only be used with "
                 f"optimization schemas which specify a {cls._schema_class().__name__} "
@@ -160,7 +158,6 @@ class BaseOptimizer(abc.ABC):
         registered_targets = cls.get_registered_targets()
 
         for target in schema.targets:
-
             if target.type.lower() in registered_targets:
                 continue
 
@@ -223,17 +220,14 @@ class BaseOptimizer(abc.ABC):
         """
 
         try:
-
             if root_directory is not None:
                 os.makedirs(root_directory, exist_ok=True)
 
             with temporary_cd(root_directory):
-
                 cls.prepare(schema, initial_force_field, ".")
                 results = cls._optimize(schema, initial_force_field)
 
         finally:
-
             if (
                 root_directory is not None
                 and not keep_files
