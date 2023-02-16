@@ -31,7 +31,6 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
     """
 
     _module_path: str = None
-    _results_filename: str = None
     _cli_command: str = None
 
     @classmethod
@@ -49,7 +48,7 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
         import openff.toolkit
 
         versions = {
-            "forcebalance": cls._fb_version(),
+            cls._module_path: cls._fb_version(),
             "openff.toolkit": openff.toolkit.__version__,
         }
 
@@ -99,7 +98,7 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
         cls, schema: OptimizationStageSchema, initial_force_field: ForceField
     ) -> OptimizationStageResults:
 
-        with open(cls._results_filename, "w") as log:
+        with open("optimize.out", "w") as log:
 
             _logger.debug(f"Launching {cls.name()}")
 
@@ -108,8 +107,10 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
                 shell=True,
                 stdout=log,
                 stderr=log,
+                check=True,
             )
 
+            print("collecting forcebalance results")
             results = cls._collect_results("")
 
         _logger.debug("OPT finished in folder", os.getcwd())
@@ -176,10 +177,9 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
         except IOError:
             pass
 
-        with open(os.path.join(root_directory, cls._results_filename)) as log:
+        with open(os.path.join(root_directory, "optimize.out")) as log:
 
             for line in log.readlines():
-
                 if "optimization converged" in line.lower():
 
                     result["status"] = "success"
@@ -208,7 +208,6 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
 
 class OpenFFForceBalanceOptimizer(ForceBalanceOptimizerBase):
     _module_path = "openff.forcebalance"
-    _results_filename = "optimize.out"
     _cli_command = "openff-forcebalance optimize -i {}"
 
     @classmethod
@@ -231,7 +230,6 @@ class OpenFFForceBalanceOptimizer(ForceBalanceOptimizerBase):
 
 class ForceBalanceOptimizer(ForceBalanceOptimizerBase):
     _module_path = "forcebalance"
-    _results_filename = "log.txt"
     _cli_command = "ForceBalance {}"
 
     @classmethod

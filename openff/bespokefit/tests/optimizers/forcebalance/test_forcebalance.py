@@ -5,189 +5,188 @@ Forcebalance specific optimizer testing.
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 import numpy as np
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
-from openff.bespokefit.optimizers import (
-    ForceBalanceOptimizer,
-    OpenFFForceBalanceOptimizer,
-)
+from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
 from openff.bespokefit.schema.optimizers import ForceBalanceSchema
 from openff.bespokefit.schema.results import OptimizationStageResults
 
 
-@pytest.mark.parametrize(
-    "ForceBalanceOptimizer", [ForceBalanceOptimizer, OpenFFForceBalanceOptimizer]
-)
-class TestForceBalance:
-    @pytest.fixture()
-    def forcebalance_results_directory(self, ForceBalanceOptimizer, tmpdir):
+@pytest.fixture()
+def forcebalance_results_directory(tmpdir):
 
-        # copy the file over
+    # copy the file over
+    shutil.copy(
+        get_data_file_path(
+            os.path.join("test", "force-balance", "complete.out"), "openff.bespokefit"
+        ),
+        os.path.join(tmpdir, "optimize.out"),
+    )
+
+    # now we have to make some dummy folders
+    results_folder = os.path.join(tmpdir, "result", "optimize")
+    os.makedirs(results_folder, exist_ok=True)
+
+    shutil.copy(
+        get_data_file_path(
+            os.path.join("test", "force-fields", "bespoke.offxml"), "openff.bespokefit"
+        ),
+        os.path.join(results_folder, "force-field.offxml"),
+    )
+
+    return tmpdir
+
+
+def test_forcebalance_name():
+    assert ForceBalanceOptimizer.name() == "ForceBalance"
+
+
+def test_forcebalance_description():
+    expected_message = "A systematic force field optimization tool"
+    assert expected_message in ForceBalanceOptimizer.description()
+
+
+def test_forcebalance_provenance():
+    """
+    Make sure the correct forcebalance version is returned.
+    """
+    import forcebalance
+    import openff.toolkit
+
+    provenance = ForceBalanceOptimizer.provenance()
+
+    assert provenance["forcebalance"] == forcebalance.__version__
+    assert provenance["openff.toolkit"] == openff.toolkit.__version__
+
+
+def test_forcebalance_available():
+    """
+    Make sure forcebalance is correctly found when installed.
+    """
+
+    assert ForceBalanceOptimizer.is_available() is True
+
+
+def test_forcebalance_schema_class():
+    assert ForceBalanceOptimizer._schema_class() == ForceBalanceSchema
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        pytest.param(("complete.out", "success", None), id="Complete run"),
+        pytest.param(
+            ("error.out", "errored", "ConvergenceFailure"), id="Convergence error"
+        ),
+        pytest.param(("running.out", "running", None), id="Running "),
+    ],
+)
+def test_forcebalance_read_output(output):
+    """Test reading the output of a forcebalance run."""
+
+    file_name, status, error_type = output
+
+    with temporary_cd():
+
+        # copy the output file over
         shutil.copy(
             get_data_file_path(
-                os.path.join("test", "force-balance", "complete.out"),
-                "openff.bespokefit",
+                os.path.join("test", "force-balance", file_name), "openff.bespokefit"
             ),
-            os.path.join(tmpdir, "optimize.out"),
+            "optimize.out",
         )
 
         # now we have to make some dummy folders
-        results_folder = os.path.join(tmpdir, "result", "optimize")
+        results_folder = os.path.join("result", "optimize")
         os.makedirs(results_folder, exist_ok=True)
 
-        shutil.copy(
-            get_data_file_path(
-                os.path.join("test", "force-fields", "bespoke.offxml"),
-                "openff.bespokefit",
-            ),
-            os.path.join(results_folder, "force-field.offxml"),
-        )
+        with open(os.path.join(results_folder, "force-field.offxml"), "w") as xml:
+            xml.write("test")
 
-        return tmpdir
+        result = ForceBalanceOptimizer._read_output("")
 
-    def test_forcebalance_name(self, ForceBalanceOptimizer):
-        assert ForceBalanceOptimizer.name() == "ForceBalance"
+        assert result["status"] == status
 
-    def test_forcebalance_description(self, ForceBalanceOptimizer):
-        expected_message = "A systematic force field optimization tool"
-        assert expected_message in ForceBalanceOptimizer.description()
+        if error_type is None:
+            assert result["error"] is None
+        else:
+            assert result["error"].type == error_type
 
-    def test_forcebalance_provenance(self, ForceBalanceOptimizer):
-        """
-        Make sure the correct forcebalance version is returned.
-        """
-        import forcebalance
-        import openff.toolkit
+        assert "force-field.offxml" in result["forcefield"]
 
-        provenance = ForceBalanceOptimizer.provenance()
 
-        assert provenance["forcebalance"] == forcebalance.__version__
-        assert provenance["openff.toolkit"] == openff.toolkit.__version__
+@pytest.mark.parametrize(
+    "input_schema_fixture",
+    ["bespoke_optimization_schema", "general_optimization_schema"],
+)
+def test_forcebalance_collect_general_results(
+    input_schema_fixture, forcebalance_results_directory, request
+):
+    """Test trying to collect results that have been successful and updated the
+    parameters.
+    """
 
-    def test_forcebalance_available(self, ForceBalanceOptimizer):
-        """
-        Make sure forcebalance is correctly found when installed.
-        """
+    input_schema: BaseOptimizationSchema = request.getfixturevalue(input_schema_fixture)
 
-        assert ForceBalanceOptimizer.is_available() is True
+    results = ForceBalanceOptimizer._collect_results(forcebalance_results_directory)
 
-    def test_forcebalance_schema_class(self, ForceBalanceOptimizer):
-        assert ForceBalanceOptimizer._schema_class() == ForceBalanceSchema
+    assert isinstance(results, OptimizationStageResults)
 
-    @pytest.mark.parametrize(
-        "output",
-        [
-            pytest.param(("complete.out", "success", None), id="Complete run"),
-            pytest.param(
-                ("error.out", "errored", "ConvergenceFailure"), id="Convergence error"
-            ),
-            pytest.param(("running.out", "running", None), id="Running "),
-        ],
-    )
-    def test_forcebalance_read_output(self, ForceBalanceOptimizer, output):
-        """Test reading the output of a forcebalance run."""
+    initial_values = input_schema.initial_parameter_values
+    refit_force_field = ForceField(results.refit_force_field)
 
-        file_name, status, error_type = output
-
-        with temporary_cd():
-
-            # copy the output file over
-            shutil.copy(
-                get_data_file_path(
-                    os.path.join("test", "force-balance", file_name),
-                    "openff.bespokefit",
-                ),
-                "optimize.out",
+    refit_values = {
+        parameter: {
+            attribute: getattr(
+                refit_force_field[parameter.type].parameters[parameter.smirks],
+                attribute,
             )
-
-            # now we have to make some dummy folders
-            results_folder = os.path.join("result", "optimize")
-            os.makedirs(results_folder, exist_ok=True)
-
-            with open(os.path.join(results_folder, "force-field.offxml"), "w") as xml:
-                xml.write("test")
-
-            result = ForceBalanceOptimizer._read_output("")
-
-            assert result["status"] == status
-
-            if error_type is None:
-                assert result["error"] is None
-            else:
-                assert result["error"].type == error_type
-
-            assert "force-field.offxml" in result["forcefield"]
-
-    @pytest.mark.parametrize(
-        "input_schema_fixture",
-        ["bespoke_optimization_schema", "general_optimization_schema"],
-    )
-    def test_forcebalance_collect_general_results(
-        self,
-        ForceBalanceOptimizer,
-        input_schema_fixture,
-        forcebalance_results_directory,
-        request,
-    ):
-        """Test trying to collect results that have been successful and updated the
-        parameters.
-        """
-
-        input_schema: BaseOptimizationSchema = request.getfixturevalue(
-            input_schema_fixture
-        )
-
-        results = ForceBalanceOptimizer._collect_results(forcebalance_results_directory)
-
-        assert isinstance(results, OptimizationStageResults)
-
-        initial_values = input_schema.initial_parameter_values
-        refit_force_field = ForceField(results.refit_force_field)
-
-        refit_values = {
-            parameter: {
-                attribute: getattr(
-                    refit_force_field[parameter.type].parameters[parameter.smirks],
-                    attribute,
-                )
-                for attribute in parameter.attributes
-            }
-            for stage in input_schema.stages
-            for parameter in stage.parameters
+            for attribute in parameter.attributes
         }
+        for stage in input_schema.stages
+        for parameter in stage.parameters
+    }
 
-        for parameter_smirks in initial_values:
+    for parameter_smirks in initial_values:
 
-            for attribute in initial_values[parameter_smirks]:
+        for attribute in initial_values[parameter_smirks]:
 
-                initial_value = initial_values[parameter_smirks][attribute]
-                refit_value = refit_values[parameter_smirks][attribute]
+            initial_value = initial_values[parameter_smirks][attribute]
+            refit_value = refit_values[parameter_smirks][attribute]
 
-                refit_value = refit_value.m_as(initial_value.units)
-                initial_value = initial_value.m_as(initial_value.units)
+            refit_value = refit_value.m_as(initial_value.units)
+            initial_value = initial_value.m_as(initial_value.units)
 
-                assert not np.isclose(initial_value, refit_value)
+            assert not np.isclose(initial_value, refit_value)
 
-    def test_forcebalance_optimize(
-        self,
-        ForceBalanceOptimizer,
-        forcebalance_results_directory,
-        general_optimization_schema,
-        monkeypatch,
-    ):
 
-        # # Patch the call to ForceBalance so that it doesn't need to run.
-        # monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
+def test_forcebalance_optimize(
+    forcebalance_results_directory, general_optimization_schema, monkeypatch
+):
+    # Patch the call to ForceBalance so that it doesn't need to run.
+    subprocess_run = subprocess.run
 
-        with temporary_cd(str(forcebalance_results_directory)):
-            results = ForceBalanceOptimizer._optimize(
-                general_optimization_schema.stages[0],
-                ForceField(general_optimization_schema.initial_force_field),
-            )
+    def run_monkeypatch(cmd, *args, **kwargs):
+        if cmd[0] == "ForceBalance" or (
+            isinstance(cmd, str) and cmd.startswith("ForceBalance")
+        ):
+            Path("optimize.out").write_text("Optimization converged!")
+        else:
+            return subprocess_run(cmd, *args, **kwargs)
 
-        assert results.status == "success"
+    monkeypatch.setattr(subprocess, "run", run_monkeypatch)
+
+    # Attempt an optimization
+    with temporary_cd(str(forcebalance_results_directory)):
+        results = ForceBalanceOptimizer._optimize(
+            general_optimization_schema.stages[0],
+            ForceField(general_optimization_schema.initial_force_field),
+        )
+
+    assert results.status == "success"

@@ -5,6 +5,7 @@ Forcebalance specific optimizer testing.
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -43,7 +44,7 @@ def forcebalance_results_directory(tmpdir):
 
 
 def test_forcebalance_name():
-    assert OpenFFForceBalanceOptimizer.name() == "ForceBalance"
+    assert OpenFFForceBalanceOptimizer.name() == "OpenFF ForceBalance"
 
 
 def test_forcebalance_description():
@@ -170,10 +171,20 @@ def test_forcebalance_collect_general_results(
 def test_forcebalance_optimize(
     forcebalance_results_directory, general_optimization_schema, monkeypatch
 ):
+    # Patch the call to ForceBalance so that it doesn't need to run.
+    subprocess_run = subprocess.run
 
-    # # Patch the call to ForceBalance so that it doesn't need to run.
-    # monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
+    def run_monkeypatch(cmd, *args, **kwargs):
+        if cmd[0] == "openff-forcebalance" or (
+            isinstance(cmd, str) and cmd.startswith("openff-forcebalance")
+        ):
+            Path("optimize.out").write_text("Optimization converged!")
+        else:
+            return subprocess_run(cmd, *args, **kwargs)
 
+    monkeypatch.setattr(subprocess, "run", run_monkeypatch)
+
+    # Attempt an optimization
     with temporary_cd(str(forcebalance_results_directory)):
         results = OpenFFForceBalanceOptimizer._optimize(
             general_optimization_schema.stages[0],
