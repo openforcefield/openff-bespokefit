@@ -21,6 +21,11 @@ from openff.bespokefit.schema.targets import BaseTargetSchema
 TargetSchemaType = Type[BaseTargetSchema]
 
 
+def tokenize_name(name: str) -> str:
+    """Convert a string to an optimizer name"""
+    return name.lower().replace(" ", "-")
+
+
 class BaseOptimizer(abc.ABC):
     """
     This is the abstract basic BaseOptimizer class that each optimizer should use.
@@ -34,6 +39,11 @@ class BaseOptimizer(abc.ABC):
     def name(cls) -> str:
         """Returns the friendly name of the optimizer."""
         raise NotImplementedError()
+
+    @classmethod
+    def tokenized_name(cls) -> str:
+        """Returns the name that will be stored in the registry"""
+        return tokenize_name(cls.name())
 
     @classmethod
     @abc.abstractmethod

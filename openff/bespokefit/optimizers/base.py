@@ -8,7 +8,7 @@ from openff.bespokefit.optimizers.forcebalance import (
     OpenFFForceBalanceOptimizer,
     ForceBalanceOptimizer,
 )
-from openff.bespokefit.optimizers.model import BaseOptimizer
+from openff.bespokefit.optimizers.model import BaseOptimizer, tokenize_name
 
 _optimizers: Dict[str, Type[BaseOptimizer]] = {}
 
@@ -35,10 +35,10 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
 
         raise OptimizerError(
             f"The optimizer {optimizer} could not be registered it must be a subclass "
-            f"of openff.bespokefit.optimzers.BaseOptimizer"
+            f"of openff.bespokefit.optimizers.BaseOptimizer"
         )
 
-    optimizer_name = optimizer.name().lower()
+    optimizer_name = tokenize_name(optimizer.name())
 
     if optimizer_name in _optimizers and not replace:
 
@@ -63,9 +63,9 @@ def deregister_optimizer(
     """
 
     if isinstance(optimizer, str):
-        optimizer_name = optimizer.lower()
+        optimizer_name = tokenize_name(optimizer)
     else:
-        optimizer_name = optimizer.name().lower()
+        optimizer_name = tokenize_name(optimizer.name())
 
     if _optimizers.pop(optimizer_name, None) is None:
 
@@ -88,7 +88,7 @@ def get_optimizer(optimizer_name: str) -> Type[BaseOptimizer]:
         The requested optimizer matching the given optimizer name.
     """
 
-    optimizer = _optimizers.get(optimizer_name.lower(), None)
+    optimizer = _optimizers.get(tokenize_name(optimizer_name), None)
 
     if optimizer is None:
 
