@@ -5,8 +5,8 @@ from typing import Dict, List, Type, Union
 
 from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.optimizers.forcebalance import (
-    OpenFFForceBalanceOptimizer,
     ForceBalanceOptimizer,
+    OpenFFForceBalanceOptimizer,
 )
 from openff.bespokefit.optimizers.model import BaseOptimizer, tokenize_name
 

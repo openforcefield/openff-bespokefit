@@ -1,8 +1,8 @@
+import abc
 import importlib
 import logging
 import os
 import subprocess
-import abc
 from typing import Any, Dict
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
@@ -97,9 +97,7 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
     def _optimize(
         cls, schema: OptimizationStageSchema, initial_force_field: ForceField
     ) -> OptimizationStageResults:
-
         with open("optimize.out", "w") as log:
-
             _logger.debug(f"Launching {cls.name()}")
 
             subprocess.run(
