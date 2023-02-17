@@ -21,7 +21,6 @@ def test_run(runner, tmpdir):
     settings = current_settings()
 
     with requests_mock.Mocker() as m:
-
         m.post(
             (
                 f"http://127.0.0.1:"

@@ -144,7 +144,6 @@ class _TargetFactory(Generic[T], abc.ABC):
         qc_records = []
 
         for i, qc_result in enumerate(qc_data.qc_records):
-
             qc_result = qc_result.copy(deep=True)
             # Assign an id to the **QCElemental** result. This is a dirty way to do
             # this but I can't think of a cleaner way to handle it...
@@ -153,21 +152,18 @@ class _TargetFactory(Generic[T], abc.ABC):
             grid_ids = None
 
             if isinstance(qc_result, AtomicResult):
-
                 cmiles = qc_result.molecule.extras[
                     "canonical_isomeric_explicit_hydrogen_mapped_smiles"
                 ]
                 geometries = [qc_result.molecule.geometry]
 
             elif isinstance(qc_result, OptimizationResult):
-
                 cmiles = qc_result.initial_molecule.extras[
                     "canonical_isomeric_explicit_hydrogen_mapped_smiles"
                 ]
                 geometries = [qc_result.final_molecule.geometry]
 
             elif isinstance(qc_result, TorsionDriveResult):
-
                 cmiles = qc_result.initial_molecule[0].extras[
                     "canonical_isomeric_explicit_hydrogen_mapped_smiles"
                 ]
@@ -176,7 +172,6 @@ class _TargetFactory(Generic[T], abc.ABC):
                 grid_ids = []
 
                 def _grid_id_key(x):
-
                     if isinstance(x, str):
                         x = json.loads(x)
 
@@ -186,7 +181,6 @@ class _TargetFactory(Generic[T], abc.ABC):
                     return x
 
                 for grid_id in sorted(qc_result.final_molecules, key=_grid_id_key):
-
                     grid_ids.append(_standardize_grid_id_str(grid_id))
                     geometries.append(qc_result.final_molecules[grid_id].geometry)
 
@@ -227,18 +221,15 @@ class _TargetFactory(Generic[T], abc.ABC):
                 TorsionDriveResultCollection,
             ),
         ):
-
             qc_records = target.reference_data.to_records()
 
         elif isinstance(target.reference_data, BespokeQCData):
-
             raise RuntimeError(
                 "`BespokeQCData` must be converted into `LocalQCData` before generating "
                 "targets."
             )
 
         elif isinstance(target.reference_data, LocalQCData):
-
             qc_records = cls._local_to_qc_records(target.reference_data)
 
         else:
@@ -247,7 +238,6 @@ class _TargetFactory(Generic[T], abc.ABC):
         target_batches = cls._batch_qc_records(target, qc_records)
 
         for target_name, target_records in target_batches.items():
-
             print(f"generating target directory for {target_name}")
 
             target_directory = os.path.join(root_directory, target_name)
@@ -272,8 +262,8 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             Tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
         ],
     ):
-
-        from openff.forcebalance.molecule import Molecule as FBMolecule
+        # TODO: This might need to depend on the optimizer if these Molecule classes diverge
+        from forcebalance.molecule import Molecule as FBMolecule
 
         if isinstance(target, AbInitioTargetSchema) and target.fit_force is True:
             raise NotImplementedError()
@@ -471,7 +461,6 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         )
 
         if qc_record.driver.value != "hessian" or qc_record.return_result is None:
-
             raise QCRecordMissMatchError(
                 f"The QC record with id={qc_record_id} does not contain the gradient "
                 f"information required by a vibration fitting target."
@@ -481,7 +470,6 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         gradient = qc_record.extras["qcvars"]["CURRENT GRADIENT"]
 
         if np.abs(gradient).max() > 1e-3:
-
             _logger.warning(
                 f"the max gradient of record={qc_record_id} is greater than 1e-3"
             )
@@ -509,11 +497,9 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
         # write vdata.txt
         with open("vdata.txt", "w") as file:
-
             file.write(qc_molecule.to_string("xyz") + "\n")
 
             for frequency, normal_mode in zip(frequencies, normal_modes):
-
                 file.write(f"{frequency}\n")
 
                 for nx, ny, nz in normal_mode:
@@ -527,8 +513,8 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         target: VibrationTargetSchema,
         qc_records: List[Tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
     ):
-
-        from openff.forcebalance.molecule import Molecule as FBMolecule
+        # TODO: This might need to depend on the optimizer if these Molecule classes diverge
+        from forcebalance.molecule import Molecule as FBMolecule
 
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
@@ -568,7 +554,6 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     def _batch_qc_records(
         cls, target: OptGeoTargetSchema, qc_records: List[RecordBase]
     ):
-
         batch_size = int(target.extras.get("batch_size", 50))
 
         n_records = len(qc_records)
@@ -589,13 +574,12 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
             Tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
         ],
     ):
-
-        from openff.forcebalance.molecule import Molecule as FBMolecule
+        # TODO: This might need to depend on the optimizer if these Molecule classes diverge
+        from forcebalance.molecule import Molecule as FBMolecule
 
         record_names = []
 
         for i, (qc_record, off_molecule) in enumerate(qc_records):
-
             qc_record_id = (
                 qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
             )
@@ -639,13 +623,11 @@ class ForceBalanceInputFactory:
         optimization_stage: OptimizationStageSchema,
         initial_force_field: ForceField,
     ):
-
         os.makedirs("forcefield", exist_ok=True)
 
         force_field = copy.deepcopy(initial_force_field)
 
         for target_parameter in optimization_stage.parameters:
-
             parameter_handler = force_field.get_parameter_handler(target_parameter.type)
             parameter = parameter_handler.parameters[target_parameter.smirks]
 
@@ -666,9 +648,7 @@ class ForceBalanceInputFactory:
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
     ):
-
         if not isinstance(schema.optimizer, ForceBalanceSchema):
-
             raise OptimizerError(
                 "Inputs can only be generated using this factory for optimizations "
                 "which use ForceBalance as the optimizer."
@@ -682,7 +662,6 @@ class ForceBalanceInputFactory:
         }
 
         if not isinstance(schema.optimizer, ForceBalanceSchema):
-
             raise OptimizerError(
                 "The `ForceBalanceInputFactory` can only create inputs from an "
                 "optimization schema which uses a force balance optimizer."
@@ -694,16 +673,13 @@ class ForceBalanceInputFactory:
         # Temporarily switch to the root directory to make setting up the folder
         # structure easier.
         with temporary_cd(str(root_directory)):
-
             target_sections = []
 
             # Create the target directories
             os.makedirs("targets", exist_ok=True)
 
-            with (temporary_cd("targets")):
-
+            with temporary_cd("targets"):
                 for target in schema.targets:
-
                     target_factory = target_factories[target.__class__]
                     target_sections.append(target_factory.generate(".", target))
 
@@ -725,7 +701,6 @@ class ForceBalanceInputFactory:
             }
 
             with open("optimize.in", "w") as file:
-
                 file.write(
                     InputOptionsTemplate.generate(
                         schema.optimizer, targets_section=targets_section, priors=priors

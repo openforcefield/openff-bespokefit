@@ -9,7 +9,6 @@ class BaseModel(pydantic.BaseModel):
     """The base model from which all data models within the package should inherit."""
 
     class Config:
-
         extra = Extra.forbid
 
         json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}
@@ -19,7 +18,6 @@ class SchemaBase(BaseModel):
     """The base model from which all data models within the package should inherit."""
 
     class Config:
-
         allow_mutation = True
         validate_assignment = True
 
@@ -30,6 +28,5 @@ class ClassBase(SchemaBase):
     hence may of fields of arbitrary (e.g. an OFF Molecule) types."""
 
     class Config:
-
         arbitrary_types_allowed = True
         validate_assignment = True

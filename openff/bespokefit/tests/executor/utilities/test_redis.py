@@ -12,7 +12,6 @@ from openff.bespokefit.executor.utilities.redis import (
 
 
 def test_launch_redis(tmpdir):
-
     assert not is_redis_available("localhost", 1234)
 
     redis_process = launch_redis(port=1234, directory=str(tmpdir), persistent=True)
@@ -41,7 +40,6 @@ def test_launch_redis(tmpdir):
 
 
 def test_launch_redis_already_exists(tmpdir):
-
     assert not is_redis_available("localhost", 1234)
 
     redis_process = launch_redis(port=1234, directory=str(tmpdir), persistent=True)
@@ -58,7 +56,6 @@ def test_launch_redis_already_exists(tmpdir):
 
 @pytest.mark.parametrize("missing_command", ["redis-server", "redis-cli"])
 def test_launch_redis_missing_command(tmpdir, monkeypatch, missing_command):
-
     monkeypatch.setattr(
         shutil, "which", lambda x: None if x == missing_command else "some/path"
     )
@@ -69,6 +66,5 @@ def test_launch_redis_missing_command(tmpdir, monkeypatch, missing_command):
         redis_process = launch_redis(port=1234, directory=str(tmpdir))
 
     if redis_process is not None:
-
         redis_process.terminate()
         redis_process.wait()

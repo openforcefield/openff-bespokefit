@@ -9,7 +9,6 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class WorkerSettings(BaseModel):
-
     import_path: str = Field(..., description="The import path to the worker module.")
 
     n_cores: Optional[int] = Field(
@@ -21,7 +20,6 @@ class WorkerSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-
     BEFLOW_API_V1_STR: str = "/api/v1"
 
     BEFLOW_GATEWAY_PORT: int = 8000
@@ -67,7 +65,6 @@ class Settings(BaseSettings):
 
     @property
     def fragmenter_settings(self) -> WorkerSettings:
-
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
             n_cores=None
@@ -80,7 +77,6 @@ class Settings(BaseSettings):
 
     @property
     def qc_compute_settings(self) -> WorkerSettings:
-
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
             n_cores=None

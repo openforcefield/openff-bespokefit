@@ -62,7 +62,6 @@ def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.ar
     ],
 )
 def test_local_to_qc_records(result_fixture, request):
-
     qc_result, expected_molecule = request.getfixturevalue(result_fixture)
     assert expected_molecule.n_conformers >= 1
 
@@ -87,11 +86,9 @@ def test_local_to_qc_records(result_fixture, request):
 )
 @pytest.mark.parametrize("with_gradients", [False, True])
 def test_generate_ab_initio_target(result_fixture, with_gradients, request):
-
     qc_torsion_drive_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
-
         AbInitioTargetFactory._generate_target(
             AbInitioTargetSchema(), [qc_torsion_drive_record]
         )
@@ -145,11 +142,9 @@ def test_generate_ab_initio_target(result_fixture, with_gradients, request):
     "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
 )
 def test_generate_torsion_target(result_fixture, request):
-
     qc_torsion_drive_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
-
         TorsionProfileTargetFactory._generate_target(
             TorsionProfileTargetSchema(), [qc_torsion_drive_record]
         )
@@ -182,11 +177,9 @@ def test_generate_torsion_target(result_fixture, request):
     "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
 )
 def test_generate_optimization_target(result_fixture, request):
-
     qc_optimization_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
-
         OptGeoTargetFactory._generate_target(
             OptGeoTargetSchema(extras={"batch_size": "51"}),
             [
@@ -195,8 +188,7 @@ def test_generate_optimization_target(result_fixture, request):
             ],
         )
 
-        for (index, extension) in itertools.product([0, 1], ["xyz", "sdf", "pdb"]):
-
+        for index, extension in itertools.product([0, 1], ["xyz", "sdf", "pdb"]):
             qc_record_id = (
                 qc_optimization_record[0].extras["id"]
                 if "id" in qc_optimization_record[0].extras
@@ -211,7 +203,6 @@ def test_generate_optimization_target(result_fixture, request):
     "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
 )
 def test_opt_geo_batching(result_fixture, request):
-
     qc_optimization_record = request.getfixturevalue(result_fixture)
     qc_records = [qc_optimization_record] * 120
 
@@ -227,7 +218,6 @@ def test_opt_geo_batching(result_fixture, request):
 
 
 def test_opt_geo_target_section():
-
     target_schema = OptGeoTargetSchema(extras={"batch_size": "51"})
 
     target_section = OptGeoTargetFactory._generate_targets_section(
@@ -242,11 +232,9 @@ def test_opt_geo_target_section():
     "result_fixture", ["qc_hessian_record", "qc_hessian_qce_result"]
 )
 def test_generate_vibration_target(result_fixture, request):
-
     qc_hessian_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
-
         VibrationTargetFactory._generate_target(
             VibrationTargetSchema(), [qc_hessian_record]
         )
@@ -257,7 +245,6 @@ def test_generate_vibration_target(result_fixture, request):
 
 
 def test_force_balance_factory(tmpdir, general_optimization_schema: OptimizationSchema):
-
     ForceBalanceInputFactory.generate(
         tmpdir,
         general_optimization_schema.stages[0],
@@ -266,9 +253,7 @@ def test_force_balance_factory(tmpdir, general_optimization_schema: Optimization
 
 
 def test_get_fitting_force_field(general_optimization_schema, tmpdir):
-
     with temporary_cd(str(tmpdir)):
-
         ForceBalanceInputFactory._generate_force_field_directory(
             general_optimization_schema.stages[0],
             ForceField(general_optimization_schema.initial_force_field),

@@ -178,15 +178,12 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
             pass
 
         with open(os.path.join(root_directory, "optimize.out")) as log:
-
             for line in log.readlines():
                 if "optimization converged" in line.lower():
-
                     result["status"] = "success"
                     break
 
                 elif "convergence failure" in line.lower():
-
                     result["status"] = "errored"
 
                     result["error"] = Error(
@@ -197,7 +194,6 @@ class ForceBalanceOptimizerBase(BaseOptimizer):
                     break
 
             else:
-
                 result["status"] = "running"
 
         force_field_dir = os.path.join(root_directory, "result", "optimize")

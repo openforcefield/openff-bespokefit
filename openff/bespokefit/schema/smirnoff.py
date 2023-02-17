@@ -96,7 +96,6 @@ class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
 
 
 class VdWSMIRKS(BaseSMIRKSParameter):
-
     type: Literal["vdW"] = "vdW"
 
     attributes: Set[Literal["epsilon", "sigma"]] = Field(
@@ -117,7 +116,6 @@ class VdWSMIRKS(BaseSMIRKSParameter):
 
 
 class VdWHyperparameters(BaseSMIRKSHyperparameters):
-
     type: Literal["vdW"] = "vdW"
 
     priors: Dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
@@ -130,7 +128,6 @@ class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
 
 class BondSMIRKS(BaseSMIRKSParameter):
-
     type: Literal["Bonds"] = "Bonds"
 
     attributes: Set[Literal["k", "length"]] = Field(
@@ -151,7 +148,6 @@ class BondSMIRKS(BaseSMIRKSParameter):
 
 
 class BondHyperparameters(BaseSMIRKSHyperparameters):
-
     type: Literal["Bonds"] = "Bonds"
 
     priors: Dict[Literal["k", "length"], PositiveFloat] = Field(
@@ -164,7 +160,6 @@ class BondHyperparameters(BaseSMIRKSHyperparameters):
 
 
 class AngleSMIRKS(BaseSMIRKSParameter):
-
     type: Literal["Angles"] = "Angles"
 
     attributes: Set[Literal["k", "angle"]] = Field(
@@ -185,7 +180,6 @@ class AngleSMIRKS(BaseSMIRKSParameter):
 
 
 class AngleHyperparameters(BaseSMIRKSHyperparameters):
-
     type: Literal["Angles"] = "Angles"
 
     priors: Dict[Literal["k", "angle"], PositiveFloat] = Field(

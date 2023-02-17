@@ -80,7 +80,6 @@ def test_check_optimizer(optimization_data):
 
 
 def test_check_target_torsion_smirks():
-
     # Check the trivial case
     factory = BespokeWorkflowFactory(target_torsion_smirks=["[*:1]~[*:2]"])
     assert factory.target_torsion_smirks == ["[*:1]~[*:2]"]
@@ -148,7 +147,6 @@ def test_export_factory(filename):
     )
 
     with temporary_cd():
-
         factory.to_file(file_name=filename)
 
         # now read it back in
@@ -167,7 +165,6 @@ def test_export_factory(filename):
     ],
 )
 def test_deduplicated_list(molecules):
-
     deduplicated = BespokeWorkflowFactory._deduplicated_list(molecules)
     assert deduplicated.n_molecules == 1
 
@@ -192,7 +189,6 @@ def test_optimization_schemas_from_molecule(func_name):
     opt_schema = factory_func(molecule)
 
     if func_name == "optimization_schemas_from_molecules":
-
         assert len(opt_schema) == 1
         opt_schema = opt_schema[0]
 
@@ -319,7 +315,6 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
 
 
 def test_select_qc_spec():
-
     default_qc_spec = QCSpec(program="rdkit", method="uff", basis=None)
 
     factory = BespokeWorkflowFactory(default_qc_specs=[default_qc_spec])

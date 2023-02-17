@@ -5,7 +5,6 @@ from openff.bespokefit.executor.services import Settings
 
 class TestSettings:
     def test_fragmenter_settings(self):
-
         settings = Settings(
             BEFLOW_FRAGMENTER_WORKER="fragmenter.module",
             BEFLOW_FRAGMENTER_WORKER_N_CORES=2,
@@ -39,7 +38,6 @@ class TestSettings:
         assert settings.optimizer_settings.max_memory == 3.4
 
     def test_apply_env(self):
-
         assert "BEFLOW_API_V1_STR" not in os.environ
 
         with Settings().apply_env():

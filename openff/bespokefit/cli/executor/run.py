@@ -68,13 +68,11 @@ def _run_cli(
         n_optimizer_workers=n_optimizer_workers,
         launch_redis_if_unavailable=launch_redis_if_unavailable,
     ):
-
         executor_status.stop()
         console.print("[[green]✓[/green]] bespoke executor launched")
         console.line()
 
         with handle_common_errors(console) as error_state:
-
             response_id = _submit(
                 console=console,
                 input_file_path=[input_file_path]
@@ -109,7 +107,6 @@ def _run_cli(
                 file.write(results.json())
 
             if output_force_field_path and results.bespoke_force_field is not None:
-
                 console.print(
                     Padding(
                         f"the bespoke force field has been saved to "

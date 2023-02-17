@@ -2,7 +2,6 @@ from openff.units import unit
 
 
 def test_initial_parameter_values(bespoke_optimization_results):
-
     parameter_values = bespoke_optimization_results.initial_parameter_values
 
     assert len(parameter_values) == len(
@@ -22,7 +21,6 @@ def test_initial_parameter_values(bespoke_optimization_results):
 
 
 def test_refit_parameter_values(bespoke_optimization_results):
-
     refit_parameter_values = bespoke_optimization_results.refit_parameter_values
 
     assert len(refit_parameter_values) == len(

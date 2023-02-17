@@ -13,7 +13,6 @@ from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 
 class TaskStatus(str, Enum):
-
     waiting = "waiting"
     running = "running"
     complete = "complete"
@@ -31,7 +30,6 @@ def _task_id_to_key(task_id: Union[str, int]) -> str:
 
 
 def get_task(task_id: Union[str, int]) -> CoordinatorTask:
-
     connection = connect_to_default_redis()
 
     task_pickle = connection.get(_task_id_to_key(task_id))
@@ -47,7 +45,6 @@ def get_task_ids(
     limit: Optional[int] = None,
     status: Optional[Union[TaskStatus, Set[TaskStatus]]] = None,
 ) -> List[int]:
-
     connection = connect_to_default_redis()
 
     possible_status = [TaskStatus.waiting, TaskStatus.running, TaskStatus.complete]
@@ -74,7 +71,6 @@ def create_task(
         List[Union[FragmentationStage, QCGenerationStage, OptimizationStage]]
     ] = None,
 ) -> int:
-
     connection = connect_to_default_redis()
 
     task_id = connection.incr("coordinator:id-counter")
@@ -101,7 +97,6 @@ def create_task(
 
 
 def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
-
     connection = connect_to_default_redis()
 
     return sum(
@@ -112,7 +107,6 @@ def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
 
 
 def peek_task_status(status: TaskStatus) -> Optional[int]:
-
     connection = connect_to_default_redis()
 
     task_id = connection.lrange(_QUEUE_NAMES[status], 0, 0)
@@ -120,7 +114,6 @@ def peek_task_status(status: TaskStatus) -> Optional[int]:
 
 
 def pop_task_status(status: TaskStatus) -> Optional[int]:
-
     assert status != TaskStatus.complete, "complete tasks cannot be modified"
 
     connection = connect_to_default_redis()
@@ -130,12 +123,10 @@ def pop_task_status(status: TaskStatus) -> Optional[int]:
 
 
 def push_task_status(task_id: int, status: TaskStatus):
-
     connection = connect_to_default_redis()
     return connection.rpush(_QUEUE_NAMES[status], task_id)
 
 
 def save_task(task: CoordinatorTask):
-
     connection = connect_to_default_redis()
     connection.set(_task_id_to_key(int(task.id)), pickle.dumps(task.dict()))

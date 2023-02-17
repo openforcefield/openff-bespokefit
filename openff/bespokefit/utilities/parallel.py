@@ -11,9 +11,7 @@ def apply_async(
     verbose: bool = False,
     description: Optional[str] = None,
 ):
-
     if n_processes is not None and n_processes < 2:
-
         return [
             func(*args)
             for args in tqdm(
@@ -26,7 +24,6 @@ def apply_async(
         ]
 
     with Pool() as pool:
-
         outputs = [pool.apply_async(func, args) for args in iterable]
 
         return [

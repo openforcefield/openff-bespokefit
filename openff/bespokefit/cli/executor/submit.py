@@ -108,7 +108,6 @@ def _to_input_schema(
     workflow_file_name: Optional[str],
     optimizer: Optional[str],
 ) -> "BespokeOptimizationSchema":
-
     from openff.qcsubmit.common_structures import QCSpec, QCSpecificationError
 
     from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
@@ -116,7 +115,6 @@ def _to_input_schema(
     if (workflow_name is not None and workflow_file_name is not None) or (
         workflow_name is None and workflow_file_name is None
     ):
-
         exit_with_messages(
             "[[red]ERROR[/red]] The `--workflow` and `--workflow-file` arguments are "
             "mutually exclusive",
@@ -129,9 +127,7 @@ def _to_input_schema(
     )
 
     try:
-
         if workflow_name is not None:
-
             workflow_file_name = get_data_file_path(
                 os.path.join("schemas", f"{workflow_name.lower()}.json"),
                 "openff.bespokefit",
@@ -144,7 +140,6 @@ def _to_input_schema(
         if len(target_torsion_smirks) > 0:
             workflow_factory.target_torsion_smirks = [*target_torsion_smirks]
         if default_qc_spec is not None:
-
             program, method, basis = default_qc_spec
 
             if basis.lower() == "none":
@@ -162,7 +157,6 @@ def _to_input_schema(
             workflow_factory.optimizer.type = _optimizers[optimizer].name()
 
     except FileNotFoundError:
-
         exit_with_messages(
             Padding(
                 f"[[red]ERROR[/red]] The specified workflow could not be found: "
@@ -174,7 +168,6 @@ def _to_input_schema(
         )
 
     except ValidationError as e:
-
         exit_with_messages(
             Padding(
                 f"[[red]ERROR[/red]] The workflow could not be parsed. Make sure "
@@ -188,7 +181,6 @@ def _to_input_schema(
         )
 
     except QCSpecificationError as e:
-
         exit_with_messages(
             Padding(
                 f"[[red]ERROR[/red]] The QCSpecification is not valid. Make sure you have supplied a valid combination "
@@ -217,7 +209,6 @@ def _submit(
     allow_multiple_molecules: bool,
     save_submission: bool,
 ) -> List[str]:
-
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
@@ -244,7 +235,6 @@ def _submit(
             )
 
     if not allow_multiple_molecules and len(all_molecules) > 1:
-
         exit_with_messages(
             "[[red]ERROR[/red]] only one molecule can be submitted at once",
             console=console,
@@ -253,7 +243,6 @@ def _submit(
 
     for molecule in all_molecules:
         if "." in molecule.to_smiles():
-
             exit_with_messages(
                 f"[[red]ERROR[/red]] complexes are not supported, {molecule} can not be submitted!",
                 console=console,
@@ -272,7 +261,6 @@ def _submit(
         transient=True,
         total=len(all_molecules),
     ):
-
         input_schemas.append(
             _to_input_schema(
                 console,
@@ -354,7 +342,6 @@ def _submit_cli(
     print_header(console)
 
     with handle_common_errors(console) as error_state:
-
         _submit(
             console=console,
             input_file_path=input_file_path,

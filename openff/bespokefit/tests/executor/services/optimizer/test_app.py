@@ -18,7 +18,6 @@ from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 def test_get_optimize(
     bespoke_optimization_results, optimizer_client, redis_connection, monkeypatch
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
@@ -46,7 +45,6 @@ def test_get_optimize(
 
 
 def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
-
     submitted_task_kwargs = mock_celery_task(worker, "optimize", monkeypatch)
 
     input_schema = BespokeOptimizationSchema(

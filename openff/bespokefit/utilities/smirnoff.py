@@ -78,19 +78,16 @@ class ForceFieldEditor:
         parameters_by_handler = dict()
 
         for parameter in parameters:
-
             handler_type = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
             parameters_by_handler.setdefault(handler_type, []).append(parameter)
 
         added_parameters = []
 
         for handler_type, handler_parameters in parameters_by_handler.items():
-
             current_params = self.force_field[handler_type].parameters
             n_params = len(current_params)
 
             for i, parameter in enumerate(handler_parameters, start=2):
-
                 parameter_data = parameter.to_dict(discard_cosmetic_attributes=False)
 
                 try:
@@ -166,7 +163,6 @@ class ForceFieldEditor:
 
         # now find the atoms
         for smirks_pattern in smirks:
-
             matches = molecule.chemical_environment_matches(query=smirks_pattern.smirks)
 
             if len(matches) == 0:
@@ -178,7 +174,6 @@ class ForceFieldEditor:
                 smirks_pattern.type == "ProperTorsions"
                 or smirks_pattern.type == "ImproperTorsions"
             ):
-
                 # here we can combine multiple parameter types
                 # TODO is this needed?
                 openff_params = [parameters[match] for match in matches]
@@ -190,7 +185,6 @@ class ForceFieldEditor:
                 match = matches[np.argmax(n_terms)]
 
             else:
-
                 match = matches[0]
 
             initial_parameter = copy.deepcopy(parameters[match])

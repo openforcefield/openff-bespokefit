@@ -32,7 +32,6 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
     """
 
     if not issubclass(optimizer, BaseOptimizer):
-
         raise OptimizerError(
             f"The optimizer {optimizer} could not be registered it must be a subclass "
             f"of openff.bespokefit.optimizers.BaseOptimizer"
@@ -41,7 +40,6 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
     optimizer_name = tokenize_name(optimizer.name())
 
     if optimizer_name in _optimizers and not replace:
-
         raise OptimizerError(
             f"An optimizer is already registered under the name {optimizer.name()}, "
             f"to replace this please use the `replace=True` flag."
@@ -68,7 +66,6 @@ def deregister_optimizer(
         optimizer_name = tokenize_name(optimizer.name())
 
     if _optimizers.pop(optimizer_name, None) is None:
-
         raise OptimizerError(
             f"The optimizer {optimizer} was not registered with bespokefit."
         )
@@ -91,7 +88,6 @@ def get_optimizer(optimizer_name: str) -> Type[BaseOptimizer]:
     optimizer = _optimizers.get(tokenize_name(optimizer_name), None)
 
     if optimizer is None:
-
         raise OptimizerError(
             f"The optimizer {optimizer_name} was not registered with bespokefit."
         )

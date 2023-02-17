@@ -50,7 +50,6 @@ def combine_cli(
     print_header(console)
 
     if not force_field_files and not task_ids:
-
         exit_with_messages(
             "[[red]ERROR[/red]] At least one of the `--ff` or `--id` should be specified",
             console=console,

@@ -26,13 +26,11 @@ from openff.bespokefit.workflows import BespokeWorkflowFactory
 
 
 def test_default_workflow_up_to_date():
-
     current_default_workflow = BespokeWorkflowFactory().json(sort_keys=True, indent=2)
 
     with open(
         get_data_file_path(os.path.join("schemas", "default.json"), "openff.bespokefit")
     ) as file:
-
         default_workflow_from_file = json.dumps(
             json.load(file), sort_keys=True, indent=2
         )
@@ -71,14 +69,12 @@ def test_default_workflow_up_to_date():
 def test_to_input_schema_mutual_exclusive_args(
     workflow_name, workflow_file_name, expected_message, expected_raises, output_is_none
 ):
-
     console = rich.get_console()
 
     input_schema = None
 
     with console.capture() as capture:
         with expected_raises:
-
             input_schema = _to_input_schema(
                 console,
                 Molecule.from_smiles("CC"),
@@ -97,7 +93,6 @@ def test_to_input_schema_mutual_exclusive_args(
 
 @pytest.mark.parametrize("force_field_path", [None, "openff-1.0.0.offxml"])
 def test_to_input_schema(force_field_path):
-
     input_schema = _to_input_schema(
         rich.get_console(),
         Molecule.from_smiles("CC"),
@@ -117,7 +112,6 @@ def test_to_input_schema(force_field_path):
 
 
 def test_to_input_schema_file_not_found(tmpdir):
-
     console = rich.get_console()
 
     with console.capture() as capture:
@@ -139,7 +133,6 @@ def test_to_input_schema_file_not_found(tmpdir):
 
 
 def test_to_input_schema_invalid_schema(tmpdir):
-
     console = rich.get_console()
 
     invalid_workflow_path = os.path.join(tmpdir, "some-invalid-schema.json")
@@ -149,7 +142,6 @@ def test_to_input_schema_invalid_schema(tmpdir):
 
     with console.capture() as capture:
         with pytest.raises(click.exceptions.Exit):
-
             _to_input_schema(
                 console,
                 Molecule.from_smiles("CC"),
@@ -191,7 +183,6 @@ def test_to_input_schema_error_spec(tmpdir):
 
     with console.capture() as capture:
         with pytest.raises(click.exceptions.Exit):
-
             _to_input_schema(
                 console=console,
                 molecule=Molecule.from_smiles("CC"),
@@ -206,7 +197,6 @@ def test_to_input_schema_error_spec(tmpdir):
 
 
 def test_submit_multi_molecule(tmpdir):
-
     console = rich.get_console()
 
     with console.capture() as capture:
@@ -273,7 +263,6 @@ def test_submit(tmpdir, file, smiles):
         settings = current_settings()
 
         with requests_mock.Mocker() as m:
-
             mock_href = (
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -316,7 +305,6 @@ def test_submit_cli(runner, tmpdir):
     Molecule.from_smiles("CC").to_file(input_file_path, "SDF")
 
     with requests_mock.Mocker() as m:
-
         mock_href = (
             f"http://127.0.0.1:"
             f"{settings.BEFLOW_GATEWAY_PORT}"
@@ -342,7 +330,6 @@ def test_submit_file_and_smiles_cli(runner, tmpdir):
     Molecule.from_smiles("CC").to_file(input_file_path, "SDF")
 
     with requests_mock.Mocker() as m:
-
         mock_href = (
             f"http://127.0.0.1:"
             f"{settings.BEFLOW_GATEWAY_PORT}"
