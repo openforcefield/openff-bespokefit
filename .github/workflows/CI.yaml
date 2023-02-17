@@ -23,6 +23,7 @@ jobs:
         python-version: [3.8]
         openeye: [true, false]
         integration: [true]
+        optimizer: [forcebalance, openff-forcebalance]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -87,4 +88,5 @@ jobs:
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+                                      --target-torsion         '[C:1]-[C:2]'      \
+                                      --optimizer              ${{ matrix.optimizer }}
