@@ -25,7 +25,7 @@ dependencies:
   - openff-utilities
   - openff-toolkit-base >=0.12
   - openff-forcefields
-  - openff-interchange
+  - openff-interchange-base =0.2.3
   - openff-units
   - openff-qcsubmit
   - openmm >=7.6.0
