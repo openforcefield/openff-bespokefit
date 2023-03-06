@@ -1,8 +1,9 @@
 name: bespokefit-no-openeye
 
 channels:
+  - psi4
   - conda-forge
-  - nodefaults
+  - defaults
 
 dependencies:
 
@@ -35,7 +36,7 @@ dependencies:
     # Optional
   - forcebalance
   - openff-fragmenter-base
-  - xtb-python
+  - psi4
 
     ### Bespoke dependencies
 

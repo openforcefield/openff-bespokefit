@@ -88,10 +88,3 @@ jobs:
           openff-bespoke executor run --smiles "CC" \  
                                       --target-torsion         '[C:1]-[C:2]' \
                                       --workflow-file openff/bespokefit/data/test/miscellaneous/fast-psi4-workflow.yaml 
-                                      #--output             "ethane.json" \
-                                      #--output-force-field "ethane.offxml" \
-                                      #--n-qc-compute-workers 2 \  
-                                      #--qc-compute-n-cores   1 \
-                                      #--qc-compute-max-mem 2.5 \
-                                      #--directory bespoke-tmp \
-                                      #--default-qc-spec psi4 hf "STO-3G"
