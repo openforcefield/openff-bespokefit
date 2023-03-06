@@ -1,0 +1,104 @@
+default_qc_specs:
+- basis: STO-3G
+  implicit_solvent: null
+  keywords: null
+  maxiter: 200
+  method: hf
+  program: psi4
+  scf_properties:
+  - dipole
+  - quadrupole
+  - wiberg_lowdin_indices
+  - mayer_indices
+  spec_description: Standard OpenFF optimization quantum chemistry specification.
+  spec_name: default
+  store_wavefunction: none
+fragmentation_engine:
+  functional_groups:
+    aldehyde: '[CX3H1:1](=[O:2])[#6:3]'
+    amide: '[#7:1][#6:2](=[#8:3])'
+    amide_2: '[NX3:1][CX3:2](=[OX1:3])[NX3:4]'
+    amide_n: '[#7:1][#6:2](-[O-:3])'
+    carboxylic_acid: '[CX3:1](=[O:2])[OX1H0-,OX2H1:3]'
+    ester: '[CX3:1](=[O:2])[OX2H0:3]'
+    hydrazine: '[NX3:1][NX3:2]'
+    hydrazone: '[NX3:1][NX2:2]'
+    nitric_oxide: '[N:1]-[O:2]'
+    nitro_1: '[NX3+:1](=[O:2])[O-:3]'
+    nitro_2: '[NX3:1](=[O:2])=[O:3]'
+    phosphate: '[PX4:1](=[OX1:2])([#8:3])([#8:4])([#8:5])'
+    phosphine_oxide: '[PX4:1](=[OX1:2])([#6:3])([#6:4])([#6:5])'
+    phosphonate: '[P:1](=[OX1:2])([OX2H,OX1-:3])([OX2H,OX1-:4])'
+    sulfinamide: '[#16X4:1](=[OX1:2])(=[OX1:3])([NX3R0:4])'
+    sulfinic_acid: '[#16X3:1](=[OX1:2])[OX2H,OX1H0-:3]'
+    sulfonic_acid: '[#16X4:1](=[OX1:2])(=[OX1:3])[OX2H,OX1H0-:4]'
+    sulfonyl: '[#16X4:1](=[OX1:2])=[OX1:3]'
+    sulfoxide_1: '[#16X3:1]=[OX1:2]'
+    sulfoxide_2: '[#16X3+:1][OX1-:2]'
+    tri_halide: '[#6:1]([F,Cl,I,Br:2])([F,Cl,I,Br:3])([F,Cl,I,Br:4])'
+  heuristic: path_length
+  keep_non_rotor_ring_substituents: false
+  scheme: WBO
+  threshold: 0.03
+  wbo_options:
+    max_conformers: 800
+    method: am1-wiberg-elf10
+    rms_threshold: 1.0
+initial_force_field: openff_unconstrained-2.0.0.offxml
+optimizer:
+  adaptive_damping: 1.0
+  adaptive_factor: 0.2
+  eigenvalue_lower_bound: 0.01
+  error_tolerance: 1.0
+  extras: {}
+  finite_difference_h: 0.01
+  gradient_convergence_threshold: 0.01
+  initial_trust_radius: -0.25
+  job_type: optimize
+  max_iterations: 10
+  minimum_trust_radius: 0.05
+  n_criteria: 2
+  normalize_weights: false
+  objective_convergence_threshold: 0.01
+  penalty_additive: 1.0
+  penalty_type: L1
+  step_convergence_threshold: 0.01
+  type: ForceBalance
+parameter_hyperparameters:
+- priors:
+    k: 6.0
+  type: ProperTorsions
+smirk_settings:
+  expand_torsion_terms: true
+  generate_bespoke_terms: true
+target_templates:
+- attenuate_weights: true
+  calculation_specification:
+    grid_spacing: 90
+    model:
+      basis: sto-3g
+      method: hf
+    n_conformers: 1
+    optimization_spec:
+      check: 0
+      constraints: {}
+      convergence_set: GAU_LOOSE
+      coordsys: dlc
+      enforce: 0.1
+      epsilon: 0.0
+      maxiter: 300
+      molcnv: false
+      program: geometric
+      qccnv: true
+      reset: true
+      tmax: 0.3
+      trust: 0.1
+    program: psi4
+    scan_range: null
+    type: torsion1d
+  energy_cutoff: 10.0
+  energy_denominator: 1.0
+  extras: {}
+  reference_data: null
+  type: TorsionProfile
+  weight: 1.0

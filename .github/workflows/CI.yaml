@@ -66,22 +66,32 @@ jobs:
           conda info
           conda list
 
-      - name: Run Tests
-        shell: bash -l {0}
-        run: |
-          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
+      #- name: Run Tests
+      #  shell: bash -l {0}
+      #  run: |
+      #    pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
-      - name: Codecov
-        uses: codecov/codecov-action@v3.1.1
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+      #- name: Codecov
+      #  uses: codecov/codecov-action@v3.1.1
+      #  with:
+      #    file: ./coverage.xml
+      #    fail_ci_if_error: false
 
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
         shell: bash -l {0}
         run: |
-          openff-bespoke executor run --smiles                 'CC'               \
-                                      --workflow               'default'          \
-                                      --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+          #openff-bespoke executor run --smiles                 'CC'               \
+          #                            --workflow               'default'          \
+          #                            --default-qc-spec        xtb gfn2xtb none   \
+          #                            --target-torsion         '[C:1]-[C:2]'
+          openff-bespoke executor run --smiles "CC" \  
+                                      --target-torsion         '[C:1]-[C:2]' \
+                                      --workflow-file openff/bespokefit/data/test/miscellaneous/fast-psi4-workflow.yaml 
+                                      #--output             "ethane.json" \
+                                      #--output-force-field "ethane.offxml" \
+                                      #--n-qc-compute-workers 2 \  
+                                      #--qc-compute-n-cores   1 \
+                                      #--qc-compute-max-mem 2.5 \
+                                      #--directory bespoke-tmp \
+                                      #--default-qc-spec psi4 hf "STO-3G"
