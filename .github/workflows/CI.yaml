@@ -36,8 +36,8 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: devtools/conda-envs/test-env.yaml
-          extra-specs: |
-            python=${{ matrix.python-version }}
+          #extra-specs: |
+          #  python=${{ matrix.python-version }}
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
