@@ -2,8 +2,8 @@ name: bespokefit-test
 
 channels:
   - psi4
-  - openeye
   - conda-forge
+  - openeye
   - defaults
 
 dependencies:
