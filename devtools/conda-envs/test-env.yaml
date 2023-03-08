@@ -1,9 +1,10 @@
 name: bespokefit-test
 
 channels:
-  - openeye
+  - psi4
   - conda-forge
-  - nodefaults
+  - openeye
+  - defaults
 
 dependencies:
 
@@ -20,11 +21,11 @@ dependencies:
   - rich
   - click
   - click-option-group
-  - rdkit
+  #- rdkit
   - openff-utilities
-  - openff-toolkit-base >=0.11.3
+  - openff-toolkit-base >=0.12
   - openff-forcefields
-  - openff-interchange
+  - openff-interchange-base >=0.2.3
   - openff-units
   - openff-qcsubmit
   - openmm >=7.6.0
@@ -34,9 +35,9 @@ dependencies:
   - importlib_metadata >=4
 
     # Optional
-  - forcebalance
+  - forcebalance =1.9.5
   - openff-fragmenter-base
-  - xtb-python
+  - psi4 >=1.5
   - openeye-toolkits
 
     ### Bespoke dependencies

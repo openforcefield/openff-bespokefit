@@ -1,0 +1,47 @@
+default_qc_specs:
+- basis: STO-3G
+  implicit_solvent: null
+  keywords: null
+  maxiter: 200
+  method: hf
+  program: psi4
+  scf_properties:
+  - dipole
+  - quadrupole
+  - wiberg_lowdin_indices
+  - mayer_indices
+  spec_description: Standard OpenFF optimization quantum chemistry specification.
+  spec_name: default
+  store_wavefunction: none
+initial_force_field: openff_unconstrained-2.0.0.offxml
+target_templates:
+- attenuate_weights: true
+  calculation_specification:
+    grid_spacing: 90
+    model:
+      basis: sto-3g
+      method: hf
+    n_conformers: 1
+    optimization_spec:
+      check: 0
+      constraints: {}
+      convergence_set: GAU_LOOSE
+      coordsys: dlc
+      enforce: 0.1
+      epsilon: 0.0
+      maxiter: 300
+      molcnv: false
+      program: geometric
+      qccnv: true
+      reset: true
+      tmax: 0.3
+      trust: 0.1
+    program: psi4
+    scan_range: null
+    type: torsion1d
+  energy_cutoff: 10.0
+  energy_denominator: 1.0
+  extras: {}
+  reference_data: null
+  type: TorsionProfile
+  weight: 1.0

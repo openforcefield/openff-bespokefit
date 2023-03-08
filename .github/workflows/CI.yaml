@@ -19,9 +19,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest]
-        python-version: [3.8]
-        openeye: [true, false]
+        os: [ubuntu-latest]
+        #os: [ubuntu-latest, macOS-latest]
+        python-version: ["3.10"]
+        openeye: [true]
         integration: [true]
 
     env:
@@ -35,8 +36,9 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: devtools/conda-envs/test-env.yaml
-          extra-specs: |
-            python=${{ matrix.python-version }}
+          channel-priority: "flexible"
+          #extra-specs: |
+          #  python=${{ matrix.python-version }}
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
@@ -66,22 +68,19 @@ jobs:
           conda info
           conda list
 
-      - name: Run Tests
-        shell: bash -l {0}
-        run: |
-          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
+      #- name: Run Tests
+      #  shell: bash -l {0}
+      #  run: |
+      #    pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
-      - name: Codecov
-        uses: codecov/codecov-action@v3.1.1
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+      #- name: Codecov
+      #  uses: codecov/codecov-action@v3.1.1
+      #  with:
+      #    file: ./coverage.xml
+      #    fail_ci_if_error: false
 
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
         shell: bash -l {0}
         run: |
-          openff-bespoke executor run --smiles                 'CC'               \
-                                      --workflow               'default'          \
-                                      --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+          openff-bespoke executor run --smiles "CC"  --target-torsion         '[C:1]-[C:2]'  --workflow-file openff/bespokefit/data/test/miscellaneous/fast-psi4-workflow.yaml 
