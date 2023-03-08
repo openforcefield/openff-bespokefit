@@ -37,7 +37,7 @@ dependencies:
     # Optional
   - forcebalance =1.9.5
   - openff-fragmenter-base
-  #- psi4 >=1.5
+  - psi4 >=1.5
   - openeye-toolkits
 
     ### Bespoke dependencies
