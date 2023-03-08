@@ -83,6 +83,4 @@ jobs:
         if: ${{ matrix.integration == true }}
         shell: bash -l {0}
         run: |
-          openff-bespoke executor run --smiles "CC" \  
-                                      --target-torsion         '[C:1]-[C:2]' \
-                                      --workflow-file openff/bespokefit/data/test/miscellaneous/fast-psi4-workflow.yaml 
+          openff-bespoke executor run --smiles "CC"  --target-torsion         '[C:1]-[C:2]'  --workflow-file openff/bespokefit/data/test/miscellaneous/fast-psi4-workflow.yaml 
