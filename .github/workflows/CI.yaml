@@ -27,7 +27,6 @@ jobs:
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
-      CONDA_SUBDIR: osx-64
 
     steps:
       - uses: actions/checkout@v3
