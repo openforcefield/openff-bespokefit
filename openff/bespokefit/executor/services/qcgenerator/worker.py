@@ -136,7 +136,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         input_specification=QCInputSpecification(
             model=task.model,
             driver=DriverEnum.gradient,
-            keywords=_get_program_keywords(task.program)
+            keywords=_get_program_keywords(task.program),
         ),
         optimization_spec=OptimizationSpecification(
             procedure=task.optimization_spec.program,
@@ -190,7 +190,7 @@ def compute_optimization(
             input_specification=QCInputSpecification(
                 model=task.model,
                 driver=DriverEnum.gradient,
-                keywords=_get_program_keywords(task.program)
+                keywords=_get_program_keywords(task.program),
             ),
             initial_molecule=molecule.to_qcschema(conformer=i),
         )
