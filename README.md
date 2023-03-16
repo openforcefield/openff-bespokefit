@@ -20,6 +20,8 @@ To start using this framework we recommend looking over [the documentation](http
 In any publications using BespokeFit, please cite:
 
 > Joshua T. Horton, Simon Boothroyd, Jeffrey Wagner, Joshua A. Mitchell, Trevor Gokey, David L. Dotson, Pavan Kumar Behara, Venkata Krishnan Ramaswamy, Mark Mackey, John D. Chodera, Jamshed Anwar, David L. Mobley, and Daniel J. Cole "Open Force Field BespokeFit: Automating Bespoke Torsion Parametrization at Scale" [*J. Chem. Inf. Model.* 2022, 62, 22, 5622–5633](https://doi.org/10.1021/acs.jcim.2c01153)
+ 
+A pre-print of this paper is freely available from [ChemRxiv](https://doi.org/10.26434/chemrxiv-2022-6h628).
 
 ## License
 
