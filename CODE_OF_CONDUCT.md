@@ -134,11 +134,11 @@ under open licensing terms for us to easily reuse.
 All content on this page is licensed under a [*Creative Commons Attribution*]
 license.
 
-[OpenFF NAGL code of conduct](https://github.com/openforcefield/openff-nagl/blob/main/CODE_OF_CONDUCT.md)
-[*Speak Up!*](http://web.archive.org/web/20141109123859/http://speakup.io/coc.html)
-[*Django*](https://www.djangoproject.com/conduct)
-[*Contributor Covenant*](http://contributor-covenant.org/)
-[*Jupyter*](https://github.com/jupyter/governance/blob/master/conduct/code_of_conduct.md)
-[*MolSSI*](https://github.com/MolSSI/cookiecutter-cms/blob/master/%7B%7Bcookiecutter.repo_name%7D%7D/CODE_OF_CONDUCT.md)
-[*MDAnalysis*](https://github.com/MDAnalysis/mdanalysis/blob/develop/CODE_OF_CONDUCT.md)
-[*Creative Commons Attribution*](http://creativecommons.org/licenses/by/3.0/)
+[OpenFF NAGL code of conduct]: https://github.com/openforcefield/openff-nagl/blob/main/CODE_OF_CONDUCT.md
+[*Speak Up!*]: http://web.archive.org/web/20141109123859/http://speakup.io/coc.html
+[*Django*]: https://www.djangoproject.com/conduct
+[*Contributor Covenant*]: http://contributor-covenant.org/
+[*Jupyter*]: https://github.com/jupyter/governance/blob/master/conduct/code_of_conduct.md
+[*MolSSI*]: https://github.com/MolSSI/cookiecutter-cms/blob/master/%7B%7Bcookiecutter.repo_name%7D%7D/CODE_OF_CONDUCT.md
+[*MDAnalysis*]: https://github.com/MDAnalysis/mdanalysis/blob/develop/CODE_OF_CONDUCT.md
+[*Creative Commons Attribution*]: http://creativecommons.org/licenses/by/3.0/
