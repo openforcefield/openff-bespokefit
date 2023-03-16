@@ -1,10 +1,10 @@
 # Contributing to BespokeFit
 
-OpenFF BespokeFit developers follow a [code of conduct](https://github.com/openforcefield/openff-bespokefit/blob/main/CODE_OF_CONDUCT.md). Please familiarize yourself with the code.
+OpenFF BespokeFit developers follow a [code of conduct]. Please familiarize yourself with the code.
 
 Despite being developed primarily by UK and Australian developers, BespokeFit uses US English in all documentation.
 
-BespokeFit is developed in the open at [GitHub](https://github.com/openforcefield/openff-bespokefit). We welcome PRs and issues from the general public! Please consider raising an issue there to discuss changes or additions to the code before you commit time to a PR!
+BespokeFit is developed in the open at [GitHub]. We welcome PRs and issues from the general public! Please consider raising an issue there to discuss changes or additions to the code before you commit time to a PR!
 
 A development environment for BespokeFit can be created using [Mamba], which is a faster implementation of the [Conda] package manager:
 
@@ -39,7 +39,8 @@ pre-commit run --all-files
 
 Installing this hook locally will only affect this repository and may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
 
-
+[code of conduct]: CODE_OF_CONDUCT.md
+[GitHub]: https://github.com/openforcefield/openff-bespokefit
 [Mamba]: https://mamba.readthedocs.io/
 [Conda]: https://docs.conda.io/
 [PyTest]: https://pytest.org/

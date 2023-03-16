@@ -13,7 +13,7 @@ The BespokeFit framework aims to offer a completely automated workflow for creat
 
 ## Getting Started
 
-To start using this framework we recommend looking over [the documentation](https://docs.openforcefield.org/bespokefit/en/stable/index.html). If you'd like to run some basic examples immediately, see the [quick start guide](https://docs.openforcefield.org/bespokefit/en/stable/getting-started/quick-start.html), or if you plan to explore the functionality in more depth, begin with the [installation guide](https://docs.openforcefield.org/bespokefit/en/stable/getting-started/installation.html). For information on developing and contributing to BespokeFit, see [CONTRIBUTING.md](https://github.com/openforcefield/openff-bespokefit/blob/main/CONTRIBUTING.md).
+To start using this framework we recommend looking over [the documentation](https://docs.openforcefield.org/bespokefit/en/stable/index.html). If you'd like to run some basic examples immediately, see the [quick start guide](https://docs.openforcefield.org/bespokefit/en/stable/getting-started/quick-start.html), or if you plan to explore the functionality in more depth, begin with the [installation guide](https://docs.openforcefield.org/bespokefit/en/stable/getting-started/installation.html). For information on developing and contributing to BespokeFit, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## How to cite
 
