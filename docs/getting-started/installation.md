@@ -63,13 +63,13 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools "h5py<3.2"
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults "python=3.9" "h5py>=3.6" openff-bespokefit psi4 ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits "h5py<3.2"
+conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye "python=3.9" "h5py>=3.6" openff-bespokefit psi4 openeye-toolkits
 ```
 :::
 
