@@ -101,6 +101,7 @@ def canonical_order_atoms(molecule: Molecule):
 
     return molecule
 
+
 def get_torsion_indices(
     molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
 ) -> List[Tuple[int, int, int, int]]:
