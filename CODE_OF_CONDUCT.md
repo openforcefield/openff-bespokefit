@@ -5,16 +5,14 @@ every member in the OpenFF BespokeFit community so that everyone can
 experience a welcoming, supportive, and productive environment that is
 free from harassment.
 
-<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
 **Table of Contents**
 
 - [Code of conduct](#code-of-conduct)
   - [Code of Conduct and Community Guidelines](#code-of-conduct-and-community-guidelines)
   - [Scope](#scope)
   - [Enforcement](#enforcement)
-  - [Acknowledgment](#acknowledgment)
+  - [Acknowledgments](#acknowledgments)
 
-<!-- markdown-toc end -->
 ## Code of Conduct and Community Guidelines
 
 OpenFF BespokeFit is part of an engaged and respectful community made up of
@@ -111,7 +109,7 @@ project may be further defined and clarified by project maintainers.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team at 'josh.mitchell@openforcefield.org'. 
+reported by contacting the project team at josh.mitchell@openforcefield.org. 
 The project team will review and investigate all complaints, and will respond 
 in a way that it deems appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an
@@ -123,10 +121,10 @@ faith may face temporary or permanent repercussions as determined by other
 members of the project's leadership.
 
 
-## Acknowledgment
+## Acknowledgments
 
 This code of conduct is adapted from the [OpenFF NAGL code of conduct].
-Original text was adapted from the[*Speak Up!*], [*Django*],
+Original text was adapted from the [*Speak Up!*], [*Django*],
 [*Contributor Covenant*], [*Jupyter*], [*MolSSI*], and [*MDAnalysis*] 
 projects. We are grateful to those projects for contributing these materials
 under open licensing terms for us to easily reuse.
