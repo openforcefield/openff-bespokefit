@@ -90,10 +90,16 @@ def canonical_order_atoms(molecule: Molecule):
 
     # make an atom mapping from the atom_order and remap the molecule
     atom_map = {i: rank for i, rank in enumerate(atom_order)}
+    original_atom_map = dict(molecule.properties["atom_map"])
 
     molecule = molecule.remap(atom_map, current_to_new=True)
-    return molecule
 
+    if "atom_map" in molecule.properties:
+        molecule.properties["atom_map"] = {
+            atom_map[i]: j for i, j in original_atom_map["atom_map"].items()
+        }
+
+    return molecule
 
 def get_torsion_indices(
     molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
