@@ -96,7 +96,7 @@ def canonical_order_atoms(molecule: Molecule):
 
     if "atom_map" in molecule.properties:
         molecule.properties["atom_map"] = {
-            atom_map[i]: j for i, j in original_atom_map["atom_map"].items()
+            atom_map[i]: j for i, j in original_atom_map.items()
         }
 
     return molecule
