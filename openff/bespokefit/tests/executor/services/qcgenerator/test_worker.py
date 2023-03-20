@@ -40,6 +40,40 @@ def test_compute_torsion_drive():
     assert all([atom.atomic_number != 1 for atom in atoms])
 
 
+def test_compute_torsion_drive_xtb():
+    task = Torsion1DTask(
+        smiles="[F][CH2:1][CH2:2][F]",
+        central_bond=(1, 2),
+        grid_spacing=180,
+        scan_range=(-180, 180),
+        program="xtb",
+        model=Model(method="gfn2xtb", basis=None),
+    )
+
+    result_json = worker.compute_torsion_drive(task.json())
+    assert isinstance(result_json, str)
+
+    result_dict = json.loads(result_json)
+    assert isinstance(result_dict, dict)
+
+    result = TorsionDriveResult.parse_obj(result_dict)
+    assert result.success
+
+    cmiles = result.final_molecules["180"].extras[
+        "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+    ]
+
+    # Make sure a molecule can be created from CMILES
+    final_molecule = Molecule.from_mapped_smiles(cmiles)
+    assert Molecule.are_isomorphic(final_molecule, Molecule.from_smiles("FCCF"))[0]
+    dihedral = result.keywords.dihedrals[0]
+    # make sure heavy atoms are targeted
+    atoms = [final_molecule.atoms[i] for i in dihedral]
+    assert all([atom.atomic_number != 1 for atom in atoms])
+    # Make sure the "muted" verbosity was used
+    assert result_dict["input_specification"]["keywords"]["verbosity"] == "muted"
+
+
 def test_compute_optimization():
     task = OptimizationTask(
         smiles="CCCCC",
