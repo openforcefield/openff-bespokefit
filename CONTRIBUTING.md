@@ -30,14 +30,14 @@ sphinx-build -j auto docs docs/_build/html
 firefox docs/_build/html/index.html
 ```
 
-Finally, BespokeFit uses a number of lints and code formatters to help maintain code quality. These will be run automatically when you submit a PR, but they can be run automatically on each local commit by installing the pre-commit hook:
+Finally, BespokeFit uses a number of lints and code formatters to help maintain code quality. These will be run automatically on any PRs by [pre-commit.ci], so be aware that there's a bot potentially committing to your feature branch. You can run the lints and formatters yourself automatically on each local commit by installing the pre-commit hook:
 
 ```shell
 mamba install pre-commit -c conda-forge
 pre-commit run --all-files
 ```
 
-These hooks are installed in isolated virtual environments, separate from the `conda` environment you created for development. Installing `pre-commit` and hooks locally and may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
+These hooks are installed in isolated virtual environments, separate from the `conda` environment you created for development (though pre-commit itself will be installed in the current environment). Installing `pre-commit` and hooks locally may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
 
 [code of conduct]: CODE_OF_CONDUCT.md
 [GitHub]: https://github.com/openforcefield/openff-bespokefit
@@ -45,3 +45,4 @@ These hooks are installed in isolated virtual environments, separate from the `c
 [Conda]: https://docs.conda.io/
 [PyTest]: https://pytest.org/
 [Sphinx]: https://www.sphinx-doc.org/
+[pre-commit.ci]: https://results.pre-commit.ci/latest/github/openforcefield/openff-bespokefit/main
