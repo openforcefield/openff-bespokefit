@@ -90,12 +90,13 @@ def canonical_order_atoms(molecule: Molecule):
 
     # make an atom mapping from the atom_order and remap the molecule
     atom_map = {i: rank for i, rank in enumerate(atom_order)}
+    original_atom_map = dict(molecule.properties["atom_map"])
 
     molecule = molecule.remap(atom_map, current_to_new=True)
 
     if "atom_map" in molecule.properties:
         molecule.properties["atom_map"] = {
-            atom_map[i]: j for i, j in molecule.properties["atom_map"].items()
+            atom_map[i]: j for i, j in original_atom_map.items()
         }
 
     return molecule

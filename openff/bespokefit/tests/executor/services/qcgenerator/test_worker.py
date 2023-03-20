@@ -12,8 +12,8 @@ def test_compute_torsion_drive():
     task = Torsion1DTask(
         smiles="[F][CH2:1][CH2:2][F]",
         central_bond=(1, 2),
-        grid_spacing=180,
-        scan_range=(-180, 180),
+        grid_spacing=90,
+        scan_range=(0, 180),
         program="rdkit",
         model=Model(method="uff", basis=None),
     )
@@ -26,6 +26,8 @@ def test_compute_torsion_drive():
 
     result = TorsionDriveResult.parse_obj(result_dict)
     assert result.success
+    # make sure we have an optimisation at 0, 90 and 180
+    assert len(result.final_molecules) == 3
 
     cmiles = result.final_molecules["180"].extras[
         "canonical_isomeric_explicit_hydrogen_mapped_smiles"
