@@ -37,7 +37,7 @@ mamba install pre-commit -c conda-forge
 pre-commit run --all-files
 ```
 
-Installing this hook locally will only affect this repository and may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
+These hooks are installed in isolated virtual environments, separate from the `conda` environment you created for development. Installing `pre-commit` and hooks locally and may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
 
 [code of conduct]: CODE_OF_CONDUCT.md
 [GitHub]: https://github.com/openforcefield/openff-bespokefit
