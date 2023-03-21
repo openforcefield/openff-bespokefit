@@ -2,10 +2,12 @@ BespokeFit
 ==============================
 [//]: # (Badges)
 [![CI](https://github.com/openforcefield/openff-bespokefit/actions/workflows/CI.yaml/badge.svg)](https://github.com/openforcefield/openff-bespokefit/actions/workflows/CI.yaml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/openforcefield/openff-bespokefit/main.svg)](https://results.pre-commit.ci/latest/github/openforcefield/openff-bespokefit/main)
 [![Documentation Status](https://readthedocs.org/projects/openff-bespokefit/badge/?version=stable)](https://docs.openforcefield.org/projects/bespokefit/en/stable/?badge=stable)
 [![codecov](https://codecov.io/gh/openforcefield/openff-bespokefit/branch/main/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-bespokefit/branch/main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
 The BespokeFit framework aims to offer a completely automated workflow for creating bespoke, highly accurate, SMIRNOFF format parameters for individual molecules up to entire lead series.
 
