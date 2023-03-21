@@ -1,0 +1,139 @@
+cff-version: 1.2.0
+title: OpenFF BespokeFit
+message: >-
+  In any publications using force fields produced by
+  BespokeFit, please cite:
+type: software
+authors:
+  - given-names: The BespokeFit Contributors
+identifiers:
+  - type: doi
+    value: 10.1021/acs.jcim.2c01153
+  - type: url
+    value: 'https://doi.org/10.26434/chemrxiv-2022-6h628'
+    description: ChemRxiv
+repository-code: 'https://github.com/openforcefield/openff-bespokefit'
+url: 'https://docs.openforcefield.org/bespokefit'
+abstract: >-
+  The development of accurate transferable force fields is
+  key to realizing the full potential of atomistic modeling
+  in the study of biological processes such as
+  protein–ligand binding for drug discovery.
+  State-of-the-art transferable force fields, such as those
+  produced by the Open Force Field Initiative, use modern
+  software engineering and automation techniques to yield
+  accuracy improvements. However, force field torsion
+  parameters, which must account for many stereoelectronic
+  and steric effects, are considered to be less transferable
+  than other force field parameters and are therefore often
+  targets for bespoke parametrization. Here, we present the
+  Open Force Field QCSubmit and BespokeFit software packages
+  that, when combined, facilitate the fitting of torsion
+  parameters to quantum mechanical reference data at scale.
+  We demonstrate the use of QCSubmit for simplifying the
+  process of creating and archiving large numbers of quantum
+  chemical calculations, by generating a dataset of 671
+  torsion scans for druglike fragments. We use BespokeFit to
+  derive individual torsion parameters for each of these
+  molecules, thereby reducing the root-mean-square error in
+  the potential energy surface from 1.1 kcal/mol, using the
+  original transferable force field, to 0.4 kcal/mol using
+  the bespoke version. Furthermore, we employ the bespoke
+  force fields to compute the relative binding free energies
+  of a congeneric series of inhibitors of the TYK2 protein,
+  and demonstrate further improvements in accuracy, compared
+  to the base force field (MUE reduced from
+  0.56_{0.39}^{0.77} to 0.42_{0.28}^{0.59} kcal/mol and R2
+  correlation improved from 0.72_{0.35}^{0.87} to
+  0.93_{0.84}^{0.97}).
+keywords:
+  - force field
+  - free energy
+  - molecular mechanics
+  - forcebalance
+  - openff
+  - smirnoff
+  - qcsubmit
+  - qcengine
+license: MIT
+
+preferred-citation:
+  type: article
+  title: >-
+    Open Force Field BespokeFit: Automating Bespoke Torsion
+    Parametrization at Scale
+  authors:
+    - given-names: Joshua T.
+      family-names: Horton
+      orcid: 'https://orcid.org/0000-0001-8694-7200'
+      affiliation: >-
+        School of Natural and Environmental Sciences,
+        Newcastle University
+    - given-names: Simon
+      family-names: Boothroyd
+      affiliation: Boothroyd Scientific Consulting Ltd.
+      orcid: 'https://orcid.org/0000-0002-3456-1872'
+    - given-names: Jeffrey
+      family-names: Wagner
+      affiliation: The Open Force Field Initiative
+      orcid: 'https://orcid.org/0000-0001-6448-0873'
+    - given-names: Joshua A.
+      family-names: Mitchell
+      affiliation: The Open Force Field Initiative
+      orcid: 'https://orcid.org/0000-0002-8246-5113'
+      email: josh.mitchell@openforcefield.org
+    - given-names: Trevor
+      family-names: Gokey
+      affiliation: 'Dept. Chemistry, UC Irvine'
+      orcid: 'https://orcid.org/0000-0001-7856-1156'
+    - given-names: David L.
+      family-names: Dotson
+      orcid: 'https://orcid.org/0000-0001-5879-2942'
+      affiliation: The Open Force Field Initiative
+    - given-names: Pavan Kumar
+      family-names: Behara
+      orcid: 'https://orcid.org/0000-0001-6583-2148'
+      affiliation: 'Dept. Pharmaceutical Sciences, UC Irvine'
+    - given-names: Venkata Krishnan
+      family-names: Ramaswamy
+      affiliation: Cresset BioMolecular Discovery Ltd.
+      orcid: 'https://orcid.org/0000-0002-5804-8483'
+    - given-names: Mark
+      family-names: Mackey
+      affiliation: Cresset BioMolecular Discovery Ltd.
+      orcid: 'https://orcid.org/0000-0001-5131-7583'
+    - orcid: 'https://orcid.org/0000-0003-0542-119X'
+      given-names: John D.
+      family-names: Chodera
+      affiliation: >-
+        Computational & Systems Biology Program, Sloan
+        Kettering Institute
+    - given-names: Jamshed
+      family-names: Anwar
+      affiliation: 'Dept. Chemistry, Lancaster University'
+      orcid: 'https://orcid.org/0000-0003-1721-0330'
+    - given-names: David L.
+      family-names: Mobley
+      affiliation: 'Dept. Chemistry, UC Irvine'
+      orcid: 'https://orcid.org/0000-0002-1083-5533'
+    - given-names: Daniel J.
+      family-names: Cole
+      affiliation: >-
+        School of Natural and Environmental Sciences,
+        Newcastle University
+      orcid: 'https://orcid.org/0000-0003-2933-0719'
+      email: daniel.cole@ncl.ac.uk
+  identifiers:
+    - type: doi
+      value: 10.1021/acs.jcim.2c01153
+    - type: url
+      value: 'https://doi.org/10.26434/chemrxiv-2022-6h628'
+      description: ChemRxiv Pre-Print
+  doi: "10.1021/acs.jcim.2c01153"
+  journal: "J. Chem. Inf. Model."
+  month: 11
+  start: 5622 # First page number
+  end: 5633 # Last page number
+  issue: 22
+  volume: 62
+  year: 2022
