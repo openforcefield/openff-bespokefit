@@ -9,6 +9,7 @@ from openff.bespokefit.utilities.tempcd import temporary_cd
     "path",
     [
         "tempcd_test",
+        "tempcd/test",
         Path("tempcd_test"),
         None,
         ".",
@@ -118,7 +119,7 @@ class TestTemporaryCD:
 
         # Arrange
         if path not in [".", ""]:
-            Path(path).mkdir()
+            Path(path).mkdir(parents=True)
         if keep_tmp_files:
             monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", "1")
         else:

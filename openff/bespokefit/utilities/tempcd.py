@@ -10,7 +10,7 @@ from openff.bespokefit.executor.services import current_settings
 
 
 @contextmanager
-def temporary_cd(path: Optional[Union[str, Path]] = None, parents=False):
+def temporary_cd(path: Optional[Union[str, Path]] = None):
     """
     Context manager to move the current working directory to the path specified.
 
@@ -24,11 +24,6 @@ def temporary_cd(path: Optional[Union[str, Path]] = None, parents=False):
         The path to CD into. If ``None`` or not specified, a temporary directory
         will be created. If specified but the path does not exist, a temporary
         directory with that name will be created.
-    parents
-        If parents is ``True``, any missing parents of this path are created as
-        needed; they are created with the default permissions without taking
-        mode into account. If ``False``, missing parents will result in a
-        :py:exc:`FileNotFoundError` error.
     """
     # Normalize path to a pathlib Path
     path: Optional[Path] = None if path is None else Path(path)
@@ -42,7 +37,7 @@ def temporary_cd(path: Optional[Union[str, Path]] = None, parents=False):
         print(f"created temporary directory {path}")
     # If a path is given but does not already exist, create it
     elif not path.exists():
-        path.mkdir(parents=parents)
+        path.mkdir(parents=True)
         print(f"created temporary directory {path}")
     # If we didn't create the path, do NOT clean it up
     else:
