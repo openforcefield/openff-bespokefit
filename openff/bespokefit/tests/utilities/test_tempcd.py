@@ -90,7 +90,7 @@ class TestTemporaryCD:
         BEFLOW_KEEP_TMP_FILES is set
         """
         # Arrange
-        monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", 1)
+        monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", "1")
 
         # Act
         with temporary_cd(path):
@@ -120,7 +120,7 @@ class TestTemporaryCD:
         if path not in [".", ""]:
             Path(path).mkdir()
         if keep_tmp_files:
-            monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", 1)
+            monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", "1")
         else:
             monkeypatch.delenv("BEFLOW_KEEP_TMP_FILES", raising=False)
 
