@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     BEFLOW_OPTIMIZER_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
     BEFLOW_OPTIMIZER_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
     BEFLOW_OPTIMIZER_KEEP_FILES: bool = False
+    """
+    .. deprecated:: 0.2.1
+        use BEFLOW_KEEP_TMP_FILES instead
+
+    Keep the optimizer's temporary files.
+    """
 
     BEFLOW_KEEP_TMP_FILES: bool = False
     """Keep all temporary files."""
