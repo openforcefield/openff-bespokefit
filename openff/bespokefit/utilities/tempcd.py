@@ -34,11 +34,9 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
     # If a path is not given, create a temporary directory
     if path is None:
         path = Path(tempfile.mkdtemp(dir="."))
-        print(f"created temporary directory {path}")
     # If a path is given but does not already exist, create it
     elif not path.exists():
         path.mkdir(parents=True)
-        print(f"created temporary directory {path}")
     # If we didn't create the path, do NOT clean it up
     else:
         cleanup = False
