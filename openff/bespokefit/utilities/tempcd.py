@@ -30,6 +30,7 @@ def temporary_cd(path: Optional[Union[str, Path]] = None, parents=False):
         mode into account. If ``False``, missing parents will result in a
         :py:exc:`FileNotFoundError` error.
     """
+    # Normalize path to a pathlib Path
     path: Optional[Path] = None if path is None else Path(path)
 
     # Decide whether to clean up based on bespokefit settings
