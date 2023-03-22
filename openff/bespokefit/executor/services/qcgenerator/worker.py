@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Any, Dict, List
 
 import psutil
@@ -48,7 +49,13 @@ def _task_config() -> Dict[str, Any]:
         )
     )
 
-    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3))
+    return dict(
+        ncores=n_cores,
+        nnodes=1,
+        memory=round(max_memory, 3),
+        scratch_directory=str(Path().resolve()),
+        scratch_messy=True,
+    )
 
 
 def _select_atom(atoms: List[Atom]) -> int:
