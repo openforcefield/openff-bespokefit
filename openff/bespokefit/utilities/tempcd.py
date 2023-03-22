@@ -2,8 +2,8 @@
 import os
 import shutil
 import tempfile
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Optional, Union
 
 from openff.bespokefit.executor.services import current_settings
