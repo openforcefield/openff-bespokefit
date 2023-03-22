@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     BEFLOW_OPTIMIZER_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
     BEFLOW_OPTIMIZER_KEEP_FILES: bool = False
 
-    BEFLOW_KEEP_TMP_FILES = False
+    BEFLOW_KEEP_TMP_FILES: bool = False
     """Keep all temporary files."""
 
     @property
