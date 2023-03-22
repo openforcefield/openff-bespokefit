@@ -34,7 +34,7 @@ Finally, BespokeFit uses a number of lints and code formatters to help maintain 
 
 ```shell
 mamba install pre-commit -c conda-forge
-pre-commit run --all-files
+pre-commit install
 ```
 
 These hooks are installed in isolated virtual environments, separate from the `conda` environment you created for development (though pre-commit itself will be installed in the current environment). Installing `pre-commit` and hooks locally may help avoid frustration associated with the remote branch coming out of sync when multiple commits are pushed in sequence without pulling the automated changes.
