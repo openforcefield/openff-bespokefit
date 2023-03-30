@@ -7,10 +7,10 @@ from typing import Optional
 import requests
 import uvicorn
 from fastapi import APIRouter, FastAPI
-from openff.utilities import temporary_cd
 from starlette.middleware.cors import CORSMiddleware
 
 from openff.bespokefit.executor.services import current_settings
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 
 def __load_router(path: str) -> APIRouter:
