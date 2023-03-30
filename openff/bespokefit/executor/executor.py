@@ -214,7 +214,10 @@ class BespokeExecutor:
         self._optimizer_worker_config = optimizer_worker_config
 
         self._directory = directory
-        self._remove_directory = directory is None
+        settings = current_settings()
+        self._remove_directory = directory is None and not (
+            settings.BEFLOW_OPTIMIZER_KEEP_FILES or settings.BEFLOW_KEEP_TMP_FILES
+        )
 
         self._launch_redis_if_unavailable = launch_redis_if_unavailable
 

@@ -29,7 +29,10 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
     path: Optional[Path] = None if path is None else Path(path)
 
     # Decide whether to clean up based on bespokefit settings
-    cleanup = not current_settings().BEFLOW_KEEP_TMP_FILES
+    settings = current_settings()
+    cleanup = not (
+        settings.BEFLOW_OPTIMIZER_KEEP_FILES or settings.BEFLOW_KEEP_TMP_FILES
+    )
 
     # If a path is not given, create a temporary directory
     if path is None:

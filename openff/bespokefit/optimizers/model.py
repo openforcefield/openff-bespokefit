@@ -5,7 +5,6 @@ The optimizer model abstract class.
 import abc
 import copy
 import os
-import shutil
 from collections import defaultdict
 from typing import Dict, Optional, Type
 
@@ -208,7 +207,6 @@ class BaseOptimizer(abc.ABC):
         cls,
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
-        keep_files: bool = False,
         root_directory: Optional[str] = None,
     ) -> OptimizationStageResults:
         """
@@ -218,21 +216,11 @@ class BaseOptimizer(abc.ABC):
         It should loop over the targets and assert they are registered and then dispatch
         compute and optimization.
         """
+        if root_directory is not None:
+            os.makedirs(root_directory, exist_ok=True)
 
-        try:
-            if root_directory is not None:
-                os.makedirs(root_directory, exist_ok=True)
-
-            with temporary_cd(root_directory):
-                cls.prepare(schema, initial_force_field, ".")
-                results = cls._optimize(schema, initial_force_field)
-
-        finally:
-            if (
-                root_directory is not None
-                and not keep_files
-                and os.path.isdir(root_directory)
-            ):
-                shutil.rmtree(root_directory, ignore_errors=True)
+        with temporary_cd(root_directory):
+            cls.prepare(schema, initial_force_field, ".")
+            results = cls._optimize(schema, initial_force_field)
 
         return results

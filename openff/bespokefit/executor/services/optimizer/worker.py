@@ -1,5 +1,3 @@
-import os
-import shutil
 from typing import Union
 
 from pydantic import parse_raw_as
@@ -41,9 +39,7 @@ def optimize(self, optimization_input_json: str) -> str:
 
     stage_results = []
 
-    home = os.getcwd()
-
-    with temporary_cd():
+    with temporary_cd(input_schema.id):
         for i, stage in enumerate(input_schema.stages):
             optimizer = get_optimizer(stage.optimizer.type)
             # If there are no parameters to optimise as they have all been cached mock
@@ -61,8 +57,6 @@ def optimize(self, optimization_input_json: str) -> str:
                 result = optimizer.optimize(
                     schema=stage,
                     initial_force_field=input_force_field,
-                    keep_files=settings.BEFLOW_OPTIMIZER_KEEP_FILES
-                    or settings.BEFLOW_KEEP_TMP_FILES,
                     root_directory=f"stage_{i}",
                 )
 
@@ -83,10 +77,6 @@ def optimize(self, optimization_input_json: str) -> str:
                     result.refit_force_field, allow_cosmetic_attributes=True
                 ).to_string(discard_cosmetic_attributes=True)
             )
-
-        if settings.BEFLOW_OPTIMIZER_KEEP_FILES:
-            os.makedirs(os.path.join(home, input_schema.id), exist_ok=True)
-            shutil.copytree(os.getcwd(), os.path.join(home, input_schema.id))
 
     result = BespokeOptimizationResults(input_schema=input_schema, stages=stage_results)
     # cache the final parameters
