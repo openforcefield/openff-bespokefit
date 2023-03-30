@@ -76,6 +76,7 @@ class TestTemporaryCD:
 
         # Arrange
         monkeypatch.delenv("BEFLOW_KEEP_TMP_FILES", raising=False)
+        monkeypatch.delenv("BEFLOW_OPTIMIZER_KEEP_TMP_FILES", raising=False)
 
         # Act
         with temporary_cd(path):
@@ -92,6 +93,7 @@ class TestTemporaryCD:
         """
         # Arrange
         monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", "1")
+        monkeypatch.delenv("BEFLOW_OPTIMIZER_KEEP_TMP_FILES", raising=False)
 
         # Act
         with temporary_cd(path):
@@ -124,6 +126,7 @@ class TestTemporaryCD:
             monkeypatch.setenv("BEFLOW_KEEP_TMP_FILES", "1")
         else:
             monkeypatch.delenv("BEFLOW_KEEP_TMP_FILES", raising=False)
+        monkeypatch.delenv("BEFLOW_OPTIMIZER_KEEP_TMP_FILES", raising=False)
 
         # Act
         with temporary_cd(path):
