@@ -54,5 +54,4 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
         os.chdir(old_directory)
         # If we created the directory, clean it up
         if cleanup:
-            print(f"cleaning up temporary directory {path}")
             shutil.rmtree(path)
