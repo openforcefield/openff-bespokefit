@@ -12,7 +12,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 ## 0.2.1 / 04-05-2023
 
 ### New Features
-* [#199] - Add option to always keep temporary files by @Yoshanuikabundi
+* [#199] - Add option to always keep temporary files by [@Yoshanuikabundi]
 
 ### Bug Fixes
 * [#235] - Fix bug where atom indices were incorrectly assigned by [@j-wags]
