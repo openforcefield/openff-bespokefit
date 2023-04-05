@@ -4,6 +4,7 @@ channels:
 dependencies:
   - openff-bespokefit
   - ambertools
+  - xtb-python
   - pytest
   - pytest-cov
   - pytest-asyncio
