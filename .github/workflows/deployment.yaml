@@ -22,7 +22,7 @@ defaults:
 jobs:
   test:
 
-    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 👁️=${{ matrix.openeye }}
+    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 👁️=${{ matrix.openeye }}, ∫=${{ matrix.integration }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -31,6 +31,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.9"]
         openeye: [true, false]
+        integration: [true]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -89,3 +90,12 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest --durations=0 openff/bespokefit/tests
+          
+      - name: Run Integration Tests
+        if: ${{ matrix.integration == true }}
+        shell: bash -l {0}
+        run: |
+          openff-bespoke executor run --smiles                 'CC'               \
+                                      --workflow               'default'          \
+                                      --default-qc-spec        xtb gfn2xtb none   \
+                                      --target-torsion         '[C:1]-[C:2]'
