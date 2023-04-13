@@ -14,7 +14,7 @@ Generators")
 mamba install -c conda-forge openff-bespokefit
 ```
 
-If you do not have Mamba installed, see the [ecosystem installation documentation](openff.docs:install).
+If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
 
 ### Fragmentation Backends
 
