@@ -1,20 +1,20 @@
 (installation_chapter)=
 # Installation
 
-BespokeFit and its dependencies can be installed in several ways. The OpenFF Initiative recommends using the `conda`
-package manager.
+BespokeFit and its dependencies can be installed in several ways. The OpenFF Initiative recommends using the `mamba` package manager.
 
-## Using conda
+## Using Mamba
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager.
-A working installation also requires at least one package from each of the two sections below 
-("Fragmentation Backends" and "Reference Data Generators")
+The recommended way to install `openff-bespokefit` is via the `mamba` package
+manager. A working installation also requires at least one package from each of
+the two sections below ("Fragmentation Backends" and "Reference Data
+Generators")
 
 ```shell
-conda install -c conda-forge openff-bespokefit
+mamba install -c conda-forge openff-bespokefit
 ```
 
-
+If you do not have Mamba installed, see the [ecosystem installation documentation](openff.docs:install).
 
 ### Fragmentation Backends
 
