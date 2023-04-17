@@ -24,7 +24,7 @@ AmberTools is free and open-source, and can generally be used fragment molecules
 10 minutes.
 
 ```shell
-conda install -c conda-forge ambertools
+mamba install -c conda-forge ambertools
 ````
 
 #### OpenEye Toolkits
@@ -34,7 +34,7 @@ these also as they can speed up certain operations significantly. OpenEye softwa
 [free-for-academics license] to run.
 
 ```shell
-conda install -c openeye openeye-toolkits
+mamba install -c openeye openeye-toolkits
 ```
 
 [free-for-academics license]: https://www.eyesopen.com/academic-licensing
@@ -47,7 +47,7 @@ conda install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-conda install -c psi4 -c conda-forge -c defaults psi4
+mamba install -c psi4 -c conda-forge -c defaults psi4
 ```
 
 [Psi4]: https://psicode.org/
@@ -63,13 +63,13 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools
+mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-conda create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits
+mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits
 ```
 :::
 
@@ -79,7 +79,7 @@ The [`xtb-python`] package gives access to the XTB semi-empirical models produce
 used as a much faster surrogate when generating QC reference data:
 
 ```shell
-conda install -c conda-forge xtb-python
+mamba install -c conda-forge xtb-python
 ```
 
 [`xtb-python`]: https://github.com/grimme-lab/xtb-python
@@ -87,7 +87,7 @@ conda install -c conda-forge xtb-python
 `xtb-python` can _optionally_ be configured to use MKL as its compute backend by running
 
 ```shell
-conda install -c conda-forge xtb-python "libblas=*=*mkl"
+mamba install -c conda-forge xtb-python "libblas=*=*mkl"
 ```
 
 This likely provides better performance on Intel CPUs. Note that use of the MKL backend may be subject to additional
@@ -101,7 +101,7 @@ it is not strictly open source.
 a much faster surrogate when generating QC reference data:
 
 ```shell
-conda install -c conda-forge torchani
+mamba install -c conda-forge torchani
 ```
 
 :::{note}
@@ -124,8 +124,8 @@ cd openff-bespokefit
 Create a custom conda environment which contains the required dependencies and activate it:
 
 ```shell
-conda env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
-conda activate openff-bespokefit
+mamba env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
+mamba activate openff-bespokefit
 ```
 Finally, install the package itself into the new environment:
 
