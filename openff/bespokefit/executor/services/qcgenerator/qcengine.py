@@ -56,19 +56,29 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
             n_workers = int(min([n_jobs, opts_per_worker]))
             opt_config = _divide_config(config=config, n_workers=n_workers)
             # use threadpool as the celery workers can not have child process
-            with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=n_workers
+            ) as executor:
                 tasks = {
                     grid_point: [
                         executor.submit(
                             self._spawn_optimization,
-                            **{'grid_point': grid_point, 'job': job, 'input_model': input_model, 'config': opt_config},
+                            **{
+                                "grid_point": grid_point,
+                                "job": job,
+                                "input_model": input_model,
+                                "config": opt_config,
+                            },
                         )
                         for job in jobs
                     ]
                     for grid_point, jobs in next_jobs.items()
                 }
                 return {
-                    grid_point: [grid_task.result() for grid_task in concurrent.futures.as_completed(grid_tasks)]
+                    grid_point: [
+                        grid_task.result()
+                        for grid_task in concurrent.futures.as_completed(grid_tasks)
+                    ]
                     for grid_point, grid_tasks in tasks.items()
                 }
 
