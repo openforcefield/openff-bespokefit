@@ -8,6 +8,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!--## Version / Date DD-MM-YYYY -->
+## Since last release
+### Bug Fixes
+* [#260] - Fix bug where `import` statements would fail due to circular imports by [@Yoshanuikabundi]
 
 ## 0.2.1 / 04-05-2023
 
@@ -113,6 +116,7 @@ The first major release of bespokefit intended for public use.
 [#235]: https://github.com/openforcefield/openff-bespokefit/pull/235
 [#239]: https://github.com/openforcefield/openff-bespokefit/pull/239
 [#243]: https://github.com/openforcefield/openff-bespokefit/pull/243
+[#260]: https://github.com/openforcefield/openff-bespokefit/pull/260
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
