@@ -7,12 +7,16 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `minor` increments add features but do not break API compatibility
 * `micro` increments represent bugfix releases or improvements in documentation
 
-<!--## Version / Date DD-MM-YYYY -->
-## Since last release
-### Bug Fixes
-* [#260] - Fix bug where `import` statements would fail due to circular imports by [@Yoshanuikabundi]
+<!-- ## Since last release -->
 
-## 0.2.1 / 04-05-2023
+<!-- ## Version / Date DD-MM-YYYY -->
+
+## 0.2.2 / 08-05-2023
+
+### Bug Fixes
+* [#260] - Fix bug where some `import` statements would fail due to circular imports by [@Yoshanuikabundi]
+
+## 0.2.1 / 05-04-2023
 
 ### New Features
 * [#199] - Add option to always keep temporary files by [@Yoshanuikabundi]
@@ -25,14 +29,14 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#212] - Update Psi4 installation instructions by [@mattwthompson]
 * [#226] - Fix typo in theory docs by [@xperrylinn]
 
-## 0.2.0 / 12-13-2022
+## 0.2.0 / 13-12-2022
 
 ### New Features
 
 * [#198] - Compatibility OpenFF Toolkit 0.11.x [@Yoshanuikabundi]
 
 
-## 0.1.3 / 11-23-2022
+## 0.1.3 / 23-11-2022
 
 ### Bug Fixes and New Features
 
@@ -48,7 +52,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#192] - Add FAQ [@Yoshanuikabundi]
 
 
-## 0.1.2 / 05-17-2022
+## 0.1.2 / 17-05-2022
 
 ### Bug Fixes and New Features
 
@@ -65,7 +69,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#172] - Update quick start guide to use Psi4/AmberTools stack [@j-wags]
 
 
-## 0.1.1 / 03-18-2022
+## 0.1.1 / 18-03-2022
 
 ### Bug Fixes
 
@@ -81,7 +85,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#145] - Add option to `list` CLI to filter by status [@SimonBoothroyd]
 * [#146] - Force field combining [@jthorton]
 
-## 0.1.0 / 02-23-2022
+## 0.1.0 / 23-02-2022
 
 The first major release of bespokefit intended for public use.
 
