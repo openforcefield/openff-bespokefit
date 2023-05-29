@@ -41,7 +41,7 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
     if output_file_path is None and force_field_path is None:
         raise click.UsageError(
             "At least one of the `--output` and `--force-field` flags should be "
-            "specified."
+            "specified.",
         )
 
     from openff.bespokefit.executor import BespokeExecutor
@@ -71,7 +71,7 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
                 f"outputs have been saved to "
                 f"[repr.filename]{output_file_path}[/repr.filename]",
                 (1, 0, 1, 0),
-            )
+            ),
         )
 
         with open(output_file_path, "w") as file:

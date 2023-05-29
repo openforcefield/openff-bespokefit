@@ -29,10 +29,14 @@ def test_default_workflow_up_to_date():
     current_default_workflow = BespokeWorkflowFactory().json(sort_keys=True, indent=2)
 
     with open(
-        get_data_file_path(os.path.join("schemas", "default.json"), "openff.bespokefit")
+        get_data_file_path(
+            os.path.join("schemas", "default.json"), "openff.bespokefit"
+        ),
     ) as file:
         default_workflow_from_file = json.dumps(
-            json.load(file), sort_keys=True, indent=2
+            json.load(file),
+            sort_keys=True,
+            indent=2,
         )
 
     assert current_default_workflow == default_workflow_from_file
@@ -67,7 +71,11 @@ def test_default_workflow_up_to_date():
     ],
 )
 def test_to_input_schema_mutual_exclusive_args(
-    workflow_name, workflow_file_name, expected_message, expected_raises, output_is_none
+    workflow_name,
+    workflow_file_name,
+    expected_message,
+    expected_raises,
+    output_is_none,
 ):
     console = rich.get_console()
 
@@ -248,7 +256,7 @@ def test_submit_invalid_schema(tmpdir):
                 get_data_file_path(
                     os.path.join("test", "molecules", "ethane.sdf"),
                     package_name="openff.bespokefit",
-                )
+                ),
             ],
             [],
             id="file path",
@@ -314,7 +322,8 @@ def test_submit_cli(runner, tmpdir):
         m.post(mock_href, text=CoordinatorPOSTResponse(self="", id="1").json())
 
         output = runner.invoke(
-            submit_cli, args=["--file", input_file_path, "--workflow", "debug"]
+            submit_cli,
+            args=["--file", input_file_path, "--workflow", "debug"],
         )
 
     assert output.exit_code == 0

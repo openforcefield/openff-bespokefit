@@ -17,7 +17,7 @@ from pydantic import ValidationError, parse_file_as
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.cli.utilities import (
     create_command,
@@ -70,7 +70,8 @@ def update_from_qcsubmit_options(
             "--qcf-datatype",
             "qcf_datatype",
             type=click.Choice(
-                ["torsion", "optimization", "hessian"], case_sensitive=False
+                ["torsion", "optimization", "hessian"],
+                case_sensitive=False,
             ),
             help="The type of dataset to cache.",
             required=False,
@@ -147,11 +148,14 @@ def _update(
 
     if input_file_path is not None:
         qcsubmit_result = _results_from_file(
-            console=console, input_file_path=input_file_path
+            console=console,
+            input_file_path=input_file_path,
         )
     else:
         client = _connect_to_qcfractal(
-            console=console, qcf_address=qcf_address, qcf_config=qcf_config
+            console=console,
+            qcf_address=qcf_address,
+            qcf_config=qcf_config,
         )
 
         qcsubmit_result = _results_from_client(
@@ -167,7 +171,8 @@ def _update(
     settings = current_settings()
 
     if launch_redis_if_unavailable and not is_redis_available(
-        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        host=settings.BEFLOW_REDIS_ADDRESS,
+        port=settings.BEFLOW_REDIS_PORT,
     ):
         redis_log_file = open("redis.log", "w")
 
@@ -198,7 +203,8 @@ def _update(
 
 
 def _results_from_file(
-    console: "rich.Console", input_file_path: str
+    console: "rich.Console",
+    input_file_path: str,
 ) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
     """
     Try and build a qcsubmit results object from a local file.
@@ -211,14 +217,14 @@ def _results_from_file(
             )
             console.print(
                 f"[[green]✓[/green]] [repr.filename]{input_file_path}[/repr.filename] "
-                f"loaded as a `{qcsubmit_result.__class__.__name__}`."
+                f"loaded as a `{qcsubmit_result.__class__.__name__}`.",
             )
         except ValidationError as e:
             exit_with_messages(
                 Padding(
                     f"[[red]ERROR[/red]] The result file [repr.filename]"
                     f"{input_file_path}[/repr.filename] could not be loaded into "
-                    f"QCSubmit"
+                    f"QCSubmit",
                 ),
                 Padding(str(e), (1, 1, 1, 1)),
                 console=console,
@@ -246,7 +252,7 @@ def _connect_to_qcfractal(
             exit_with_messages(
                 Padding(
                     "[[red]ERROR[/red]] Unable to connect to QCFractal due to the "
-                    "following error."
+                    "following error.",
                 ),
                 Padding(str(e), (1, 1, 1, 1)),
                 console=console,
@@ -269,11 +275,15 @@ def _results_from_client(
     with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
         if qcf_datatype == "torsion":
             qcsubmit_result = TorsionDriveResultCollection.from_server(
-                client=client, datasets=qcf_dataset_name, spec_name=qcf_specification
+                client=client,
+                datasets=qcf_dataset_name,
+                spec_name=qcf_specification,
             )
         elif qcf_datatype == "optimization":
             qcsubmit_result = OptimizationResultCollection.from_server(
-                client=client, datasets=qcf_dataset_name, spec_name=qcf_specification
+                client=client,
+                datasets=qcf_dataset_name,
+                spec_name=qcf_specification,
             )
         else:
             raise NotImplementedError()
@@ -296,7 +306,7 @@ def _update_from_qcsubmit_result(
     with console.status("building local results"):
         try:
             local_data = LocalQCData.from_remote_records(
-                qc_records=qcsubmit_results.to_records()
+                qc_records=qcsubmit_results.to_records(),
             )
             console.print("[[green]✓[/green]] local results built")
         except BaseException as e:
@@ -313,7 +323,8 @@ def _update_from_qcsubmit_result(
 
     new_results = 0
     for result in track(
-        local_data.qc_records, description="[green]Processing results..."
+        local_data.qc_records,
+        description="[green]Processing results...",
     ):
         task = task_from_result(result=result)
         con_task = _canonicalize_task(task=task)
@@ -338,7 +349,7 @@ def _update_from_qcsubmit_result(
             new_results += 1
 
     console.print(
-        f"[[green]✓[/green]] [blue]{new_results}[/blue]/[cyan]{len(local_data.qc_records)}[/cyan] results cached"
+        f"[[green]✓[/green]] [blue]{new_results}[/blue]/[cyan]{len(local_data.qc_records)}[/cyan] results cached",
     )
 
     console.print(Padding("4. saving local cache", (1, 0, 1, 0)))

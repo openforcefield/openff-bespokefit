@@ -48,13 +48,16 @@ api_router.get("")(lambda: {})
 
 api_router.include_router(__load_router(__settings.BEFLOW_COORDINATOR_ROUTER))
 api_router.include_router(
-    __load_router(__settings.BEFLOW_FRAGMENTER_ROUTER), tags=["fragmenter"]
+    __load_router(__settings.BEFLOW_FRAGMENTER_ROUTER),
+    tags=["fragmenter"],
 )
 api_router.include_router(
-    __load_router(__settings.BEFLOW_QC_COMPUTE_ROUTER), tags=["qcgenerator"]
+    __load_router(__settings.BEFLOW_QC_COMPUTE_ROUTER),
+    tags=["qcgenerator"],
 )
 api_router.include_router(
-    __load_router(__settings.BEFLOW_OPTIMIZER_ROUTER), tags=["optimizer"]
+    __load_router(__settings.BEFLOW_OPTIMIZER_ROUTER),
+    tags=["optimizer"],
 )
 
 app.include_router(api_router)
@@ -92,11 +95,11 @@ def wait_for_gateway(n_retries: int = 40):
     for _ in range(n_retries):
         try:
             ping = requests.get(
-                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}"
+                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}",
             )
             ping.raise_for_status()
 
-        except IOError:
+        except OSError:
             time.sleep(0.25)
             continue
 

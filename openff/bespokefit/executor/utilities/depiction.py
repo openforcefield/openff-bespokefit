@@ -6,7 +6,7 @@ IMAGE_UNAVAILABLE_SVG = """
 """
 
 
-def _oe_smiles_to_image(smiles: str, highlight_atoms: Tuple[int]) -> str:
+def _oe_smiles_to_image(smiles: str, highlight_atoms: tuple[int]) -> str:
     from openeye import oechem, oedepict
 
     image = oedepict.OEImage(200, 200)
@@ -49,7 +49,7 @@ def _oe_smiles_to_image(smiles: str, highlight_atoms: Tuple[int]) -> str:
     return svg_content.decode()
 
 
-def _rd_smiles_to_image(smiles: str, highlight_atoms: Tuple[int]) -> str:
+def _rd_smiles_to_image(smiles: str, highlight_atoms: tuple[int]) -> str:
     from rdkit import Chem
     from rdkit.Chem.Draw import rdMolDraw2D
 
@@ -83,7 +83,7 @@ def _rd_smiles_to_image(smiles: str, highlight_atoms: Tuple[int]) -> str:
 
 
 @functools.lru_cache(100000)
-def smiles_to_image(smiles: str, highlight_atoms: Optional[Tuple[int]] = None):
+def smiles_to_image(smiles: str, highlight_atoms: Optional[tuple[int]] = None):
     highlight_atoms = tuple() if highlight_atoms is None else highlight_atoms
 
     try:

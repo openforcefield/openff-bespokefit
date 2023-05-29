@@ -60,7 +60,7 @@ def ptp1b_input_schema_single(ptp1b_smiles) -> BespokeOptimizationSchema:
                 parameters=[],
                 parameter_hyperparameters=[ProperTorsionHyperparameters()],
                 targets=[],
-            )
+            ),
         ],
         smiles="[H:30][c:1]1[c:2]([c:6]([c:11]([c:7]([c:3]1[H:32])[H:36])[C:17](=[O:24])[N:21]([H:41])[c:12]2[c:8]"
         "([c:4]([c:5]([c:10]([c:9]2[H:38])[C:13]3=[C:15]([C:14](=[C:16]([S:28]3)[C:18](=[O:25])[O-:22])[O:27]"
@@ -81,6 +81,6 @@ def ptp1b_input_schema_multiple(ptp1b_input_schema_single) -> BespokeOptimizatio
             parameters=[],
             parameter_hyperparameters=[BondHyperparameters()],
             targets=[],
-        )
+        ),
     )
     return input_schema

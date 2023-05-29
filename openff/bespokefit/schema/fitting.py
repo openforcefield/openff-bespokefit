@@ -6,7 +6,7 @@ from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from pydantic import Field, conlist
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.schema.optimizers import OptimizerSchema
@@ -36,19 +36,19 @@ class OptimizationStageSchema(SchemaBase, abc.ABC):
     # TODO: Add a validator to make sure that for each type of parameter in
     #       ``parameters`` there is a corresponding setting in
     #       ``parameter_hyperparameters``.
-    parameters: List[SMIRNOFFParameter] = Field(
+    parameters: list[SMIRNOFFParameter] = Field(
         ...,
         description="A list of the specific force field parameters that should be "
         "optimized.",
     )
-    parameter_hyperparameters: List[SMIRNOFFHyperparameters] = Field(
+    parameter_hyperparameters: list[SMIRNOFFHyperparameters] = Field(
         ...,
         description="The hyperparameters that describe how classes of parameters, e.g. "
         "the force constant and length of a bond parameter, should be restrained during "
         "the optimisation such as through the inclusion of harmonic priors.",
     )
 
-    targets: List[TargetSchema] = Field(
+    targets: list[TargetSchema] = Field(
         [],
         description="The fittings targets to simultaneously optimize against.",
     )
@@ -67,7 +67,8 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     type: Literal["base"] = "base"
 
     id: Optional[str] = Field(
-        None, description="The unique id given to this optimization."
+        None,
+        description="The unique id given to this optimization.",
     )
 
     initial_force_field: str = Field(
@@ -86,7 +87,7 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     @property
     def initial_parameter_values(
         self,
-    ) -> Dict[BaseSMIRKSParameter, Dict[str, unit.Quantity]]:
+    ) -> dict[BaseSMIRKSParameter, dict[str, unit.Quantity]]:
         """A list of the initial force field parameters that will be optimized."""
 
         initial_force_field = ForceField(self.initial_force_field)
@@ -136,7 +137,7 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "molecule. If no engine is provided the molecules will not be fragmented.",
     )
 
-    target_torsion_smirks: Optional[List[str]] = Field(
+    target_torsion_smirks: Optional[list[str]] = Field(
         ...,
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "
@@ -158,7 +159,7 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         return Molecule.from_mapped_smiles(self.smiles)
 
     @property
-    def target_smirks(self) -> List[SMIRKSType]:
+    def target_smirks(self) -> list[SMIRKSType]:
         """Returns a list of the target smirks types based on the selected hyper parameters.
         Used to determine which parameters should be fit.
         """
@@ -167,5 +168,5 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
                 SMIRKSType(parameter.type)
                 for stage in self.stages
                 for parameter in stage.parameter_hyperparameters
-            }
+            },
         )

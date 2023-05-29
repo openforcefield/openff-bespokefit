@@ -22,7 +22,8 @@ def forcebalance_results_directory(tmpdir):
     # copy the file over
     shutil.copy(
         get_data_file_path(
-            os.path.join("test", "force-balance", "complete.out"), "openff.bespokefit"
+            os.path.join("test", "force-balance", "complete.out"),
+            "openff.bespokefit",
         ),
         os.path.join(tmpdir, "optimize.out"),
     )
@@ -33,7 +34,8 @@ def forcebalance_results_directory(tmpdir):
 
     shutil.copy(
         get_data_file_path(
-            os.path.join("test", "force-fields", "bespoke.offxml"), "openff.bespokefit"
+            os.path.join("test", "force-fields", "bespoke.offxml"),
+            "openff.bespokefit",
         ),
         os.path.join(results_folder, "force-field.offxml"),
     )
@@ -80,7 +82,8 @@ def test_forcebalance_schema_class():
     [
         pytest.param(("complete.out", "success", None), id="Complete run"),
         pytest.param(
-            ("error.out", "errored", "ConvergenceFailure"), id="Convergence error"
+            ("error.out", "errored", "ConvergenceFailure"),
+            id="Convergence error",
         ),
         pytest.param(("running.out", "running", None), id="Running "),
     ],
@@ -94,7 +97,8 @@ def test_forcebalance_read_output(output):
         # copy the output file over
         shutil.copy(
             get_data_file_path(
-                os.path.join("test", "force-balance", file_name), "openff.bespokefit"
+                os.path.join("test", "force-balance", file_name),
+                "openff.bespokefit",
             ),
             "optimize.out",
         )
@@ -123,7 +127,9 @@ def test_forcebalance_read_output(output):
     ["bespoke_optimization_schema", "general_optimization_schema"],
 )
 def test_forcebalance_collect_general_results(
-    input_schema_fixture, forcebalance_results_directory, request
+    input_schema_fixture,
+    forcebalance_results_directory,
+    request,
 ):
     """Test trying to collect results that have been successful and updated the
     parameters.
@@ -162,7 +168,9 @@ def test_forcebalance_collect_general_results(
 
 
 def test_forcebalance_optimize(
-    forcebalance_results_directory, general_optimization_schema, monkeypatch
+    forcebalance_results_directory,
+    general_optimization_schema,
+    monkeypatch,
 ):
     # Patch the call to ForceBalance so that it doesn't need to run.
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)

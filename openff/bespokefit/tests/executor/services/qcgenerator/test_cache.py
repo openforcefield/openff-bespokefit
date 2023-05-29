@@ -57,7 +57,11 @@ def test_canonicalize_torsion_task():
     ],
 )
 def test_cached_compute_task(
-    qcgenerator_client, redis_connection, monkeypatch, task, compute_function
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    task,
+    compute_function,
 ):
     mock_celery_task(worker, compute_function, monkeypatch, "task-1")
 

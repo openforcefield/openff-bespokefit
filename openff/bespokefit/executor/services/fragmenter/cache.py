@@ -8,7 +8,8 @@ from openff.bespokefit.executor.services.fragmenter.models import FragmenterPOST
 
 
 def cached_fragmentation_task(
-    task: FragmenterPOSTBody, redis_connection: redis.Redis
+    task: FragmenterPOSTBody,
+    redis_connection: redis.Redis,
 ) -> str:
     """
     Check if the fragmentation has been done before if not send it to a worker.

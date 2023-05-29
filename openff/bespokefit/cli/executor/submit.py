@@ -95,8 +95,8 @@ def _to_input_schema(
     console: "rich.Console",
     molecule: "Molecule",
     force_field_path: Optional[str],
-    target_torsion_smirks: Tuple[str],
-    default_qc_spec: Optional[Tuple[str, str, str]],
+    target_torsion_smirks: tuple[str],
+    default_qc_spec: Optional[tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
 ) -> "BespokeOptimizationSchema":
@@ -143,7 +143,7 @@ def _to_input_schema(
                     method=method,
                     basis=basis,
                     spec_description="CLI provided spec",
-                )
+                ),
             ]
 
     except FileNotFoundError:
@@ -188,16 +188,16 @@ def _to_input_schema(
 
 def _submit(
     console: "rich.Console",
-    input_file_path: Optional[List[str]],
-    molecule_smiles: Optional[List[str]],
+    input_file_path: Optional[list[str]],
+    molecule_smiles: Optional[list[str]],
     force_field_path: Optional[str],
-    target_torsion_smirks: Tuple[str],
-    default_qc_spec: Optional[Tuple[str, str, str]],
+    target_torsion_smirks: tuple[str],
+    default_qc_spec: Optional[tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     allow_multiple_molecules: bool,
     save_submission: bool,
-) -> List[str]:
+) -> list[str]:
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
@@ -220,7 +220,7 @@ def _submit(
     if molecule_smiles:
         with console.status("creating molecule from smiles"):
             all_molecules.extend(
-                [Molecule.from_smiles(smiles) for smiles in molecule_smiles]
+                [Molecule.from_smiles(smiles) for smiles in molecule_smiles],
             )
 
     if not allow_multiple_molecules and len(all_molecules) > 1:
@@ -239,7 +239,7 @@ def _submit(
             )
 
     console.print(
-        f"[[green]✓[/green]] [blue]{len(all_molecules)}[/blue] molecules found"
+        f"[[green]✓[/green]] [blue]{len(all_molecules)}[/blue] molecules found",
     )
 
     input_schemas = []
@@ -259,7 +259,7 @@ def _submit(
                 default_qc_spec,
                 workflow_name,
                 workflow_file_name,
-            )
+            ),
         )
 
     console.print("[[green]✓[/green]] fitting schemas generated")
@@ -306,18 +306,18 @@ def _submit(
                         molecule.to_smiles(explicit_hydrogens=False, mapped=False),
                         molecule.name,
                         molecule.properties.get("input_file", ""),
-                    ]
+                    ],
                 )
 
     return response_ids
 
 
 def _submit_cli(
-    input_file_path: Optional[List[str]],
-    molecule_smiles: Optional[List[str]],
-    force_field_path: Optional[List[str]],
-    target_torsion_smirks: Tuple[str],
-    default_qc_spec: Optional[Tuple[str, str, str]],
+    input_file_path: Optional[list[str]],
+    molecule_smiles: Optional[list[str]],
+    force_field_path: Optional[list[str]],
+    target_torsion_smirks: tuple[str],
+    default_qc_spec: Optional[tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     save_submission: bool,

@@ -66,7 +66,8 @@ def test_label_molecule():
 
     ethane = Molecule.from_file(
         file_path=get_data_file_path(
-            os.path.join("test", "molecules", "ethane.sdf"), "openff.bespokefit"
+            os.path.join("test", "molecules", "ethane.sdf"),
+            "openff.bespokefit",
         ),
         file_format="sdf",
     )

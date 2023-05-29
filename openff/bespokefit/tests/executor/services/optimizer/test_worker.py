@@ -28,13 +28,14 @@ def test_optimize(monkeypatch):
             OptimizationStageSchema(
                 parameters=[
                     ProperTorsionSMIRKS(
-                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
-                    )
+                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]",
+                        attributes={"k1"},
+                    ),
                 ],
                 parameter_hyperparameters=[],
                 targets=[],
                 optimizer=ForceBalanceSchema(max_iterations=1),
-            )
+            ),
         ],
         fragmentation_engine=WBOFragmenter(),
     )
@@ -47,14 +48,17 @@ def test_optimize(monkeypatch):
                 provenance={},
                 status="success",
                 refit_force_field=ForceField("openff-2.0.0.offxml").to_string(),
-            )
+            ),
         ],
     )
 
     received_schema = None
 
     def mock_optimize(
-        schema, initial_force_field, keep_files=False, root_directory=None
+        schema,
+        initial_force_field,
+        keep_files=False,
+        root_directory=None,
     ):
         nonlocal received_schema
         received_schema = schema
@@ -81,7 +85,7 @@ def test_optimise_cache(bespoke_optimization_schema):
     """
 
     result_json = worker.optimize(
-        optimization_input_json=bespoke_optimization_schema.json()
+        optimization_input_json=bespoke_optimization_schema.json(),
     )
     result = BespokeOptimizationResults.parse_raw(result_json)
     assert result.status == "success"

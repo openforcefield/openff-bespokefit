@@ -49,7 +49,8 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
     return TorsionDriveResult(
         keywords=TDKeywords(dihedrals=[(0, 1, 2, 3)], grid_spacing=[15]),
         input_specification=QCInputSpecification(
-            model=Model(method="uff", basis=None), driver=DriverEnum.gradient
+            model=Model(method="uff", basis=None),
+            driver=DriverEnum.gradient,
         ),
         initial_molecule=[molecule.to_qcschema()],
         optimization_spec=OptimizationSpecification(procedure="geometric"),
@@ -70,7 +71,11 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
     ],
 )
 def test_retrieve_qc_result_pending_running_errored(
-    redis_connection, monkeypatch, task_status, task_result, expected_state
+    redis_connection,
+    monkeypatch,
+    task_status,
+    task_result,
+    expected_state,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -88,7 +93,10 @@ def test_retrieve_qc_result_pending_running_errored(
 
 
 def test_retrieve_qc_result_success(
-    qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    mock_atomic_result,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -110,7 +118,10 @@ def test_retrieve_qc_result_success(
 
 
 def test_get_qc_result(
-    qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    mock_atomic_result,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -167,12 +178,17 @@ def test_get_qc_result(
     ],
 )
 def test_post_qc_result(
-    qcgenerator_client, redis_connection, monkeypatch, task, compute_function
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    task,
+    compute_function,
 ):
     submitted_task_kwargs = mock_celery_task(worker, compute_function, monkeypatch)
 
     request = qcgenerator_client.post(
-        "/qc-calcs", data=QCGeneratorPOSTBody(input_schema=task).json()
+        "/qc-calcs",
+        data=QCGeneratorPOSTBody(input_schema=task).json(),
     )
     request.raise_for_status()
 
@@ -202,7 +218,7 @@ def test_get_qc_results(
     redis_connection.hset("qcgenerator:types", "2", "hessian")
 
     request = qcgenerator_client.get(
-        f"/qc-calcs?ids=1&ids=2&results={str(include_result).lower()}"
+        f"/qc-calcs?ids=1&ids=2&results={str(include_result).lower()}",
     )
     request.raise_for_status()
 
@@ -217,7 +233,10 @@ def test_get_qc_results(
 
 
 def test_get_molecule_image_atomic_result(
-    qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    mock_atomic_result,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -234,7 +253,10 @@ def test_get_molecule_image_atomic_result(
 
 
 def test_get_molecule_image_torsion_drive(
-    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    mock_torsion_drive_result,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -251,7 +273,10 @@ def test_get_molecule_image_torsion_drive(
 
 
 def test_get_molecule_image_pending(
-    qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
+    qcgenerator_client,
+    redis_connection,
+    monkeypatch,
+    mock_torsion_drive_result,
 ):
     monkeypatch.setattr(
         AsyncResult,

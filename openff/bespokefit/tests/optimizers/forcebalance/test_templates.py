@@ -86,7 +86,8 @@ def test_target_template_generate(instance, template_generator, expected_lines):
 
 def test_opt_get_options_generate():
     contents = OptGeoOptionsTemplate.generate(
-        target=OptGeoTargetSchema(), record_ids=["a", "b"]
+        target=OptGeoTargetSchema(),
+        record_ids=["a", "b"],
     )
 
     assert len(contents) > 0
@@ -101,7 +102,9 @@ def test_opt_get_options_generate():
 
 def test_input_options_generation():
     contents = InputOptionsTemplate.generate(
-        settings=ForceBalanceSchema(), targets_section="", priors={"a": 0.1}
+        settings=ForceBalanceSchema(),
+        targets_section="",
+        priors={"a": 0.1},
     )
     assert len(contents) > 0
 

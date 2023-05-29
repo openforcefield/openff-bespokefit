@@ -330,7 +330,7 @@ def get_root():
         if me_dir != vsr_dir:
             print(
                 "Warning: build in %s is using versioneer.py from %s"
-                % (os.path.dirname(me), versioneer_py)
+                % (os.path.dirname(me), versioneer_py),
             )
     except NameError:
         pass
@@ -1209,7 +1209,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
     if verbose:
         print(
             "Tried directories %s but none started with prefix %s"
-            % (str(rootdirs), parentdir_prefix)
+            % (str(rootdirs), parentdir_prefix),
         )
     raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
 
@@ -1240,11 +1240,11 @@ def versions_from_file(filename):
     except EnvironmentError:
         raise NotThisMethod("unable to read _version.py")
     mo = re.search(
-        r"version_json = '''\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
+        r"version_json = '''\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S,
     )
     if not mo:
         mo = re.search(
-            r"version_json = '''\r\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
+            r"version_json = '''\r\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S,
         )
     if not mo:
         raise NotThisMethod("no version_json in _version.py")
@@ -1636,7 +1636,7 @@ def get_cmdclass():
                             "TAG_PREFIX": cfg.tag_prefix,
                             "PARENTDIR_PREFIX": cfg.parentdir_prefix,
                             "VERSIONFILE_SOURCE": cfg.versionfile_source,
-                        }
+                        },
                     )
 
         cmds["build_exe"] = cmd_build_exe
@@ -1669,7 +1669,7 @@ def get_cmdclass():
                             "TAG_PREFIX": cfg.tag_prefix,
                             "PARENTDIR_PREFIX": cfg.parentdir_prefix,
                             "VERSIONFILE_SOURCE": cfg.versionfile_source,
-                        }
+                        },
                     )
 
         cmds["py2exe"] = cmd_py2exe
@@ -1699,7 +1699,7 @@ def get_cmdclass():
             target_versionfile = os.path.join(base_dir, cfg.versionfile_source)
             print("UPDATING %s" % target_versionfile)
             write_to_version_file(
-                target_versionfile, self._versioneer_generated_versions
+                target_versionfile, self._versioneer_generated_versions,
             )
 
     cmds["sdist"] = cmd_sdist
@@ -1779,7 +1779,7 @@ def do_setup():
                 "TAG_PREFIX": cfg.tag_prefix,
                 "PARENTDIR_PREFIX": cfg.parentdir_prefix,
                 "VERSIONFILE_SOURCE": cfg.versionfile_source,
-            }
+            },
         )
 
     ipy = os.path.join(os.path.dirname(cfg.versionfile_source), "__init__.py")
@@ -1826,7 +1826,7 @@ def do_setup():
     if cfg.versionfile_source not in simple_includes:
         print(
             " appending versionfile_source ('%s') to MANIFEST.in"
-            % cfg.versionfile_source
+            % cfg.versionfile_source,
         )
         with open(manifest_in, "a") as f:
             f.write("include %s\n" % cfg.versionfile_source)

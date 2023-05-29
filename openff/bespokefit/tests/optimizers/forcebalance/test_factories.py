@@ -28,7 +28,7 @@ from openff.bespokefit.schema.targets import (
 )
 
 
-def read_qdata(qdata_file: str) -> Tuple[List[np.array], List[float], List[np.array]]:
+def read_qdata(qdata_file: str) -> tuple[list[np.array], list[float], list[np.array]]:
     """
     Read a torsiondrive and forcebalance qdata files and return the geometry energy and gradients.
 
@@ -66,7 +66,7 @@ def test_local_to_qc_records(result_fixture, request):
     assert expected_molecule.n_conformers >= 1
 
     [(qc_record, molecule)] = _TargetFactory._local_to_qc_records(
-        LocalQCData(qc_records=[qc_result])
+        LocalQCData(qc_records=[qc_result]),
     )
 
     assert type(qc_record) == type(qc_result)
@@ -82,7 +82,8 @@ def test_local_to_qc_records(result_fixture, request):
 
 @skip_if_missing("openeye.oechem")
 @pytest.mark.parametrize(
-    "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
+    "result_fixture",
+    ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"],
 )
 @pytest.mark.parametrize("with_gradients", [False, True])
 def test_generate_ab_initio_target(result_fixture, with_gradients, request):
@@ -90,7 +91,8 @@ def test_generate_ab_initio_target(result_fixture, with_gradients, request):
 
     with temporary_cd():
         AbInitioTargetFactory._generate_target(
-            AbInitioTargetSchema(), [qc_torsion_drive_record]
+            AbInitioTargetSchema(),
+            [qc_torsion_drive_record],
         )
 
         assert os.path.isfile("scan.xyz")
@@ -104,10 +106,12 @@ def test_generate_ab_initio_target(result_fixture, with_gradients, request):
         pdb_molecule = Molecule.from_file("conf.pdb")
 
         isomorphic, atom_map = Molecule.are_isomorphic(
-            original_molecule, pdb_molecule, return_atom_map=True
+            original_molecule,
+            pdb_molecule,
+            return_atom_map=True,
         )
         assert isomorphic is True
-        assert atom_map == dict((i, i) for i in range(original_molecule.n_atoms))
+        assert atom_map == {i: i for i in range(original_molecule.n_atoms)}
 
         # make sure the scan coords and energies match
         coords, energies, gradients = read_qdata(qdata_file="qdata.txt")
@@ -139,14 +143,16 @@ def test_generate_ab_initio_target(result_fixture, with_gradients, request):
 
 @skip_if_missing("openeye.oechem")
 @pytest.mark.parametrize(
-    "result_fixture", ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"]
+    "result_fixture",
+    ["qc_torsion_drive_record", "qc_torsion_drive_qce_result"],
 )
 def test_generate_torsion_target(result_fixture, request):
     qc_torsion_drive_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
         TorsionProfileTargetFactory._generate_target(
-            TorsionProfileTargetSchema(), [qc_torsion_drive_record]
+            TorsionProfileTargetSchema(),
+            [qc_torsion_drive_record],
         )
 
         assert os.path.isfile("scan.xyz")
@@ -160,10 +166,12 @@ def test_generate_torsion_target(result_fixture, request):
         pdb_molecule = Molecule.from_file("conf.pdb")
 
         isomorphic, atom_map = Molecule.are_isomorphic(
-            original_molecule, pdb_molecule, return_atom_map=True
+            original_molecule,
+            pdb_molecule,
+            return_atom_map=True,
         )
         assert isomorphic is True
-        assert atom_map == dict((i, i) for i in range(original_molecule.n_atoms))
+        assert atom_map == {i: i for i in range(original_molecule.n_atoms)}
 
         with open("metadata.json") as file:
             metadata = json.load(file)
@@ -174,7 +182,8 @@ def test_generate_torsion_target(result_fixture, request):
 
 
 @pytest.mark.parametrize(
-    "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
+    "result_fixture",
+    ["qc_optimization_record", "qc_optimization_qce_result"],
 )
 def test_generate_optimization_target(result_fixture, request):
     qc_optimization_record = request.getfixturevalue(result_fixture)
@@ -200,14 +209,16 @@ def test_generate_optimization_target(result_fixture, request):
 
 
 @pytest.mark.parametrize(
-    "result_fixture", ["qc_optimization_record", "qc_optimization_qce_result"]
+    "result_fixture",
+    ["qc_optimization_record", "qc_optimization_qce_result"],
 )
 def test_opt_geo_batching(result_fixture, request):
     qc_optimization_record = request.getfixturevalue(result_fixture)
     qc_records = [qc_optimization_record] * 120
 
     target_batches = OptGeoTargetFactory._batch_qc_records(
-        OptGeoTargetSchema(extras={"batch_size": "51"}), qc_records
+        OptGeoTargetSchema(extras={"batch_size": "51"}),
+        qc_records,
     )
 
     assert len(target_batches) == 3
@@ -221,7 +232,8 @@ def test_opt_geo_target_section():
     target_schema = OptGeoTargetSchema(extras={"batch_size": "51"})
 
     target_section = OptGeoTargetFactory._generate_targets_section(
-        target_schema, ["target-1"]
+        target_schema,
+        ["target-1"],
     )
 
     assert "batch_size" not in target_section
@@ -229,14 +241,16 @@ def test_opt_geo_target_section():
 
 
 @pytest.mark.parametrize(
-    "result_fixture", ["qc_hessian_record", "qc_hessian_qce_result"]
+    "result_fixture",
+    ["qc_hessian_record", "qc_hessian_qce_result"],
 )
 def test_generate_vibration_target(result_fixture, request):
     qc_hessian_record = request.getfixturevalue(result_fixture)
 
     with temporary_cd():
         VibrationTargetFactory._generate_target(
-            VibrationTargetSchema(), [qc_hessian_record]
+            VibrationTargetSchema(),
+            [qc_hessian_record],
         )
 
         assert os.path.isfile("vdata.txt")

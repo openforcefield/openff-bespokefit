@@ -15,11 +15,13 @@ class OptimizerGETResponse(Link):
     status: Status = Field("waiting", description="The status of the optimization.")
 
     result: Optional[BespokeOptimizationResults] = Field(
-        ..., description="The result of the optimization if any was produced."
+        ...,
+        description="The result of the optimization if any was produced.",
     )
 
     error: Optional[str] = Field(
-        ..., description="The error raised while optimizing if any."
+        ...,
+        description="The error raised while optimizing if any.",
     )
 
 
@@ -27,7 +29,8 @@ class OptimizerPOSTBody(BaseModel):
     """The object model expected by a POST request."""
 
     input_schema: BespokeOptimizationSchema = Field(
-        ..., description="The schema that fully defines optimization to perform."
+        ...,
+        description="The schema that fully defines optimization to perform.",
     )
 
 

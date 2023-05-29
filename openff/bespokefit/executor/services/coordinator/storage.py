@@ -43,8 +43,8 @@ def get_task(task_id: Union[str, int]) -> CoordinatorTask:
 def get_task_ids(
     skip: int = 0,
     limit: Optional[int] = None,
-    status: Optional[Union[TaskStatus, Set[TaskStatus]]] = None,
-) -> List[int]:
+    status: Optional[Union[TaskStatus, set[TaskStatus]]] = None,
+) -> list[int]:
     connection = connect_to_default_redis()
 
     possible_status = [TaskStatus.waiting, TaskStatus.running, TaskStatus.complete]
@@ -68,7 +68,7 @@ def get_task_ids(
 def create_task(
     input_schema: BespokeOptimizationSchema,
     stages: Optional[
-        List[Union[FragmentationStage, QCGenerationStage, OptimizationStage]]
+        list[Union[FragmentationStage, QCGenerationStage, OptimizationStage]]
     ] = None,
 ) -> int:
     connection = connect_to_default_redis()

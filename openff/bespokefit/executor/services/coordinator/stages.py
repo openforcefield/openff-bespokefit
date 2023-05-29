@@ -17,7 +17,7 @@ from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
@@ -71,7 +71,8 @@ class _Stage(BaseModel, abc.ABC):
     status: Status = Field("waiting", description="The status of this stage.")
 
     error: Optional[str] = Field(
-        None, description="The error raised, if any, while running this stage."
+        None,
+        description="The error raised, if any, while running this stage.",
     )
 
     async def enter(self, task: "CoordinatorTask"):
@@ -145,7 +146,7 @@ class FragmentationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_FRAGMENTER_PREFIX}/{self.id}"
+                f"{settings.BEFLOW_FRAGMENTER_PREFIX}/{self.id}",
             )
 
             if raw_response.status_code != 200:
@@ -168,7 +169,7 @@ class FragmentationStage(_Stage):
                 "No fragments could be generated for the parent molecule. This likely "
                 "means that the bespoke parameters that you have generated and are "
                 "trying to fit are invalid. Please raise an issue on the GitHub issue "
-                "tracker for further assistance."
+                "tracker for further assistance.",
             )
             self.status = "errored"
 
@@ -180,17 +181,17 @@ class FragmentationStage(_Stage):
 class QCGenerationStage(_Stage):
     type: Literal["qc-generation"] = "qc-generation"
 
-    ids: Optional[Dict[int, List[str]]] = Field(None, description="")
+    ids: Optional[dict[int, list[str]]] = Field(None, description="")
 
     results: Optional[
-        Dict[str, Union[AtomicResult, OptimizationResult, TorsionDriveResult]]
+        dict[str, Union[AtomicResult, OptimizationResult, TorsionDriveResult]]
     ] = Field(None, description="")
 
     @staticmethod
     def _generate_torsion_parameters(
         fragmentation_result: FragmentationResult,
         input_schema: BespokeOptimizationSchema,
-    ) -> Tuple[List[ParameterType], List[Fragment]]:
+    ) -> tuple[list[ParameterType], list[Fragment]]:
         """
         Generate torsion parameters for the fragments using any possible cached parameters.
 
@@ -207,12 +208,14 @@ class QCGenerationStage(_Stage):
         cached_torsions = None
 
         if is_redis_available(
-            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+            host=settings.BEFLOW_REDIS_ADDRESS,
+            port=settings.BEFLOW_REDIS_PORT,
         ):
             redis_connection = connect_to_default_redis()
 
             cached_force_field = get_cached_parameters(
-                fitting_schema=input_schema, redis_connection=redis_connection
+                fitting_schema=input_schema,
+                redis_connection=redis_connection,
             )
             if cached_force_field is not None:
                 cached_torsions = cached_force_field["ProperTorsions"].parameters
@@ -265,7 +268,7 @@ class QCGenerationStage(_Stage):
     async def _generate_parameters(
         input_schema: BespokeOptimizationSchema,
         fragmentation_result: Optional[FragmentationResult],
-    ) -> List[Fragment]:
+    ) -> list[Fragment]:
         """
         Generate a list of parameters which are to be optimised, these are added to the input force field.
         The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
@@ -298,7 +301,7 @@ class QCGenerationStage(_Stage):
             )
 
             parameters = smirks_gen.generate_smirks_from_molecule(
-                molecule=input_schema.molecule
+                molecule=input_schema.molecule,
             )
             new_parameters.extend(parameters)
 
@@ -316,7 +319,7 @@ class QCGenerationStage(_Stage):
         parameters_to_fit = defaultdict(list)
         for parameter in new_parameters:
             bespoke_parameter = parameter_to_type[parameter.__class__].from_smirnoff(
-                parameter
+                parameter,
             )
             # We only want to fit if it was not cached
             if not bespoke_parameter.cached:
@@ -355,7 +358,7 @@ class QCGenerationStage(_Stage):
             self.status = "errored"
             self.error = json.dumps(
                 f"Failed to generate SMIRKS patterns that match both the parent and "
-                f"torsion fragments: {str(e)}"
+                f"torsion fragments: {str(e)}",
             )
 
             return
@@ -430,7 +433,7 @@ class QCGenerationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}?ids={id_query}"
+                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}?ids={id_query}",
             )
             contents = raw_response.text
 
@@ -471,11 +474,13 @@ class OptimizationStage(_Stage):
     type: Literal["optimization"] = "optimization"
 
     id: Optional[str] = Field(
-        None, description="The id of the optimization associated with this stage."
+        None,
+        description="The id of the optimization associated with this stage.",
     )
 
     result: Optional[BespokeOptimizationResults] = Field(
-        None, description="The result of the optimization."
+        None,
+        description="The result of the optimization.",
     )
 
     @staticmethod
@@ -483,7 +488,7 @@ class OptimizationStage(_Stage):
         qc_generation_stage: QCGenerationStage,
         input_schema: BespokeOptimizationSchema,
     ):
-        targets: List[TargetSchema] = [
+        targets: list[TargetSchema] = [
             target for stage in input_schema.stages for target in stage.targets
         ]
         for i, target in enumerate(targets):
@@ -497,7 +502,7 @@ class OptimizationStage(_Stage):
                 qc_records=[
                     qc_generation_stage.results[result_id]
                     for result_id in qc_generation_stage.ids[i]
-                ]
+                ],
             )
 
             target.reference_data = local_qc_data
@@ -513,7 +518,7 @@ class OptimizationStage(_Stage):
             raise RuntimeError(
                 f"{n_targets_missing_qc_data} targets were missing QC data - this "
                 f"should likely never happen. Please raise an issue on the GitHub "
-                f"issue tracker."
+                f"issue tracker.",
             )
 
     async def _enter(self, task: "CoordinatorTask"):
@@ -533,7 +538,7 @@ class OptimizationStage(_Stage):
             self.status = "errored"
             self.error = json.dumps(
                 f"Failed to inject the bespoke QC data into the optimization "
-                f"schema: {str(e)}"
+                f"schema: {str(e)}",
             )
 
             return
@@ -545,7 +550,8 @@ class OptimizationStage(_Stage):
                 f"{settings.BEFLOW_API_V1_STR}/"
                 f"{settings.BEFLOW_OPTIMIZER_PREFIX}",
                 data=serialize(
-                    OptimizerPOSTBody(input_schema=input_schema), encoding="json"
+                    OptimizerPOSTBody(input_schema=input_schema),
+                    encoding="json",
                 ),
             )
 
@@ -569,7 +575,7 @@ class OptimizationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_OPTIMIZER_PREFIX}/{self.id}"
+                f"{settings.BEFLOW_OPTIMIZER_PREFIX}/{self.id}",
             )
             contents = raw_response.text
 

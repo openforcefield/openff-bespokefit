@@ -61,7 +61,9 @@ class TestTorsionDriveProcedureParallel:
         )
 
         results = procedure._spawn_optimizations(
-            {"(0,)": [[0], [1]], "(1,)": [[2], [3]]}, input_schema, task_config
+            {"(0,)": [[0], [1]], "(1,)": [[2], [3]]},
+            input_schema,
+            task_config,
         )
 
         assert results == {"(0,)": [0, 1], "(1,)": [2, 3]}

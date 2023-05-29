@@ -46,8 +46,11 @@ def test_combine_local_and_tasks(tmpdir, runner, bespoke_optimization_results):
             smiles="CC",
             stages=[
                 CoordinatorGETStageStatus(
-                    type="optimization", status="success", error=None, results=None
-                )
+                    type="optimization",
+                    status="success",
+                    error=None,
+                    results=None,
+                ),
             ],
             results=bespoke_optimization_results,
         )

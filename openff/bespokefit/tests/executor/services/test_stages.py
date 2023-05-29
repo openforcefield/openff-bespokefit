@@ -10,18 +10,19 @@ def test_generate_torsions(ptp1b_fragment, ptp1b_input_schema_single):
     """
     input_schema = ptp1b_input_schema_single.copy(deep=True)
     new_parameters, _ = QCGenerationStage._generate_torsion_parameters(
-        fragmentation_result=ptp1b_fragment, input_schema=input_schema
+        fragmentation_result=ptp1b_fragment,
+        input_schema=input_schema,
     )[0]
     # now check the new smirks hits the fragment and parent, for the same atoms
     parent_matches = set(
         ptp1b_fragment.parent_molecule.chemical_environment_matches(
-            new_parameters.smirks
-        )
+            new_parameters.smirks,
+        ),
     )
     fragment_matches = set(
         ptp1b_fragment.fragments[0].molecule.chemical_environment_matches(
-            new_parameters.smirks
-        )
+            new_parameters.smirks,
+        ),
     )
     # check number of unique matches is the same
     assert len(parent_matches) == len(fragment_matches)
@@ -34,7 +35,8 @@ async def test_generate_parameters(ptp1b_input_schema_single, ptp1b_fragment):
     """
     input_schema = ptp1b_input_schema_single.copy(deep=True)
     await QCGenerationStage._generate_parameters(
-        fragmentation_result=ptp1b_fragment, input_schema=input_schema
+        fragmentation_result=ptp1b_fragment,
+        input_schema=input_schema,
     )
     # make sure we have new parameters
     new_smirks = {parameter.smirks for parameter in input_schema.stages[0].parameters}
@@ -56,7 +58,8 @@ async def test_generate_parameters(ptp1b_input_schema_single, ptp1b_fragment):
     assert len(new_smirks) == 2
     # make sure the smirks have been added to the force field
     force_field = ForceField(
-        input_schema.initial_force_field, allow_cosmetic_attributes=True
+        input_schema.initial_force_field,
+        allow_cosmetic_attributes=True,
     )
     torsion_handler = force_field.get_parameter_handler("ProperTorsions")
     for smirks in new_smirks:
@@ -65,15 +68,18 @@ async def test_generate_parameters(ptp1b_input_schema_single, ptp1b_fragment):
 
 @pytest.mark.asyncio
 async def test_generate_parameters_multiple_stages(
-    ptp1b_input_schema_multiple, ptp1b_fragment
+    ptp1b_input_schema_multiple,
+    ptp1b_fragment,
 ):
     """Make sure parameters are correctly generated and assigned to the correct optimisation stage."""
     input_schema = ptp1b_input_schema_multiple.copy(deep=True)
     await QCGenerationStage._generate_parameters(
-        fragmentation_result=ptp1b_fragment, input_schema=input_schema
+        fragmentation_result=ptp1b_fragment,
+        input_schema=input_schema,
     )
     force_field = ForceField(
-        input_schema.initial_force_field, allow_cosmetic_attributes=True
+        input_schema.initial_force_field,
+        allow_cosmetic_attributes=True,
     )
     # make sure we have the correct type of smirks for the hyper parameters
     for stage in input_schema.stages:

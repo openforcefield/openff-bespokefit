@@ -60,7 +60,8 @@ def test_check_force_field(force_field):
     [
         pytest.param(("ForceBalance", does_not_raise()), id="Forcebalance string pass"),
         pytest.param(
-            ("BadOptimizer", pytest.raises(OptimizerError)), id="Missing optimizer"
+            ("BadOptimizer", pytest.raises(OptimizerError)),
+            id="Missing optimizer",
         ),
         pytest.param(
             (ForceBalanceSchema(), does_not_raise()),
@@ -102,7 +103,8 @@ def test_check_target_torsion_smirks():
         pytest.param(
             dict(fragmentation_engine=WBOFragmenter(), target_torsion_smirks=None),
             pytest.raises(
-                MissingTorsionTargetSMARTS, match="The `target_torsion_smirks`"
+                MissingTorsionTargetSMARTS,
+                match="The `target_torsion_smirks`",
             ),
             id="Fragmenter, no torsion smirks",
         ),
@@ -113,7 +115,8 @@ def test_check_target_torsion_smirks():
                 parameter_hyperparameters=[ProperTorsionHyperparameters()],
             ),
             pytest.raises(
-                MissingTorsionTargetSMARTS, match="The `target_torsion_smirks`"
+                MissingTorsionTargetSMARTS,
+                match="The `target_torsion_smirks`",
             ),
             id="No frgamenter, no target torsions",
         ),
@@ -158,7 +161,8 @@ def test_export_factory(filename):
     "molecules",
     [
         get_data_file_path(
-            os.path.join("test", "molecules", "ethanol.sdf"), "openff.bespokefit"
+            os.path.join("test", "molecules", "ethanol.sdf"),
+            "openff.bespokefit",
         ),
         Molecule.from_smiles("C"),
         [Molecule.from_smiles("C")] * 2,
@@ -204,7 +208,8 @@ def test_optimization_schemas_from_molecule(func_name):
     assert opt_schema.stages[0].n_targets == 1
     assert isinstance(opt_schema.stages[0].targets[0].reference_data, BespokeQCData)
     assert isinstance(
-        opt_schema.stages[0].targets[0].reference_data.spec, Torsion1DTaskSpec
+        opt_schema.stages[0].targets[0].reference_data.spec,
+        Torsion1DTaskSpec,
     )
 
 
@@ -247,7 +252,9 @@ def test_optimization_schemas_from_molecule(func_name):
     ],
 )
 def test_optimization_schema_from_molecule_fragmentation(
-    workflow_settings, expected_output, bace
+    workflow_settings,
+    expected_output,
+    bace,
 ):
     """
     Test creating the optimization schema from a molecule with different fragmentation settings.
@@ -308,7 +315,9 @@ def test_optimization_schemas_from_results(qc_torsion_drive_results):
     factory = BespokeWorkflowFactory(optimizer=ForceBalanceSchema())
 
     schemas = factory.optimization_schemas_from_results(
-        results=qc_torsion_drive_results, combine=True, processors=1
+        results=qc_torsion_drive_results,
+        combine=True,
+        processors=1,
     )
 
     assert len(schemas) == 1

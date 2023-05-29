@@ -40,7 +40,7 @@ def post_optimization(body: OptimizerPOSTBody) -> OptimizerPOSTResponse:
     # parameters
 
     task = worker.optimize.delay(
-        optimization_input_json=serialize(body.input_schema, "json")
+        optimization_input_json=serialize(body.input_schema, "json"),
     )
     return OptimizerPOSTResponse(
         id=task.id,

@@ -2,7 +2,7 @@ import abc
 from typing import Dict, Union
 
 from pydantic import Field, PositiveFloat, PositiveInt
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
@@ -13,7 +13,8 @@ class BaseOptimizerSchema(SchemaBase, abc.ABC):
     type: Literal["base"] = "base"
 
     max_iterations: PositiveInt = Field(
-        10, description="The maximum number of optimization iterations to perform."
+        10,
+        description="The maximum number of optimization iterations to perform.",
     )
 
 
@@ -28,19 +29,23 @@ class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
     type: Literal["ForceBalance"] = "ForceBalance"
 
     job_type: Literal["optimize", "single"] = Field(
-        "optimize", description="The mode to run force balance in."
+        "optimize",
+        description="The mode to run force balance in.",
     )
 
     penalty_type: Literal["L1", "L2"] = Field("L2", description="The penalty type.")
 
     step_convergence_threshold: PositiveFloat = Field(
-        0.01, description="The step size convergence criterion."
+        0.01,
+        description="The step size convergence criterion.",
     )
     objective_convergence_threshold: PositiveFloat = Field(
-        0.01, description="The objective function convergence criterion."
+        0.01,
+        description="The objective function convergence criterion.",
     )
     gradient_convergence_threshold: PositiveFloat = Field(
-        0.01, description="The gradient norm convergence criterion."
+        0.01,
+        description="The gradient norm convergence criterion.",
     )
 
     n_criteria: PositiveInt = Field(
@@ -72,7 +77,8 @@ class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
         "good or bad step.",
     )
     minimum_trust_radius: float = Field(
-        0.05, description="The minimum value of the optimizers adaptive trust radius."
+        0.05,
+        description="The minimum value of the optimizers adaptive trust radius.",
     )
 
     error_tolerance: PositiveFloat = Field(
@@ -87,14 +93,16 @@ class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
         "bad step.",
     )
     adaptive_damping: PositiveFloat = Field(
-        1.0, description="A damping factor that restraints the trust radius to trust0."
+        1.0,
+        description="A damping factor that restraints the trust radius to trust0.",
     )
 
     normalize_weights: bool = Field(
-        False, description="Whether to normalize the weights for the fitting targets"
+        False,
+        description="Whether to normalize the weights for the fitting targets",
     )
 
-    extras: Dict[str, str] = Field(
+    extras: dict[str, str] = Field(
         {},
         description="Extra settings (mostly logging settings) to include in the "
         "ForceBalance input file.",

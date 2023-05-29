@@ -46,11 +46,12 @@ def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
             f"fragment-{i}-image": (
                 __settings.BEFLOW_API_V1_STR
                 + __GET_FRAGMENT_IMAGE_ENDPOINT.format(
-                    fragmentation_id=fragmentation_id, fragment_id=i
+                    fragmentation_id=fragmentation_id,
+                    fragment_id=i,
                 )
             )
             for i, fragment in enumerate(
-                [] if task_result is None else task_result["fragments"]
+                [] if task_result is None else task_result["fragments"],
             )
         },
     )
@@ -62,7 +63,8 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
     # parameters
 
     task_id = cached_fragmentation_task(
-        task=body, redis_connection=connect_to_default_redis()
+        task=body,
+        redis_connection=connect_to_default_redis(),
     )
     return FragmenterPOSTResponse(
         id=task_id,

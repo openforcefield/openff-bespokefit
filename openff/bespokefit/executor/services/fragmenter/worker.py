@@ -15,13 +15,16 @@ from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.utilities.molecule import get_atom_symmetries
 
 celery_app = configure_celery_app(
-    "fragmenter", connect_to_default_redis(validate=False)
+    "fragmenter",
+    connect_to_default_redis(validate=False),
 )
 
 
 @celery_app.task(acks_late=True)
 def fragment(
-    cmiles: str, fragmenter_json: str, target_bond_smarts: Optional[List[str]]
+    cmiles: str,
+    fragmenter_json: str,
+    target_bond_smarts: Optional[list[str]],
 ) -> str:
     from openff.toolkit.topology import Molecule
 
@@ -30,10 +33,11 @@ def fragment(
     if fragmenter_json != "null":
         # normal pathway
         fragmenter = parse_raw_as(
-            Union[PfizerFragmenter, WBOFragmenter], fragmenter_json
+            Union[PfizerFragmenter, WBOFragmenter],
+            fragmenter_json,
         )
         return _deduplicate_fragments(
-            fragmenter.fragment(molecule, target_bond_smarts=target_bond_smarts)
+            fragmenter.fragment(molecule, target_bond_smarts=target_bond_smarts),
         ).json()
 
     elif fragmenter_json == "null" and target_bond_smarts:
@@ -52,7 +56,7 @@ def fragment(
                     smiles=molecule.to_smiles(mapped=True),
                     # map indices are index + 1
                     bond_indices=(bond[0] + 1, bond[1] + 1),
-                )
+                ),
             )
         result = FragmentationResult(
             parent_smiles=molecule.to_smiles(mapped=True),
@@ -95,11 +99,12 @@ def _deduplicate_fragments(
             fragment_mol = fragment.molecule
             # get the index of the atoms in the fragment
             atom1, atom2 = get_atom_index(fragment_mol, bond_map[0]), get_atom_index(
-                fragment_mol, bond_map[1]
+                fragment_mol,
+                bond_map[1],
             )
             symmetry_classes = get_atom_symmetries(fragment_mol)
             symmetry_group = tuple(
-                sorted([symmetry_classes[atom1], symmetry_classes[atom2]])
+                sorted([symmetry_classes[atom1], symmetry_classes[atom2]]),
             )
             if symmetry_group not in symmetry_groups:
                 symmetry_groups.add(symmetry_group)

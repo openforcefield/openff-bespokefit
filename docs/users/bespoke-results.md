@@ -18,6 +18,7 @@ Or using the Python API:
 
 ```python
 from openff.bespokefit.executor import BespokeExecutor
+
 output = BespokeExecutor.retrieve(optimization_id="1")
 ```
 
@@ -26,6 +27,7 @@ line interface, the output is saved to a JSON file that can easily be loaded bac
 
 ```python
 from openff.bespokefit.executor import BespokeExecutorOutput
+
 output = BespokeExecutorOutput.parse_file("output.json")
 ```
 

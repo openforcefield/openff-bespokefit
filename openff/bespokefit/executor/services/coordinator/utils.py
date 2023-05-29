@@ -19,14 +19,15 @@ def _hash_fitting_schema(fitting_schema: BespokeOptimizationSchema) -> str:
     for stage in fitting_schema.stages:
         # drop the reference data form each target and the parameters from each stage
         hash_string += stage.json(
-            exclude={"targets": {"__all__": {"reference_data"}}, "parameters": ...}
+            exclude={"targets": {"__all__": {"reference_data"}}, "parameters": ...},
         )
     hash_string = hashlib.sha512(hash_string.encode()).hexdigest()
     return hash_string
 
 
 def get_cached_parameters(
-    fitting_schema: BespokeOptimizationSchema, redis_connection: redis.Redis
+    fitting_schema: BespokeOptimizationSchema,
+    redis_connection: redis.Redis,
 ) -> Optional[ForceField]:
     """
     For the given fitting schema create a hash and check for a cached force field which contains a set of fit torsion parameters.
@@ -40,7 +41,8 @@ def get_cached_parameters(
 
 
 def cache_parameters(
-    results_schema: BespokeOptimizationResults, redis_connection: redis.Redis
+    results_schema: BespokeOptimizationResults,
+    redis_connection: redis.Redis,
 ) -> str:
     """
     Cache any fitted torsion parameters saved in the final refit force field.
@@ -69,11 +71,12 @@ def cache_parameters(
             except ParameterLookupError:
                 # we need to add the parameter to the cache
                 torsion_handler_cache.add_parameter(
-                    parameter=refit_torsions[parameter.smirks]
+                    parameter=refit_torsions[parameter.smirks],
                 )
 
     # now set the force field back in the cache
     redis_connection.set(
-        hash_string, cached_force_field.to_string(discard_cosmetic_attributes=False)
+        hash_string,
+        cached_force_field.to_string(discard_cosmetic_attributes=False),
     )
     return hash_string

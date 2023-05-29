@@ -7,7 +7,7 @@ from pydantic import Field, conint
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
 
@@ -58,8 +58,9 @@ class Torsion1DTaskSpec(QCGenerationTask):
     type: Literal["torsion1d"] = "torsion1d"
 
     grid_spacing: int = Field(15, description="The spacing between grid angles.")
-    scan_range: Optional[Tuple[int, int]] = Field(
-        None, description="The range of grid angles to scan."
+    scan_range: Optional[tuple[int, int]] = Field(
+        None,
+        description="The range of grid angles to scan.",
     )
 
     optimization_spec: GeometricProcedure = Field(
@@ -79,7 +80,7 @@ class Torsion1DTask(Torsion1DTaskSpec):
         ...,
         description="An indexed SMILES representation of the molecule to drive.",
     )
-    central_bond: Tuple[int, int] = Field(
+    central_bond: tuple[int, int] = Field(
         None,
         description="The **map** indices of the atoms in the bond to scan around.",
     )
@@ -110,7 +111,9 @@ def task_from_result(result):
         off_mol = Molecule.from_qcschema(result.initial_molecule[0])
         return Torsion1DTask(
             smiles=off_mol.to_smiles(
-                isomeric=True, explicit_hydrogens=True, mapped=True
+                isomeric=True,
+                explicit_hydrogens=True,
+                mapped=True,
             ),
             program=result.extras["program"],
             model=result.input_specification.model,
@@ -118,7 +121,7 @@ def task_from_result(result):
             grid_spacing=result.keywords.grid_spacing[0],
             scan_range=result.keywords.dihedral_ranges,
             optimization_spec=GeometricProcedure.from_opt_spec(
-                result.optimization_spec
+                result.optimization_spec,
             ),
         )
     else:

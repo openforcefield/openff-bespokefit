@@ -16,7 +16,7 @@ def _canonicalize_task(task: _T) -> _T:
 
     # Ensure the SMILES has a canonical ordering to help ensure cache hits.
     canonical_molecule = canonical_order_atoms(
-        Molecule.from_smiles(task.smiles, allow_undefined_stereo=True)
+        Molecule.from_smiles(task.smiles, allow_undefined_stereo=True),
     )
 
     if isinstance(task, Torsion1DTask):
@@ -32,14 +32,18 @@ def _canonicalize_task(task: _T) -> _T:
         }
 
         canonical_smiles = canonical_molecule.to_smiles(
-            isomeric=True, explicit_hydrogens=True, mapped=True
+            isomeric=True,
+            explicit_hydrogens=True,
+            mapped=True,
         )
 
         task.central_bond = (1, 2)
 
     else:
         canonical_smiles = canonical_molecule.to_smiles(
-            isomeric=True, explicit_hydrogens=True, mapped=False
+            isomeric=True,
+            explicit_hydrogens=True,
+            mapped=False,
         )
 
     task.smiles = canonical_smiles

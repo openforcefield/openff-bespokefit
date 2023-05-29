@@ -44,8 +44,11 @@ def test_run(runner, tmpdir):
                 smiles="CC",
                 stages=[
                     CoordinatorGETStageStatus(
-                        type="fragmentation", status="success", error=None, results=None
-                    )
+                        type="fragmentation",
+                        status="success",
+                        error=None,
+                        results=None,
+                    ),
                 ],
             ).json(by_alias=True),
         )

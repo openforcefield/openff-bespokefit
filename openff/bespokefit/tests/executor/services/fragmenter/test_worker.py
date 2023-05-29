@@ -29,7 +29,9 @@ def test_fragment():
     result = FragmentationResult.parse_obj(result_dict)
 
     are_isomorphic, _ = Molecule.are_isomorphic(
-        molecule, result.parent_molecule, return_atom_map=True
+        molecule,
+        result.parent_molecule,
+        return_atom_map=True,
     )
 
     assert are_isomorphic
@@ -96,7 +98,7 @@ def test_fragmentation_equivalent_no_symmetry():
         get_data_file_path(
             os.path.join("test", "molecules", "bace", "bace_parent.sdf"),
             "openff.bespokefit",
-        )
+        ),
     )
 
     molecule = Molecule.from_file(
@@ -112,7 +114,7 @@ def test_fragmentation_equivalent_no_symmetry():
 
     result = FragmentationResult.parse_raw(result_json)
     assert len(result.fragments) == 3
-    unique_fragments = set([fragment.molecule for fragment in result.fragments])
+    unique_fragments = {fragment.molecule for fragment in result.fragments}
     assert len(unique_fragments) == 2
     reference_fragments = [
         Molecule.from_file(

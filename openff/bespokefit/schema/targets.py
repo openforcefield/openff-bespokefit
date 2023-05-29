@@ -12,7 +12,7 @@ from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
@@ -81,7 +81,7 @@ def _check_connectivity(
             + f"{expected_connectivity - actual_connectivity}\n"
             + "The following connections were found but not expected: "
             + f"{actual_connectivity - expected_connectivity}\n"
-            + f"The reference geometry is: {qcschema.geometry}"
+            + f"The reference geometry is: {qcschema.geometry}",
         )
 
 
@@ -151,7 +151,8 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
     """The base class for models which store information about fitting targets."""
 
     weight: PositiveFloat = Field(
-        1.0, description="The amount to weight the target by."
+        1.0,
+        description="The amount to weight the target by.",
     )
 
     reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData[Any]]]
@@ -160,7 +161,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         Union[Torsion1DTaskSpec, HessianTaskSpec, OptimizationTaskSpec]
     ]
 
-    extras: Dict[str, str] = Field(
+    extras: dict[str, str] = Field(
         {},
         description="Extra settings to use for the target. Optimizer specific settings "
         "(e.g. whether a target should be set to remote in ForceBalance) should be "
@@ -195,7 +196,7 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _validate_connectivity
+        _validate_connectivity,
     )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
@@ -203,11 +204,13 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
     )
 
     attenuate_weights: bool = Field(
-        True, description="Whether to attenuate the weights as a function of energy."
+        True,
+        description="Whether to attenuate the weights as a function of energy.",
     )
 
     energy_denominator: float = Field(
-        1.0, description="The energy denominator in objective function contribution."
+        1.0,
+        description="The energy denominator in objective function contribution.",
     )
     energy_cutoff: float = Field(10.0, description="The upper energy cutoff.")
 
@@ -233,18 +236,20 @@ class AbInitioTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _validate_connectivity
+        _validate_connectivity,
     )
     calculation_specification: Optional[Torsion1DTaskSpec] = Field(
         None,
         description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
     )
     attenuate_weights: bool = Field(
-        False, description="Whether to attenuate the weights as a function of energy."
+        False,
+        description="Whether to attenuate the weights as a function of energy.",
     )
 
     energy_denominator: float = Field(
-        1.0, description="The energy denominator in objective function contribution."
+        1.0,
+        description="The energy denominator in objective function contribution.",
     )
     energy_cutoff: float = Field(10.0, description="The upper energy cutoff.")
 
@@ -278,7 +283,8 @@ class VibrationTargetSchema(BaseTargetSchema):
     )
 
     mode_reassignment: Optional[Literal["permute", "overlap"]] = Field(
-        None, description="The (optional) method by which to re-assign normal modes."
+        None,
+        description="The (optional) method by which to re-assign normal modes.",
     )
 
     @classmethod
@@ -303,7 +309,7 @@ class OptGeoTargetSchema(BaseTargetSchema):
         "fly) to fit against.",
     )
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
-        _validate_connectivity
+        _validate_connectivity,
     )
     calculation_specification: Optional[OptimizationTaskSpec] = Field(
         None,

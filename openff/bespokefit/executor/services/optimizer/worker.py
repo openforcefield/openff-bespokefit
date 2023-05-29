@@ -28,13 +28,15 @@ def optimize(self, optimization_input_json: str) -> str:
     settings = current_settings()
 
     input_schema = parse_raw_as(
-        Union[BespokeOptimizationSchema], optimization_input_json
+        Union[BespokeOptimizationSchema],
+        optimization_input_json,
     )
     input_schema.id = self.request.id or input_schema.id
 
     # some parameters have a cached attribute
     input_force_field = ForceField(
-        input_schema.initial_force_field, allow_cosmetic_attributes=True
+        input_schema.initial_force_field,
+        allow_cosmetic_attributes=True,
     )
 
     stage_results = []
@@ -50,7 +52,7 @@ def optimize(self, optimization_input_json: str) -> str:
                     status="success",
                     error=None,
                     refit_force_field=input_force_field.to_string(
-                        discard_cosmetic_attributes=True
+                        discard_cosmetic_attributes=True,
                     ),
                 )
             else:
@@ -68,26 +70,29 @@ def optimize(self, optimization_input_json: str) -> str:
                     if result.error is None
                     else RuntimeError(
                         f"{result.error.type}: "
-                        f"{result.error.message}\n{result.error.traceback}"
+                        f"{result.error.message}\n{result.error.traceback}",
                     )
                 )
 
             input_force_field = ForceField(
                 ForceField(
-                    result.refit_force_field, allow_cosmetic_attributes=True
-                ).to_string(discard_cosmetic_attributes=True)
+                    result.refit_force_field,
+                    allow_cosmetic_attributes=True,
+                ).to_string(discard_cosmetic_attributes=True),
             )
 
     result = BespokeOptimizationResults(input_schema=input_schema, stages=stage_results)
     # cache the final parameters
     if (
         is_redis_available(
-            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+            host=settings.BEFLOW_REDIS_ADDRESS,
+            port=settings.BEFLOW_REDIS_PORT,
         )
         and result.refit_force_field is not None
     ):
         cache_parameters(
-            results_schema=result, redis_connection=connect_to_default_redis()
+            results_schema=result,
+            redis_connection=connect_to_default_redis(),
         )
 
     return serialize(

@@ -84,14 +84,14 @@ class BespokeWorkflowFactory(ClassBase):
         description="The optimizer that should be used with the targets already set.",
     )
 
-    target_templates: List[TargetSchema] = Field(
+    target_templates: list[TargetSchema] = Field(
         [TorsionProfileTargetSchema()],
         description="Templates for the fitting targets to use as part of the "
         "optimization. The ``reference_data`` attribute of each schema will be "
         "automatically populated by this factory.",
     )
 
-    parameter_hyperparameters: List[SMIRNOFFHyperparameters] = Field(
+    parameter_hyperparameters: list[SMIRNOFFHyperparameters] = Field(
         [
             ProperTorsionHyperparameters(),
         ],
@@ -100,7 +100,7 @@ class BespokeWorkflowFactory(ClassBase):
         "optimisation such as through the inclusion of harmonic priors.",
     )
 
-    target_torsion_smirks: Optional[List[str]] = Field(
+    target_torsion_smirks: Optional[list[str]] = Field(
         [_DEFAULT_ROTATABLE_SMIRKS],
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "
@@ -123,7 +123,7 @@ class BespokeWorkflowFactory(ClassBase):
         "we use the WBO fragmenter by the Open Force Field Consortium.",
     )
 
-    default_qc_specs: List[QCSpec] = Field(
+    default_qc_specs: list[QCSpec] = Field(
         default_factory=lambda: [QCSpec()],
         description="The default specification (e.g. method, basis) to use when "
         "performing any new QC calculations. If multiple specs are provided, each spec "
@@ -157,15 +157,16 @@ class BespokeWorkflowFactory(ClassBase):
         if optimizer.type.lower() not in list_optimizers():
             raise OptimizerError(
                 f"The requested optimizer {optimizer.type} was not registered "
-                f"with bespokefit."
+                f"with bespokefit.",
             )
 
         return optimizer
 
     @validator("target_torsion_smirks")
     def _check_target_torsion_smirks(
-        cls, values: Optional[List[str]]
-    ) -> Optional[List[str]]:
+        cls,
+        values: Optional[list[str]],
+    ) -> Optional[list[str]]:
         if values:
             return [validate_smirks(value, 2) for value in values]
         return values
@@ -178,7 +179,7 @@ class BespokeWorkflowFactory(ClassBase):
         # now check we have targets in each optimizer
         if len(self.target_templates) == 0:
             raise OptimizerError(
-                "There are no optimization targets in the optimization workflow."
+                "There are no optimization targets in the optimization workflow.",
             )
         elif self.target_torsion_smirks is None:
             if (
@@ -189,21 +190,24 @@ class BespokeWorkflowFactory(ClassBase):
                 # 1 We wish to fragment to molecule
                 # 2 We do not want to fragment but still want to fit torsions
                 raise MissingTorsionTargetSMARTS(
-                    "The `target_torsion_smirks` have not been set and are required for this workflow."
+                    "The `target_torsion_smirks` have not been set and are required for this workflow.",
                 )
         elif len(self.parameter_hyperparameters) == 0:
             raise TargetNotSetError(
                 "There are no parameter settings specified which will mean that the "
-                "optimiser has no parameters to optimize."
+                "optimiser has no parameters to optimize.",
             )
         else:
             return
 
     @property
-    def target_smirks(self) -> List[SMIRKSType]:
+    def target_smirks(self) -> list[SMIRKSType]:
         """Returns a list of the target smirks types based on the selected hyper parameters."""
         return list(
-            {SMIRKSType(parameter.type) for parameter in self.parameter_hyperparameters}
+            {
+                SMIRKSType(parameter.type)
+                for parameter in self.parameter_hyperparameters
+            },
         )
 
     def to_file(self, file_name: str) -> None:
@@ -228,7 +232,8 @@ class BespokeWorkflowFactory(ClassBase):
 
     @classmethod
     def _deduplicated_list(
-        cls, molecules: Union[Molecule, List[Molecule], str]
+        cls,
+        molecules: Union[Molecule, list[Molecule], str],
     ) -> ComponentResult:
         """
         Create a deduplicated list of molecules based on the input type.
@@ -259,9 +264,9 @@ class BespokeWorkflowFactory(ClassBase):
 
     def optimization_schemas_from_molecules(
         self,
-        molecules: Union[Molecule, List[Molecule]],
+        molecules: Union[Molecule, list[Molecule]],
         processors: Optional[int] = 1,
-    ) -> List[BespokeOptimizationSchema]:
+    ) -> list[BespokeOptimizationSchema]:
         """This is the main function of the workflow which takes the general fitting
         meta-template and generates a specific one for the set of molecules that are
         passed.
@@ -299,7 +304,9 @@ class BespokeWorkflowFactory(ClassBase):
         return optimization_schemas
 
     def optimization_schema_from_molecule(
-        self, molecule: Molecule, index: int = 0
+        self,
+        molecule: Molecule,
+        index: int = 0,
     ) -> Optional[BespokeOptimizationSchema]:
         """Build an optimization schema from an input molecule this involves
         fragmentation.
@@ -315,7 +322,7 @@ class BespokeWorkflowFactory(ClassBase):
         results: QCResultCollection,
         combine: bool = False,
         processors: Optional[int] = 1,
-    ) -> List[BespokeOptimizationSchema]:
+    ) -> list[BespokeOptimizationSchema]:
         """
         Create a set of optimization schemas (one per molecule) from some results.
 
@@ -346,8 +353,10 @@ class BespokeWorkflowFactory(ClassBase):
 
     @classmethod
     def _group_records(
-        cls, records: List[Tuple[QCResultRecord, Molecule]], combine
-    ) -> List[List[Tuple[QCResultRecord, Molecule]]]:
+        cls,
+        records: list[tuple[QCResultRecord, Molecule]],
+        combine,
+    ) -> list[list[tuple[QCResultRecord, Molecule]]]:
         """Group the result records into a list that can be processed into a fitting
         schema, combining results collected for the same molecule when requested.
         """
@@ -372,7 +381,7 @@ class BespokeWorkflowFactory(ClassBase):
 
     def _optimization_schema_from_records(
         self,
-        records: List[Tuple[QCResultRecord, Molecule]],
+        records: list[tuple[QCResultRecord, Molecule]],
         index: int,
     ) -> BespokeOptimizationSchema:
         """
@@ -400,7 +409,7 @@ class BespokeWorkflowFactory(ClassBase):
             record_type_label = {TorsionDriveRecord: "torsion1d"}[record_type]
 
             local_qc_data[record_type_label] = LocalQCData.from_remote_records(
-                records_of_type
+                records_of_type,
             )
 
         opt_schema = self._build_optimization_schema(
@@ -417,7 +426,7 @@ class BespokeWorkflowFactory(ClassBase):
 
         if len(self.default_qc_specs) != 1:
             raise NotImplementedError(
-                "Currently only a single default QC spec must be specified."
+                "Currently only a single default QC spec must be specified.",
             )
 
         return self.default_qc_specs[0]
@@ -426,15 +435,15 @@ class BespokeWorkflowFactory(ClassBase):
         self,
         molecule: Molecule,
         index: int,
-        local_qc_data: Optional[Dict[str, LocalQCData]] = None,
+        local_qc_data: Optional[dict[str, LocalQCData]] = None,
     ) -> BespokeOptimizationSchema:
         """For a given molecule schema build an optimization schema."""
 
         force_field_editor = ForceFieldEditor(self.initial_force_field)
         ff_hash = hashlib.sha512(
             force_field_editor.force_field.to_string(
-                discard_cosmetic_attributes=True
-            ).encode()
+                discard_cosmetic_attributes=True,
+            ).encode(),
         ).hexdigest()
 
         # Populate the targets
@@ -496,7 +505,7 @@ class BespokeWorkflowFactory(ClassBase):
                     parameters=[],
                     parameter_hyperparameters=self.parameter_hyperparameters,
                     targets=targets,
-                )
+                ),
             ],
             fragmentation_engine=self.fragmentation_engine,
             target_torsion_smirks=target_torsion_smirks,

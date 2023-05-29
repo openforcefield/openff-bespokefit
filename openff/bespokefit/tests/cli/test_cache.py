@@ -47,7 +47,8 @@ def test_results_from_file(filename, expected_raises, output):
 
     with console.capture() as capture:
         file_path = get_data_file_path(
-            os.path.join("test", "schemas", filename), package_name="openff.bespokefit"
+            os.path.join("test", "schemas", filename),
+            package_name="openff.bespokefit",
         )
 
         with expected_raises:
@@ -82,7 +83,9 @@ def test_connecting_to_fractal_address(address, expected_raises, expected_output
     with console.capture() as capture:
         with expected_raises:
             _ = _connect_to_qcfractal(
-                console=console, qcf_address=address, qcf_config=None
+                console=console,
+                qcf_address=address,
+                qcf_config=None,
             )
     assert expected_output in capture.get().replace("\n", "")
 
@@ -116,7 +119,7 @@ def test_update_from_qcsubmit(redis_connection):
         get_data_file_path(
             os.path.join("test", "schemas", "torsion_collection.json"),
             package_name="openff.bespokefit",
-        )
+        ),
     )
 
     with console.capture() as capture:

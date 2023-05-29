@@ -48,7 +48,10 @@ def _raise(exception):
     ],
 )
 def test_handle_common_errors(
-    inner_func, expected_text, expected_state, expected_raises
+    inner_func,
+    expected_text,
+    expected_state,
+    expected_raises,
 ):
     console = rich.get_console()
     pretty.install(console)

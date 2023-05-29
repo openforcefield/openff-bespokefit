@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pydantic import Field
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
 
@@ -13,5 +13,6 @@ class Error(BaseModel):
     message: str = Field(..., description="The message associated with the exception.")
 
     traceback: Optional[str] = Field(
-        None, description="The traceback associated with the exception"
+        None,
+        description="The traceback associated with the exception",
     )

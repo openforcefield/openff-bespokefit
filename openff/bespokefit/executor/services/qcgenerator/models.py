@@ -3,7 +3,7 @@ from typing import Dict, Optional, Union
 from pydantic import Field
 from qcelemental.models import AtomicResult, FailedOperation, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
@@ -15,7 +15,8 @@ class QCGeneratorGETResponse(Link):
     """The object model returned by a GET request."""
 
     type: Literal["torsion1d", "optimization", "hessian"] = Field(
-        ..., description="The type of QC calculation being run."
+        ...,
+        description="The type of QC calculation being run.",
     )
 
     status: Status = Field("waiting", description="The status of the QC calculation.")
@@ -25,11 +26,14 @@ class QCGeneratorGETResponse(Link):
     ] = Field(..., description="The result of the QC calculation if any was produced.")
 
     error: Optional[str] = Field(
-        ..., description="The error raised while running the QC calculation if any."
+        ...,
+        description="The error raised while running the QC calculation if any.",
     )
 
-    links: Dict[str, str] = Field(
-        {}, description="Links to resources associated with the model.", alias="_links"
+    links: dict[str, str] = Field(
+        {},
+        description="Links to resources associated with the model.",
+        alias="_links",
     )
 
 
@@ -39,7 +43,8 @@ class QCGeneratorGETPageResponse(PaginatedCollection[QCGeneratorGETResponse]):
 
 class QCGeneratorPOSTBody(BaseModel):
     input_schema: Union[HessianTask, OptimizationTask, Torsion1DTask] = Field(
-        ..., description="The schema that fully defines the QC data to generate."
+        ...,
+        description="The schema that fully defines the QC data to generate.",
     )
 
 

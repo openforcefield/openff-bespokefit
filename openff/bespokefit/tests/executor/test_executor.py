@@ -39,8 +39,11 @@ def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
         smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
-                type="fragmentation", status=stage_status, error=None, results=None
-            )
+                type="fragmentation",
+                status=stage_status,
+                error=None,
+                results=None,
+            ),
         ],
     )
 
@@ -56,8 +59,10 @@ class TestBespokeExecutorOutput:
             smiles="CC",
             stages=[
                 BespokeExecutorStageOutput(
-                    type="fragmentation", status="success", error=None
-                )
+                    type="fragmentation",
+                    status="success",
+                    error=None,
+                ),
             ],
             results=bespoke_optimization_results,
         )
@@ -68,8 +73,10 @@ class TestBespokeExecutorOutput:
                 smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="success", error=None
-                    )
+                        type="fragmentation",
+                        status="success",
+                        error=None,
+                    ),
                 ],
                 results=bespoke_optimization_results,
             ).bespoke_force_field,
@@ -80,8 +87,10 @@ class TestBespokeExecutorOutput:
                 smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="success", error=None
-                    )
+                        type="fragmentation",
+                        status="success",
+                        error=None,
+                    ),
                 ],
                 results=None,
             ).bespoke_force_field
@@ -94,29 +103,24 @@ class TestBespokeExecutorOutput:
             (
                 [
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="waiting", error=None
-                    )
+                        type="fragmentation",
+                        status="waiting",
+                        error=None,
+                    ),
                 ],
                 "waiting",
             ),
             (
                 [
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="success", error=None
+                        type="fragmentation",
+                        status="success",
+                        error=None,
                     ),
                     BespokeExecutorStageOutput(
-                        type="qc-generation", status="waiting", error=None
-                    ),
-                ],
-                "running",
-            ),
-            (
-                [
-                    BespokeExecutorStageOutput(
-                        type="fragmentation", status="success", error=None
-                    ),
-                    BespokeExecutorStageOutput(
-                        type="qc-generation", status="running", error=None
+                        type="qc-generation",
+                        status="waiting",
+                        error=None,
                     ),
                 ],
                 "running",
@@ -124,10 +128,29 @@ class TestBespokeExecutorOutput:
             (
                 [
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="errored", error=None
+                        type="fragmentation",
+                        status="success",
+                        error=None,
                     ),
                     BespokeExecutorStageOutput(
-                        type="qc-generation", status="waiting", error=None
+                        type="qc-generation",
+                        status="running",
+                        error=None,
+                    ),
+                ],
+                "running",
+            ),
+            (
+                [
+                    BespokeExecutorStageOutput(
+                        type="fragmentation",
+                        status="errored",
+                        error=None,
+                    ),
+                    BespokeExecutorStageOutput(
+                        type="qc-generation",
+                        status="waiting",
+                        error=None,
                     ),
                 ],
                 "errored",
@@ -135,8 +158,10 @@ class TestBespokeExecutorOutput:
             (
                 [
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="success", error=None
-                    )
+                        type="fragmentation",
+                        status="success",
+                        error=None,
+                    ),
                 ],
                 "success",
             ),
@@ -153,8 +178,10 @@ class TestBespokeExecutorOutput:
                 smiles="CC",
                 stages=[
                     BespokeExecutorStageOutput(
-                        type="fragmentation", status="errored", error="general error"
-                    )
+                        type="fragmentation",
+                        status="errored",
+                        error="general error",
+                    ),
                 ],
                 results=None,
             ).error
@@ -169,10 +196,13 @@ class TestBespokeExecutorOutput:
                 smiles="CC",
                 stages=[
                     CoordinatorGETStageStatus(
-                        type="fragmentation", status="running", error=None, results=None
-                    )
+                        type="fragmentation",
+                        status="running",
+                        error=None,
+                        results=None,
+                    ),
                 ],
-            )
+            ),
         )
         assert len(output.stages) == 1
         assert output.stages[0].type == "fragmentation"
@@ -213,7 +243,8 @@ class TestBespokeExecutor:
         monkeypatch.setattr(executor_module, "launch_redis", mock_launch_redis)
 
         executor = BespokeExecutor(
-            directory=None, launch_redis_if_unavailable=launch_redis_if_unavailable
+            directory=None,
+            launch_redis_if_unavailable=launch_redis_if_unavailable,
         )
         executor._launch_redis()
 
@@ -334,8 +365,11 @@ def test_query_coordinator():
         smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
-                type="fragmentation", status="running", error=None, results=None
-            )
+                type="fragmentation",
+                status="running",
+                error=None,
+                results=None,
+            ),
         ],
     )
 
@@ -370,8 +404,11 @@ def test_wait_for_stage(status):
         smiles="CC",
         stages=[
             CoordinatorGETStageStatus(
-                type="fragmentation", status="running", error=None, results=None
-            )
+                type="fragmentation",
+                status="running",
+                error=None,
+                results=None,
+            ),
         ],
     )
 

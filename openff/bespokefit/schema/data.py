@@ -14,7 +14,7 @@ from qcelemental.models.procedures import (
 )
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordStatusEnum, ResultRecord
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
@@ -24,7 +24,10 @@ from openff.bespokefit.schema.tasks import (
 
 QCDataType = TypeVar("QCDataType")
 QCTaskSpec = TypeVar(
-    "QCTaskSpec", HessianTaskSpec, OptimizationTaskSpec, Torsion1DTaskSpec
+    "QCTaskSpec",
+    HessianTaskSpec,
+    OptimizationTaskSpec,
+    Torsion1DTaskSpec,
 )
 
 
@@ -44,23 +47,29 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
 
     type: Literal["local"] = "local"
 
-    qc_records: List[QCDataType] = Field(..., description="A list of local QC results.")
+    qc_records: list[QCDataType] = Field(..., description="A list of local QC results.")
 
     @classmethod
     def _result_record_to_atomic_result(
-        cls, record: ResultRecord, molecule: Molecule
+        cls,
+        record: ResultRecord,
+        molecule: Molecule,
     ) -> AtomicResult:
         raise NotImplementedError()
 
     @classmethod
     def _optimization_record_to_optimization_result(
-        cls, record: OptimizationRecord, molecule: Molecule
+        cls,
+        record: OptimizationRecord,
+        molecule: Molecule,
     ) -> OptimizationResult:
         raise NotImplementedError()
 
     @classmethod
     def _torsion_drive_record_to_torsion_drive_result(
-        cls, record: TorsionDriveRecord, molecule: Molecule
+        cls,
+        record: TorsionDriveRecord,
+        molecule: Molecule,
     ) -> TorsionDriveResult:
         assert record.status == RecordStatusEnum.complete
         # add the program to the model which we need for the cache
@@ -94,21 +103,24 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     @classmethod
     @overload
     def from_remote_records(
-        cls, qc_records: List[Tuple[TorsionDriveRecord, Molecule]]
+        cls,
+        qc_records: list[tuple[TorsionDriveRecord, Molecule]],
     ) -> "LocalQCData[TorsionDriveResult]":
         ...
 
     @classmethod
     @overload
     def from_remote_records(
-        cls, qc_records: List[Tuple[OptimizationRecord, Molecule]]
+        cls,
+        qc_records: list[tuple[OptimizationRecord, Molecule]],
     ) -> "LocalQCData[OptimizationResult]":
         ...
 
     @classmethod
     @overload
     def from_remote_records(
-        cls, qc_records: List[Tuple[ResultRecord, Molecule]]
+        cls,
+        qc_records: list[tuple[ResultRecord, Molecule]],
     ) -> "LocalQCData[AtomicResult]":
         ...
 
@@ -127,5 +139,5 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
             qc_records=[
                 conversion_functions[record_types[0]](qc_record, molecule)
                 for qc_record, molecule in qc_records
-            ]
+            ],
         )

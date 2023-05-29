@@ -98,7 +98,8 @@ async def cycle():  # pragma: no cover
 
             for _ in range(n_tasks_to_queue):
                 push_task_status(
-                    pop_task_status(TaskStatus.waiting), TaskStatus.running
+                    pop_task_status(TaskStatus.waiting),
+                    TaskStatus.running,
                 )
 
             n_connection_errors = 0
@@ -122,7 +123,7 @@ async def cycle():  # pragma: no cover
             if isinstance(e, redis.exceptions.RedisError):
                 _logger.warning(
                     f"Failed to connect to Redis - {3 - n_connection_errors} attempts "
-                    f"remaining."
+                    f"remaining.",
                 )
 
         await asyncio.sleep(sleep_time)

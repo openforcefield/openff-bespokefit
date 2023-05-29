@@ -16,7 +16,7 @@ import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
 from rich.padding import Padding
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.executor.services import Settings, current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
@@ -77,7 +77,8 @@ class BespokeExecutorStageOutput(BaseModel):
     status: Status = Field(..., description="The status of the stage.")
 
     error: Optional[str] = Field(
-        ..., description="The error, if any, raised by the stage."
+        ...,
+        description="The error, if any, raised by the stage.",
     )
 
 
@@ -91,8 +92,9 @@ class BespokeExecutorOutput(BaseModel):
         "parameters are being generated for.",
     )
 
-    stages: List[BespokeExecutorStageOutput] = Field(
-        ..., description="The outputs from each stage in the bespoke fitting process."
+    stages: list[BespokeExecutorStageOutput] = Field(
+        ...,
+        description="The outputs from each stage in the bespoke fitting process.",
     )
     results: Optional[BespokeOptimizationResults] = Field(
         None,
@@ -108,7 +110,8 @@ class BespokeExecutorOutput(BaseModel):
             return None
 
         return ForceField(
-            self.results.refit_force_field, allow_cosmetic_attributes=True
+            self.results.refit_force_field,
+            allow_cosmetic_attributes=True,
         )
 
     @property
@@ -152,12 +155,12 @@ class BespokeExecutorOutput(BaseModel):
             return None
 
         message = next(
-            iter(stage.error for stage in self.stages if stage.status == "errored")
+            iter(stage.error for stage in self.stages if stage.status == "errored"),
         )
         return "unknown error" if message is None else message
 
     @classmethod
-    def from_response(cls: Type[_T], response: CoordinatorGETResponse) -> _T:
+    def from_response(cls: type[_T], response: CoordinatorGETResponse) -> _T:
         """Creates an instance of this object from the response from a bespoke
         coordinator service."""
 
@@ -165,7 +168,9 @@ class BespokeExecutorOutput(BaseModel):
             smiles=response.smiles,
             stages=[
                 BespokeExecutorStageOutput(
-                    type=stage.type, status=stage.status, error=stage.error
+                    type=stage.type,
+                    status=stage.status,
+                    error=stage.error,
                 )
                 for stage in response.stages
             ],
@@ -226,7 +231,7 @@ class BespokeExecutor:
         self._gateway_process: Optional[multiprocessing.Process] = None
         self._redis_process: Optional[subprocess.Popen] = None
 
-        self._worker_processes: List[multiprocessing.Process] = []
+        self._worker_processes: list[multiprocessing.Process] = []
 
     def _cleanup_processes(self):
         for worker_process in self._worker_processes:
@@ -254,7 +259,8 @@ class BespokeExecutor:
         settings = current_settings()
 
         if self._launch_redis_if_unavailable and not is_redis_available(
-            host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+            host=settings.BEFLOW_REDIS_ADDRESS,
+            port=settings.BEFLOW_REDIS_PORT,
         ):
             redis_log_file = open("redis.log", "w")
 
@@ -292,11 +298,12 @@ class BespokeExecutor:
                 worker_app = getattr(worker_module, "celery_app")
 
                 assert isinstance(
-                    worker_app, celery.Celery
+                    worker_app,
+                    celery.Celery,
                 ), "workers must be celery based"
 
                 self._worker_processes.append(
-                    spawn_worker(worker_app, concurrency=n_workers)
+                    spawn_worker(worker_app, concurrency=n_workers),
                 )
 
     def _start(self, asynchronous=False):
@@ -325,7 +332,9 @@ class BespokeExecutor:
         if asynchronous:
             self._gateway_process = multiprocessing.Process(
                 target=functools.partial(
-                    launch_gateway, directory=self._directory, log_file="gateway.log"
+                    launch_gateway,
+                    directory=self._directory,
+                    log_file="gateway.log",
                 ),
                 daemon=True,
             )
@@ -379,7 +388,7 @@ class BespokeExecutor:
         optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
 
         return BespokeExecutorOutput.from_response(
-            _query_coordinator(optimization_href)
+            _query_coordinator(optimization_href),
         )
 
     def __enter__(self):
@@ -399,7 +408,9 @@ def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
 
 
 def _wait_for_stage(
-    optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
+    optimization_href: str,
+    stage_type: str,
+    frequency: Union[int, float] = 5,
 ) -> CoordinatorGETStageStatus:
     while True:
         response = _query_coordinator(optimization_href)

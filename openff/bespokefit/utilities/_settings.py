@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Optional, Union
 
 from pydantic import BaseSettings, Field
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
 
@@ -12,10 +12,12 @@ class WorkerSettings(BaseModel):
     import_path: str = Field(..., description="The import path to the worker module.")
 
     n_cores: Optional[int] = Field(
-        ..., description="The maximum number of cores available to the worker."
+        ...,
+        description="The maximum number of cores available to the worker.",
     )
     max_memory: Optional[float] = Field(
-        ..., description="The maximum memory [GB] available to the worker *per* core."
+        ...,
+        description="The maximum memory [GB] available to the worker *per* core.",
     )
 
 

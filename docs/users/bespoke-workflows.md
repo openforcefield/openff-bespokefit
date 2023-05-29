@@ -52,7 +52,7 @@ will be generated for rotations around the bond between these atoms:
 ```python
 from openff.fragmenter.fragment import WBOFragmenter
 
-factory.target_torsion_smirks = ['[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]']
+factory.target_torsion_smirks = ["[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"]
 ```
 
 [`target_torsion_smirks`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.target_torsion_smirks
@@ -152,7 +152,7 @@ reference data. Hyperparameter classes inherit from [`BaseSMIRKSHyperparameters`
 torsions, only those hyperparameters are needed; they can be specified via the [`parameter_hyperparameters`] field:
 
 ```python
-from openff.bespokefit.schema.smirnoff import  ProperTorsionHyperparameters
+from openff.bespokefit.schema.smirnoff import ProperTorsionHyperparameters
 
 factory.parameter_hyperparameters = [ProperTorsionHyperparameters()]
 ```
@@ -202,6 +202,7 @@ then be used either with the[`BespokeWorkflowFactory.from_file()`] class method:
 
 ```python
 from openff.bespokefit.workflows import BespokeWorkflowFactory
+
 factory = BespokeWorkflowFactory.from_file("my_bespoke_workflow.json")
 ```
 

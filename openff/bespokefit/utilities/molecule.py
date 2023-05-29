@@ -5,7 +5,7 @@ from openff.toolkit.topology import Molecule
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 
-def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
+def _oe_get_atom_symmetries(molecule: Molecule) -> list[int]:
     from openeye import oechem
 
     oe_mol = molecule.to_openeye()
@@ -17,21 +17,21 @@ def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
     return [symmetry_classes_by_index[i] for i in range(molecule.n_atoms)]
 
 
-def _rd_get_atom_symmetries(molecule: Molecule) -> List[int]:
+def _rd_get_atom_symmetries(molecule: Molecule) -> list[int]:
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
     return list(Chem.CanonicalRankAtoms(rd_mol, breakTies=False))
 
 
-def get_atom_symmetries(molecule: Molecule) -> List[int]:
+def get_atom_symmetries(molecule: Molecule) -> list[int]:
     try:
         return _oe_get_atom_symmetries(molecule)
     except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
         return _rd_get_atom_symmetries(molecule)
 
 
-def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
+def _oe_canonical_atom_order(molecule: Molecule) -> list[int]:
     from openeye import oechem
 
     oe_mol: oechem.OEMol = molecule.to_openeye()
@@ -50,7 +50,7 @@ def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
     return [atom_mapping[i] for i in range(molecule.n_atoms)]
 
 
-def _rd_canonical_atom_order(molecule: Molecule) -> List[int]:
+def _rd_canonical_atom_order(molecule: Molecule) -> list[int]:
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
@@ -103,8 +103,9 @@ def canonical_order_atoms(molecule: Molecule):
 
 
 def get_torsion_indices(
-    molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
-) -> List[Tuple[int, int, int, int]]:
+    molecule: Molecule,
+    central_bond: Optional[tuple[int, int]] = None,
+) -> list[tuple[int, int, int, int]]:
     """Returns the indices of all torsions in a molecule, optionally returning only
     those that involve a specified central bond.
 
@@ -147,8 +148,9 @@ def get_torsion_indices(
 
 
 def group_valence_by_symmetry(
-    molecule: Molecule, valence_terms: List[Tuple[int, ...]]
-) -> Dict[Tuple[int, ...], List[Tuple[int, ...]]]:
+    molecule: Molecule,
+    valence_terms: list[tuple[int, ...]],
+) -> dict[tuple[int, ...], list[tuple[int, ...]]]:
     """Group the a set of valence terms by symmetry groups.
 
     The valence terms are tuples of atoms (0, ) bonds (0, 1) angles (0, 1, 2) or

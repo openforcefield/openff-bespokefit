@@ -16,7 +16,10 @@ from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 def test_get_optimize(
-    bespoke_optimization_results, optimizer_client, redis_connection, monkeypatch
+    bespoke_optimization_results,
+    optimizer_client,
+    redis_connection,
+    monkeypatch,
 ):
     monkeypatch.setattr(
         AsyncResult,
@@ -58,13 +61,14 @@ def test_post_optimize(optimizer_client, redis_connection, monkeypatch):
                 parameter_hyperparameters=[],
                 targets=[],
                 optimizer=ForceBalanceSchema(max_iterations=1),
-            )
+            ),
         ],
         fragmentation_engine=WBOFragmenter(),
     )
 
     request = optimizer_client.post(
-        "/optimizations", data=OptimizerPOSTBody(input_schema=input_schema).json()
+        "/optimizations",
+        data=OptimizerPOSTBody(input_schema=input_schema).json(),
     )
     request.raise_for_status()
 

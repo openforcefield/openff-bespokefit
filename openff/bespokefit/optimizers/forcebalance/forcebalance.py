@@ -41,7 +41,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
         )
 
     @classmethod
-    def provenance(cls) -> Dict:
+    def provenance(cls) -> dict:
         """
         Collect the provenance information for forcebalance.
         """
@@ -96,7 +96,9 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
     @classmethod
     def _optimize(
-        cls, schema: OptimizationStageSchema, initial_force_field: ForceField
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
     ) -> OptimizationStageResults:
         with open("log.txt", "w") as log:
             _logger.debug("Launching Forcebalance")
@@ -141,14 +143,14 @@ class ForceBalanceOptimizer(BaseOptimizer):
             refit_force_field=None
             if results_dictionary["error"] is not None
             else force_field_editor.force_field.to_string(
-                discard_cosmetic_attributes=True
+                discard_cosmetic_attributes=True,
             ),
         )
 
         return results
 
     @classmethod
-    def _read_output(cls, root_directory) -> Dict[str, Any]:
+    def _read_output(cls, root_directory) -> dict[str, Any]:
         """Read the output file of the ForceBalance job to determine the exit state of
         the fitting and the name of the optimized force field.
 
@@ -171,7 +173,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
                 errlog = err.read()
                 if "Traceback" in errlog:
                     raise ValueError(f"ForceBalance job failed: {errlog}")
-        except IOError:
+        except OSError:
             pass
 
         with open(os.path.join(root_directory, "optimize.out")) as log:

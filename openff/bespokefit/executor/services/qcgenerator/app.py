@@ -54,14 +54,15 @@ def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETRespons
             "image": (
                 __settings.BEFLOW_API_V1_STR
                 + __GET_IMAGE_ENDPOINT.format(qc_calc_id=qc_calc_id)
-            )
+            ),
         },
     }
 
 
 @router.get("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def get_qc_results(
-    ids: Optional[List[str]] = Query(None), results: bool = True
+    ids: Optional[list[str]] = Query(None),
+    results: bool = True,
 ) -> QCGeneratorGETPageResponse:
     if ids is None:
         raise NotImplementedError()
@@ -101,7 +102,8 @@ def get_qc_result_molecule_image(qc_calc_id: str):
         return Response(IMAGE_UNAVAILABLE_SVG, media_type="image/svg+xml")
 
     qc_result = parse_obj_as(
-        Union[TorsionDriveResult, OptimizationResult, AtomicResult], task_info["result"]
+        Union[TorsionDriveResult, OptimizationResult, AtomicResult],
+        task_info["result"],
     )
 
     if isinstance(qc_result, (OptimizationResult, TorsionDriveResult)):
@@ -122,7 +124,7 @@ def get_qc_result_molecule_image(qc_calc_id: str):
         svg_content = smiles_to_image(
             qc_result.molecule.extras[
                 "canonical_isomeric_explicit_hydrogen_mapped_smiles"
-            ]
+            ],
         )
 
     else:

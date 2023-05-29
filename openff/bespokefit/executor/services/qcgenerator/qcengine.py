@@ -32,10 +32,10 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
 
     def _spawn_optimizations(
         self,
-        next_jobs: Dict[str, List[List[float]]],
+        next_jobs: dict[str, list[list[float]]],
         input_model: TorsionDriveInput,
         config: TaskConfig,
-    ) -> Dict[str, List[Union[FailedOperation, OptimizationResult]]]:
+    ) -> dict[str, list[Union[FailedOperation, OptimizationResult]]]:
         """
         Spawn parallel optimizations based on the number of next jobs and available workers.
         """

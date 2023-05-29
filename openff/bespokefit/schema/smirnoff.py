@@ -11,7 +11,7 @@ from openff.toolkit.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pydantic import Field, PositiveFloat, validator
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
@@ -46,8 +46,9 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
         "parameter should be applied to.",
     )
 
-    attributes: Set[str] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[str] = Field(
+        ...,
+        description="The attributes of the parameter which should be optimized.",
     )
 
     cached: bool = Field(
@@ -86,7 +87,7 @@ class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
 
     type: Literal["base"] = "base"
 
-    priors: Dict[str, PositiveFloat] = Field(..., description="")
+    priors: dict[str, PositiveFloat] = Field(..., description="")
 
     @classmethod
     @abc.abstractmethod
@@ -98,8 +99,9 @@ class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
 class VdWSMIRKS(BaseSMIRKSParameter):
     type: Literal["vdW"] = "vdW"
 
-    attributes: Set[Literal["epsilon", "sigma"]] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[Literal["epsilon", "sigma"]] = Field(
+        ...,
+        description="The attributes of the parameter which should be optimized.",
     )
 
     @classmethod
@@ -118,8 +120,9 @@ class VdWSMIRKS(BaseSMIRKSParameter):
 class VdWHyperparameters(BaseSMIRKSHyperparameters):
     type: Literal["vdW"] = "vdW"
 
-    priors: Dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
-        {"epsilon": 0.1, "sigma": 0.1}, description=""
+    priors: dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
+        {"epsilon": 0.1, "sigma": 0.1},
+        description="",
     )
 
     @classmethod
@@ -130,8 +133,9 @@ class VdWHyperparameters(BaseSMIRKSHyperparameters):
 class BondSMIRKS(BaseSMIRKSParameter):
     type: Literal["Bonds"] = "Bonds"
 
-    attributes: Set[Literal["k", "length"]] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[Literal["k", "length"]] = Field(
+        ...,
+        description="The attributes of the parameter which should be optimized.",
     )
 
     @classmethod
@@ -150,8 +154,9 @@ class BondSMIRKS(BaseSMIRKSParameter):
 class BondHyperparameters(BaseSMIRKSHyperparameters):
     type: Literal["Bonds"] = "Bonds"
 
-    priors: Dict[Literal["k", "length"], PositiveFloat] = Field(
-        {"k": 100.0, "length": 0.1}, description=""
+    priors: dict[Literal["k", "length"], PositiveFloat] = Field(
+        {"k": 100.0, "length": 0.1},
+        description="",
     )
 
     @classmethod
@@ -162,8 +167,9 @@ class BondHyperparameters(BaseSMIRKSHyperparameters):
 class AngleSMIRKS(BaseSMIRKSParameter):
     type: Literal["Angles"] = "Angles"
 
-    attributes: Set[Literal["k", "angle"]] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[Literal["k", "angle"]] = Field(
+        ...,
+        description="The attributes of the parameter which should be optimized.",
     )
 
     @classmethod
@@ -182,8 +188,9 @@ class AngleSMIRKS(BaseSMIRKSParameter):
 class AngleHyperparameters(BaseSMIRKSHyperparameters):
     type: Literal["Angles"] = "Angles"
 
-    priors: Dict[Literal["k", "angle"], PositiveFloat] = Field(
-        {"k": 10.0, "angle": 10.0}, description=""
+    priors: dict[Literal["k", "angle"], PositiveFloat] = Field(
+        {"k": 10.0, "angle": 10.0},
+        description="",
     )
 
     @classmethod
@@ -208,8 +215,8 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
 
     type: Literal["ProperTorsions"] = "ProperTorsions"
 
-    attributes: Set[Literal[ProperTorsionAttribute]] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[Literal[ProperTorsionAttribute]] = Field(
+        ..., description="The attributes of the parameter which should be optimized.",
     )
 
     @classmethod
@@ -218,14 +225,14 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(
-        cls, parameter: ProperTorsionHandler.ProperTorsionType
+        cls, parameter: ProperTorsionHandler.ProperTorsionType,
     ) -> "ProperTorsionSMIRKS":
 
         return cls(
             smirks=parameter.smirks,
             attributes={f"k{i + 1}" for i in range(len(parameter.k))},
             # cosmetic attrs are hidden
-            cached=getattr(parameter, "_cached", False)
+            cached=getattr(parameter, "_cached", False),
         )
 
 
@@ -233,8 +240,8 @@ class ProperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
     type: Literal["ProperTorsions"] = "ProperTorsions"
 
-    priors: Dict[ProperTorsionAttribute, PositiveFloat] = Field(
-        {"k": 6.0}, description=""
+    priors: dict[ProperTorsionAttribute, PositiveFloat] = Field(
+        {"k": 6.0}, description="",
     )
 
     @classmethod
@@ -255,8 +262,8 @@ ImproperTorsionAttribute = Literal[
 class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
     type: Literal["ImproperTorsions"] = "ImproperTorsions"
 
-    attributes: Set[Literal[ImproperTorsionAttribute]] = Field(
-        ..., description="The attributes of the parameter which should be optimized."
+    attributes: set[Literal[ImproperTorsionAttribute]] = Field(
+        ..., description="The attributes of the parameter which should be optimized.",
     )
 
     @classmethod
@@ -265,7 +272,7 @@ class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(
-        cls, parameter: ImproperTorsionHandler.ImproperTorsionType
+        cls, parameter: ImproperTorsionHandler.ImproperTorsionType,
     ) -> "ImproperTorsionSMIRKS":
         raise NotImplementedError()
 
@@ -274,8 +281,8 @@ class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
     type: Literal["ImproperTorsions"] = "ImproperTorsions"
 
-    priors: Dict[ProperTorsionAttribute, PositiveFloat] = Field(
-        {"k": 6.0}, description=""
+    priors: dict[ProperTorsionAttribute, PositiveFloat] = Field(
+        {"k": 6.0}, description="",
     )
 
     @classmethod
@@ -284,7 +291,7 @@ class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
 
 SMIRNOFFParameter = Union[
-    VdWSMIRKS, BondSMIRKS, AngleSMIRKS, ProperTorsionSMIRKS, ImproperTorsionSMIRKS
+    VdWSMIRKS, BondSMIRKS, AngleSMIRKS, ProperTorsionSMIRKS, ImproperTorsionSMIRKS,
 ]
 SMIRNOFFHyperparameters = Union[
     ProperTorsionHyperparameters,
@@ -295,7 +302,7 @@ SMIRNOFFHyperparameters = Union[
 ]
 
 
-def get_smirnoff_parameter(parameter_type: str) -> Type[SMIRNOFFParameter]:
+def get_smirnoff_parameter(parameter_type: str) -> type[SMIRNOFFParameter]:
     """
     A helper function to get the SMIRNOFFParameter class from the parameter type.
     """
@@ -304,6 +311,6 @@ def get_smirnoff_parameter(parameter_type: str) -> Type[SMIRNOFFParameter]:
         BondSMIRKS.__fields__["type"].default: BondSMIRKS,
         AngleSMIRKS.__fields__["type"].default: AngleSMIRKS,
         ProperTorsionSMIRKS.__fields__["type"].default: ProperTorsionSMIRKS,
-        ImproperTorsionSMIRKS.__fields__["type"].default: ImproperTorsionSMIRKS
+        ImproperTorsionSMIRKS.__fields__["type"].default: ImproperTorsionSMIRKS,
     }
     return _parameters_by_type[parameter_type]

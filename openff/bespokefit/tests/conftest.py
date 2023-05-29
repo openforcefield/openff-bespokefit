@@ -66,7 +66,8 @@ from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 def bace() -> Molecule:
     molecule: Molecule = Molecule.from_file(
         file_path=get_data_file_path(
-            os.path.join("test", "molecules", "bace", "bace.sdf"), "openff.bespokefit"
+            os.path.join("test", "molecules", "bace", "bace.sdf"),
+            "openff.bespokefit",
         ),
         file_format="sdf",
     )
@@ -99,7 +100,7 @@ def clear_force_balance_caches():
 
 
 @pytest.fixture(scope="module")
-def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
+def qc_torsion_drive_record() -> tuple[TorsionDriveRecord, Molecule]:
     [(record, molecule)] = TorsionDriveResultCollection(
         entries={
             "api.qcarchive.molssi.org:443": [
@@ -109,9 +110,9 @@ def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
                     "[c:12]2[c:9]([c:5]([c:2]([c:6]([c:10]2[H:22])[H:18])[H:14])"
                     "[H:17])[H:21])[H:19])[H:15]",
                     inchi_key="ZUOUZKKEUPVFJK-UHFFFAOYSA-N",
-                )
-            ]
-        }
+                ),
+            ],
+        },
     ).to_records()
 
     return record, molecule
@@ -119,7 +120,8 @@ def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
 
 @pytest.fixture()
 def qc_torsion_drive_results(
-    qc_torsion_drive_record, monkeypatch
+    qc_torsion_drive_record,
+    monkeypatch,
 ) -> TorsionDriveResultCollection:
     _, molecule = qc_torsion_drive_record
 
@@ -130,9 +132,9 @@ def qc_torsion_drive_results(
                     record_id=ObjectId("1"),
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
-                )
-            ]
-        }
+                ),
+            ],
+        },
     )
 
     monkeypatch.setattr(
@@ -147,7 +149,7 @@ def qc_torsion_drive_results(
 @pytest.fixture()
 def qc_torsion_drive_qce_result(
     qc_torsion_drive_record,
-) -> Tuple[QCTorsionDriveResult, Molecule]:
+) -> tuple[QCTorsionDriveResult, Molecule]:
     qc_record, molecule = qc_torsion_drive_record
 
     qc_result = QCTorsionDriveResult(
@@ -155,7 +157,9 @@ def qc_torsion_drive_qce_result(
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                isomeric=True, explicit_hydrogens=True, mapped=True
+                isomeric=True,
+                explicit_hydrogens=True,
+                mapped=True,
             ),
         },
         input_specification=QCInputSpecification(
@@ -174,7 +178,8 @@ def qc_torsion_drive_qce_result(
         final_molecules={
             grid_id: molecule.to_qcschema(conformer=i)
             for grid_id, i in zip(
-                molecule.properties["grid_ids"], range(len(molecule.conformers))
+                molecule.properties["grid_ids"],
+                range(len(molecule.conformers)),
             )
         },
         optimization_history={},
@@ -186,7 +191,7 @@ def qc_torsion_drive_qce_result(
 
 
 @pytest.fixture(scope="module")
-def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
+def qc_optimization_record() -> tuple[OptimizationRecord, Molecule]:
     [(record, molecule)] = OptimizationResultCollection(
         entries={
             "api.qcarchive.molssi.org:443": [
@@ -196,9 +201,9 @@ def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
                     "[c:12]2[c:9]([c:5]([c:2]([c:6]([c:10]2[H:22])[H:18])[H:14])"
                     "[H:17])[H:21])[H:19])[H:15]",
                     inchi_key="ZUOUZKKEUPVFJK-UHFFFAOYSA-N",
-                )
-            ]
-        }
+                ),
+            ],
+        },
     ).to_records()
 
     return record, molecule
@@ -206,7 +211,8 @@ def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
 
 @pytest.fixture()
 def qc_optimization_results(
-    qc_optimization_record, monkeypatch
+    qc_optimization_record,
+    monkeypatch,
 ) -> OptimizationResultCollection:
     _, molecule = qc_optimization_record
 
@@ -217,9 +223,9 @@ def qc_optimization_results(
                     record_id=ObjectId("1"),
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
-                )
-            ]
-        }
+                ),
+            ],
+        },
     )
 
     monkeypatch.setattr(
@@ -234,7 +240,7 @@ def qc_optimization_results(
 @pytest.fixture()
 def qc_optimization_qce_result(
     qc_optimization_record,
-) -> Tuple[QCOptimizationResult, Molecule]:
+) -> tuple[QCOptimizationResult, Molecule]:
     qc_record, molecule = qc_optimization_record
 
     qc_result = QCOptimizationResult(
@@ -242,7 +248,9 @@ def qc_optimization_qce_result(
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                isomeric=True, explicit_hydrogens=True, mapped=True
+                isomeric=True,
+                explicit_hydrogens=True,
+                mapped=True,
             ),
         },
         input_specification=QCInputSpecification(
@@ -261,7 +269,7 @@ def qc_optimization_qce_result(
 
 
 @pytest.fixture(scope="module")
-def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
+def qc_hessian_record() -> tuple[ResultRecord, Molecule]:
     qc_client = FractalClient()
 
     [record] = qc_client.query_procedures(id="18854435")
@@ -273,11 +281,11 @@ def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
         "canonical_isomeric_explicit_hydrogen_mapped_smiles": (
             "[H:13][c:1]1[c:2]([c:4]([n:9][c:7]([c:3]1[H:15])[N:11]([H:19])[C:8]2="
             "[N:10][C:5](=[C:6]([O:12]2)[H:18])[H:17])[H:16])[H:14]"
-        )
+        ),
     }
     molecule = Molecule.from_qcschema(qc_molecule_dict)
     molecule.add_conformer(
-        qc_molecule.geometry.reshape((molecule.n_atoms, 3)) * unit.bohr
+        qc_molecule.geometry.reshape((molecule.n_atoms, 3)) * unit.bohr,
     )
 
     return record, molecule
@@ -285,7 +293,8 @@ def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
 
 @pytest.fixture()
 def qc_hessian_results(
-    qc_hessian_record: ResultRecord, monkeypatch
+    qc_hessian_record: ResultRecord,
+    monkeypatch,
 ) -> BasicResultCollection:
     _, molecule = qc_hessian_record
 
@@ -296,9 +305,9 @@ def qc_hessian_results(
                     record_id=ObjectId("1"),
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
-                )
-            ]
-        }
+                ),
+            ],
+        },
     )
 
     monkeypatch.setattr(
@@ -313,14 +322,16 @@ def qc_hessian_results(
 @pytest.fixture()
 def qc_hessian_qce_result(
     qc_hessian_record,
-) -> Tuple[AtomicResult, Molecule]:
+) -> tuple[AtomicResult, Molecule]:
     qc_record, molecule = qc_hessian_record
 
     qc_result = AtomicResult(
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                isomeric=True, explicit_hydrogens=True, mapped=True
+                isomeric=True,
+                explicit_hydrogens=True,
+                mapped=True,
             ),
             **qc_record.extras,
         },
@@ -356,10 +367,11 @@ def general_optimization_schema(
                 parameter_hyperparameters=[ProperTorsionHyperparameters()],
                 parameters=[
                     ProperTorsionSMIRKS(
-                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]", attributes={"k1"}
-                    )
+                        smirks="[*:1]-[#6X4:2]-[#6X4:3]-[*:4]",
+                        attributes={"k1"},
+                    ),
                 ],
-            )
+            ),
         ],
     )
 
@@ -375,7 +387,8 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
     schema_factory = BespokeWorkflowFactory(
         # turn off bespoke terms we want fast fitting
         smirk_settings=SMIRKSettings(
-            generate_bespoke_terms=False, expand_torsion_terms=False
+            generate_bespoke_terms=False,
+            expand_torsion_terms=False,
         ),
         optimizer=ForceBalanceSchema(max_iterations=1, initial_trust_radius=0.25),
     )
@@ -392,7 +405,8 @@ def bespoke_optimization_results(
     for key, value in bespoke_optimization_schema.initial_parameter_values.items():
         for attribute in key.attributes:
             expected_unit = getattr(
-                force_field[key.type].parameters[key.smirks], attribute
+                force_field[key.type].parameters[key.smirks],
+                attribute,
             ).unit
 
             setattr(
@@ -408,7 +422,7 @@ def bespoke_optimization_results(
                 provenance={},
                 status="success",
                 refit_force_field=force_field.to_string(),
-            )
+            ),
         ],
     )
 
@@ -431,7 +445,7 @@ def bace_fragment_data() -> FragmentationResult:
                 "[c:4]([c:2]([c:6]([c:12]([c:8]2[H:31])[H])[H:29])[H:25])[H:27])[H:26])"
                 "[H:24]",
                 bond_indices=(9, 10),
-            )
+            ),
         ],
         provenance={},
     )
@@ -441,7 +455,7 @@ def bace_fragment_data() -> FragmentationResult:
 def redis_session(tmpdir_factory):
     redis_exists_error = RuntimeError(
         "It looks like a redis server is already running with the test "
-        "settings. Exiting early in-case this is a production redis server."
+        "settings. Exiting early in-case this is a production redis server.",
     )
 
     try:
@@ -475,5 +489,6 @@ def redis_connection(redis_session) -> redis.Redis:
 def reset_redis(redis_connection, monkeypatch):
     redis_connection.flushdb()
     redis_connection.set(
-        "openff-bespokefit:redis-version", expected_redis_config_version()
+        "openff-bespokefit:redis-version",
+        expected_redis_config_version(),
     )

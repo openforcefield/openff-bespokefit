@@ -8,7 +8,8 @@ from openff.bespokefit.executor.utilities.depiction import (
 
 
 @pytest.mark.parametrize(
-    "to_image", [_oe_smiles_to_image, _rd_smiles_to_image, smiles_to_image]
+    "to_image",
+    [_oe_smiles_to_image, _rd_smiles_to_image, smiles_to_image],
 )
 def test_smiles_to_image(to_image):
     try:

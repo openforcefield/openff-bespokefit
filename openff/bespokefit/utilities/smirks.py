@@ -9,7 +9,7 @@ from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
 from pydantic import Field
-from typing_extensions import Literal
+from typing import Literal
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
@@ -24,7 +24,7 @@ from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 def get_cached_torsion_parameters(
     molecule: Molecule,
     bespoke_parameter: ProperTorsionHandler.ProperTorsionType,
-    cached_parameters: List[ProperTorsionHandler.ProperTorsionType],
+    cached_parameters: list[ProperTorsionHandler.ProperTorsionType],
 ) -> Optional[ProperTorsionHandler.ProperTorsionType]:
     """
     For a given molecule update the input parameter with cached values if an equivalent parameter can be found in the cached list.
@@ -37,7 +37,7 @@ def get_cached_torsion_parameters(
 
     # get matches for our target smirks
     target_matches = molecule.chemical_environment_matches(
-        query=bespoke_parameter.smirks
+        query=bespoke_parameter.smirks,
     )
     target_matches = {m for match in target_matches for m in match}
 
@@ -47,7 +47,8 @@ def get_cached_torsion_parameters(
         matches = {m for match in matches for m in match}
         if not target_matches.symmetric_difference(matches):
             cached_parameter.add_cosmetic_attribute(
-                attr_name="cached", attr_value="True"
+                attr_name="cached",
+                attr_value="True",
             )
             # we keep the new bespoke smirks to ensure it matches the parent and the fragment
             cached_parameter.smirks = bespoke_parameter.smirks
@@ -148,7 +149,9 @@ def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
     env1_graph = make_smirks_attribute_graph(env1)
     env2_graph = make_smirks_attribute_graph(env2)
     gm = nx.algorithms.isomorphism.GraphMatcher(
-        env1_graph, env2_graph, node_match=node_match
+        env1_graph,
+        env2_graph,
+        node_match=node_match,
     )
     return gm.is_isomorphic()
 
@@ -198,7 +201,7 @@ class SMIRKSGenerator(SMIRKSettings):
         description="The base forcefield the smirks should be generated from.",
     )
 
-    target_smirks: List[SMIRKSType] = Field(
+    target_smirks: list[SMIRKSType] = Field(
         [SMIRKSType.ProperTorsions],
         description="The list of parameters the new smirks patterns should be made for.",
     )
@@ -210,7 +213,9 @@ class SMIRKSGenerator(SMIRKSettings):
     )
 
     def generate_smirks_from_molecule(
-        self, molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
+        self,
+        molecule: Molecule,
+        central_bond: Optional[tuple[int, int]] = None,
     ):
         """A convenience method for generating SMIRKS patterns that encompass an entire
         molecules.
@@ -231,8 +236,8 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[Tuple[int, int]],
-    ) -> List[ParameterType]:
+        fragment_map_indices: Optional[tuple[int, int]],
+    ) -> list[ParameterType]:
         """Generates a set of smirks patterns for the fragment corresponding to the
         types set in the target smirks list.
 
@@ -251,7 +256,7 @@ class SMIRKSGenerator(SMIRKSettings):
         if not self.target_smirks:
             raise SMIRKSTypeError(
                 "No smirks targets were provided so no new patterns were made, set a "
-                "target and run again."
+                "target and run again.",
             )
 
         if isinstance(self.initial_force_field, ForceFieldEditor):
@@ -303,7 +308,7 @@ class SMIRKSGenerator(SMIRKSettings):
                 # TODO make sure we do not fit interpolated parameters
                 if parameter.k_bondorder is not None:
                     raise NotImplementedError(
-                        "Bespokefit can not fit interpolated parameters!"
+                        "Bespokefit can not fit interpolated parameters!",
                     )
 
         return new_parameters
@@ -312,8 +317,8 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         force_field_editor: ForceFieldEditor,
         molecule: Molecule,
-        molecule_map_indices: Optional[Tuple[int, int]] = None,
-    ) -> List[ParameterType]:
+        molecule_map_indices: Optional[tuple[int, int]] = None,
+    ) -> list[ParameterType]:
         """
         The main worker method for extracting current smirks patterns for the molecule,
         this will only extract parameters for the requested groups.
@@ -335,7 +340,8 @@ class SMIRKSGenerator(SMIRKSettings):
 
         # now request all of these smirks from the forcefield
         new_parameters = force_field_editor.get_parameters(
-            molecule=molecule, atoms_by_type=requested_smirks
+            molecule=molecule,
+            atoms_by_type=requested_smirks,
         )
         return new_parameters
 
@@ -344,8 +350,8 @@ class SMIRKSGenerator(SMIRKSettings):
         force_field_editor: ForceFieldEditor,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[Tuple[int, int]],
-    ) -> List[ParameterType]:
+        fragment_map_indices: Optional[tuple[int, int]],
+    ) -> list[ParameterType]:
         """
         The main worker method for generating new bespoke smirks, this will check which
         parameters are wanted and call each method.
@@ -355,7 +361,8 @@ class SMIRKSGenerator(SMIRKSettings):
         """
 
         fragment_is_parent = parent.to_smiles(
-            mapped=False, isomeric=False
+            mapped=False,
+            isomeric=False,
         ) == fragment.to_smiles(mapped=False, isomeric=False)
 
         bespoke_smirks = []
@@ -367,12 +374,13 @@ class SMIRKSGenerator(SMIRKSettings):
                     fragment_map_indices=fragment_map_indices,
                     fragment_is_parent=fragment_is_parent,
                     smirks_type=smirk_type,
-                )
+                ),
             )
 
         # now we need to update all smirks
         new_parameters = force_field_editor.get_initial_parameters(
-            molecule=fragment, smirks=bespoke_smirks
+            molecule=fragment,
+            smirks=bespoke_smirks,
         )
         return new_parameters
 
@@ -380,10 +388,10 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[Tuple[int, int]],
+        fragment_map_indices: Optional[tuple[int, int]],
         fragment_is_parent: bool,
         smirks_type: SMIRKSType,
-    ) -> List[SMIRNOFFParameter]:
+    ) -> list[SMIRNOFFParameter]:
         """For the molecule generate a unique set of bespoke smirks of a given type."""
 
         bespoke_smirks = []
@@ -406,7 +414,9 @@ class SMIRKSGenerator(SMIRKSettings):
 
             if not fragment_is_parent:
                 parent_atoms = self._get_parent_valence_terms(
-                    parent, fragment, valence_group
+                    parent,
+                    fragment,
+                    valence_group,
                 )
 
                 target_atoms.append(parent_atoms)
@@ -418,7 +428,8 @@ class SMIRKSGenerator(SMIRKSettings):
                 layers=self.smirks_layers,
             )
             parameter = get_smirnoff_parameter(smirks_type)(
-                smirks=graph.as_smirks(compress=False), attributes=set()
+                smirks=graph.as_smirks(compress=False),
+                attributes=set(),
             )
             bespoke_smirks.append(parameter)
 
@@ -428,8 +439,8 @@ class SMIRKSGenerator(SMIRKSettings):
     def _get_valence_terms(
         molecule: Molecule,
         smirks_type: SMIRKSType,
-        torsion_bond: Optional[Tuple[int, int]] = None,
-    ) -> List[Tuple[int, ...]]:
+        torsion_bond: Optional[tuple[int, int]] = None,
+    ) -> list[tuple[int, ...]]:
         if smirks_type == SMIRKSType.Vdw:
             return [(i,) for i in range(molecule.n_atoms)]
 
@@ -451,8 +462,8 @@ class SMIRKSGenerator(SMIRKSettings):
     def _get_parent_valence_terms(
         parent: Molecule,
         fragment: Molecule,
-        fragment_valence_terms: List[Tuple[int, ...]],
-    ) -> List[Tuple[int, ...]]:
+        fragment_valence_terms: list[tuple[int, ...]],
+    ) -> list[tuple[int, ...]]:
         """Generate a list of parent valence terms that match a set of fragment valence
         terms.
 

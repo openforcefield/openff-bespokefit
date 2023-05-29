@@ -20,8 +20,8 @@ def _run_cli(
     output_file_path: str,
     output_force_field_path: Optional[str],
     force_field_path: Optional[str],
-    target_torsion_smirks: Tuple[str],
-    default_qc_spec: Optional[Tuple[str, str, str]],
+    target_torsion_smirks: tuple[str],
+    default_qc_spec: Optional[tuple[str, str, str]],
     workflow_name: Optional[str],
     workflow_file_name: Optional[str],
     directory: Optional[str],
@@ -98,7 +98,7 @@ def _run_cli(
                     f"outputs have been saved to "
                     f"[repr.filename]{output_file_path}[/repr.filename]",
                     (1, 0, 1, 0),
-                )
+                ),
             )
 
             with open(output_file_path, "w") as file:
@@ -110,7 +110,7 @@ def _run_cli(
                         f"the bespoke force field has been saved to "
                         f"[repr.filename]{output_force_field_path}[/repr.filename]",
                         (0, 0, 1, 0),
-                    )
+                    ),
                 )
 
                 results.bespoke_force_field.to_file(output_force_field_path)
@@ -145,5 +145,7 @@ __run_options.insert(
 __run_options.extend(launch_options(directory=None))
 
 run_cli = create_command(
-    click_command=click.command("run"), click_options=__run_options, func=_run_cli
+    click_command=click.command("run"),
+    click_options=__run_options,
+    func=_run_cli,
 )

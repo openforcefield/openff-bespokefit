@@ -25,9 +25,9 @@ from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 
 def mock_task(
-    pending_stages: List[StageType],
+    pending_stages: list[StageType],
     running_stage: Optional[StageType],
-    completed_stages: List[StageType],
+    completed_stages: list[StageType],
 ) -> CoordinatorTask:
     force_field = ForceField("openff_unconstrained-1.0.0.offxml")
     ff_hash = hashlib.sha512(force_field.to_string().encode()).hexdigest()
@@ -44,7 +44,7 @@ def mock_task(
                     parameters=[],
                     parameter_hyperparameters=[],
                     optimizer=ForceBalanceSchema(),
-                )
+                ),
             ],
         ),
         pending_stages=pending_stages,
@@ -124,8 +124,9 @@ def test_get_status_from_stage(stage, expected):
                 QCGenerationStage(status="running"),
                 [
                     OptimizationStage(
-                        status="success", result=BespokeOptimizationResults()
-                    )
+                        status="success",
+                        result=BespokeOptimizationResults(),
+                    ),
                 ],
                 BespokeOptimizationResults(),
             ),
@@ -137,8 +138,9 @@ def test_get_status_from_stage(stage, expected):
                 None,
                 [
                     OptimizationStage(
-                        status="success", result=BespokeOptimizationResults()
-                    )
+                        status="success",
+                        result=BespokeOptimizationResults(),
+                    ),
                 ],
                 BespokeOptimizationResults(),
             ),

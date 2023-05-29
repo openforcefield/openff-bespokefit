@@ -29,8 +29,11 @@ def _mock_coordinator_get(status, results=None):
             smiles="CC",
             stages=[
                 CoordinatorGETStageStatus(
-                    type="fragmentation", status=status, error=None, results=None
-                )
+                    type="fragmentation",
+                    status=status,
+                    error=None,
+                    results=None,
+                ),
             ],
             results=results,
         )
@@ -61,7 +64,8 @@ def test_retrieve_one_output(runner):
 def test_retrieve_output(runner, status, expected_message):
     with _mock_coordinator_get(status):
         output = runner.invoke(
-            retrieve_cli, args=["--id", "1", "--output", "output.json"]
+            retrieve_cli,
+            args=["--id", "1", "--output", "output.json"],
         )
 
     assert os.path.isfile("output.json")
@@ -79,13 +83,19 @@ def test_retrieve_output(runner, status, expected_message):
     ],
 )
 def test_retrieve_force_field(
-    runner, status, expected_message, should_exist, bespoke_optimization_results
+    runner,
+    status,
+    expected_message,
+    should_exist,
+    bespoke_optimization_results,
 ):
     with _mock_coordinator_get(
-        status, results=None if status != "success" else bespoke_optimization_results
+        status,
+        results=None if status != "success" else bespoke_optimization_results,
     ):
         output = runner.invoke(
-            retrieve_cli, args=["--id", "1", "--force-field", "output.offxml"]
+            retrieve_cli,
+            args=["--id", "1", "--force-field", "output.offxml"],
         )
 
     assert os.path.isfile("output.offxml") == should_exist

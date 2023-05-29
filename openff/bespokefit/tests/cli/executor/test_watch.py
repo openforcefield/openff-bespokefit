@@ -25,8 +25,11 @@ def test_watch(runner):
             smiles="CC",
             stages=[
                 CoordinatorGETStageStatus(
-                    type="fragmentation", status="success", error=None, results=None
-                )
+                    type="fragmentation",
+                    status="success",
+                    error=None,
+                    results=None,
+                ),
             ],
         )
         m.get(

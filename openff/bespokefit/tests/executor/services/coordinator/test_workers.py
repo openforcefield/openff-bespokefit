@@ -51,7 +51,7 @@ async def test_process_task(redis_connection, monkeypatch):
                     parameter_hyperparameters=[],
                     targets=[],
                     optimizer=ForceBalanceSchema(max_iterations=1),
-                )
+                ),
             ],
             fragmentation_engine=WBOFragmenter(),
         ),

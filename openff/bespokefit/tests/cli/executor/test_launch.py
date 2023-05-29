@@ -79,7 +79,9 @@ def test_validate_redis_connection_config(redis_connection, monkeypatch):
         raise RedisNotConfiguredError("not configured")
 
     monkeypatch.setattr(
-        redis, "connect_to_default_redis", mock_connect_to_default_redis
+        redis,
+        "connect_to_default_redis",
+        mock_connect_to_default_redis,
     )
 
     console = rich.get_console()

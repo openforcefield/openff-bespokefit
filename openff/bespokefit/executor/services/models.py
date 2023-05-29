@@ -14,7 +14,8 @@ class Error(BaseModel):
     message: str = Field(..., description="The message associated with the exception.")
 
     traceback: Optional[str] = Field(
-        None, description="The traceback associated with the exception"
+        None,
+        description="The traceback associated with the exception",
     )
 
 
@@ -56,7 +57,7 @@ class PaginatedCollection(GenericModel, Generic[_T]):
         "collection when paginating.",
     )
 
-    contents: List[_T] = Field(..., description="The contents of the collection.")
+    contents: list[_T] = Field(..., description="The contents of the collection.")
 
     class Config:
         json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}

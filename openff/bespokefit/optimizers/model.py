@@ -17,7 +17,7 @@ from openff.bespokefit.schema.results import OptimizationStageResults
 from openff.bespokefit.schema.targets import BaseTargetSchema
 from openff.bespokefit.utilities.tempcd import temporary_cd
 
-TargetSchemaType = Type[BaseTargetSchema]
+TargetSchemaType = type[BaseTargetSchema]
 
 
 class BaseOptimizer(abc.ABC):
@@ -26,7 +26,7 @@ class BaseOptimizer(abc.ABC):
     """
 
     # this is shared across optimizers so we have to separate by optimizer
-    _registered_targets: Dict[str, Dict[str, TargetSchemaType]] = defaultdict(dict)
+    _registered_targets: dict[str, dict[str, TargetSchemaType]] = defaultdict(dict)
 
     @classmethod
     @abc.abstractmethod
@@ -42,7 +42,7 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def provenance(cls) -> Dict:
+    def provenance(cls) -> dict:
         """
         This function should detail the programs with the version information called
         during the running od the optimizer.
@@ -63,12 +63,12 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _schema_class(cls) -> Type[OptimizerSchema]:
+    def _schema_class(cls) -> type[OptimizerSchema]:
         """The schema associated with this optimizer."""
         raise NotImplementedError
 
     @classmethod
-    def get_registered_targets(cls) -> Dict[str, TargetSchemaType]:
+    def get_registered_targets(cls) -> dict[str, TargetSchemaType]:
         """
         Internal method to get the registered targets for this specific optimizer.
         """
@@ -76,7 +76,9 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     def register_target(
-        cls, target_type: TargetSchemaType, replace: bool = False
+        cls,
+        target_type: TargetSchemaType,
+        replace: bool = False,
     ) -> None:
         """
         Take a target and register it with the optimizer under an alias name which is
@@ -99,7 +101,7 @@ class BaseOptimizer(abc.ABC):
         if not issubclass(target_type, BaseTargetSchema):
             raise TargetRegisterError(
                 f"The {target_type.__name__} does not inherit from the "
-                f"``BaseTargetSchema`` target base class."
+                f"``BaseTargetSchema`` target base class.",
             )
 
         target_name = target_type.__fields__["type"].default
@@ -113,7 +115,7 @@ class BaseOptimizer(abc.ABC):
         else:
             raise TargetRegisterError(
                 f"The alias {target_name.lower()} has already been registered with "
-                f"this optimizer; to update use overwrite = `True`."
+                f"this optimizer; to update use overwrite = `True`.",
             )
 
     @classmethod
@@ -138,7 +140,7 @@ class BaseOptimizer(abc.ABC):
             del cls._registered_targets[cls.__name__][target_name.lower()]
         else:
             raise TargetRegisterError(
-                f"No target with the name {target_name.lower()} was registered."
+                f"No target with the name {target_name.lower()} was registered.",
             )
 
     @classmethod
@@ -151,7 +153,7 @@ class BaseOptimizer(abc.ABC):
             raise OptimizerError(
                 f"The ``{cls.__name__}`` optimizer can only be used with "
                 f"optimization schemas which specify a {cls._schema_class().__name__} "
-                f"optimizer, not a {schema.optimizer.__class__.__name__}."
+                f"optimizer, not a {schema.optimizer.__class__.__name__}.",
             )
 
         registered_targets = cls.get_registered_targets()
@@ -162,7 +164,7 @@ class BaseOptimizer(abc.ABC):
 
             raise TargetRegisterError(
                 f"The {target.type} target type is not registered with the "
-                f"{cls.__class__.__name__} optimizer."
+                f"{cls.__class__.__name__} optimizer.",
             )
 
     @classmethod
@@ -194,7 +196,9 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     def _optimize(
-        cls, schema: OptimizationStageSchema, initial_force_field: ForceField
+        cls,
+        schema: OptimizationStageSchema,
+        initial_force_field: ForceField,
     ) -> OptimizationStageResults:
         """The internal implementation of the main ``optimize`` method. The input
         ``schema`` is assumed to have been validated before being passed to this

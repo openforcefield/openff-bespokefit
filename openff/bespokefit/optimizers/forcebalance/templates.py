@@ -24,11 +24,11 @@ class BaseTargetTemplate(Generic[T]):
         raise NotImplementedError()
 
     @classmethod
-    def schema_exclusions(cls) -> Set[str]:
+    def schema_exclusions(cls) -> set[str]:
         return set()
 
     @classmethod
-    def generate(cls, schema: T, target_names: List[str]) -> str:
+    def generate(cls, schema: T, target_names: list[str]) -> str:
         template_file_name = get_data_file_path(
             os.path.join("templates", "force-balance", cls.template_name()),
             "openff.bespokefit",
@@ -41,7 +41,7 @@ class BaseTargetTemplate(Generic[T]):
             template.render(
                 name=target_name,
                 **schema.dict(
-                    exclude={"type", "reference_data", *cls.schema_exclusions()}
+                    exclude={"type", "reference_data", *cls.schema_exclusions()},
                 ),
             )
             for target_name in target_names
@@ -75,7 +75,7 @@ class VibrationTargetTemplate(BaseTargetTemplate[VibrationTargetSchema]):
 
 class OptGeoOptionsTemplate:
     @classmethod
-    def schema_exclusions(cls) -> Set[str]:
+    def schema_exclusions(cls) -> set[str]:
         return {
             "bond_denominator",
             "angle_denominator",
@@ -84,7 +84,7 @@ class OptGeoOptionsTemplate:
         }
 
     @classmethod
-    def generate(cls, target: OptGeoTargetSchema, record_ids: List[str]) -> str:
+    def generate(cls, target: OptGeoTargetSchema, record_ids: list[str]) -> str:
         template_file_name = get_data_file_path(
             os.path.join("templates", "force-balance", "opt-geo-options.txt"),
             "openff.bespokefit",
@@ -94,7 +94,8 @@ class OptGeoOptionsTemplate:
             template = Template(file.read())
 
         rendered_template = template.render(
-            **target.dict(include=cls.schema_exclusions()), systems=record_ids
+            **target.dict(include=cls.schema_exclusions()),
+            systems=record_ids,
         )
         return rendered_template
 
@@ -104,7 +105,7 @@ class InputOptionsTemplate:
     def generate(
         cls,
         settings: ForceBalanceSchema,
-        priors: Dict[str, float],
+        priors: dict[str, float],
         targets_section: str,
     ) -> str:
         template_file_name = get_data_file_path(
@@ -116,6 +117,8 @@ class InputOptionsTemplate:
             template = Template(file.read())
 
         rendered_template = template.render(
-            **settings.dict(), priors=priors, targets_contents=targets_section
+            **settings.dict(),
+            priors=priors,
+            targets_contents=targets_section,
         )
         return rendered_template

@@ -26,13 +26,14 @@ from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.schema.tasks import OptimizationTask, Torsion1DTask
 
 celery_app = configure_celery_app(
-    "qcgenerator", connect_to_default_redis(validate=False)
+    "qcgenerator",
+    connect_to_default_redis(validate=False),
 )
 
 _task_logger: logging.Logger = get_task_logger(__name__)
 
 
-def _task_config() -> Dict[str, Any]:
+def _task_config() -> dict[str, Any]:
     worker_settings = current_settings().qc_compute_settings
 
     n_cores = (
@@ -51,7 +52,7 @@ def _task_config() -> Dict[str, Any]:
     return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3))
 
 
-def _select_atom(atoms: List[Atom]) -> int:
+def _select_atom(atoms: list[Atom]) -> int:
     """
     For a list of atoms chose the heaviest atom.
     """
@@ -62,7 +63,7 @@ def _select_atom(atoms: List[Atom]) -> int:
     return candidate.molecule_atom_index
 
 
-def _get_program_keywords(program: str) -> Dict[str, str]:
+def _get_program_keywords(program: str) -> dict[str, str]:
     """
     Generate a set of pre-defined keywords for the calculation based on the program.
     These are based on experience.
@@ -120,15 +121,17 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
                     index_2,
                     index_3,
                     _select_atom(index_4_atoms),
-                )
+                ),
             ],
             grid_spacing=[task.grid_spacing],
             dihedral_ranges=[task.scan_range] if task.scan_range is not None else None,
         ),
         extras={
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                isomeric=True, explicit_hydrogens=True, mapped=True
-            )
+                isomeric=True,
+                explicit_hydrogens=True,
+                mapped=True,
+            ),
         },
         initial_molecule=[
             molecule.to_qcschema(conformer=i) for i in range(molecule.n_conformers)
@@ -148,7 +151,10 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     )
 
     return_value = qcengine.compute_procedure(
-        input_schema, "torsiondrive", raise_error=True, local_options=_task_config()
+        input_schema,
+        "torsiondrive",
+        raise_error=True,
+        local_options=_task_config(),
     )
 
     if isinstance(return_value, TorsionDriveResult):
@@ -164,7 +170,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
 @celery_app.task
 def compute_optimization(
     task_json: str,
-) -> List[OptimizationResult]:
+) -> list[OptimizationResult]:
     """Runs a set of geometry optimizations using QCEngine."""
     # TODO: should we only return the lowest energy optimization?
     # or the first optimisation to work?
@@ -184,8 +190,10 @@ def compute_optimization(
             },
             extras={
                 "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
-                    isomeric=True, explicit_hydrogens=True, mapped=True
-                )
+                    isomeric=True,
+                    explicit_hydrogens=True,
+                    mapped=True,
+                ),
             },
             input_specification=QCInputSpecification(
                 model=task.model,

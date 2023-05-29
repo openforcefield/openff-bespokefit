@@ -45,7 +45,10 @@ def test_exit_with_messages():
     with console.capture() as capture:
         with pytest.raises(Exit) as raises:
             exit_with_messages(
-                "general message 1", "general message 2", console=console, exit_code=2
+                "general message 1",
+                "general message 2",
+                console=console,
+                exit_code=2,
             )
 
     assert raises.value.exit_code == 2

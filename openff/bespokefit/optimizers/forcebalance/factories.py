@@ -4,7 +4,8 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generic, List, Sequence, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, Generic, List, Tuple, TypeVar, Union
+from collections.abc import Sequence
 
 import numpy as np
 from openff.qcsubmit.results import (
@@ -77,14 +78,14 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
-    def _section_extras_to_exclude(cls) -> List[str]:
+    def _section_extras_to_exclude(cls) -> list[str]:
         """The list of extras which may be present in a target schemas ``.extras``
         dictionary to exclude when generating the section to add to the ``optimize.in``
         file."""
         return []
 
     @classmethod
-    def _generate_targets_section(cls, target_template: T, target_names: List[str]):
+    def _generate_targets_section(cls, target_template: T, target_names: list[str]):
         """Creates the target sections which will need to be added to the main
         ForceBalance 'options.in' file."""
 
@@ -100,8 +101,10 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     def _batch_qc_records(
-        cls, target: TargetSchema, qc_records: List[Tuple[RecordBase, Molecule]]
-    ) -> Dict[str, List[Tuple[RecordBase, Molecule]]]:
+        cls,
+        target: TargetSchema,
+        qc_records: list[tuple[RecordBase, Molecule]],
+    ) -> dict[str, list[tuple[RecordBase, Molecule]]]:
         """A function which places the input QC records into per target batches.
 
         For most targets there will be a single record per target, however certain
@@ -122,14 +125,14 @@ class _TargetFactory(Generic[T], abc.ABC):
 
         return {
             f"{cls._target_name_prefix()}-{qc_record_id(qc_record)}": [
-                (qc_record, molecule)
+                (qc_record, molecule),
             ]
             for qc_record, molecule in qc_records
         }
 
     @classmethod
     @abc.abstractmethod
-    def _generate_target(cls, target: T, qc_records: List[Tuple[RecordBase, Molecule]]):
+    def _generate_target(cls, target: T, qc_records: list[tuple[RecordBase, Molecule]]):
         """Create the required input files for a particular target.
 
         Notes:
@@ -139,7 +142,7 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
-    def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> List[Tuple[R, Molecule]]:
+    def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> list[tuple[R, Molecule]]:
         """Converts a 'local' dataset of QCEngine outputs to a list of QC records."""
         qc_records = []
 
@@ -226,7 +229,7 @@ class _TargetFactory(Generic[T], abc.ABC):
         elif isinstance(target.reference_data, BespokeQCData):
             raise RuntimeError(
                 "`BespokeQCData` must be converted into `LocalQCData` before generating "
-                "targets."
+                "targets.",
             )
 
         elif isinstance(target.reference_data, LocalQCData):
@@ -258,8 +261,8 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
     def _generate_target(
         cls,
         target: T,
-        qc_records: List[
-            Tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
+        qc_records: list[
+            tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
         ],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
@@ -288,7 +291,8 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         grid_conformers = {
             tuple(json.loads(grid_id)): conformer.m_as(unit.angstrom)
             for grid_id, conformer in zip(
-                off_molecule.properties["grid_ids"], off_molecule.conformers
+                off_molecule.properties["grid_ids"],
+                off_molecule.conformers,
             )
         }
 
@@ -339,7 +343,8 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
 
 
 class TorsionProfileTargetFactory(
-    AbInitioTargetFactory, _TargetFactory[TorsionProfileTargetSchema]
+    AbInitioTargetFactory,
+    _TargetFactory[TorsionProfileTargetSchema],
 ):
     @classmethod
     def _target_name_prefix(cls) -> str:
@@ -349,12 +354,12 @@ class TorsionProfileTargetFactory(
     def _generate_target(
         cls,
         target: TorsionProfileTargetSchema,
-        qc_records: List[
-            Tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
+        qc_records: list[
+            tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
         ],
     ):
         # noinspection PyTypeChecker
-        super(TorsionProfileTargetFactory, cls)._generate_target(target, qc_records)
+        super()._generate_target(target, qc_records)
 
         qc_record, off_molecule = qc_records[0]
 
@@ -390,8 +395,9 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
     @classmethod
     def _compute_normal_modes(
-        cls, mass_weighted_hessian: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        cls,
+        mass_weighted_hessian: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Computes the normal modes from a mass weighted hessian.
 
         Notes:
@@ -428,7 +434,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         n_remove = 5 if noa == 2 else 6
 
         larger_freq_idxs = np.sort(
-            np.argpartition(np.abs(frequencies), n_remove)[n_remove:]
+            np.argpartition(np.abs(frequencies), n_remove)[n_remove:],
         )
 
         frequencies = frequencies[larger_freq_idxs]
@@ -462,7 +468,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         if qc_record.driver.value != "hessian" or qc_record.return_result is None:
             raise QCRecordMissMatchError(
                 f"The QC record with id={qc_record_id} does not contain the gradient "
-                f"information required by a vibration fitting target."
+                f"information required by a vibration fitting target.",
             )
 
         # Check the magnitude of the gradient
@@ -470,7 +476,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
         if np.abs(gradient).max() > 1e-3:
             _logger.warning(
-                f"the max gradient of record={qc_record_id} is greater than 1e-3"
+                f"the max gradient of record={qc_record_id} is greater than 1e-3",
             )
 
         # Get the list of masses for the molecule to be consistent with ForceBalance
@@ -510,7 +516,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     def _generate_target(
         cls,
         target: VibrationTargetSchema,
-        qc_records: List[Tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
+        qc_records: list[tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
 
@@ -545,12 +551,14 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         return "opt-geo"
 
     @classmethod
-    def _section_extras_to_exclude(cls) -> List[str]:
+    def _section_extras_to_exclude(cls) -> list[str]:
         return ["batch_size"]
 
     @classmethod
     def _batch_qc_records(
-        cls, target: OptGeoTargetSchema, qc_records: List[RecordBase]
+        cls,
+        target: OptGeoTargetSchema,
+        qc_records: list[RecordBase],
     ):
         batch_size = int(target.extras.get("batch_size", 50))
 
@@ -568,8 +576,8 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     def _generate_target(
         cls,
         target: OptGeoTargetSchema,
-        qc_records: List[
-            Tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
+        qc_records: list[
+            tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
         ],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
@@ -648,7 +656,7 @@ class ForceBalanceInputFactory:
         if not isinstance(schema.optimizer, ForceBalanceSchema):
             raise OptimizerError(
                 "Inputs can only be generated using this factory for optimizations "
-                "which use ForceBalance as the optimizer."
+                "which use ForceBalance as the optimizer.",
             )
 
         target_factories = {
@@ -661,7 +669,7 @@ class ForceBalanceInputFactory:
         if not isinstance(schema.optimizer, ForceBalanceSchema):
             raise OptimizerError(
                 "The `ForceBalanceInputFactory` can only create inputs from an "
-                "optimization schema which uses a force balance optimizer."
+                "optimization schema which uses a force balance optimizer.",
             )
 
         # Create the root directory.
@@ -700,8 +708,10 @@ class ForceBalanceInputFactory:
             with open("optimize.in", "w") as file:
                 file.write(
                     InputOptionsTemplate.generate(
-                        schema.optimizer, targets_section=targets_section, priors=priors
-                    )
+                        schema.optimizer,
+                        targets_section=targets_section,
+                        priors=priors,
+                    ),
                 )
 
             # Create the force field directory

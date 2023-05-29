@@ -191,7 +191,7 @@ from openff.bespokefit.workflows import BespokeWorkflowFactory
 from openff.qcsubmit.common_structures import QCSpec
 
 factory = BespokeWorkflowFactory(
-    # Define the starting force field that will be augmented with bespoke 
+    # Define the starting force field that will be augmented with bespoke
     # parameters.
     initial_force_field="openff-2.0.0.offxml",
     # Change the level of theory that the reference QC data is generated at
@@ -203,7 +203,7 @@ factory = BespokeWorkflowFactory(
             spec_name="xtb",
             spec_description="gfn2xtb",
         )
-    ]
+    ],
 )
 ```
 
@@ -228,9 +228,7 @@ from openff.toolkit.topology import Molecule
 
 input_molecule = Molecule.from_smiles("C(C(=O)O)N")  # Glycine
 
-workflow_schema = factory.optimization_schema_from_molecule(
-    molecule=input_molecule
-)
+workflow_schema = factory.optimization_schema_from_molecule(molecule=input_molecule)
 ```
 
 This schema encodes the full workflow that will produce the bespoke parameters for this specific molecule, including how
@@ -241,13 +239,17 @@ a charge model, then re-fit the torsion and valence parameters using the new cha
 Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 
 ```python
-from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig, wait_until_complete
+from openff.bespokefit.executor import (
+    BespokeExecutor,
+    BespokeWorkerConfig,
+    wait_until_complete,
+)
 
 with BespokeExecutor(
-    n_fragmenter_workers = 1,
-    n_optimizer_workers = 1,
-    n_qc_compute_workers = 2,
-    qc_compute_worker_config=BespokeWorkerConfig(n_cores=1)
+    n_fragmenter_workers=1,
+    n_optimizer_workers=1,
+    n_qc_compute_workers=2,
+    qc_compute_worker_config=BespokeWorkerConfig(n_cores=1),
 ) as executor:
     # Submit our workflow to the executor
     task_id = executor.submit(input_schema=workflow_schema)
@@ -281,15 +283,13 @@ from openff.bespokefit.schema.smirnoff import ProperTorsionHyperparameters
 from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
 
 factory = BespokeWorkflowFactory(
-    # Define the starting force field that will be augmented with bespoke 
+    # Define the starting force field that will be augmented with bespoke
     # parameters.
     initial_force_field="openff-2.0.0.offxml",
     # Select the underlying optimization engine.
-    optimizer=ForceBalanceSchema(
-        max_iterations=50, penalty_type="L1"
-    ),
-    # Define the types of bespoke parameter to generate and hyper-parameters 
-    # that control how they will be fit, as well as the target reference data 
+    optimizer=ForceBalanceSchema(max_iterations=50, penalty_type="L1"),
+    # Define the types of bespoke parameter to generate and hyper-parameters
+    # that control how they will be fit, as well as the target reference data
     # that should be used in the fit.
     parameter_hyperparameters=[ProperTorsionHyperparameters()],
     target_templates=[TorsionProfileTargetSchema()],
@@ -302,14 +302,14 @@ factory = BespokeWorkflowFactory(
             spec_name="xtb",
             spec_description="gfn2xtb",
         )
-    ]
+    ],
 )
 ```
 
 Once the factory is configured, it can be [saved]
 
 ```python
-factory.to_file("workflow-factory.yaml") # or .json
+factory.to_file("workflow-factory.yaml")  # or .json
 ```
 
 and [loaded] from disk easily

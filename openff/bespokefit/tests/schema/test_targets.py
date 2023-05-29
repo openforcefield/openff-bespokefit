@@ -19,9 +19,10 @@ def test_check_reference_data(qc_torsion_drive_results):
     TorsionProfileTargetSchema(
         reference_data=BespokeQCData(
             spec=Torsion1DTaskSpec(
-                program="rdkit", model=Model(method="uff", basis=None)
-            )
-        )
+                program="rdkit",
+                model=Model(method="uff", basis=None),
+            ),
+        ),
     )
 
     # Handle the case of an invalid task
@@ -29,9 +30,10 @@ def test_check_reference_data(qc_torsion_drive_results):
         TorsionProfileTargetSchema(
             reference_data=BespokeQCData(
                 spec=HessianTaskSpec(
-                    program="rdkit", model=Model(method="uff", basis=None)
-                )
-            )
+                    program="rdkit",
+                    model=Model(method="uff", basis=None),
+                ),
+            ),
         )
 
 
@@ -108,7 +110,7 @@ class TestCheckConnectivity:
         torsiondrive_result_disconnection = ref_data_local[0]
         try:
             geom = next(
-                iter(torsiondrive_result_disconnection.final_molecules.values())
+                iter(torsiondrive_result_disconnection.final_molecules.values()),
             ).geometry
         except AttributeError:
             geom = torsiondrive_result_disconnection.final_molecule.geometry
@@ -117,8 +119,8 @@ class TestCheckConnectivity:
         with pytest.raises(ValidationError, match=expected_err):
             TargetSchema(
                 reference_data=LocalQCData(
-                    qc_records=[torsiondrive_result_disconnection]
-                )
+                    qc_records=[torsiondrive_result_disconnection],
+                ),
             )
 
     def test_check_connectivity_qcfractal_positive(

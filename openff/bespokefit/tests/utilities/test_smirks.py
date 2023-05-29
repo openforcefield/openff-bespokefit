@@ -47,7 +47,7 @@ def all_covered(matches, molecule) -> bool:
     return True
 
 
-def condense_matches(matches: List[Tuple[int, ...]]) -> List[Tuple[int, ...]]:
+def condense_matches(matches: list[tuple[int, ...]]) -> list[tuple[int, ...]]:
     """
     For a set of chemical environment matches condense them to a unique list of matches
     taking into account matches that appear forwards or backwards.
@@ -85,7 +85,7 @@ def test_get_cached_torsion_no_match(bace):
         molecule=bace,
         bespoke_parameter=bespoke_parameter,
         cached_parameters=force_field.get_parameter_handler(
-            "ProperTorsions"
+            "ProperTorsions",
         ).parameters,
     )
     assert cached_parameter is None
@@ -106,14 +106,15 @@ def test_get_cached_torsion(bace):
         molecule=bace,
         bespoke_parameter=bespoke_parameter,
         cached_parameters=force_field.get_parameter_handler(
-            "ProperTorsions"
+            "ProperTorsions",
         ).parameters,
     )
     assert cached_parameter is not None
     assert "cached" in cached_parameter._cosmetic_attribs
     # make sure the k value is updated
     assert cached_parameter.k[0] == unit.Quantity(
-        0.9155269008137, unit.kilocalories_per_mole
+        0.9155269008137,
+        unit.kilocalories_per_mole,
     )
     # make sure the smirks has not changed
     assert cached_parameter.smirks == "[#6H1:1]@[#6:2]-!@[#6:3]@[#6H1:4]"
@@ -166,8 +167,9 @@ def test_validate_smirks(smirks, n_tags, expected_raises):
         (
             Molecule.from_file(
                 get_data_file_path(
-                    os.path.join("test", "molecules", "OCCO.sdf"), "openff.bespokefit"
-                )
+                    os.path.join("test", "molecules", "OCCO.sdf"),
+                    "openff.bespokefit",
+                ),
             ),
             SMIRKSType.ProperTorsions,
             5,
@@ -180,8 +182,9 @@ def test_validate_smirks(smirks, n_tags, expected_raises):
         (
             Molecule.from_file(
                 get_data_file_path(
-                    os.path.join("test", "molecules", "OCCO.sdf"), "openff.bespokefit"
-                )
+                    os.path.join("test", "molecules", "OCCO.sdf"),
+                    "openff.bespokefit",
+                ),
             ),
             SMIRKSType.ProperTorsions,
             3,
@@ -205,7 +208,8 @@ def test_bespoke_smirks(mol, smirks_type, n_expected, expected_lambda, central_b
         mol = Molecule.from_smiles(mol)
 
     generated_parameters = gen.generate_smirks_from_molecule(
-        molecule=mol, central_bond=central_bond
+        molecule=mol,
+        central_bond=central_bond,
     )
     assert len(generated_parameters) == n_expected
 
@@ -213,7 +217,7 @@ def test_bespoke_smirks(mol, smirks_type, n_expected, expected_lambda, central_b
         match
         for parameter in generated_parameters
         for match in condense_matches(
-            mol.chemical_environment_matches(parameter.smirks)
+            mol.chemical_environment_matches(parameter.smirks),
         )
     ]
 
@@ -277,8 +281,8 @@ def test_get_all_bespoke_smirks_fragment(bace_fragment_data):
 
         fragment_matches = condense_matches(
             bace_fragment_data.fragments[0].molecule.chemical_environment_matches(
-                parameter.smirks
-            )
+                parameter.smirks,
+            ),
         )
         matches_by_type[parameter.__class__].extend(fragment_matches)
 
@@ -355,7 +359,7 @@ def test_generate_smirks(bespoke_smirks):
     parameters = gen.generate_smirks_from_molecule(molecule=mol)
 
     # we only request one parameter type
-    types = set([type(parameter) for parameter in parameters])
+    types = {type(parameter) for parameter in parameters}
     assert len(types) == 1
 
 
@@ -390,7 +394,7 @@ def test_expand_torsion_terms(bespoke_smirks, expand_torsions):
     parameters = gen.generate_smirks_from_molecule(molecule=mol)
 
     # make sure there is only one parameter type
-    parameter_types = set(parameter.__class__ for parameter in parameters)
+    parameter_types = {parameter.__class__ for parameter in parameters}
     assert len(parameter_types) == 1
 
     for parameter in parameters:

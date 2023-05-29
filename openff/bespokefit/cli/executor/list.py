@@ -18,7 +18,7 @@ _STATUS_STRINGS = {
 }
 
 
-def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "Status"]:
+def _get_columns(console: "rich.Console", optimization_id: str) -> tuple[str, "Status"]:
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
@@ -30,7 +30,9 @@ def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "S
         raise click.exceptions.Exit(code=2)
 
     smiles = Molecule.from_smiles(output.smiles).to_smiles(
-        isomeric=True, explicit_hydrogens=False, mapped=False
+        isomeric=True,
+        explicit_hydrogens=False,
+        mapped=False,
     )
 
     return smiles, output.status

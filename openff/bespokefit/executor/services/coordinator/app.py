@@ -41,7 +41,9 @@ __GET_TASK_IMAGE_ENDPOINT = (
 
 @router.get("/" + __settings.BEFLOW_COORDINATOR_PREFIX)
 def get_optimizations(
-    skip: int = 0, limit: int = 1000, status: Optional[TaskStatus] = None
+    skip: int = 0,
+    limit: int = 1000,
+    status: Optional[TaskStatus] = None,
 ) -> CoordinatorGETPageResponse:
     """Retrieves all bespoke optimizations that have been submitted to this server."""
 
@@ -109,7 +111,7 @@ def get_optimization(optimization_id: int) -> CoordinatorGETResponse:
         "image": (
             __settings.BEFLOW_API_V1_STR
             + __GET_TASK_IMAGE_ENDPOINT.format(optimization_id=optimization_id)
-        )
+        ),
     }
 
     return response
@@ -128,7 +130,8 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
         body.input_schema.smiles = molecule.to_smiles(mapped=True)
     except BaseException as e:
         raise HTTPException(
-            status_code=400, detail="molecule could not be understood"
+            status_code=400,
+            detail="molecule could not be understood",
         ) from e
 
     task_id = create_task(body.input_schema)
@@ -175,7 +178,7 @@ def startup():
 
         except BaseException:
             _logger.exception(
-                "Exception raised by the main loop. This should never happen."
+                "Exception raised by the main loop. This should never happen.",
             )
 
             os.kill(os.getpid(), signal.SIGINT)

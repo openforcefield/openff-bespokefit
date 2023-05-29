@@ -112,7 +112,8 @@ def validate_redis_connection(console: "rich.Console", allow_existing: bool = Tr
     settings = current_settings()
 
     if not is_redis_available(
-        host=settings.BEFLOW_REDIS_ADDRESS, port=settings.BEFLOW_REDIS_PORT
+        host=settings.BEFLOW_REDIS_ADDRESS,
+        port=settings.BEFLOW_REDIS_PORT,
     ):
         return
 
@@ -131,7 +132,7 @@ def validate_redis_connection(console: "rich.Console", allow_existing: bool = Tr
             "[[yellow]WARNING[/yellow]] a redis server is already running - this "
             "will be connected to by default",
             (0, 0, 1, 0),
-        )
+        ),
     )
 
     try:

@@ -14,7 +14,9 @@ def print_header(console: "rich.Console"):
 
 
 def create_command(
-    click_command: click.command, click_options: List[click.option], func: Callable
+    click_command: click.command,
+    click_options: list[click.option],
+    func: Callable,
 ):
     """Programmatically apply click options to a function."""
 

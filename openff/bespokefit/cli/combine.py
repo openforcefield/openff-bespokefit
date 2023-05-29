@@ -38,8 +38,8 @@ from openff.bespokefit.executor.utilities import handle_common_errors
 )
 def combine_cli(
     output_file: str,
-    force_field_files: Optional[List[str]],
-    task_ids: Optional[List[str]],
+    force_field_files: Optional[list[str]],
+    task_ids: Optional[list[str]],
 ):
     """
     Combine force fields from local files and task ids.
@@ -62,10 +62,12 @@ def combine_cli(
         all_force_fields.extend(
             [
                 ForceField(
-                    force_field, load_plugins=True, allow_cosmetic_attributes=True
+                    force_field,
+                    load_plugins=True,
+                    allow_cosmetic_attributes=True,
                 )
                 for force_field in force_field_files
-            ]
+            ],
         )
 
     if task_ids:
@@ -86,7 +88,7 @@ def combine_cli(
                 _ = master_ff.get_parameter_handler("ProperTorsions")[parameter.smirks]
             except ParameterLookupError:
                 master_ff.get_parameter_handler("ProperTorsions").add_parameter(
-                    parameter=parameter
+                    parameter=parameter,
                 )
 
     master_ff.to_file(filename=output_file, discard_cosmetic_attributes=True)

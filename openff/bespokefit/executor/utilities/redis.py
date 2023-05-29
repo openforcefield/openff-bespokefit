@@ -12,7 +12,7 @@ import redis
 from openff.bespokefit.executor.services import current_settings
 
 __REDIS_VERSION: int = 1
-__CONNECTION_POOL: Dict[Tuple[str, int, Optional[int], bool], redis.Redis] = {}
+__CONNECTION_POOL: dict[tuple[str, int, Optional[int], bool], redis.Redis] = {}
 
 
 class RedisNotConfiguredError(BaseException):
@@ -47,7 +47,10 @@ def connect_to_default_redis(validate: bool = True) -> redis.Redis:
 
 
 def connect_to_redis(
-    host: str, port: int, db: int, validate: bool = True
+    host: str,
+    port: int,
+    db: int,
+    validate: bool = True,
 ) -> redis.Redis:
     """Connects to a redis server using the specified settings."""
 
@@ -67,7 +70,7 @@ def connect_to_redis(
                 f"`openff-bespokefit:redis-version` key. This likely means it was not "
                 f"configured for use with OpenFF BespokeFit. Alternatively if you have "
                 f"just updated to a new version of OpenFF BespokeFit, try deleting any "
-                f"old `redis.db` files."
+                f"old `redis.db` files.",
             )
 
         elif int(version) != __REDIS_VERSION:
@@ -75,7 +78,7 @@ def connect_to_redis(
                 f"The redis server at host={host} and port={port} expects a version of "
                 f"OpenFF BespokeFit that supports a redis configurations with version "
                 f"{version}, while the current version only supports version "
-                f"{__REDIS_VERSION}."
+                f"{__REDIS_VERSION}.",
             )
 
     __CONNECTION_POOL[connection_key] = connection
@@ -115,7 +118,7 @@ def launch_redis(
     if redis_server_path is None:
         raise RuntimeError(
             "The `redis-server` command could not be found. Please make sure `redis` is "
-            "correctly installed."
+            "correctly installed.",
         )
 
     redis_cli_path = shutil.which("redis-cli")
@@ -123,14 +126,14 @@ def launch_redis(
     if redis_cli_path is None:
         raise RuntimeError(
             "The `redis-cli` command could not be found. Please make sure `redis` is "
-            "correctly installed."
+            "correctly installed.",
         )
 
     if is_redis_available("localhost", port):
         raise RuntimeError(f"There is already a server running at localhost:{port}")
 
     redis_save_exists = os.path.isfile(
-        "redis.db" if not directory else os.path.join(directory, "redis.db")
+        "redis.db" if not directory else os.path.join(directory, "redis.db"),
     )
 
     redis_command = f"redis-server --port {str(port)} --dbfilename redis.db"
@@ -173,7 +176,8 @@ def launch_redis(
 
         connection = connect_to_redis("localhost", port, 0, validate=False)
         connection.set(
-            "openff-bespokefit:redis-version", expected_redis_config_version()
+            "openff-bespokefit:redis-version",
+            expected_redis_config_version(),
         )
 
     return redis_process

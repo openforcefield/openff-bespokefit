@@ -16,8 +16,8 @@ class TaskInformation(TypedDict):
 
     status: Status
 
-    result: Optional[Dict[str, Any]]
-    error: Optional[Dict[str, Any]]
+    result: Optional[dict[str, Any]]
+    error: Optional[dict[str, Any]]
 
 
 def get_status(task_result: AsyncResult) -> Status:
@@ -31,7 +31,9 @@ def get_status(task_result: AsyncResult) -> Status:
 
 
 def configure_celery_app(
-    app_name: str, redis_connection: Redis, include: List[str] = None
+    app_name: str,
+    redis_connection: Redis,
+    include: list[str] = None,
 ):
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
@@ -64,14 +66,18 @@ def _spawn_worker(celery_app, concurrency: int = 1):
 
 
 def spawn_worker(
-    celery_app, concurrency: int = 1, asynchronous: bool = True
+    celery_app,
+    concurrency: int = 1,
+    asynchronous: bool = True,
 ) -> Optional[multiprocessing.Process]:
     if concurrency < 1:
         return
 
     if asynchronous:  # pragma: no cover
         worker_process = multiprocessing.Process(
-            target=_spawn_worker, args=(celery_app, concurrency), daemon=True
+            target=_spawn_worker,
+            args=(celery_app, concurrency),
+            daemon=True,
         )
         worker_process.start()
 

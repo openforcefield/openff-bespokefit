@@ -48,5 +48,5 @@ setup(
         'console_scripts': [
             'openff-bespoke=openff.bespokefit.cli:cli',
         ],
-    }
+    },
 )

@@ -7,10 +7,10 @@ from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
 from openff.bespokefit.optimizers.model import BaseOptimizer
 
-_optimizers: Dict[str, Type[BaseOptimizer]] = {}
+_optimizers: dict[str, type[BaseOptimizer]] = {}
 
 
-def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) -> None:
+def register_optimizer(optimizer: type[BaseOptimizer], replace: bool = False) -> None:
     """
     Register a new valid optimizer with bespokefit.
 
@@ -31,7 +31,7 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
     if not issubclass(optimizer, BaseOptimizer):
         raise OptimizerError(
             f"The optimizer {optimizer} could not be registered it must be a subclass "
-            f"of openff.bespokefit.optimzers.BaseOptimizer"
+            f"of openff.bespokefit.optimzers.BaseOptimizer",
         )
 
     optimizer_name = optimizer.name().lower()
@@ -39,14 +39,14 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
     if optimizer_name in _optimizers and not replace:
         raise OptimizerError(
             f"An optimizer is already registered under the name {optimizer.name()}, "
-            f"to replace this please use the `replace=True` flag."
+            f"to replace this please use the `replace=True` flag.",
         )
 
     _optimizers[optimizer_name] = optimizer
 
 
 def deregister_optimizer(
-    optimizer: Union[BaseOptimizer, Type[BaseOptimizer], str]
+    optimizer: Union[BaseOptimizer, type[BaseOptimizer], str],
 ) -> None:
     """
     Remove an optimizer from the list of valid optimizers.
@@ -64,11 +64,11 @@ def deregister_optimizer(
 
     if _optimizers.pop(optimizer_name, None) is None:
         raise OptimizerError(
-            f"The optimizer {optimizer} was not registered with bespokefit."
+            f"The optimizer {optimizer} was not registered with bespokefit.",
         )
 
 
-def get_optimizer(optimizer_name: str) -> Type[BaseOptimizer]:
+def get_optimizer(optimizer_name: str) -> type[BaseOptimizer]:
     """Get the optimizer class from the list of registered optimizers in bespokefit by
     name.
 
@@ -86,13 +86,13 @@ def get_optimizer(optimizer_name: str) -> Type[BaseOptimizer]:
 
     if optimizer is None:
         raise OptimizerError(
-            f"The optimizer {optimizer_name} was not registered with bespokefit."
+            f"The optimizer {optimizer_name} was not registered with bespokefit.",
         )
 
     return optimizer
 
 
-def list_optimizers() -> List[str]:
+def list_optimizers() -> list[str]:
     """
     Get the list of registered optimizers with bespokefit.
 

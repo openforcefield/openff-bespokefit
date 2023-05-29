@@ -62,7 +62,7 @@ class ForceFieldEditor:
         except KeyError:
             pass
 
-    def add_parameters(self, parameters: List[ParameterType]) -> List[ParameterType]:
+    def add_parameters(self, parameters: list[ParameterType]) -> list[ParameterType]:
         """
         Work out which type of smirks this is and add it to the forcefield, if this is
         not a bespoke parameter update the value in the forcefield.
@@ -96,15 +96,17 @@ class ForceFieldEditor:
                     # update the parameter using the init to get around conditional
                     # assigment
                     current_param.__init__(
-                        **parameter_data, allow_cosmetic_attributes=True
+                        **parameter_data,
+                        allow_cosmetic_attributes=True,
                     )
                 except ParameterLookupError:
                     parameter_data["id"] = _smirks_ids[parameter.__class__] + str(
-                        n_params + i
+                        n_params + i,
                     )
 
                     current_param = parameter.__class__(
-                        **parameter_data, allow_cosmetic_attributes=True
+                        **parameter_data,
+                        allow_cosmetic_attributes=True,
                     )
                     current_params.append(current_param)
 
@@ -113,8 +115,9 @@ class ForceFieldEditor:
         return added_parameters
 
     def label_molecule(
-        self, molecule: Molecule
-    ) -> Dict[str, Dict[Tuple[int, ...], ParameterType]]:
+        self,
+        molecule: Molecule,
+    ) -> dict[str, dict[tuple[int, ...], ParameterType]]:
         """
         Type the molecule with the forcefield and return a molecule parameter dictionary.
 
@@ -128,8 +131,10 @@ class ForceFieldEditor:
         return self.force_field.label_molecules(molecule.to_topology())[0]
 
     def get_parameters(
-        self, molecule: Molecule, atoms_by_type: Dict[str, List[Tuple[int, ...]]]
-    ) -> List[ParameterType]:
+        self,
+        molecule: Molecule,
+        atoms_by_type: dict[str, list[tuple[int, ...]]],
+    ) -> list[ParameterType]:
         """
         For a given molecule label it and get back the smirks patterns and parameters
         for the requested atoms.
@@ -151,8 +156,8 @@ class ForceFieldEditor:
     def get_initial_parameters(
         self,
         molecule: Molecule,
-        smirks: List["SMIRNOFFParameter"],
-    ) -> List[ParameterType]:
+        smirks: list["SMIRNOFFParameter"],
+    ) -> list[ParameterType]:
         """
         Find the initial parameters assigned to the atoms in the given smirks patterns
         and update the values to match the force field.

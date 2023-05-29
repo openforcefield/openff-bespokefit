@@ -25,7 +25,8 @@ def test_list_optimizers():
 
 
 @pytest.mark.parametrize(
-    "optimizer_name, expected", [("forcebalance", ForceBalanceOptimizer)]
+    "optimizer_name, expected",
+    [("forcebalance", ForceBalanceOptimizer)],
 )
 def test_get_optimizer(optimizer_name, expected):
     assert get_optimizer(optimizer_name) == expected

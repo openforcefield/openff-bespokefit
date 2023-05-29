@@ -57,7 +57,9 @@ def test_launch_redis_already_exists(tmpdir):
 @pytest.mark.parametrize("missing_command", ["redis-server", "redis-cli"])
 def test_launch_redis_missing_command(tmpdir, monkeypatch, missing_command):
     monkeypatch.setattr(
-        shutil, "which", lambda x: None if x == missing_command else "some/path"
+        shutil,
+        "which",
+        lambda x: None if x == missing_command else "some/path",
     )
 
     redis_process = None

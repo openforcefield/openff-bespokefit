@@ -6,9 +6,12 @@ from celery.result import AsyncResult
 
 
 def mock_celery_task(
-    worker_module: ModuleType, function_name: str, monkeypatch, task_id: str = "1"
-) -> Dict[str, Any]:
-    submitted_task_kwargs: Dict[str, Any] = {}
+    worker_module: ModuleType,
+    function_name: str,
+    monkeypatch,
+    task_id: str = "1",
+) -> dict[str, Any]:
+    submitted_task_kwargs: dict[str, Any] = {}
 
     def _mock_celery_task_delay(**kwargs):
         submitted_task_kwargs.update(kwargs)

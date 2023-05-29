@@ -53,7 +53,8 @@ def test_deregister_target_error():
     """
 
     with pytest.raises(
-        TargetRegisterError, match="No target with the name fake-target"
+        TargetRegisterError,
+        match="No target with the name fake-target",
     ):
         ForceBalanceOptimizer.deregister_target("fake-target")
 
@@ -89,7 +90,8 @@ def test_validate_schema_bad_target(general_optimization_schema):
             return ForceBalanceSchema
 
     with pytest.raises(
-        TargetRegisterError, match="target type is not registered with the"
+        TargetRegisterError,
+        match="target type is not registered with the",
     ):
         CustomOptimizer._validate_schema(general_optimization_schema.stages[0])
 
