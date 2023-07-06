@@ -16,7 +16,6 @@ from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
-from openff.utilities import temporary_cd
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.models import TorsionDriveRecord
@@ -41,6 +40,7 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 if TYPE_CHECKING:
     from qcelemental.models import Molecule as QCMolecule

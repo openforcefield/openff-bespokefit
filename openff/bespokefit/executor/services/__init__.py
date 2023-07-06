@@ -1,8 +1,3 @@
-from openff.bespokefit.executor.services._settings import Settings
-
-
-def current_settings() -> Settings:
-    return Settings()
-
+from openff.bespokefit.utilities import Settings, current_settings
 
 __all__ = ["current_settings", "Settings"]

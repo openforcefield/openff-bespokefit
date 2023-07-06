@@ -62,6 +62,24 @@ def _select_atom(atoms: List[Atom]) -> int:
     return candidate.molecule_atom_index
 
 
+def _get_program_keywords(program: str) -> Dict[str, str]:
+    """
+    Generate a set of pre-defined keywords for the calculation based on the program.
+    These are based on experience.
+
+    Args:
+        program: The name of the program which will run the calculation
+
+    Returns:
+         A dictionary of program specific keywords
+    """
+    keywords = {}
+    if program.lower() == "xtb":
+        # <https://github.com/openforcefield/openff-bespokefit/issues/238>
+        keywords["verbosity"] = "muted"
+    return keywords
+
+
 @celery_app.task(acks_late=True)
 def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     """Runs a torsion drive using QCEngine."""
@@ -118,6 +136,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         input_specification=QCInputSpecification(
             model=task.model,
             driver=DriverEnum.gradient,
+            keywords=_get_program_keywords(task.program),
         ),
         optimization_spec=OptimizationSpecification(
             procedure=task.optimization_spec.program,
@@ -171,6 +190,7 @@ def compute_optimization(
             input_specification=QCInputSpecification(
                 model=task.model,
                 driver=DriverEnum.gradient,
+                keywords=_get_program_keywords(task.program),
             ),
             initial_molecule=molecule.to_qcschema(conformer=i),
         )

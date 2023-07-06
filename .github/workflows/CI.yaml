@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        python-version: [3.8]
+        python-version: [3.9]
         openeye: [true, false]
         integration: [true]
         optimizer: [forcebalance, openff-forcebalance]
@@ -33,18 +33,18 @@ jobs:
 
       - name: Install with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/test-env.yaml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/no_openeye.yaml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
 
       - name: License OpenEye
