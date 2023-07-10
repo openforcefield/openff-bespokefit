@@ -38,13 +38,12 @@ def configure_celery_app(
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
     redis_db = redis_connection.connection_pool.connection_kwargs["db"]
-    username = redis_connection.connection_pool.connection_kwargs["username"]
     password = settings.BEFLOW_REDIS_PASSWORD
 
     celery_app = Celery(
         app_name,
-        backend=f"redis://{username}:{password}@{redis_host_name}:{redis_port}/{redis_db}",
-        broker=f"redis://{username}:{password}@{redis_host_name}:{redis_port}/{redis_db}",
+        backend=f"redis://:{password}@{redis_host_name}:{redis_port}/{redis_db}",
+        broker=f"redis://:{password}@{redis_host_name}:{redis_port}/{redis_db}",
         include=include,
     )
 
