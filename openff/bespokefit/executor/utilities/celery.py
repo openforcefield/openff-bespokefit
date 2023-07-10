@@ -9,6 +9,7 @@ from typing_extensions import TypedDict
 
 from openff.bespokefit.executor.services.models import Error
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.utilities import current_settings
 
 
 class TaskInformation(TypedDict):
@@ -33,11 +34,12 @@ def get_status(task_result: AsyncResult) -> Status:
 def configure_celery_app(
     app_name: str, redis_connection: Redis, include: List[str] = None
 ):
+    settings = current_settings()
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
     redis_db = redis_connection.connection_pool.connection_kwargs["db"]
     username = redis_connection.connection_pool.connection_kwargs["username"]
-    password = redis_connection.connection_pool.connection_kwargs["password"]
+    password = settings.BEFLOW_REDIS_PASSWORD
 
     celery_app = Celery(
         app_name,
