@@ -12,7 +12,7 @@ import redis
 from openff.bespokefit.executor.services import current_settings
 
 __REDIS_VERSION: int = 1
-__CONNECTION_POOL: Dict[Tuple[str, int, Optional[int], bool], redis.Redis] = {}
+__CONNECTION_POOL: Dict[Tuple[str, int, Optional[int], str, bool], redis.Redis] = {}
 
 
 class RedisNotConfiguredError(BaseException):
@@ -33,30 +33,31 @@ def expected_redis_config_version() -> int:
 
 def connect_to_default_redis(validate: bool = True) -> redis.Redis:
     """Connects to a redis server using the settings defined by the
-    `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT` and `BEFLOW_REDIS_PORT` settings.
+    `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT`, `BEFLOW_REDIS_DB` and `BEFLOW_REDIS_PASSWORD` settings.
     """
 
     settings = current_settings()
 
     return connect_to_redis(
-        settings.BEFLOW_REDIS_ADDRESS,
-        settings.BEFLOW_REDIS_PORT,
-        settings.BEFLOW_REDIS_DB,
+        host=settings.BEFLOW_REDIS_ADDRESS,
+        port=settings.BEFLOW_REDIS_PORT,
+        db=settings.BEFLOW_REDIS_DB,
+        password=settings.BEFLOW_REDIS_PASSWORD,
         validate=validate,
     )
 
 
 def connect_to_redis(
-    host: str, port: int, db: int, validate: bool = True
+    host: str, port: int, db: int, password: str, validate: bool = True
 ) -> redis.Redis:
     """Connects to a redis server using the specified settings."""
 
-    connection_key = (host, port, db, validate)
+    connection_key = (host, port, db, password, validate)
 
     if connection_key in __CONNECTION_POOL:
         return __CONNECTION_POOL[connection_key]
 
-    connection = redis.Redis(host=host, port=port, db=db)
+    connection = redis.Redis(host=host, port=port, db=db, password=password)
 
     if validate:
         version = connection.get("openff-bespokefit:redis-version")
@@ -133,7 +134,9 @@ def launch_redis(
         "redis.db" if not directory else os.path.join(directory, "redis.db")
     )
 
-    redis_command = f"redis-server --port {str(port)} --dbfilename redis.db"
+    settings = current_settings()
+    # to allow connections from other machines we need a default user password
+    redis_command = f"redis-server --port {str(port)} --dbfilename redis.db --requirepass {settings.BEFLOW_REDIS_PASSWORD}"
 
     if directory:
         redis_command = f"{redis_command} --dir {directory}"
