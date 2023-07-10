@@ -12,7 +12,9 @@ import redis
 from openff.bespokefit.executor.services import current_settings
 
 __REDIS_VERSION: int = 1
-__CONNECTION_POOL: Dict[Tuple[str, int, Optional[int], str, bool], redis.Redis] = {}
+__CONNECTION_POOL: Dict[
+    Tuple[str, int, Optional[int], Optional[str], bool], redis.Redis
+] = {}
 
 
 class RedisNotConfiguredError(BaseException):
@@ -48,7 +50,7 @@ def connect_to_default_redis(validate: bool = True) -> redis.Redis:
 
 
 def connect_to_redis(
-    host: str, port: int, db: int, password: str, validate: bool = True
+    host: str, port: int, db: int, validate: bool = True, password: Optional[str] = None
 ) -> redis.Redis:
     """Connects to a redis server using the specified settings."""
 
@@ -83,12 +85,14 @@ def connect_to_redis(
     return connection
 
 
-def is_redis_available(host: str, port: int = 6363) -> bool:
+def is_redis_available(
+    host: str, port: int = 6363, password: Optional[str] = None
+) -> bool:
     """Returns whether a server running on the local host on a particular port is
     available.
     """
 
-    redis_client = redis.Redis(host=host, port=port)
+    redis_client = redis.Redis(host=host, port=port, password=password)
 
     try:
         redis_client.get("null")
@@ -111,6 +115,7 @@ def launch_redis(
     persistent: bool = True,
     terminate_at_exit: bool = True,
 ) -> subprocess.Popen:
+    settings = current_settings()
     redis_server_path = shutil.which("redis-server")
 
     if redis_server_path is None:
@@ -127,14 +132,15 @@ def launch_redis(
             "correctly installed."
         )
 
-    if is_redis_available("localhost", port):
+    if is_redis_available(
+        host="localhost", port=port, password=settings.BEFLOW_REDIS_PASSWORD
+    ):
         raise RuntimeError(f"There is already a server running at localhost:{port}")
 
     redis_save_exists = os.path.isfile(
         "redis.db" if not directory else os.path.join(directory, "redis.db")
     )
 
-    settings = current_settings()
     # to allow connections from other machines we need a default user password
     redis_command = f"redis-server --port {str(port)} --dbfilename redis.db --requirepass {settings.BEFLOW_REDIS_PASSWORD}"
 
@@ -159,7 +165,9 @@ def launch_redis(
     timeout = True
 
     for i in range(0, 60):
-        if is_redis_available("localhost", port):
+        if is_redis_available(
+            host="localhost", port=port, password=settings.BEFLOW_REDIS_PASSWORD
+        ):
             timeout = False
             break
 
@@ -169,12 +177,24 @@ def launch_redis(
         raise RuntimeError("The redis server failed to start.")
 
     try:
-        connect_to_redis("localhost", port, 0, validate=True)
+        connect_to_redis(
+            host="localhost",
+            port=port,
+            db=settings.BEFLOW_REDIS_DB,
+            password=settings.BEFLOW_REDIS_PASSWORD,
+            validate=True,
+        )
     except RedisNotConfiguredError:
         if redis_save_exists:
             raise
 
-        connection = connect_to_redis("localhost", port, 0, validate=False)
+        connection = connect_to_redis(
+            host="localhost",
+            port=port,
+            db=settings.BEFLOW_REDIS_DB,
+            password=settings.BEFLOW_REDIS_PASSWORD,
+            validate=False,
+        )
         connection.set(
             "openff-bespokefit:redis-version", expected_redis_config_version()
         )
