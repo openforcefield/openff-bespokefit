@@ -20,13 +20,18 @@ worker_types = ["fragmenter", "qc-compute", "optimizer"]
 )
 def worker_cli(worker_type: str):
     """
-    Launch a single worker of the requested type in the main process. Used to connect workers to a remote bespokefit server.
+    Launch a single worker of the requested type in the main process.
 
-    By default bespokefit will automatically use all cores and memory made available to the worker which should
-    be declared in the job submission script. To change these defaults see the settings `BEFLOW_QC_COMPUTE_WORKER_N_CORES` &
-    `BEFLOW_QC_COMPUTE_WORKER_MAX_MEM`.
+    Used to connect workers to a remote bespokefit server.
+
+    Note:
+
+        By default bespokefit will automatically use all cores and memory made available to the worker which should
+        be declared in the job submission script. To change these defaults see the settings `BEFLOW_QC_COMPUTE_WORKER_N_CORES` &
+        `BEFLOW_QC_COMPUTE_WORKER_MAX_MEM`.
 
     Args:
+
         worker_type: The alias name of the worker type which should be started.
     """
 
