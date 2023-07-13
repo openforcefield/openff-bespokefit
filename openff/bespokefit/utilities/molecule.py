@@ -3,8 +3,10 @@ from typing import Dict, List, Optional, Tuple
 
 from openff.toolkit.topology import Molecule
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
+from openff.utilities.utilities import requires_oe_module
 
 
+@requires_oe_module("oechem")
 def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
     from openeye import oechem
 
@@ -31,6 +33,7 @@ def get_atom_symmetries(molecule: Molecule) -> List[int]:
         return _rd_get_atom_symmetries(molecule)
 
 
+@requires_oe_module("oechem")
 def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
     from openeye import oechem
 
