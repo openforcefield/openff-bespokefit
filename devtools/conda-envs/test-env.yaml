@@ -21,7 +21,6 @@ dependencies:
   - click
   - click-option-group
   - rdkit
-  - pint <0.22
   - openff-utilities
   - openff-toolkit-base >=0.11,<0.14
   - openff-forcefields
