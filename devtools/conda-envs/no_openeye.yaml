@@ -21,8 +21,9 @@ dependencies:
   - click-option-group
   - rdkit >=22
   - ambertools >=22
+  - pint <0.22
   - openff-utilities
-  - openff-toolkit-base =0.11
+  - openff-toolkit-base >=0.11,<0.14
   - openff-forcefields
   - openff-interchange
   - openff-qcsubmit
