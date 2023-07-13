@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 from openff.toolkit.topology import Molecule
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
-from openff.utilities.utilities import requires_oe_module
+from openff.utilities import MissingOptionalDependencyError, requires_oe_module
 
 
 @requires_oe_module("oechem")
@@ -29,7 +29,12 @@ def _rd_get_atom_symmetries(molecule: Molecule) -> List[int]:
 def get_atom_symmetries(molecule: Molecule) -> List[int]:
     try:
         return _oe_get_atom_symmetries(molecule)
-    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        ToolkitUnavailableException,
+        MissingOptionalDependencyError,  # includes failure due to missing license
+    ):
         return _rd_get_atom_symmetries(molecule)
 
 
@@ -73,7 +78,11 @@ def canonical_order_atoms(molecule: Molecule):
 
     try:
         atom_order = _oe_canonical_atom_order(molecule)
-    except (ImportError, ModuleNotFoundError):
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        MissingOptionalDependencyError,  # includes failure due to missing license
+    ):
         atom_order = _rd_canonical_atom_order(molecule)
 
     n_heavy_atoms = sum(1 for atom in molecule.atoms if atom.atomic_number != 1)
