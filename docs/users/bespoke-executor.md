@@ -64,7 +64,52 @@ different stages may run in parallel.
 
 See the [quick start guide](quick_start_chapter) for details on submitting jobs to a running bespoke executor.
 
+(executor_distributed_workers)=
+## Distributed Workers
+
+Bespokefit is able to make use of distributed resources across HPC clusters or multiple machines on the same network via
+the [Celery] framework which underpins the workers. In this example we assume the workers and bespoke executor are on 
+different machines. First gather the IP address of the machine which will be running the bespoke executor
+
+```shell
+ifconfig -a
+```
+
+A bespoke executor with no local workers can then be launched using the `launch` command
+
+```shell
+openff-bespoke executor launch --directory            "bespoke-executor" \
+                               --n-fragmenter-workers 0                  \
+                               --n-optimizer-workers  0                  \
+                               --n-qc-compute-workers 0
+```
+
+We now need to provide the address of the executor inorder to connect the remote workers. BespokeFit has a number of run 
+time [settings] which can be configured via environment variables. The address of the executor should be set to 
+`BEFLOW_REDIS_ADDRESS` in the environment the workers will be launched from using
+
+```shell
+export BEFLOW_REDIS_ADDRESS="address"
+```
+
+Bespoke workers of a given type can then be launched using the `launch-worker` command, the following would start a
+fragmentation worker.
+
+```shell
+openff-bespoke launch-worker --worker-type fragmenter
+```
+
+Provided the worker starts successfully a log file will be generated called `celery-fragmenter.log` which should be 
+checked to make sure the worker has connected to the executor.
+
+:::{note}
+The `launch-worker` command does not allow for configuration of the worker resources, it is recommended that the 
+corresponding environment variable [settings] are used instead.
+:::
+
+
 [QCEngine]: http://docs.qcarchive.molssi.org/projects/QCEngine/en/stable/
+[settings]: openff.bespokefit.utilities.Settings
 
 (executor_using_api)=
 ## Using the API
