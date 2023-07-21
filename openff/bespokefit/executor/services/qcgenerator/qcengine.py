@@ -1,5 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import current_process
+from multiprocessing import current_process, get_context
 from typing import Dict, List, Union
 
 from qcelemental.models import FailedOperation
@@ -61,22 +60,20 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
             n_workers = int(min([n_jobs, opts_per_worker]))
             opt_config = _divide_config(config=config, n_workers=n_workers)
 
-            with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            # Using fork can hangs on our local HPC so pin to use spawn
+            with get_context("spwan").Pool(processes=n_workers) as pool:
                 tasks = {
                     grid_point: [
-                        pool.submit(
-                            self._spawn_optimization,
-                            grid_point,
-                            job,
-                            input_model,
-                            opt_config,
+                        pool.apply_async(
+                            func=self._spawn_optimization,
+                            args=(grid_point, job, input_model, opt_config),
                         )
                         for job in jobs
                     ]
                     for grid_point, jobs in next_jobs.items()
                 }
                 return {
-                    grid_point: [grid_task.result() for grid_task in grid_tasks]
+                    grid_point: [grid_task.get() for grid_task in grid_tasks]
                     for grid_point, grid_tasks in tasks.items()
                 }
 
