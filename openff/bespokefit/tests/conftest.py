@@ -58,13 +58,13 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
+from openff.bespokefit.utilities import Settings, current_settings
 from openff.bespokefit.utilities.smirks import SMIRKSettings
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
 
 @pytest.fixture()
 def bace() -> Molecule:
-
     molecule: Molecule = Molecule.from_file(
         file_path=get_data_file_path(
             os.path.join("test", "molecules", "bace", "bace.sdf"), "openff.bespokefit"
@@ -101,7 +101,6 @@ def clear_force_balance_caches():
 
 @pytest.fixture(scope="module")
 def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
-
     [(record, molecule)] = TorsionDriveResultCollection(
         entries={
             "api.qcarchive.molssi.org:443": [
@@ -123,7 +122,6 @@ def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
 def qc_torsion_drive_results(
     qc_torsion_drive_record, monkeypatch
 ) -> TorsionDriveResultCollection:
-
     _, molecule = qc_torsion_drive_record
 
     collection = TorsionDriveResultCollection(
@@ -151,7 +149,6 @@ def qc_torsion_drive_results(
 def qc_torsion_drive_qce_result(
     qc_torsion_drive_record,
 ) -> Tuple[QCTorsionDriveResult, Molecule]:
-
     qc_record, molecule = qc_torsion_drive_record
 
     qc_result = QCTorsionDriveResult(
@@ -191,7 +188,6 @@ def qc_torsion_drive_qce_result(
 
 @pytest.fixture(scope="module")
 def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
-
     [(record, molecule)] = OptimizationResultCollection(
         entries={
             "api.qcarchive.molssi.org:443": [
@@ -213,7 +209,6 @@ def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
 def qc_optimization_results(
     qc_optimization_record, monkeypatch
 ) -> OptimizationResultCollection:
-
     _, molecule = qc_optimization_record
 
     collection = OptimizationResultCollection(
@@ -241,7 +236,6 @@ def qc_optimization_results(
 def qc_optimization_qce_result(
     qc_optimization_record,
 ) -> Tuple[QCOptimizationResult, Molecule]:
-
     qc_record, molecule = qc_optimization_record
 
     qc_result = QCOptimizationResult(
@@ -269,7 +263,6 @@ def qc_optimization_qce_result(
 
 @pytest.fixture(scope="module")
 def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
-
     qc_client = FractalClient()
 
     [record] = qc_client.query_procedures(id="18854435")
@@ -295,7 +288,6 @@ def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
 def qc_hessian_results(
     qc_hessian_record: ResultRecord, monkeypatch
 ) -> BasicResultCollection:
-
     _, molecule = qc_hessian_record
 
     collection = BasicResultCollection(
@@ -323,7 +315,6 @@ def qc_hessian_results(
 def qc_hessian_qce_result(
     qc_hessian_record,
 ) -> Tuple[AtomicResult, Molecule]:
-
     qc_record, molecule = qc_hessian_record
 
     qc_result = AtomicResult(
@@ -352,7 +343,6 @@ def general_optimization_schema(
     qc_optimization_results: OptimizationResultCollection,
     qc_hessian_results: BasicResultCollection,
 ):
-
     optimization_schema = OptimizationSchema(
         initial_force_field="openff-1.3.0.offxml",
         stages=[
@@ -398,13 +388,10 @@ def bespoke_optimization_schema() -> BespokeOptimizationSchema:
 def bespoke_optimization_results(
     bespoke_optimization_schema,
 ) -> BespokeOptimizationResults:
-
     force_field = ForceField(bespoke_optimization_schema.initial_force_field)
 
     for key, value in bespoke_optimization_schema.initial_parameter_values.items():
-
         for attribute in key.attributes:
-
             expected_unit = getattr(
                 force_field[key.type].parameters[key.smirks], attribute
             ).unit
@@ -453,15 +440,16 @@ def bace_fragment_data() -> FragmentationResult:
 
 @pytest.fixture(scope="session")
 def redis_session(tmpdir_factory):
-
     redis_exists_error = RuntimeError(
         "It looks like a redis server is already running with the test "
         "settings. Exiting early in-case this is a production redis server."
     )
+    settings = current_settings()
 
     try:
-
-        connection = redis.Redis(port=5678, db=0)
+        connection = redis.Redis(
+            port=5678, db=0, password=settings.BEFLOW_REDIS_PASSWORD
+        )
 
         keys = connection.keys("*")
         assert len(keys) == 0
@@ -484,13 +472,19 @@ def redis_session(tmpdir_factory):
 
 @pytest.fixture(scope="session")
 def redis_connection(redis_session) -> redis.Redis:
-    return redis.Redis(port=5678, db=0)
+    settings = current_settings()
+    return redis.Redis(port=5678, db=0, password=settings.BEFLOW_REDIS_PASSWORD)
 
 
 @pytest.fixture(scope="function", autouse=True)
 def reset_redis(redis_connection, monkeypatch):
-
     redis_connection.flushdb()
     redis_connection.set(
         "openff-bespokefit:redis-version", expected_redis_config_version()
     )
+
+
+@pytest.fixture(scope="session")
+def bespoke_settings() -> Settings:
+    settings = current_settings()
+    return settings

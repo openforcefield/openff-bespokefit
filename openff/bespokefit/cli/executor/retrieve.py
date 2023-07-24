@@ -39,7 +39,6 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
     print_header(console)
 
     if output_file_path is None and force_field_path is None:
-
         raise click.UsageError(
             "At least one of the `--output` and `--force-field` flags should be "
             "specified."
@@ -67,7 +66,6 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
         raise NotImplementedError()
 
     if output_file_path is not None:
-
         console.print(
             Padding(
                 f"outputs have been saved to "
@@ -80,7 +78,6 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
             file.write(results.json())
 
     if force_field_path is not None:
-
         message = Padding(
             (
                 f"the bespoke fit {'failed' if results.error else 'is still running'} "

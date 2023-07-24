@@ -155,7 +155,6 @@ class BespokeWorkflowFactory(ClassBase):
             return get_optimizer(optimizer.lower())()
 
         if optimizer.type.lower() not in list_optimizers():
-
             raise OptimizerError(
                 f"The requested optimizer {optimizer.type} was not registered "
                 f"with bespokefit."
@@ -238,7 +237,6 @@ class BespokeWorkflowFactory(ClassBase):
         input_file, molecule, input_directory = None, None, None
 
         if isinstance(molecules, str):
-
             # this is an input file or folder
             if os.path.isfile(molecules):
                 input_file = molecules
@@ -364,7 +362,6 @@ class BespokeWorkflowFactory(ClassBase):
         per_molecule_records = defaultdict(list)
 
         for record, molecule in records:
-
             inchi_key = molecule.to_inchikey(fixed_hydrogens=True)
             per_molecule_records[inchi_key].append((record, molecule))
 
@@ -400,7 +397,6 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data = {}
 
         for record_type, records_of_type in records_by_type.items():
-
             record_type_label = {TorsionDriveRecord: "torsion1d"}[record_type]
 
             local_qc_data[record_type_label] = LocalQCData.from_remote_records(
@@ -420,7 +416,6 @@ class BespokeWorkflowFactory(ClassBase):
         """Attempts to select a QC spec for a given molecule from the defaults list."""
 
         if len(self.default_qc_specs) != 1:
-
             raise NotImplementedError(
                 "Currently only a single default QC spec must be specified."
             )
@@ -455,7 +450,6 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data = {} if local_qc_data is None else local_qc_data
 
         for target_template in self.target_templates:
-
             target_schema = target_template.copy(deep=True)
             targets.append(target_schema)
 

@@ -27,7 +27,6 @@ from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 @pytest.fixture()
 def mock_atomic_result() -> AtomicResult:
-
     molecule: Molecule = Molecule.from_smiles("C")
     molecule.generate_conformers(n_conformers=1)
 
@@ -44,7 +43,6 @@ def mock_atomic_result() -> AtomicResult:
 
 @pytest.fixture()
 def mock_torsion_drive_result() -> TorsionDriveResult:
-
     molecule: Molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][H:4]")
     molecule.generate_conformers(n_conformers=1)
 
@@ -74,7 +72,6 @@ def mock_torsion_drive_result() -> TorsionDriveResult:
 def test_retrieve_qc_result_pending_running_errored(
     redis_connection, monkeypatch, task_status, task_result, expected_state
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
@@ -93,7 +90,6 @@ def test_retrieve_qc_result_pending_running_errored(
 def test_retrieve_qc_result_success(
     qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
@@ -116,7 +112,6 @@ def test_retrieve_qc_result_success(
 def test_get_qc_result(
     qcgenerator_client, redis_connection, monkeypatch, mock_atomic_result
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
@@ -174,7 +169,6 @@ def test_get_qc_result(
 def test_post_qc_result(
     qcgenerator_client, redis_connection, monkeypatch, task, compute_function
 ):
-
     submitted_task_kwargs = mock_celery_task(worker, compute_function, monkeypatch)
 
     request = qcgenerator_client.post(
@@ -198,7 +192,6 @@ def test_get_qc_results(
     mock_atomic_result,
     include_result,
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",
@@ -217,7 +210,6 @@ def test_get_qc_results(
     assert len(response.contents) == 2
 
     for i, result in enumerate(response.contents):
-
         assert result.status == "success"
         assert (result.result is not None) == include_result
         assert result.type == "hessian"
@@ -244,7 +236,6 @@ def test_get_molecule_image_atomic_result(
 def test_get_molecule_image_torsion_drive(
     qcgenerator_client, redis_connection, monkeypatch, mock_torsion_drive_result
 ):
-
     monkeypatch.setattr(
         AsyncResult,
         "_get_task_meta",

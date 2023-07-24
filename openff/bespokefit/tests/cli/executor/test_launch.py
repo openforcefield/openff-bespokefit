@@ -13,17 +13,14 @@ from openff.bespokefit.tests.executor import patch_settings
 
 @pytest.fixture(scope="module", autouse=True)
 def configure_redis(redis_connection):
-
     with patch_settings(redis_connection):
         yield
 
 
 def test_launch(runner, monkeypatch):
-
     old_sleep = time.sleep
 
     def mock_sleep(*args, **kwargs):
-
         frame = inspect.stack()[1]
         file_name = inspect.getmodule(frame[0]).__file__
 
@@ -33,7 +30,6 @@ def test_launch(runner, monkeypatch):
         old_sleep(*args, **kwargs)
 
     def mock_start(self, *args, **kwargs):
-
         assert self._n_fragmenter_workers == 1
         assert self._n_qc_compute_workers == 2
         assert self._n_optimizer_workers == 3
@@ -61,12 +57,10 @@ def test_launch(runner, monkeypatch):
             "--no-launch-redis",
         ],
     )
-    print(output.output)
     assert output.exit_code == 0
 
 
 def test_validate_redis_connection_exists(redis_connection):
-
     console = rich.get_console()
 
     with console.capture() as capture:

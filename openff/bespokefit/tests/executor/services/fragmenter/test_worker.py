@@ -14,7 +14,6 @@ from openff.bespokefit.workflows.bespoke import _DEFAULT_ROTATABLE_SMIRKS
 
 
 def test_fragment():
-
     molecule = Molecule.from_smiles("CCCCCC")
 
     result_json = worker.fragment(

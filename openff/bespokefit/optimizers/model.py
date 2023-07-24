@@ -5,18 +5,17 @@ The optimizer model abstract class.
 import abc
 import copy
 import os
-import shutil
 from collections import defaultdict
 from typing import Dict, Optional, Type
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import temporary_cd
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.schema.fitting import OptimizationStageSchema
 from openff.bespokefit.schema.optimizers import OptimizerSchema
 from openff.bespokefit.schema.results import OptimizationStageResults
 from openff.bespokefit.schema.targets import BaseTargetSchema
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 TargetSchemaType = Type[BaseTargetSchema]
 
@@ -98,7 +97,6 @@ class BaseOptimizer(abc.ABC):
         """
 
         if not issubclass(target_type, BaseTargetSchema):
-
             raise TargetRegisterError(
                 f"The {target_type.__name__} does not inherit from the "
                 f"``BaseTargetSchema`` target base class."
@@ -150,7 +148,6 @@ class BaseOptimizer(abc.ABC):
         """
 
         if not isinstance(schema.optimizer, cls._schema_class()):
-
             raise OptimizerError(
                 f"The ``{cls.__name__}`` optimizer can only be used with "
                 f"optimization schemas which specify a {cls._schema_class().__name__} "
@@ -160,7 +157,6 @@ class BaseOptimizer(abc.ABC):
         registered_targets = cls.get_registered_targets()
 
         for target in schema.targets:
-
             if target.type.lower() in registered_targets:
                 continue
 
@@ -211,7 +207,6 @@ class BaseOptimizer(abc.ABC):
         cls,
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
-        keep_files: bool = False,
         root_directory: Optional[str] = None,
     ) -> OptimizationStageResults:
         """
@@ -221,24 +216,11 @@ class BaseOptimizer(abc.ABC):
         It should loop over the targets and assert they are registered and then dispatch
         compute and optimization.
         """
+        if root_directory is not None:
+            os.makedirs(root_directory, exist_ok=True)
 
-        try:
-
-            if root_directory is not None:
-                os.makedirs(root_directory, exist_ok=True)
-
-            with temporary_cd(root_directory):
-
-                cls.prepare(schema, initial_force_field, ".")
-                results = cls._optimize(schema, initial_force_field)
-
-        finally:
-
-            if (
-                root_directory is not None
-                and not keep_files
-                and os.path.isdir(root_directory)
-            ):
-                shutil.rmtree(root_directory, ignore_errors=True)
+        with temporary_cd(root_directory):
+            cls.prepare(schema, initial_force_field, ".")
+            results = cls._optimize(schema, initial_force_field)
 
         return results

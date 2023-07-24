@@ -12,7 +12,6 @@ class BespokeFitException(Exception):
     header = "BespokeFit Base Error"
 
     def __init__(self, message: str):
-
         super().__init__(message)
 
         self.raw_message = message

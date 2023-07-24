@@ -96,7 +96,6 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
 
     @property
     def status(self) -> Status:
-
         if (
             len(self.stages) == 0
             or all(stage.status == "waiting" for stage in self.stages)

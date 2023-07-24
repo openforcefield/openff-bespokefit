@@ -9,7 +9,6 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class WorkerSettings(BaseModel):
-
     import_path: str = Field(..., description="The import path to the worker module.")
 
     n_cores: Optional[int] = Field(
@@ -21,7 +20,6 @@ class WorkerSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-
     BEFLOW_API_V1_STR: str = "/api/v1"
 
     BEFLOW_GATEWAY_PORT: int = 8000
@@ -30,6 +28,7 @@ class Settings(BaseSettings):
     BEFLOW_REDIS_ADDRESS: str = "localhost"
     BEFLOW_REDIS_PORT: int = 6363
     BEFLOW_REDIS_DB: int = 0
+    BEFLOW_REDIS_PASSWORD: str = "bespokefit-server-1"
 
     BEFLOW_COORDINATOR_PREFIX = "tasks"
     BEFLOW_COORDINATOR_ROUTER = (
@@ -64,10 +63,18 @@ class Settings(BaseSettings):
     BEFLOW_OPTIMIZER_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
     BEFLOW_OPTIMIZER_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
     BEFLOW_OPTIMIZER_KEEP_FILES: bool = False
+    """
+    .. deprecated:: 0.2.1
+        use BEFLOW_KEEP_TMP_FILES instead
+
+    Keep the optimizer's temporary files.
+    """
+
+    BEFLOW_KEEP_TMP_FILES: bool = False
+    """Keep all temporary files."""
 
     @property
     def fragmenter_settings(self) -> WorkerSettings:
-
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
             n_cores=None
@@ -80,7 +87,6 @@ class Settings(BaseSettings):
 
     @property
     def qc_compute_settings(self) -> WorkerSettings:
-
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
             n_cores=None

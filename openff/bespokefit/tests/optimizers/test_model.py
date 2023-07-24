@@ -55,18 +55,15 @@ def test_deregister_target_error():
     with pytest.raises(
         TargetRegisterError, match="No target with the name fake-target"
     ):
-
         ForceBalanceOptimizer.deregister_target("fake-target")
 
 
 def test_register_target_existing_error():
-
     with pytest.raises(TargetRegisterError, match="has already been registered with"):
         ForceBalanceOptimizer.register_target(TorsionProfileTargetSchema)
 
 
 def test_register_target_type_error():
-
     with pytest.raises(TargetRegisterError, match="does not inherit from the"):
         ForceBalanceOptimizer.register_target(float)
 

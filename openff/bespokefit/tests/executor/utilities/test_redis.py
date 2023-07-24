@@ -11,16 +11,21 @@ from openff.bespokefit.executor.utilities.redis import (
 )
 
 
-def test_launch_redis(tmpdir):
-
-    assert not is_redis_available("localhost", 1234)
+def test_launch_redis(tmpdir, bespoke_settings):
+    assert not is_redis_available(
+        host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+    )
 
     redis_process = launch_redis(port=1234, directory=str(tmpdir), persistent=True)
 
     try:
-        assert is_redis_available("localhost", 1234)
+        assert is_redis_available(
+            host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+        )
 
-        redis_connection = Redis(port=1234)
+        redis_connection = Redis(
+            host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+        )
 
         assert (
             int(redis_connection.get("openff-bespokefit:redis-version"))
@@ -35,17 +40,22 @@ def test_launch_redis(tmpdir):
         redis_process.terminate()
         redis_process.wait()
 
-    assert not is_redis_available("localhost", 1234)
+    assert not is_redis_available(
+        host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+    )
 
     assert os.path.isfile(os.path.join(tmpdir, "redis.db"))
 
 
-def test_launch_redis_already_exists(tmpdir):
-
-    assert not is_redis_available("localhost", 1234)
+def test_launch_redis_already_exists(tmpdir, bespoke_settings):
+    assert not is_redis_available(
+        host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+    )
 
     redis_process = launch_redis(port=1234, directory=str(tmpdir), persistent=True)
-    assert is_redis_available("localhost", 1234)
+    assert is_redis_available(
+        host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+    )
 
     with pytest.raises(RuntimeError, match="here is already a server running"):
         launch_redis(port=1234, directory=str(tmpdir))
@@ -53,12 +63,13 @@ def test_launch_redis_already_exists(tmpdir):
     redis_process.terminate()
     redis_process.wait()
 
-    assert not is_redis_available("localhost", 1234)
+    assert not is_redis_available(
+        host="localhost", port=1234, password=bespoke_settings.BEFLOW_REDIS_PASSWORD
+    )
 
 
 @pytest.mark.parametrize("missing_command", ["redis-server", "redis-cli"])
 def test_launch_redis_missing_command(tmpdir, monkeypatch, missing_command):
-
     monkeypatch.setattr(
         shutil, "which", lambda x: None if x == missing_command else "some/path"
     )
@@ -69,6 +80,5 @@ def test_launch_redis_missing_command(tmpdir, monkeypatch, missing_command):
         redis_process = launch_redis(port=1234, directory=str(tmpdir))
 
     if redis_process is not None:
-
         redis_process.terminate()
         redis_process.wait()

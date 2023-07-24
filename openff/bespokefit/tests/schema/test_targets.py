@@ -12,7 +12,6 @@ from openff.bespokefit.schema.tasks import HessianTaskSpec, Torsion1DTaskSpec
 
 
 def test_check_reference_data(qc_torsion_drive_results):
-
     # Handle the case of no bespoke data
     TorsionProfileTargetSchema(reference_data=qc_torsion_drive_results)
 
@@ -27,7 +26,6 @@ def test_check_reference_data(qc_torsion_drive_results):
 
     # Handle the case of an invalid task
     with pytest.raises(ValidationError):
-
         TorsionProfileTargetSchema(
             reference_data=BespokeQCData(
                 spec=HessianTaskSpec(

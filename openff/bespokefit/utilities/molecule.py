@@ -6,7 +6,6 @@ from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 
 def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
-
     from openeye import oechem
 
     oe_mol = molecule.to_openeye()
@@ -19,7 +18,6 @@ def _oe_get_atom_symmetries(molecule: Molecule) -> List[int]:
 
 
 def _rd_get_atom_symmetries(molecule: Molecule) -> List[int]:
-
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
@@ -27,7 +25,6 @@ def _rd_get_atom_symmetries(molecule: Molecule) -> List[int]:
 
 
 def get_atom_symmetries(molecule: Molecule) -> List[int]:
-
     try:
         return _oe_get_atom_symmetries(molecule)
     except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
@@ -35,7 +32,6 @@ def get_atom_symmetries(molecule: Molecule) -> List[int]:
 
 
 def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
-
     from openeye import oechem
 
     oe_mol: oechem.OEMol = molecule.to_openeye()
@@ -55,7 +51,6 @@ def _oe_canonical_atom_order(molecule: Molecule) -> List[int]:
 
 
 def _rd_canonical_atom_order(molecule: Molecule) -> List[int]:
-
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
@@ -86,7 +81,6 @@ def canonical_order_atoms(molecule: Molecule):
     )
 
     if n_hydrogen > 0 and hydrogen_indices == list(range(n_hydrogen)):
-
         # Reorder the hydrogen atoms to the end if the molecule if they are placed at
         # the beginning by default.
         atom_order = [
@@ -96,13 +90,13 @@ def canonical_order_atoms(molecule: Molecule):
 
     # make an atom mapping from the atom_order and remap the molecule
     atom_map = {i: rank for i, rank in enumerate(atom_order)}
+    original_atom_map = dict(molecule.properties["atom_map"])
 
     molecule = molecule.remap(atom_map, current_to_new=True)
 
     if "atom_map" in molecule.properties:
-
         molecule.properties["atom_map"] = {
-            atom_map[i]: j for i, j in molecule.properties["atom_map"].items()
+            atom_map[i]: j for i, j in original_atom_map.items()
         }
 
     return molecule
@@ -127,7 +121,6 @@ def get_torsion_indices(
     torsions = []
 
     if central_bond is not None:
-
         central_bond = molecule.get_bond_between(*central_bond)
         atom_b, atom_c = central_bond.atom1, central_bond.atom2
 
@@ -146,7 +139,6 @@ def get_torsion_indices(
         torsions.extend(target_torsions)
 
     else:
-
         for proper in molecule.propers:
             target_torsion = tuple([atom.molecule_atom_index for atom in proper])
             torsions.append(target_torsion)
@@ -177,7 +169,6 @@ def group_valence_by_symmetry(
     valence_by_symmetry = defaultdict(list)
 
     for term in valence_terms:
-
         valence_symmetry_class = tuple(symmetry_classes[idx] for idx in term)
         valence_symmetry_class_reversed = tuple(reversed(valence_symmetry_class))
 

@@ -7,14 +7,13 @@ from typing import Optional
 import requests
 import uvicorn
 from fastapi import APIRouter, FastAPI
-from openff.utilities import temporary_cd
 from starlette.middleware.cors import CORSMiddleware
 
 from openff.bespokefit.executor.services import current_settings
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 
 def __load_router(path: str) -> APIRouter:
-
     path_split = path.split(":")
     assert (
         len(path_split) == 2
@@ -63,7 +62,6 @@ app.include_router(api_router)
 
 @contextmanager
 def _output_redirect(log_file: Optional[str] = None):
-
     if log_file is None:
         yield
         return
@@ -71,19 +69,15 @@ def _output_redirect(log_file: Optional[str] = None):
     with open(log_file, "a") as file:
         with redirect_stdout(file):
             with redirect_stderr(file):
-
                 yield
 
 
 def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
-
     if directory is not None and len(directory) > 0:
         os.makedirs(directory, exist_ok=True)
 
     with temporary_cd(directory):
-
         with _output_redirect(log_file):
-
             uvicorn.run(
                 "openff.bespokefit.executor.services.gateway:app",
                 host="0.0.0.0",
@@ -93,20 +87,16 @@ def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
 
 
 def wait_for_gateway(n_retries: int = 40):
-
     timeout = True
 
     for _ in range(n_retries):
-
         try:
-
             ping = requests.get(
                 f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}"
             )
             ping.raise_for_status()
 
         except IOError:
-
             time.sleep(0.25)
             continue
 

@@ -14,11 +14,9 @@ else:
 
 @contextmanager
 def patch_settings(redis_connection: redis.Redis):
-
     with Settings(
         BEFLOW_REDIS_ADDRESS=redis_connection.connection_pool.connection_kwargs["host"],
         BEFLOW_REDIS_PORT=redis_connection.connection_pool.connection_kwargs["port"],
         BEFLOW_REDIS_DB=redis_connection.connection_pool.connection_kwargs["db"],
     ).apply_env():
-
         yield

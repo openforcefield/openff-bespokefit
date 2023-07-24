@@ -28,7 +28,6 @@ def register_fragmentation_engine(
     """
 
     if not issubclass(engine, Fragmenter):
-
         raise FragmenterError(
             f"The {engine} fragmentation engine could not be registered "
             f"it must be a subclass of `openff.fragmenter.fragment.Fragmenter`."
@@ -37,7 +36,6 @@ def register_fragmentation_engine(
     scheme = engine.__name__.lower()
 
     if scheme in _fragmentation_engines and not replace:
-
         raise FragmenterError(
             f"An fragmentation engine is already registered under the name "
             f"{engine.__name__}, to replace this please use "
@@ -59,7 +57,6 @@ def deregister_fragmentation_engine(engine: Union[Type[Fragmenter], str]) -> Non
     existing_type = _fragmentation_engines.pop(scheme, None)
 
     if existing_type is None:
-
         raise FragmenterError(
             f"The fragmentation engine {engine} was not registered with " f"bespokefit."
         )
@@ -79,7 +76,6 @@ def get_fragmentation_engine(engine: str) -> "FragmentationEngine":
     fragmenter = _fragmentation_engines.get(engine.lower(), None)
 
     if fragmenter is None:
-
         raise FragmenterError(
             f"The fragment engine {engine} was not registered with " f"bespokefit."
         )

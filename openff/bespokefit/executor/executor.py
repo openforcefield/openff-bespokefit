@@ -14,7 +14,6 @@ import celery
 import requests
 import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities import temporary_cd
 from pydantic import Field
 from rich.padding import Padding
 from typing_extensions import Literal
@@ -34,6 +33,7 @@ from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit.utilities.tempcd import temporary_cd
 
 _T = TypeVar("_T")
 
@@ -113,7 +113,6 @@ class BespokeExecutorOutput(BaseModel):
 
     @property
     def status(self) -> Status:
-
         pending_stages = [stage for stage in self.stages if stage.status == "waiting"]
 
         running_stages = [stage for stage in self.stages if stage.status == "running"]
@@ -215,7 +214,10 @@ class BespokeExecutor:
         self._optimizer_worker_config = optimizer_worker_config
 
         self._directory = directory
-        self._remove_directory = directory is None
+        settings = current_settings()
+        self._remove_directory = directory is None and not (
+            settings.BEFLOW_OPTIMIZER_KEEP_FILES or settings.BEFLOW_KEEP_TMP_FILES
+        )
 
         self._launch_redis_if_unavailable = launch_redis_if_unavailable
 
@@ -227,9 +229,7 @@ class BespokeExecutor:
         self._worker_processes: List[multiprocessing.Process] = []
 
     def _cleanup_processes(self):
-
         for worker_process in self._worker_processes:
-
             if not worker_process.is_alive():
                 continue
 
@@ -239,13 +239,11 @@ class BespokeExecutor:
         self._worker_processes = []
 
         if self._gateway_process is not None and self._gateway_process.is_alive():
-
             self._gateway_process.terminate()
             self._gateway_process.join()
             self._gateway_process = None
 
         if self._redis_process is not None and self._redis_process.poll() is None:
-
             self._redis_process.terminate()
             self._redis_process.wait()
             self._redis_process = None
@@ -278,7 +276,6 @@ class BespokeExecutor:
             BEFLOW_OPTIMIZER_WORKER_N_CORES=self._optimizer_worker_config.n_cores,
             BEFLOW_OPTIMIZER_WORKER_MAX_MEM=self._optimizer_worker_config.max_memory,
         ).apply_env():
-
             settings = current_settings()
 
             for worker_settings, n_workers in (
@@ -286,7 +283,6 @@ class BespokeExecutor:
                 (settings.qc_compute_settings, self._n_qc_compute_workers),
                 (settings.optimizer_settings, self._n_optimizer_workers),
             ):
-
                 if n_workers == 0:
                     continue
 
@@ -323,12 +319,10 @@ class BespokeExecutor:
         atexit.register(self._cleanup_processes)
 
         with temporary_cd(self._directory):
-
             self._launch_redis()
             self._launch_workers()
 
         if asynchronous:
-
             self._gateway_process = multiprocessing.Process(
                 target=functools.partial(
                     launch_gateway, directory=self._directory, log_file="gateway.log"
@@ -340,7 +334,6 @@ class BespokeExecutor:
             wait_for_gateway()
 
         else:
-
             launch_gateway(self._directory)
 
     def _stop(self):
@@ -398,7 +391,6 @@ class BespokeExecutor:
 
 
 def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
-
     coordinator_request = requests.get(optimization_href)
     coordinator_request.raise_for_status()
 
@@ -409,9 +401,7 @@ def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
 def _wait_for_stage(
     optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
 ) -> CoordinatorGETStageStatus:
-
     while True:
-
         response = _query_coordinator(optimization_href)
 
         stage = {stage.type: stage for stage in response.stages}[stage_type]
@@ -455,7 +445,6 @@ def wait_until_complete(
     }
 
     for stage_type in stage_messages:
-
         if stage_type not in stage_types:
             continue
 
@@ -463,7 +452,6 @@ def wait_until_complete(
             stage = _wait_for_stage(optimization_href, stage_type, frequency)
 
         if stage.status == "errored":
-
             console.print(f"[[red]x[/red]] {stage_type} failed")
             console.print(Padding(stage.error, (1, 0, 0, 1)))
 

@@ -22,7 +22,6 @@ from openff.bespokefit.executor.services.coordinator.models import (
 
 @contextmanager
 def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
-
     settings = current_settings()
 
     mock_id = "mock-id"
@@ -46,7 +45,6 @@ def mock_get_response(stage_status="running") -> CoordinatorGETResponse:
     )
 
     with requests_mock.Mocker() as m:
-
         m.get(mock_href, text=mock_response.json(by_alias=True))
         yield mock_response
 
@@ -65,7 +63,6 @@ class TestBespokeExecutorOutput:
         )
 
     def test_bespoke_force_field(self, bespoke_optimization_results):
-
         assert isinstance(
             BespokeExecutorOutput(
                 smiles="CC",
@@ -147,12 +144,10 @@ class TestBespokeExecutorOutput:
         ],
     )
     def test_status(self, stages, expected_status):
-
         output = BespokeExecutorOutput(smiles="CC", stages=stages)
         assert output.status == expected_status
 
     def test_error(self):
-
         assert (
             BespokeExecutorOutput(
                 smiles="CC",
@@ -167,7 +162,6 @@ class TestBespokeExecutorOutput:
         )
 
     def test_from_response(self):
-
         output = BespokeExecutorOutput.from_response(
             CoordinatorGETResponse(
                 id="mock-id",
@@ -186,7 +180,6 @@ class TestBespokeExecutorOutput:
 
 class TestBespokeExecutor:
     def test_init(self):
-
         n_fragmenter_workers = 1
         n_qc_compute_workers = 2
         n_optimizer_workers = 3
@@ -210,7 +203,6 @@ class TestBespokeExecutor:
 
     @pytest.mark.parametrize("launch_redis_if_unavailable", [False, True])
     def test_launch_redis(self, monkeypatch, launch_redis_if_unavailable):
-
         redis_launched = False
 
         def mock_launch_redis(*_, **__):
@@ -228,7 +220,6 @@ class TestBespokeExecutor:
         assert redis_launched == launch_redis_if_unavailable
 
     def test_launch_workers(self, monkeypatch):
-
         launched_workers = {}
 
         def mock_spawn_worker(app, concurrency):
@@ -249,7 +240,6 @@ class TestBespokeExecutor:
         assert launched_workers == {"fragmenter": 3, "qcgenerator": 2, "optimizer": 1}
 
     def test_start_already_started(self):
-
         executor = BespokeExecutor()
         executor._started = True
 
@@ -257,7 +247,6 @@ class TestBespokeExecutor:
             executor._start()
 
     def test_start_stop(self, tmpdir):
-
         executor = BespokeExecutor(
             n_fragmenter_workers=0,
             n_qc_compute_workers=0,
@@ -282,7 +271,6 @@ class TestBespokeExecutor:
         assert dir_found
 
     def test_stop_not_started(self):
-
         executor = BespokeExecutor()
 
         with pytest.raises(RuntimeError, match="The executor is not running."):
@@ -294,7 +282,6 @@ class TestBespokeExecutor:
         expected = CoordinatorPOSTResponse(id="mock-id", self="")
 
         with requests_mock.Mocker() as m:
-
             m.post(
                 (
                     f"http://127.0.0.1:"
@@ -309,14 +296,11 @@ class TestBespokeExecutor:
             assert result_id == expected.id
 
     def test_retrieve(self, bespoke_optimization_schema):
-
         with mock_get_response():
-
             output = BespokeExecutor.retrieve("mock-id")
             assert output.status == "running"
 
     def test_enter_exit(self, tmpdir):
-
         executor = BespokeExecutor(
             n_fragmenter_workers=0,
             n_qc_compute_workers=0,
@@ -326,7 +310,6 @@ class TestBespokeExecutor:
         )
 
         with executor:
-
             assert executor._started is True
 
             assert executor._gateway_process.is_alive()
@@ -343,7 +326,6 @@ class TestBespokeExecutor:
 
 
 def test_query_coordinator():
-
     from openff.bespokefit.executor.executor import _query_coordinator
 
     mock_response = CoordinatorGETResponse(
@@ -372,7 +354,6 @@ def test_query_coordinator():
     )
 
     with requests_mock.Mocker() as m:
-
         m.get(mock_href, text=mock_callback)
         response = _query_coordinator(mock_href)
 
@@ -381,7 +362,6 @@ def test_query_coordinator():
 
 @pytest.mark.parametrize("status", ["success", "errored"])
 def test_wait_for_stage(status):
-
     from openff.bespokefit.executor.executor import _wait_for_stage
 
     mock_response = CoordinatorGETResponse(
@@ -419,7 +399,6 @@ def test_wait_for_stage(status):
     )
 
     with requests_mock.Mocker() as m:
-
         m.get(mock_href, text=mock_callback)
 
         response = _wait_for_stage(mock_href, "fragmentation", frequency=0.01)
@@ -433,7 +412,6 @@ def test_wait_for_stage(status):
 
 
 def test_wait_until_complete():
-
     with mock_get_response("success") as mock_response:
         response = wait_until_complete(mock_response.id, frequency=0.1)
 

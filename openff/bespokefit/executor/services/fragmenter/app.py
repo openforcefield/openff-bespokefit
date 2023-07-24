@@ -32,7 +32,6 @@ __GET_FRAGMENT_IMAGE_ENDPOINT = (
 
 @router.get(__GET_ENDPOINT)
 def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
-
     task_info = get_task_information(worker.celery_app, fragmentation_id)
     task_result = task_info["result"]
 
@@ -74,7 +73,6 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
 
 @router.get(__GET_FRAGMENT_IMAGE_ENDPOINT)
 def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
-
     task_info = get_task_information(worker.celery_app, fragmentation_id)
 
     if task_info["status"] != "success":

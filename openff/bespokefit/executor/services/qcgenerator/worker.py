@@ -33,7 +33,6 @@ _task_logger: logging.Logger = get_task_logger(__name__)
 
 
 def _task_config() -> Dict[str, Any]:
-
     worker_settings = current_settings().qc_compute_settings
 
     n_cores = (
@@ -61,6 +60,24 @@ def _select_atom(atoms: List[Atom]) -> int:
         if atom.atomic_number > candidate.atomic_number:
             candidate = atom
     return candidate.molecule_atom_index
+
+
+def _get_program_keywords(program: str) -> Dict[str, str]:
+    """
+    Generate a set of pre-defined keywords for the calculation based on the program.
+    These are based on experience.
+
+    Args:
+        program: The name of the program which will run the calculation
+
+    Returns:
+         A dictionary of program specific keywords
+    """
+    keywords = {}
+    if program.lower() == "xtb":
+        # <https://github.com/openforcefield/openff-bespokefit/issues/238>
+        keywords["verbosity"] = "muted"
+    return keywords
 
 
 @celery_app.task(acks_late=True)
@@ -119,6 +136,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         input_specification=QCInputSpecification(
             model=task.model,
             driver=DriverEnum.gradient,
+            keywords=_get_program_keywords(task.program),
         ),
         optimization_spec=OptimizationSpecification(
             procedure=task.optimization_spec.program,
@@ -134,7 +152,6 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
     )
 
     if isinstance(return_value, TorsionDriveResult):
-
         return_value = TorsionDriveResult(
             **return_value.dict(exclude={"optimization_history", "stdout", "stderr"}),
             optimization_history={},
@@ -173,6 +190,7 @@ def compute_optimization(
             input_specification=QCInputSpecification(
                 model=task.model,
                 driver=DriverEnum.gradient,
+                keywords=_get_program_keywords(task.program),
             ),
             initial_molecule=molecule.to_qcschema(conformer=i),
         )
@@ -182,7 +200,6 @@ def compute_optimization(
     return_values = []
 
     for input_schema in input_schemas:
-
         return_value = qcengine.compute_procedure(
             input_schema,
             task.optimization_spec.program,
@@ -191,7 +208,6 @@ def compute_optimization(
         )
 
         if isinstance(return_value, OptimizationResult):
-
             # Strip the extra **heavy** data
             return_value = OptimizationResult(
                 **return_value.dict(exclude={"trajectory", "stdout", "stderr"}),

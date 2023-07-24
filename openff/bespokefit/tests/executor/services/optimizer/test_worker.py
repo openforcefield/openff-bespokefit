@@ -3,6 +3,7 @@ import json
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.typing.engines.smirnoff import ForceField
 
+from openff.bespokefit.executor.services.coordinator.utils import _hash_fitting_schema
 from openff.bespokefit.executor.services.optimizer import worker
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import (
@@ -17,8 +18,10 @@ from openff.bespokefit.schema.results import (
 from openff.bespokefit.schema.smirnoff import ProperTorsionSMIRKS
 
 
-def test_optimize(monkeypatch):
-
+def test_optimize(monkeypatch, redis_connection):
+    """
+    Mock an optimisation and make sure the parameter cache is updated with fitted parameters
+    """
     input_schema = BespokeOptimizationSchema(
         id="test",
         smiles="CC",
@@ -74,6 +77,16 @@ def test_optimize(monkeypatch):
     assert result.status == expected_output.status
 
     assert received_schema.json() == input_schema.stages[0].json()
+
+    # make sure the ff parameters were cached
+    task_hash = _hash_fitting_schema(fitting_schema=result.input_schema)
+    cached_ff_string = redis_connection.get(task_hash)
+    assert cached_ff_string is not None
+
+    # make sure our expected parameter has been cached
+    cached_ff = ForceField(cached_ff_string)
+    torsion_handler = cached_ff.get_parameter_handler("ProperTorsions")
+    assert "[*:1]-[#6X4:2]-[#6X4:3]-[*:4]" in torsion_handler.parameters
 
 
 def test_optimise_cache(bespoke_optimization_schema):

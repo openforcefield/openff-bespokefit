@@ -16,7 +16,6 @@ from openff.bespokefit.executor.services.qcgenerator.qcengine import (
 
 
 def test_divide_config():
-
     task_config = TaskConfig(ncores=5, nnodes=1, memory=7, retries=1)
     divided_config = _divide_config(task_config, 2)
 

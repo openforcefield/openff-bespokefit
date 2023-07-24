@@ -8,7 +8,6 @@ from openff.bespokefit.executor.services.gateway import app, launch, wait_for_ga
 
 
 def test_default_routes_loaded():
-
     found_routes = [router.path for router in app.routes]
 
     assert all(
@@ -24,7 +23,6 @@ def test_default_routes_loaded():
 
 @pytest.mark.parametrize("directory", [None, "."])
 def test_launch(directory):
-
     process = Process(target=functools.partial(launch, directory))
     process.start()
 
@@ -35,8 +33,6 @@ def test_launch(directory):
 
 
 def test_wait_for_gateway_timeout(monkeypatch):
-
     with Settings(BEFLOW_GATEWAY_PORT=111).apply_env():
-
         with pytest.raises(RuntimeError, match="The gateway could not be reached"):
             wait_for_gateway(n_retries=1)

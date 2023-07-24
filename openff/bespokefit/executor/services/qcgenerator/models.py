@@ -38,7 +38,6 @@ class QCGeneratorGETPageResponse(PaginatedCollection[QCGeneratorGETResponse]):
 
 
 class QCGeneratorPOSTBody(BaseModel):
-
     input_schema: Union[HessianTask, OptimizationTask, Torsion1DTask] = Field(
         ..., description="The schema that fully defines the QC data to generate."
     )

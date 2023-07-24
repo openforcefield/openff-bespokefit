@@ -9,11 +9,9 @@ from openff.bespokefit.executor.services.coordinator.models import (
 
 
 def test_watch(runner):
-
     settings = current_settings()
 
     with requests_mock.Mocker() as m:
-
         mock_href = (
             f"http://127.0.0.1:"
             f"{settings.BEFLOW_GATEWAY_PORT}"
