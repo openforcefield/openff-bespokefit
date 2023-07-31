@@ -17,7 +17,7 @@ def test_launch_worker(worker_type, runner, monkeypatch):
     in test_celery/test_spawn_worker
     """
 
-    def mock_spawn(*args):
+    def mock_spawn(*args, **kwargs):
         return True
 
     monkeypatch.setattr(celery, "_spawn_worker", mock_spawn)
