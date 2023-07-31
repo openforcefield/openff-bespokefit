@@ -60,7 +60,7 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
             n_workers = int(min([n_jobs, opts_per_worker]))
             opt_config = _divide_config(config=config, n_workers=n_workers)
 
-            # Using fork can hangs on our local HPC so pin to use spawn
+            # Using fork can hang on our local HPC so pin to use spawn
             with get_context("spwan").Pool(processes=n_workers) as pool:
                 tasks = {
                     grid_point: [
