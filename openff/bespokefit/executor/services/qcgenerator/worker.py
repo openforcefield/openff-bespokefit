@@ -48,7 +48,7 @@ def _task_config() -> Dict[str, Any]:
         )
     )
 
-    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3))
+    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3), retries=3)
 
 
 def _select_atom(atoms: List[Atom]) -> int:
