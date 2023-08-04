@@ -55,19 +55,20 @@ def configure_celery_app(
     return celery_app
 
 
-def _spawn_worker(celery_app, concurrency: int = 1):
+def _spawn_worker(celery_app, concurrency: int = 1, **kwargs):
     worker = celery_app.Worker(
         concurrency=concurrency,
         loglevel="INFO",
         logfile=f"celery-{celery_app.main}.log",
         quiet=True,
         hostname=celery_app.main,
+        **kwargs,
     )
     worker.start()
 
 
 def spawn_worker(
-    celery_app, concurrency: int = 1, asynchronous: bool = True
+    celery_app, concurrency: int = 1, asynchronous: bool = True, **kwargs
 ) -> Optional[multiprocessing.Process]:
     if concurrency < 1:
         return
@@ -81,7 +82,7 @@ def spawn_worker(
         return worker_process
 
     else:
-        _spawn_worker(celery_app, concurrency)
+        _spawn_worker(celery_app, concurrency, **kwargs)
 
 
 def get_task_information(app: Celery, task_id: str) -> TaskInformation:
