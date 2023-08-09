@@ -28,13 +28,9 @@ dependencies:
   - openff-qcsubmit
   - openmm >=7.6.0
 
-  # Shim
-  - importlib-metadata >=4
-  - importlib_metadata >=4
-
     # Optional
   - forcebalance
-  - openff-fragmenter-base
+  - openff-fragmenter-base >=0.2.1
   - xtb-python
 
     ### Bespoke dependencies
