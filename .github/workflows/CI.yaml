@@ -28,7 +28,7 @@ jobs:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
