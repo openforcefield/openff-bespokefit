@@ -22,7 +22,7 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base >=0.11,<0.14
+  - openff-toolkit-base >=0.11
   - openff-forcefields
   - openff-interchange
   - openff-qcsubmit
@@ -33,7 +33,7 @@ dependencies:
   - importlib_metadata >=4
 
     # Optional
-  - forcebalance
+  - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
 
