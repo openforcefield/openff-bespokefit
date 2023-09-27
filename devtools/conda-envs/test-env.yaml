@@ -22,7 +22,7 @@ dependencies:
   - click-option-group
   - rdkit
   - openff-utilities
-  - openff-toolkit-base >=0.11,<0.14
+  - openff-toolkit-base >=0.11
   - openff-forcefields
   - openff-interchange
   - openff-units
@@ -34,7 +34,7 @@ dependencies:
   - importlib_metadata >=4
 
     # Optional
-  - forcebalance
+  - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
   - openeye-toolkits
