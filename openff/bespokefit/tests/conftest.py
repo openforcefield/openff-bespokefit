@@ -87,7 +87,6 @@ def clear_force_balance_caches():
         OE_TOOLKIT_CACHE_molecule_conformers,
         RDK_TOOLKIT_CACHE_find_smarts_matches,
         RDK_TOOLKIT_CACHE_molecule_conformers,
-        TOOLKIT_CACHE_ChemicalEnvironment_validate,
     )
 
     OE_TOOLKIT_CACHE_find_smarts_matches.clear()
