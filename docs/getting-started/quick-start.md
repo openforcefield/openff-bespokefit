@@ -12,12 +12,12 @@ field parameters trained to accurately capture the important features and phenom
 It produces bespoke torsion parameters that have been trained to capture as closely as possible the torsion profiles of
 the rotatable bonds in the target molecule, which collectively have a large impact on conformational preferences.
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager. There are several optional
+The recommended way to install `openff-bespokefit` is via the `mamba` package manager. There are several optional
 dependencies, and a good starting environment is:
 
 ```shell
-conda create -n bespokefit -y -c conda-forge mamba python=3.9
-conda activate bespokefit 
+mamba create -n bespokefit -y -c conda-forge mamba python=3.9
+mamba activate bespokefit 
 mamba install -y -c conda-forge openff-bespokefit xtb-python ambertools 
 ```
 
