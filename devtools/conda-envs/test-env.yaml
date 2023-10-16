@@ -23,6 +23,7 @@ dependencies:
   - rdkit
   - openff-utilities
   - openff-toolkit-base
+  - openff-interchange-base
   - openff-qcsubmit ==0.5.0
   - openmm >=7.6.0
 
