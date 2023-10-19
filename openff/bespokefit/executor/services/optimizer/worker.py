@@ -89,6 +89,7 @@ def optimize(self, optimization_input_json: str) -> str:
         is_redis_available(
             host=settings.BEFLOW_REDIS_ADDRESS,
             port=settings.BEFLOW_REDIS_PORT,
+            password=settings.BEFLOW_REDIS_PASSWORD,
         )
         and result.refit_force_field is not None
     ):

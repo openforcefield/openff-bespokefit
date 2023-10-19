@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     BEFLOW_REDIS_ADDRESS: str = "localhost"
     BEFLOW_REDIS_PORT: int = 6363
     BEFLOW_REDIS_DB: int = 0
+    BEFLOW_REDIS_PASSWORD: str = "bespokefit-server-1"
 
     BEFLOW_COORDINATOR_PREFIX = "tasks"
     BEFLOW_COORDINATOR_ROUTER = (

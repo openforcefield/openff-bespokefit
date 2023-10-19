@@ -113,6 +113,7 @@ def validate_redis_connection(console: "rich.Console", allow_existing: bool = Tr
     if not is_redis_available(
         host=settings.BEFLOW_REDIS_ADDRESS,
         port=settings.BEFLOW_REDIS_PORT,
+        password=settings.BEFLOW_REDIS_PASSWORD,
     ):
         return
 

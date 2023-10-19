@@ -22,7 +22,7 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base =0.11
+  - openff-toolkit-base >=0.11
   - openff-forcefields
   - openff-interchange
   - openff-qcsubmit
@@ -33,7 +33,7 @@ dependencies:
   - importlib_metadata >=4
 
     # Optional
-  - forcebalance
+  - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
 
@@ -51,6 +51,7 @@ dependencies:
   - uvicorn
   - fastapi
   - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
+  - anyio <4
   - celery
   - httpx
   - redis-server

@@ -1,6 +1,6 @@
 """Generate QC data using QCEngine."""
-from multiprocessing import Pool
 from typing import Union
+from multiprocessing import current_process, get_context, Pool
 
 from qcelemental.models import FailedOperation
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveInput
@@ -43,6 +43,10 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
         settings = current_settings()
         program = input_model.optimization_spec.keywords["program"]
         opts_per_worker = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS
+        # we can only split the tasks if the celery worker is the main process so if not set back to 1
+        if current_process().name != "MainProcess":
+            opts_per_worker = 1
+
         if program == "psi4" and opts_per_worker == "auto":
             # we recommend 8 cores per worker for psi4 from our qcfractal jobs
             opts_per_worker = max([int(config.ncores / 8), 1])
@@ -55,7 +59,9 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
             # split the resources based on the number of tasks
             n_workers = int(min([n_jobs, opts_per_worker]))
             opt_config = _divide_config(config=config, n_workers=n_workers)
-            with Pool(processes=n_workers) as pool:
+
+            # Using fork can hang on our local HPC so pin to use spawn
+            with get_context("spawn").Pool(processes=n_workers) as pool:
                 tasks = {
                     grid_point: [
                         pool.apply_async(

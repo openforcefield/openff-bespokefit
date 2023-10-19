@@ -10,6 +10,7 @@ from typing_extensions import TypedDict
 
 from openff.bespokefit.executor.services.models import Error
 from openff.bespokefit.executor.utilities.typing import Status
+from openff.bespokefit.utilities import current_settings
 
 
 class TaskInformation(TypedDict):
@@ -40,14 +41,16 @@ def configure_celery_app(
     include: list[str] = None,
 ):
     """Configure this celery app."""
+    settings = current_settings()
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
     redis_db = redis_connection.connection_pool.connection_kwargs["db"]
+    password = settings.BEFLOW_REDIS_PASSWORD
 
     celery_app = Celery(
         app_name,
-        backend=f"redis://{redis_host_name}:{redis_port}/{redis_db}",
-        broker=f"redis://{redis_host_name}:{redis_port}/{redis_db}",
+        backend=f"redis://:{password}@{redis_host_name}:{redis_port}/{redis_db}",
+        broker=f"redis://:{password}@{redis_host_name}:{redis_port}/{redis_db}",
         include=include,
     )
 
@@ -59,21 +62,20 @@ def configure_celery_app(
     return celery_app
 
 
-def _spawn_worker(celery_app, concurrency: int = 1):
+def _spawn_worker(celery_app, concurrency: int = 1, **kwargs):
     worker = celery_app.Worker(
         concurrency=concurrency,
         loglevel="INFO",
         logfile=f"celery-{celery_app.main}.log",
         quiet=True,
         hostname=celery_app.main,
+        **kwargs,
     )
     worker.start()
 
 
 def spawn_worker(
-    celery_app,
-    concurrency: int = 1,
-    asynchronous: bool = True,
+    celery_app, concurrency: int = 1, asynchronous: bool = True, **kwargs,
 ) -> Optional[multiprocessing.Process]:
     """Spawn a worker."""
     if concurrency < 1:
@@ -90,7 +92,7 @@ def spawn_worker(
         return worker_process
 
     else:
-        _spawn_worker(celery_app, concurrency)
+        _spawn_worker(celery_app, concurrency, **kwargs)
 
 
 def get_task_information(app: Celery, task_id: str) -> TaskInformation:

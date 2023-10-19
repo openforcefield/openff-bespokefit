@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter
 from fastapi.responses import Response
 from openff.fragmenter.fragment import FragmentationResult
+from openff.utilities import MissingOptionalDependencyError
 
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.fragmenter import worker
@@ -101,7 +102,7 @@ def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
             image_width=200,
             image_height=200,
         )
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, MissingOptionalDependencyError):
         from openff.fragmenter.depiction import _rd_render_fragment
 
         svg_content = _rd_render_fragment(
