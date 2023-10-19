@@ -30,7 +30,7 @@ class Link(BaseModel):
 
     def __eq__(self, other):
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.id.__eq__(other.id)
             and self.self.__eq__(other.self)
         )
