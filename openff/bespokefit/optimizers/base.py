@@ -1,7 +1,7 @@
 """
 Here we register all optimizers with bespokefit.
 """
-from typing import Dict, List, Type, Union
+from typing import Union
 
 from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
@@ -26,8 +26,8 @@ def register_optimizer(optimizer: type[BaseOptimizer], replace: bool = False) ->
     OptimizerError
         If the optimizer is already registered or if the optimizer object is not
         compatible.
-    """
 
+    """
     if not issubclass(optimizer, BaseOptimizer):
         raise OptimizerError(
             f"The optimizer {optimizer} could not be registered it must be a subclass "
@@ -55,8 +55,8 @@ def deregister_optimizer(
     ----------
     optimizer: Union[BaseOptimizer, str]
         The optimizer class or name of the class that should be removed.
-    """
 
+    """
     if isinstance(optimizer, str):
         optimizer_name = optimizer.lower()
     else:
@@ -69,8 +69,8 @@ def deregister_optimizer(
 
 
 def get_optimizer(optimizer_name: str) -> type[BaseOptimizer]:
-    """Get the optimizer class from the list of registered optimizers in bespokefit by
-    name.
+    """
+    Get the optimizer class from the list of registered optimizers in bespokefit by name.
 
     Parameters
     ----------
@@ -80,8 +80,8 @@ def get_optimizer(optimizer_name: str) -> type[BaseOptimizer]:
     Returns
     -------
         The requested optimizer matching the given optimizer name.
-    """
 
+    """
     optimizer = _optimizers.get(optimizer_name.lower(), None)
 
     if optimizer is None:
@@ -99,8 +99,8 @@ def list_optimizers() -> list[str]:
     Returns
     -------
         A list of the optimizer classes registered.
-    """
 
+    """
     return list(_optimizers.keys())
 
 

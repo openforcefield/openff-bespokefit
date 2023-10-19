@@ -1,3 +1,4 @@
+"""Utilities for interacting with redis."""
 import atexit
 import functools
 import os
@@ -5,7 +6,7 @@ import shlex
 import shutil
 import subprocess
 import time
-from typing import IO, Dict, Optional, Tuple, Union
+from typing import IO, Optional, Union
 
 import redis
 
@@ -16,26 +17,26 @@ __CONNECTION_POOL: dict[tuple[str, int, Optional[int], bool], redis.Redis] = {}
 
 
 class RedisNotConfiguredError(BaseException):
-    """An exception raised when connecting to a redis server that doesn't appear to
-    have been configured by `openff-bespokefit`.
+    """
+    An exception raised when connecting to a redis server that doesn't appear to have been configured by `openff-bespokefit`.
     """
 
 
 class RedisBadConfigurationError(BaseException):
-    """An exception raised when connecting to a redis server that doesn't appear to
-    have been correctly configured for use with `openff-bespokefit`.
+    """
+    An exception raised when connecting to a redis server that doesn't appear to have been correctly configured for use with `openff-bespokefit`.
     """
 
 
 def expected_redis_config_version() -> int:
+    """Return the expected redis config version."""
     return __REDIS_VERSION
 
 
 def connect_to_default_redis(validate: bool = True) -> redis.Redis:
-    """Connects to a redis server using the settings defined by the
-    `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT` and `BEFLOW_REDIS_PORT` settings.
     """
-
+    Connect to a redis server using the settings defined by the `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT` and `BEFLOW_REDIS_PORT` settings.
+    """
     settings = current_settings()
 
     return connect_to_redis(
@@ -52,8 +53,7 @@ def connect_to_redis(
     db: int,
     validate: bool = True,
 ) -> redis.Redis:
-    """Connects to a redis server using the specified settings."""
-
+    """Connect to a redis server using the specified settings."""
     connection_key = (host, port, db, validate)
 
     if connection_key in __CONNECTION_POOL:
@@ -86,10 +86,7 @@ def connect_to_redis(
 
 
 def is_redis_available(host: str, port: int = 6363) -> bool:
-    """Returns whether a server running on the local host on a particular port is
-    available.
-    """
-
+    """Return whether a server running on the local host on a particular port is available."""
     redis_client = redis.Redis(host=host, port=port)
 
     try:
@@ -113,6 +110,7 @@ def launch_redis(
     persistent: bool = True,
     terminate_at_exit: bool = True,
 ) -> subprocess.Popen:
+    """Launch a redis server."""
     redis_server_path = shutil.which("redis-server")
 
     if redis_server_path is None:

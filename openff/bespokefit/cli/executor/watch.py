@@ -1,3 +1,4 @@
+"""Host of `watch` command in CLI."""
 import click
 import click.exceptions
 import rich
@@ -17,7 +18,6 @@ from openff.bespokefit.executor.utilities import handle_common_errors
 )
 def watch_cli(optimization_id):
     """Watch the status of a bespoke optimization."""
-
     pretty.install()
 
     console = rich.get_console()

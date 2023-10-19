@@ -1,3 +1,4 @@
+"""Host of `launch` command in CLI."""
 import time
 from typing import Optional
 
@@ -23,6 +24,7 @@ def launch_options(
     n_optimizer_workers: Optional[int] = 1,
     launch_redis_if_unavailable: Optional[bool] = True,
 ):
+    """Options which can be passed to the launch command."""
     return [
         optgroup("Executor configuration"),
         optgroup.option(
@@ -97,10 +99,7 @@ def launch_options(
 
 
 def validate_redis_connection(console: "rich.Console", allow_existing: bool = True):
-    """Checks whether a redis server is already running and if so, that it is
-    compatible with BespokeFit.
-    """
-
+    """Check whether a redis server is already running and if so, that it is compatible with BespokeFit."""
     from openff.bespokefit.executor.services import current_settings
     from openff.bespokefit.executor.utilities.redis import (
         RedisBadConfigurationError,
@@ -155,7 +154,6 @@ def _launch_cli(
     launch_redis_if_unavailable: bool,
 ):
     """Launch a bespoke executor."""
-
     pretty.install()
 
     console = rich.get_console()

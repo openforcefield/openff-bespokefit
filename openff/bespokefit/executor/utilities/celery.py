@@ -1,6 +1,7 @@
+"""Utilities for interacting with Celery within the executor."""
 import json
 import multiprocessing
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from celery import Celery
 from celery.result import AsyncResult
@@ -12,6 +13,8 @@ from openff.bespokefit.executor.utilities.typing import Status
 
 
 class TaskInformation(TypedDict):
+    """Information about a task."""
+
     id: str
 
     status: Status
@@ -21,6 +24,7 @@ class TaskInformation(TypedDict):
 
 
 def get_status(task_result: AsyncResult) -> Status:
+    """Get the status of a task."""
     return {
         "PENDING": "waiting",
         "STARTED": "running",
@@ -35,6 +39,7 @@ def configure_celery_app(
     redis_connection: Redis,
     include: list[str] = None,
 ):
+    """Configure this celery app."""
     redis_host_name = redis_connection.connection_pool.connection_kwargs["host"]
     redis_port = redis_connection.connection_pool.connection_kwargs["port"]
     redis_db = redis_connection.connection_pool.connection_kwargs["db"]
@@ -70,6 +75,7 @@ def spawn_worker(
     concurrency: int = 1,
     asynchronous: bool = True,
 ) -> Optional[multiprocessing.Process]:
+    """Spawn a worker."""
     if concurrency < 1:
         return
 
@@ -88,6 +94,7 @@ def spawn_worker(
 
 
 def get_task_information(app: Celery, task_id: str) -> TaskInformation:
+    """Get information about this task."""
     task_result = AsyncResult(task_id, app=app)
 
     task_output = (

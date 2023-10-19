@@ -1,4 +1,5 @@
-from typing import Optional, Tuple
+"""Host of `run` command in CLI."""
+from typing import Optional
 
 import click
 import click.exceptions
@@ -32,13 +33,14 @@ def _run_cli(
     n_optimizer_workers: int,
     launch_redis_if_unavailable: bool,
 ):
-    """Run bespoke optimization using a temporary executor.
+    """
+    Run bespoke optimization using a temporary executor.
 
     If you are running many bespoke optimizations it is recommended that you first launch
     a bespoke executor using the `launch` command and then submit the optimizations to it
     using the `submit` command.
-    """
 
+    """
     pretty.install()
 
     console = rich.get_console()

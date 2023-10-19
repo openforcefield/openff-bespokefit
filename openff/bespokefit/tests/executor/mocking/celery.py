@@ -1,6 +1,7 @@
+"""Utilities for mocking celery tasks."""
 from collections import namedtuple
 from types import ModuleType
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from celery.result import AsyncResult
 
@@ -11,6 +12,7 @@ def mock_celery_task(
     monkeypatch,
     task_id: str = "1",
 ) -> dict[str, Any]:
+    """Mock the celery task."""
     submitted_task_kwargs: dict[str, Any] = {}
 
     def _mock_celery_task_delay(**kwargs):
@@ -28,6 +30,7 @@ def mock_celery_task(
 
 
 def mock_celery_result(status: str, result: Optional[str] = None) -> AsyncResult:
+    """Mock the celery result."""
     result = AsyncResult("1")
     result._cache = {"status": status, "result": result}
 

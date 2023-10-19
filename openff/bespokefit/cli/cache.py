@@ -1,8 +1,9 @@
+"""Host of `cache` option in CLI."""
 import datetime
 import hashlib
 import json
 import uuid
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import click
 import click.exceptions
@@ -17,7 +18,6 @@ from pydantic import ValidationError, parse_file_as
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
-from typing import Literal
 
 from openff.bespokefit.cli.utilities import (
     create_command,
@@ -48,6 +48,7 @@ def cache_cli():
 def update_from_qcsubmit_options(
     launch_redis_if_unavailable: Optional[bool] = True,
 ):
+    """Update the redis cache from QCSubmit options."""
     return [
         optgroup("Input Configuration"),
         optgroup.option(
@@ -126,10 +127,7 @@ def _update(
     qcf_specification: str,
     launch_redis_if_unavailable: bool,
 ):
-    """
-    The main worker function which updates the redis cache with qcsubmit results objects.
-    """
-
+    """Update the redis cache with qcsubmit results objects."""
     pretty.install()
     console = rich.get_console()
     print_header(console)
@@ -239,7 +237,7 @@ def _connect_to_qcfractal(
     qcf_address: str,
     qcf_config: Optional[str],
 ) -> "FractalClient":
-    """Connected to the chosen qcfractal server."""
+    """Connect to the chosen qcfractal server."""
     from qcportal import FractalClient
 
     with console.status("connecting to qcfractal"):
@@ -271,7 +269,6 @@ def _results_from_client(
     qcf_specification: str,
 ) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
     """Connect to qcfractal and create a qcsubmit results object."""
-
     with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
         if qcf_datatype == "torsion":
             qcsubmit_result = TorsionDriveResultCollection.from_server(
@@ -299,7 +296,6 @@ def _update_from_qcsubmit_result(
     redis_connection: redis.Redis,
 ):
     """Update the qcgeneration redis cache using qcsubmit results objects."""
-
     # process the results into local data
     console.print(Padding("3. updating local cache", (0, 0, 1, 0)))
 

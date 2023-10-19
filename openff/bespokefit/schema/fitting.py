@@ -1,12 +1,12 @@
+"""Schema for fititing steps."""
 import abc
-from typing import Dict, List, Optional
+from typing import Literal, Optional
 
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from pydantic import Field, conlist
-from typing import Literal
 
 from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.schema.optimizers import OptimizerSchema
@@ -21,11 +21,13 @@ from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 
 
 class OptimizationStageSchema(SchemaBase, abc.ABC):
-    """A schema that encodes a single stage in a multi-stage optimization.
+    """
+    A schema that encodes a single stage in a multi-stage optimization.
 
     A common example may be one in which in the first stage a charge model is trained,
     followed by the valence parameters being trained, and finally the torsion parameters
     are trained.
+
     """
 
     optimizer: OptimizerSchema = Field(
@@ -55,14 +57,12 @@ class OptimizationStageSchema(SchemaBase, abc.ABC):
 
     @property
     def n_targets(self) -> int:
-        """Returns the number of targets to be fit."""
+        """Return the number of targets to be fit."""
         return len(self.targets)
 
 
 class BaseOptimizationSchema(SchemaBase, abc.ABC):
-    """A schema which encodes how a particular force field should be optimized against a
-    set of fitting targets simultaneously.
-    """
+    """Encodes how a particular force field should be optimized against a set of fitting targets simultaneously."""
 
     type: Literal["base"] = "base"
 
@@ -88,8 +88,7 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
     def initial_parameter_values(
         self,
     ) -> dict[BaseSMIRKSParameter, dict[str, unit.Quantity]]:
-        """A list of the initial force field parameters that will be optimized."""
-
+        """List the initial force field parameters that will be optimized."""
         initial_force_field = ForceField(self.initial_force_field)
 
         return {
@@ -106,16 +105,13 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
 
 
 class OptimizationSchema(BaseOptimizationSchema):
-    """The schema for a general optimization that does not require bespoke stages such
-    as fragmentation of bespoke QC calculations.
-    """
+    """A general optimization that does not require bespoke stages such as fragmentation of bespoke QC calculations."""
 
     type: Literal["general"] = "general"
 
 
 class BespokeOptimizationSchema(BaseOptimizationSchema):
-    """A schema which encodes how a bespoke force field should be created for a specific
-    molecule."""
+    """Encodes how a bespoke force field should be created for a specific molecule."""
 
     type: Literal["bespoke"] = "bespoke"
 
@@ -160,8 +156,11 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
 
     @property
     def target_smirks(self) -> list[SMIRKSType]:
-        """Returns a list of the target smirks types based on the selected hyper parameters.
+        """
+        Returns a list of the target smirks types based on the selected hyper parameters.
+
         Used to determine which parameters should be fit.
+
         """
         return list(
             {

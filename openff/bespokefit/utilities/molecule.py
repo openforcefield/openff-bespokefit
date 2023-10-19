@@ -1,5 +1,6 @@
+"""Utilities for dealing with molecules."""
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from openff.toolkit.topology import Molecule
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
@@ -25,6 +26,7 @@ def _rd_get_atom_symmetries(molecule: Molecule) -> list[int]:
 
 
 def get_atom_symmetries(molecule: Molecule) -> list[int]:
+    """Get the symmetries of this atom."""
     try:
         return _oe_get_atom_symmetries(molecule)
     except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
@@ -58,16 +60,19 @@ def _rd_canonical_atom_order(molecule: Molecule) -> list[int]:
 
 
 def canonical_order_atoms(molecule: Molecule):
-    """Canonically order the atoms in the molecule in a way that preserves any existing
-    atom maps.
-
-    Args:
-        molecule: The input molecule
-
-    Returns:
-        The input molecule with canonically-indexed atoms and bonds.
     """
+    Canonically order the atoms in the molecule in a way that preserves any existing atom maps.
 
+    Parameters
+    ----------
+    molecule: Molecule
+        The input molecule
+
+    Returns
+    -------
+        The input molecule with canonically-indexed atoms and bonds.
+
+    """
     try:
         atom_order = _oe_canonical_atom_order(molecule)
     except (ImportError, ModuleNotFoundError):
@@ -106,18 +111,23 @@ def get_torsion_indices(
     molecule: Molecule,
     central_bond: Optional[tuple[int, int]] = None,
 ) -> list[tuple[int, int, int, int]]:
-    """Returns the indices of all torsions in a molecule, optionally returning only
-    those that involve a specified central bond.
-
-    Args:
-        molecule: The molecule of interest
-        central_bond: The (optional) indices of the bond each torsion should
-            be centered around.
-
-    Returns:
-        The indices of each torsion.
     """
+    Return the indices of all torsions in a molecule.
 
+    Optionally only return those that involve a specified central bond.
+
+    Parameters
+    ----------
+    molecule: Molecule
+        The molecule of interest
+    central_bond:
+        The (optional) indices of the bond each torsion should be centered around.
+
+    Returns
+    -------
+        The indices of each torsion.
+
+    """
     # gather a list of torsions
     torsions = []
 
@@ -151,20 +161,24 @@ def group_valence_by_symmetry(
     molecule: Molecule,
     valence_terms: list[tuple[int, ...]],
 ) -> dict[tuple[int, ...], list[tuple[int, ...]]]:
-    """Group the a set of valence terms by symmetry groups.
+    """
+    Group the a set of valence terms by symmetry groups.
 
     The valence terms are tuples of atoms (0, ) bonds (0, 1) angles (0, 1, 2) or
     dihedrals (0, 1, 2, 3)
 
-    Parameters:
-        molecule: The molecule the valence terms correspond to
-        valence_terms: The list of atom tuples that make up the valence term the
-            should be grouped.
+    Parameters
+    ----------
+    molecule: Molecule
+        The molecule the valence terms correspond to
+    valence_terms: list[tuple[int, ...]]
+        The list of atom tuples that make up the valence term the should be grouped.
 
-    Returns:
+    Returns
+    -------
         A dictionary of valence terms grouped by symmetry.
-    """
 
+    """
     symmetry_classes = get_atom_symmetries(molecule)
 
     # collect by symmetry class

@@ -1,3 +1,4 @@
+"""The optimizer service."""
 import json
 
 from fastapi import APIRouter
@@ -21,6 +22,7 @@ __GET_ENDPOINT = "/" + __settings.BEFLOW_OPTIMIZER_PREFIX + "/{optimization_id}"
 
 @router.get(__GET_ENDPOINT)
 def get_optimization(optimization_id: str) -> OptimizerGETResponse:
+    """Return the GET response of this optimization task."""
     task_info = get_task_information(worker.celery_app, optimization_id)
 
     # noinspection PyTypeChecker
@@ -36,6 +38,7 @@ def get_optimization(optimization_id: str) -> OptimizerGETResponse:
 
 @router.post("/" + __settings.BEFLOW_OPTIMIZER_PREFIX)
 def post_optimization(body: OptimizerPOSTBody) -> OptimizerPOSTResponse:
+    """Return the POST response of this optimization task."""
     # We use celery delay method in order to enqueue the task with the given
     # parameters
 

@@ -1,5 +1,6 @@
+"""Host of `combine` option in CLI."""
 import copy
-from typing import List, Optional
+from typing import Optional
 
 import click
 import rich

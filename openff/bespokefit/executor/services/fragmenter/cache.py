@@ -1,3 +1,4 @@
+"""Caching fragmentation results."""
 import hashlib
 
 import redis

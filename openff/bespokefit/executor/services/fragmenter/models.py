@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, Union
+"""Mels for fragmenter steps."""
+from typing import Optional, Union
 
 from openff.fragmenter.fragment import (
     FragmentationResult,
@@ -13,7 +14,7 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class FragmenterGETResponse(Link):
-    """The object model returned by a GET request."""
+    """The object model returned by a fragmenter GET request."""
 
     status: Status = Field("waiting", description="The status of the fragmentation.")
 
@@ -35,7 +36,7 @@ class FragmenterGETResponse(Link):
 
 
 class FragmenterPOSTBody(BaseModel):
-    """The object model expected by a POST request."""
+    """The object model expected by a fragmenter POST request."""
 
     cmiles: str = Field(
         ...,

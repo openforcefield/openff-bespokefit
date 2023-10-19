@@ -1,6 +1,7 @@
+"""Storage for coordinators."""
 import pickle
 from enum import Enum
-from typing import List, Optional, Set, Union
+from typing import Optional, Union
 
 from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 from openff.bespokefit.executor.services.coordinator.stages import (
@@ -13,6 +14,8 @@ from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 
 class TaskStatus(str, Enum):
+    """Enum for task status."""
+
     waiting = "waiting"
     running = "running"
     complete = "complete"
@@ -30,6 +33,7 @@ def _task_id_to_key(task_id: Union[str, int]) -> str:
 
 
 def get_task(task_id: Union[str, int]) -> CoordinatorTask:
+    """Get a task by id."""
     connection = connect_to_default_redis()
 
     task_pickle = connection.get(_task_id_to_key(task_id))
@@ -45,6 +49,7 @@ def get_task_ids(
     limit: Optional[int] = None,
     status: Optional[Union[TaskStatus, set[TaskStatus]]] = None,
 ) -> list[int]:
+    """Get the ids of this task."""
     connection = connect_to_default_redis()
 
     possible_status = [TaskStatus.waiting, TaskStatus.running, TaskStatus.complete]
@@ -71,6 +76,7 @@ def create_task(
         list[Union[FragmentationStage, QCGenerationStage, OptimizationStage]]
     ] = None,
 ) -> int:
+    """Create a task."""
     connection = connect_to_default_redis()
 
     task_id = connection.incr("coordinator:id-counter")
@@ -97,6 +103,7 @@ def create_task(
 
 
 def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
+    """Get the number of tasks from this status."""
     connection = connect_to_default_redis()
 
     return sum(
@@ -107,6 +114,7 @@ def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
 
 
 def peek_task_status(status: TaskStatus) -> Optional[int]:
+    """Peek at the status of this task."""
     connection = connect_to_default_redis()
 
     task_id = connection.lrange(_QUEUE_NAMES[status], 0, 0)
@@ -114,6 +122,7 @@ def peek_task_status(status: TaskStatus) -> Optional[int]:
 
 
 def pop_task_status(status: TaskStatus) -> Optional[int]:
+    """Pop the status of this task."""
     assert status != TaskStatus.complete, "complete tasks cannot be modified"
 
     connection = connect_to_default_redis()
@@ -123,10 +132,12 @@ def pop_task_status(status: TaskStatus) -> Optional[int]:
 
 
 def push_task_status(task_id: int, status: TaskStatus):
+    """Push the status of this task."""
     connection = connect_to_default_redis()
     return connection.rpush(_QUEUE_NAMES[status], task_id)
 
 
 def save_task(task: CoordinatorTask):
+    """Save this task."""
     connection = connect_to_default_redis()
     connection.set(_task_id_to_key(int(task.id)), pickle.dumps(task.dict()))

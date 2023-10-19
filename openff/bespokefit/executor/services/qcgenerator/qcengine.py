@@ -1,5 +1,6 @@
+"""Generate QC data using QCEngine."""
 from multiprocessing import Pool
-from typing import Dict, List, Union
+from typing import Union
 
 from qcelemental.models import FailedOperation
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveInput
@@ -24,8 +25,10 @@ def _divide_config(config: TaskConfig, n_workers: int) -> TaskConfig:
 
 class TorsionDriveProcedureParallel(TorsionDriveProcedure):
     """
-    Override the _spawn_optimizations method of the basic torsiondrive procedure to allow for parallel optimizations
-    within one worker.
+    Override the _spawn_optimizations method of the basic torsiondrive procedure.
+
+    Allows for parallel optimizations within one worker.
+
     """
 
     _defaults = {"name": "TorsionDriveParallel", "procedure": "torsiondrive"}
@@ -36,10 +39,7 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
         input_model: TorsionDriveInput,
         config: TaskConfig,
     ) -> dict[str, list[Union[FailedOperation, OptimizationResult]]]:
-        """
-        Spawn parallel optimizations based on the number of next jobs and available workers.
-        """
-
+        """Spawn parallel optimizations based on the number of next jobs and available workers."""
         settings = current_settings()
         program = input_model.optimization_spec.keywords["program"]
         opts_per_worker = settings.BEFLOW_QC_COMPUTE_WORKER_N_TASKS

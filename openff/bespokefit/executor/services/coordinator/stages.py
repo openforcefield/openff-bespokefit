@@ -1,7 +1,8 @@
+"""Classes for different stages in run."""
 import abc
 import json
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import httpx
 from openff.fragmenter.fragment import Fragment, FragmentationResult
@@ -17,7 +18,6 @@ from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
-from typing import Literal
 
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
@@ -101,6 +101,8 @@ class _Stage(BaseModel, abc.ABC):
 
 
 class FragmentationStage(_Stage):
+    """Fragmentation stage."""
+
     type: Literal["fragmentation"] = "fragmentation"
 
     id: Optional[str] = Field(None, description="")
@@ -179,6 +181,8 @@ class FragmentationStage(_Stage):
 
 
 class QCGenerationStage(_Stage):
+    """QC generation stage."""
+
     type: Literal["qc-generation"] = "qc-generation"
 
     ids: Optional[dict[int, list[str]]] = Field(None, description="")
@@ -195,14 +199,18 @@ class QCGenerationStage(_Stage):
         """
         Generate torsion parameters for the fragments using any possible cached parameters.
 
-        Args:
-            fragmentation_result: The result of the fragmentation
-            input_schema: The input schema detailing the optimisation
+        Parameters
+        ----------
+        fragmentation_result: FragmentationResult
+            The result of the fragmentation
+        input_schema: BespokeOptimizationSchema,
+            The input schema detailing the optimisation
 
-        Returns:
-            The list of generated smirks patterns including any cached values, and a list of fragments which require torsiondrives.
+        Return
+        ------
+        The list of generated smirks patterns including any cached values, and a list of fragments which require torsiondrives.
+
         """
-
         settings = current_settings()
 
         cached_torsions = None
@@ -270,10 +278,12 @@ class QCGenerationStage(_Stage):
         fragmentation_result: Optional[FragmentationResult],
     ) -> list[Fragment]:
         """
-        Generate a list of parameters which are to be optimised, these are added to the input force field.
-        The parameters are also added to the parameter list in each stage corresponding to the stage where they will be fit.
-        """
+        Generate a list of parameters which are to be optimised.
 
+        These are added to the input force field. The parameters are also added to the parameter list in each stage
+        corresponding to the stage where they will be fit.
+
+        """
         initial_force_field = ForceFieldEditor(input_schema.initial_force_field)
         new_parameters = []
 
@@ -471,6 +481,8 @@ class QCGenerationStage(_Stage):
 
 
 class OptimizationStage(_Stage):
+    """Optimizaiton stage."""
+
     type: Literal["optimization"] = "optimization"
 
     id: Optional[str] = Field(

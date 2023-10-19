@@ -1,3 +1,4 @@
+"""Framgentation app."""
 import json
 
 from fastapi import APIRouter
@@ -32,6 +33,7 @@ __GET_FRAGMENT_IMAGE_ENDPOINT = (
 
 @router.get(__GET_ENDPOINT)
 def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
+    """Return a GET response of a fragmentation task."""
     task_info = get_task_information(worker.celery_app, fragmentation_id)
     task_result = task_info["result"]
 
@@ -59,6 +61,7 @@ def get_fragment(fragmentation_id: str) -> FragmenterGETResponse:
 
 @router.post("/" + __settings.BEFLOW_FRAGMENTER_PREFIX)
 def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
+    """Get the POST response of a fragmentation task."""
     # We use celery delay method in order to enqueue the task with the given
     # parameters
 
@@ -75,6 +78,7 @@ def post_fragment(body: FragmenterPOSTBody) -> FragmenterPOSTResponse:
 
 @router.get(__GET_FRAGMENT_IMAGE_ENDPOINT)
 def get_fragment_image(fragmentation_id: str, fragment_id: int) -> Response:
+    """Return the image of a fragmentation task as a GET response."""
     task_info = get_task_information(worker.celery_app, fragmentation_id)
 
     if task_info["status"] != "success":

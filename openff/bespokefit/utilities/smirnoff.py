@@ -3,7 +3,7 @@ Tools for dealing with SMIRNOFF force field manipulation.
 """
 import copy
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 from openff.toolkit import Molecule
@@ -31,6 +31,8 @@ _PARAMETER_TYPE_TO_HANDLER = {
 
 
 class SMIRKSType(str, Enum):
+    """Enum for SMIRKS types."""
+
     Bonds = "Bonds"
     Angles = "Angles"
     ProperTorsions = "ProperTorsions"
@@ -39,18 +41,24 @@ class SMIRKSType(str, Enum):
 
 
 class ForceFieldEditor:
+    """Edit force fields."""
+
     def __init__(self, force_field: Union[str, ForceField]):
         """
+        Initialize this force field editor.
 
-        Args:
-            force_field: A path to a serialized SMIRNOFF force field or the
-                contents of an OFFXML serialized SMIRNOFF force field.
+        Parameters
+        ----------
+        force_field: ForceField or path-like
+            A path to a serialized SMIRNOFF force field or the
+            contents of an OFFXML serialized SMIRNOFF force field.
 
         Notes
+        -----
             * This will always try to strip the constraints parameter handler as the FF
               should be unconstrained for fitting.
-        """
 
+        """
         if isinstance(force_field, ForceField):
             self.force_field = force_field
         else:
@@ -64,10 +72,11 @@ class ForceFieldEditor:
 
     def add_parameters(self, parameters: list[ParameterType]) -> list[ParameterType]:
         """
-        Work out which type of smirks this is and add it to the forcefield, if this is
-        not a bespoke parameter update the value in the forcefield.
-        """
+        Work out which type of smirks this is and add it to the forcefield.
 
+        If this is not a bespoke parameter, update the value in the forcefield.
+
+        """
         _smirks_ids = {
             BondHandler.BondType: "b",
             AngleHandler.AngleType: "a",
@@ -121,12 +130,15 @@ class ForceFieldEditor:
         """
         Type the molecule with the forcefield and return a molecule parameter dictionary.
 
-        Args:
-            molecule: The molecule that should be labeled by the force field.
+        Parameters
+        ----------
+        molecule: Molecule
+            The molecule that should be labeled by the force field.
 
-        Returns:
-            A dictionary of each parameter assigned to molecule organised by parameter
-            handler type.
+        Return
+        ------
+        A dictionary of each parameter assigned to molecule organised by parameter handler type.
+
         """
         return self.force_field.label_molecules(molecule.to_topology())[0]
 
@@ -135,11 +147,7 @@ class ForceFieldEditor:
         molecule: Molecule,
         atoms_by_type: dict[str, list[tuple[int, ...]]],
     ) -> list[ParameterType]:
-        """
-        For a given molecule label it and get back the smirks patterns and parameters
-        for the requested atoms.
-        """
-
+        """Get the SMIRKS patterns and parameters for atoms in a particular molecule."""
         off_params = {}
 
         labels = self.label_molecule(molecule=molecule)
@@ -159,8 +167,10 @@ class ForceFieldEditor:
         smirks: list["SMIRNOFFParameter"],
     ) -> list[ParameterType]:
         """
-        Find the initial parameters assigned to the atoms in the given smirks patterns
-        and update the values to match the force field.
+        Find the initial parameters assigned to the atoms in the given smirks patterns.
+
+        Also update the values to match the force field.
+
         """
         labels = self.label_molecule(molecule=molecule)
 

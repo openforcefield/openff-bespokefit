@@ -1,4 +1,5 @@
-from typing import Generic, List, Optional, TypeVar
+"""Models used in executor services."""
+from typing import Generic, Optional, TypeVar
 
 import numpy as np
 from pydantic import Field
@@ -10,6 +11,8 @@ _T = TypeVar("_T")
 
 
 class Error(BaseModel):
+    """Model for handling an error."""
+
     type: str = Field(..., description="The type of exception that was raised.")
     message: str = Field(..., description="The message associated with the exception.")
 
@@ -20,6 +23,8 @@ class Error(BaseModel):
 
 
 class Link(BaseModel):
+    """Model for handling a link."""
+
     self: str = Field(..., description="The API endpoint associated with this object.")
     id: str = Field(..., description="The unique id associated with this object.")
 
@@ -31,7 +36,7 @@ class Link(BaseModel):
 
     def __eq__(self, other):
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.id.__eq__(other.id)
             and self.self.__eq__(other.self)
         )
@@ -44,6 +49,8 @@ class Link(BaseModel):
 
 
 class PaginatedCollection(GenericModel, Generic[_T]):
+    """Model for handling a paginated collection."""
+
     self: str = Field(..., description="The API endpoint associated with this object.")
 
     prev: Optional[str] = Field(
@@ -60,4 +67,6 @@ class PaginatedCollection(GenericModel, Generic[_T]):
     contents: list[_T] = Field(..., description="The contents of the collection.")
 
     class Config:
+        """Pydantic Config."""
+
         json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}

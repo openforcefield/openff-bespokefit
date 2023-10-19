@@ -1,3 +1,4 @@
+"""The coordinator app."""
 import asyncio
 import logging
 import os
@@ -45,8 +46,7 @@ def get_optimizations(
     limit: int = 1000,
     status: Optional[TaskStatus] = None,
 ) -> CoordinatorGETPageResponse:
-    """Retrieves all bespoke optimizations that have been submitted to this server."""
-
+    """Retrieve all bespoke optimizations that have been submitted to this server."""
     task_ids = get_task_ids(skip, limit, status=(None if status is None else {status}))
     n_total_tasks = get_n_tasks(status)
 
@@ -99,9 +99,7 @@ def get_optimizations(
 
 @router.get("/" + __settings.BEFLOW_COORDINATOR_PREFIX + "/{optimization_id}")
 def get_optimization(optimization_id: int) -> CoordinatorGETResponse:
-    """Retrieves a bespoke optimization that has been submitted to this server
-    using its unique id."""
-
+    """Retrieve a bespoke optimization that has been submitted to this server using its unique id."""
     try:
         response = CoordinatorGETResponse.from_task(get_task(optimization_id))
     except IndexError:
@@ -120,7 +118,6 @@ def get_optimization(optimization_id: int) -> CoordinatorGETResponse:
 @router.post("/" + __settings.BEFLOW_COORDINATOR_PREFIX)
 def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
     """Submit a bespoke optimization to be performed by the server."""
-
     try:
         # Make sure the input SMILES does not have any atoms mapped as these may
         # cause issues for certain stages such as fragmentation.
@@ -147,9 +144,7 @@ def post_optimization(body: CoordinatorPOSTBody) -> CoordinatorPOSTResponse:
 
 @router.get(__GET_TASK_IMAGE_ENDPOINT)
 async def get_molecule_image(optimization_id: int):
-    """Render the molecule associated with a particular bespoke optimization to an
-    SVG file."""
-
+    """Render the molecule associated with a particular bespoke optimization to an SVG file."""
     try:
         task = get_task(optimization_id)
     except IndexError:
@@ -163,6 +158,7 @@ async def get_molecule_image(optimization_id: int):
 
 @router.on_event("startup")
 def startup():
+    """Start the worker task when the server starts up."""
     main_loop = asyncio.get_event_loop()
 
     global _worker_task
@@ -188,5 +184,6 @@ def startup():
 
 @router.on_event("shutdown")
 def shutdown():
+    """Cancel the worker task when the server shuts down."""
     if _worker_task is not None:
         _worker_task.cancel()

@@ -1,3 +1,4 @@
+"""Error handling in exeuctor."""
 from contextlib import contextmanager
 from typing import Optional
 
@@ -12,25 +13,30 @@ _FAILED_TO_CONNECT = (
 
 
 class ErrorState(TypedDict):
+    """Whether or not this state has errorred."""
+
     has_errored: Optional[bool]
 
 
 @contextmanager
 def handle_common_errors(console: "rich.Console"):
-    """A convenience context manager that will capture common internal errors raised by
-    a bespoke executor and print a useful error message to the console rather than a
-    garbled traceback.
-
-    The return value of the context manager can be queried to see if an error did
-    actually occur.
-
-    Args:
-        console: The rich console to print to.
-
-    Returns:
-        A dictionary with keys of [``has_errored``, ].
     """
+    Context manager that will capture common internal errors raised by a bespoke executor.
 
+    Prints a useful error message to the console rather than a garbled traceback.
+
+    The return value of the context manager can be queried to see if an error did actually occur.
+
+    Parameters
+    ----------
+    console: rich.Console
+        The rich console to print to.
+
+    Returns
+    -------
+        A dictionary with keys of [``has_errored``, ].
+
+    """
     error_state = ErrorState(has_errored=None)
     has_errored = True
 

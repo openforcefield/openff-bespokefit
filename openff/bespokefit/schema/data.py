@@ -1,4 +1,5 @@
-from typing import Generic, List, Tuple, TypeVar, overload
+"""Schema for data classes."""
+from typing import Generic, Literal, TypeVar, overload
 
 import numpy as np
 from openff.toolkit.topology import Molecule
@@ -14,7 +15,6 @@ from qcelemental.models.procedures import (
 )
 from qcportal.models import TorsionDriveRecord
 from qcportal.models.records import OptimizationRecord, RecordStatusEnum, ResultRecord
-from typing import Literal
 
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
@@ -32,6 +32,8 @@ QCTaskSpec = TypeVar(
 
 
 class BespokeQCData(GenericModel, Generic[QCTaskSpec]):
+    """Store bespoke QC data."""
+
     type: Literal["bespoke"] = "bespoke"
 
     spec: QCTaskSpec = Field(
@@ -42,7 +44,11 @@ class BespokeQCData(GenericModel, Generic[QCTaskSpec]):
 
 
 class LocalQCData(GenericModel, Generic[QCDataType]):
+    """Store local QC data."""
+
     class Config:
+        """Pydantic Config."""
+
         json_encoders = {np.ndarray: lambda v: v.flatten().tolist()}
 
     type: Literal["local"] = "local"
@@ -126,6 +132,7 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
 
     @classmethod
     def from_remote_records(cls, qc_records):
+        """Generate LocalQCData from remote records."""
         record_types = list({type(qc_record) for qc_record, _ in qc_records})
         assert len(record_types) == 1, "records must be the same type"
 

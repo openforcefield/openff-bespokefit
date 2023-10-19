@@ -1,14 +1,15 @@
 import os
 from contextlib import contextmanager
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from pydantic import BaseSettings, Field
-from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class WorkerSettings(BaseModel):
+    """Settings for workers."""
+
     import_path: str = Field(..., description="The import path to the worker module.")
 
     n_cores: Optional[int] = Field(
@@ -22,6 +23,8 @@ class WorkerSettings(BaseModel):
 
 
 class Settings(BaseSettings):
+    """BEFLOW settings."""
+
     BEFLOW_API_V1_STR: str = "/api/v1"
 
     BEFLOW_GATEWAY_PORT: int = 8000
@@ -76,6 +79,7 @@ class Settings(BaseSettings):
 
     @property
     def fragmenter_settings(self) -> WorkerSettings:
+        """Return the settings of this fragmentation worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
             n_cores=None
@@ -88,6 +92,7 @@ class Settings(BaseSettings):
 
     @property
     def qc_compute_settings(self) -> WorkerSettings:
+        """Return the settings of this qc computer worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
             n_cores=None
@@ -100,6 +105,7 @@ class Settings(BaseSettings):
 
     @property
     def optimizer_settings(self) -> WorkerSettings:
+        """Return the settings of this optimizer worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_OPTIMIZER_WORKER,
             n_cores=None
@@ -112,10 +118,7 @@ class Settings(BaseSettings):
 
     @contextmanager
     def apply_env(self):
-        """Applies a context manager that will temporarily update the global
-        environmental variables to match the settings in this object.
-        """
-
+        """Apply a context manager that will temporarily update the global environmental variables to match the settings in this object."""
         variables_old = dict(os.environ)
         os.environ.update({key: str(value) for key, value in self.dict().items()})
 

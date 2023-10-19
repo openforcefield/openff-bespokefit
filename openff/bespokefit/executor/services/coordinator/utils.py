@@ -1,3 +1,4 @@
+"""Utilities for coordinator service."""
 import hashlib
 from typing import Optional
 
@@ -47,10 +48,11 @@ def cache_parameters(
     """
     Cache any fitted torsion parameters saved in the final refit force field.
 
-    Returns:
+    Returns
+    -------
          The string the parameters are cached under
-    """
 
+    """
     hash_string = _hash_fitting_schema(fitting_schema=results_schema.input_schema)
     cached_ff = redis_connection.get(hash_string)
     if cached_ff is not None:

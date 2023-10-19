@@ -1,3 +1,4 @@
+"""QC generation caching."""
 import hashlib
 from typing import TypeVar, Union
 
@@ -55,10 +56,7 @@ def cached_compute_task(
     task: Union[HessianTask, OptimizationTask, Torsion1DTask],
     redis_connection: redis.Redis,
 ) -> str:
-    """Checks to see if a QC task has already been executed and if not send it to a
-    worker.
-    """
-
+    """Check to see if a QC task has already been executed and, if not, send it to a worker."""
     if isinstance(task, Torsion1DTask):
         compute = worker.compute_torsion_drive
     elif isinstance(task, OptimizationTask):

@@ -1,5 +1,4 @@
-"""Exceptions for BespokeFit"""
-
+"""Custom exceptions for BespokeFit."""
 import traceback
 
 
@@ -19,6 +18,7 @@ class BespokeFitException(Exception):
 
     @property
     def error_message(self) -> str:
+        """Format this error as a message."""
         return f"{self.header}: {self.raw_message}"
 
 
@@ -132,8 +132,7 @@ class TaskMissMatchError(BespokeFitException):
 
 class QCRecordMissMatchError(BespokeFitException):
     """
-    Raised when a QC record does not contain the expected information, such as gradient
-    or hessian values.
+    Raised when a QC record does not contain the expected information, such as gradient or hessian values.
     """
 
     error_type = "qc_record_miss_match_error"

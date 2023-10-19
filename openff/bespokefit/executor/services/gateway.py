@@ -1,3 +1,4 @@
+"""Gateway for executor services."""
 import importlib
 import os
 import time
@@ -76,6 +77,7 @@ def _output_redirect(log_file: Optional[str] = None):
 
 
 def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
+    """Launch this gateway."""
     if directory is not None and len(directory) > 0:
         os.makedirs(directory, exist_ok=True)
 
@@ -90,6 +92,7 @@ def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
 
 
 def wait_for_gateway(n_retries: int = 40):
+    """Wait for the gateway to become available."""
     timeout = True
 
     for _ in range(n_retries):

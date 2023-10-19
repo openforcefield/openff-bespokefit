@@ -1,5 +1,6 @@
+"""QC generation worker."""
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import psutil
 import qcelemental
@@ -66,13 +67,18 @@ def _select_atom(atoms: list[Atom]) -> int:
 def _get_program_keywords(program: str) -> dict[str, str]:
     """
     Generate a set of pre-defined keywords for the calculation based on the program.
+
     These are based on experience.
 
-    Args:
-        program: The name of the program which will run the calculation
+    Parameters
+    ----------
+    program: str
+        The name of the program which will run the calculation
 
-    Returns:
-         A dictionary of program specific keywords
+    Returns
+    -------
+    A dictionary of program specific keywords
+
     """
     keywords = {}
     if program.lower() == "xtb":
@@ -83,8 +89,7 @@ def _get_program_keywords(program: str) -> dict[str, str]:
 
 @celery_app.task(acks_late=True)
 def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
-    """Runs a torsion drive using QCEngine."""
-
+    """Run a torsion drive using QCEngine."""
     task = Torsion1DTask.parse_raw(task_json)
 
     _task_logger.info(f"running 1D scan with {_task_config()}")
@@ -171,7 +176,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
 def compute_optimization(
     task_json: str,
 ) -> list[OptimizationResult]:
-    """Runs a set of geometry optimizations using QCEngine."""
+    """Run a set of geometry optimizations using QCEngine."""
     # TODO: should we only return the lowest energy optimization?
     # or the first optimisation to work?
 
@@ -230,5 +235,5 @@ def compute_optimization(
 
 @celery_app.task
 def compute_hessian(task_json: str) -> AtomicResult:
-    """Runs a set of hessian evaluations using QCEngine."""
+    """Run  a set of hessian evaluations using QCEngine."""
     raise NotImplementedError()

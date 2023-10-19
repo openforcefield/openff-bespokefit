@@ -1,8 +1,8 @@
+"""Schema for optimizers."""
 import abc
-from typing import Dict, Union
+from typing import Literal, Union
 
 from pydantic import Field, PositiveFloat, PositiveInt
-from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
@@ -19,11 +19,10 @@ class BaseOptimizerSchema(SchemaBase, abc.ABC):
 
 
 class ForceBalanceSchema(BaseOptimizerSchema, abc.ABC):
-    """A class containing the main ForceBalance optimizer settings to use during an
-    optimization.
+    """
+    Store the main ForceBalance optimizer settings to use during an optimization.
 
-    Priors and target definitions are stored separately as part of an
-    ``OptimizationSchema``.
+    Priors and target definitions are stored separately as part of an ``OptimizationSchema``.
     """
 
     type: Literal["ForceBalance"] = "ForceBalance"

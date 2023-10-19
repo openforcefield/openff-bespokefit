@@ -66,4 +66,3 @@ dependencies:
   - requests-mock
 
   - importlib-metadata >=4
-

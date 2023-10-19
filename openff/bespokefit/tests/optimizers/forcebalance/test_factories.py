@@ -1,7 +1,6 @@
 import itertools
 import json
 import os
-from typing import List, Tuple
 
 import numpy as np
 import pytest
@@ -69,7 +68,7 @@ def test_local_to_qc_records(result_fixture, request):
         LocalQCData(qc_records=[qc_result]),
     )
 
-    assert type(qc_record) == type(qc_result)
+    assert type(qc_record) is type(qc_result)
 
     assert molecule.to_smiles() == expected_molecule.to_smiles()
     assert molecule.n_conformers == expected_molecule.n_conformers

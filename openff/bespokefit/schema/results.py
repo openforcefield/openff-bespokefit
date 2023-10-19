@@ -1,10 +1,10 @@
+"""Schema for results."""
 import abc
-from typing import Any, Dict, List, Optional
+from typing import Any, Literal, Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from pydantic import Field
-from typing import Literal
 
 from openff.bespokefit.schema import Error, Status
 from openff.bespokefit.schema.fitting import (
@@ -71,7 +71,6 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     @property
     def refit_force_field(self) -> Optional[str]:
         """Return the final refit force field."""
-
         return (
             None if not self.status == "success" else self.stages[-1].refit_force_field
         )
@@ -81,7 +80,6 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         self,
     ) -> Optional[dict[BaseSMIRKSParameter, dict[str, unit.Quantity]]]:
         """A list of the refit force field parameters."""
-
         if self.input_schema is None or not self.status == "success":
             return None
 
@@ -101,6 +99,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
 
     @property
     def status(self) -> Status:
+        """Return the status."""
         if (
             len(self.stages) == 0
             or all(stage.status == "waiting" for stage in self.stages)

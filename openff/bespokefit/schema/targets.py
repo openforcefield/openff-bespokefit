@@ -1,5 +1,6 @@
+"""Schema for fitting targets."""
 import abc
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Literal, Optional, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
@@ -12,7 +13,6 @@ from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
-from typing import Literal
 
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
@@ -29,11 +29,10 @@ def _check_connectivity(
     fragment: Optional[Molecule] = None,
 ):
     """
-    Raise an exception if the geometry of ``qcschema`` does not match ``fragment``
+    Raise an exception if the geometry of ``qcschema`` does not match ``fragment``.
 
     Parameters
-    ==========
-
+    ----------
     qcschema
         A QCElemental ``Molecule`` representing the final geometry of a QC
         computation
@@ -45,15 +44,14 @@ def _check_connectivity(
         fragment.
 
     Returns
-    =======
-
+    -------
     None
 
     Raises
-    ======
-
+    ------
     ValueError
         If the connectivity does not match.
+
     """
     # If expected connectivity is not provided, compute it from the fragment
     if fragment is None:
@@ -173,9 +171,7 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
     def bespoke_task_type(
         cls,
     ) -> Literal["torsion1d", "optimization", "hessian"]:
-        """Returns the type of task which will be required to generate the reference
-        data for this type of target.
-        """
+        """Return the type of task which will be required to generate the reference data for this type of target."""
         raise NotImplementedError
 
 
@@ -216,6 +212,7 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
 
     @classmethod
     def bespoke_task_type(cls) -> Literal["torsion1d"]:
+        """Return the type of this task."""
         return "torsion1d"
 
 
@@ -258,6 +255,7 @@ class AbInitioTargetSchema(BaseTargetSchema):
 
     @classmethod
     def bespoke_task_type(cls) -> Literal["torsion1d"]:
+        """Return the type of this task."""
         return "torsion1d"
 
 
@@ -289,6 +287,7 @@ class VibrationTargetSchema(BaseTargetSchema):
 
     @classmethod
     def bespoke_task_type(cls) -> Literal["hessian"]:
+        """Return the type of this task."""
         return "hessian"
 
 
@@ -338,6 +337,7 @@ class OptGeoTargetSchema(BaseTargetSchema):
 
     @classmethod
     def bespoke_task_type(cls) -> Literal["optimization"]:
+        """Return the type of this task."""
         return "optimization"
 
 

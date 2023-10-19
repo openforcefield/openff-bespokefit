@@ -30,7 +30,8 @@ def test_default_workflow_up_to_date():
 
     with open(
         get_data_file_path(
-            os.path.join("schemas", "default.json"), "openff.bespokefit"
+            os.path.join("schemas", "default.json"),
+            "openff.bespokefit",
         ),
     ) as file:
         default_workflow_from_file = json.dumps(

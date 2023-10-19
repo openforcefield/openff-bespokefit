@@ -1,4 +1,4 @@
-"""Tools for executing workflows"""
+"""Tools for executing workflows."""
 
 from openff.bespokefit.executor.executor import (
     BespokeExecutor,

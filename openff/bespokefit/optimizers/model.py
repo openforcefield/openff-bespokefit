@@ -6,7 +6,7 @@ import abc
 import copy
 import os
 from collections import defaultdict
-from typing import Dict, Optional, Type
+from typing import Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 
@@ -22,7 +22,7 @@ TargetSchemaType = type[BaseTargetSchema]
 
 class BaseOptimizer(abc.ABC):
     """
-    This is the abstract basic BaseOptimizer class that each optimizer should use.
+    Abstract basic BaseOptimizer class that each optimizer should use.
     """
 
     # this is shared across optimizers so we have to separate by optimizer
@@ -31,47 +31,40 @@ class BaseOptimizer(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def name(cls) -> str:
-        """Returns the friendly name of the optimizer."""
+        """Return the friendly name of the optimizer."""
         raise NotImplementedError()
 
     @classmethod
     @abc.abstractmethod
     def description(cls) -> str:
-        """Returns a friendly description of the optimizer."""
+        """Return a friendly description of the optimizer."""
         raise NotImplementedError()
 
     @classmethod
     @abc.abstractmethod
     def provenance(cls) -> dict:
         """
-        This function should detail the programs with the version information called
-        during the running od the optimizer.
+        Detail the programs with the version information called during the running od the optimizer.
 
-        Returns:
-            A dictionary containing the information about the optimizer called.
+        Return a dictionary containing the information about the optimizer called.
         """
         raise NotImplementedError()
 
     @classmethod
     @abc.abstractmethod
     def is_available(cls) -> bool:
-        """
-        This method should check that installation requirements are met before trying to
-        run the optimizer.
-        """
+        """Check that installation requirements are met before trying to run the optimizer."""
         raise NotImplementedError()
 
     @classmethod
     @abc.abstractmethod
     def _schema_class(cls) -> type[OptimizerSchema]:
-        """The schema associated with this optimizer."""
+        """Return the schema associated with this optimizer."""
         raise NotImplementedError
 
     @classmethod
     def get_registered_targets(cls) -> dict[str, TargetSchemaType]:
-        """
-        Internal method to get the registered targets for this specific optimizer.
-        """
+        """Get the registered targets for this specific optimizer."""
         return copy.deepcopy(cls._registered_targets.get(cls.__name__, {}))
 
     @classmethod
@@ -81,8 +74,7 @@ class BaseOptimizer(abc.ABC):
         replace: bool = False,
     ) -> None:
         """
-        Take a target and register it with the optimizer under an alias name which is
-        used to call the target.
+        Register a target with the optimizer under an alias name which is used to call the target.
 
         Parameters
         ----------
@@ -96,8 +88,8 @@ class BaseOptimizer(abc.ABC):
         ------
         TargetRegisterError
             If the target has already been registered.
-        """
 
+        """
         if not issubclass(target_type, BaseTargetSchema):
             raise TargetRegisterError(
                 f"The {target_type.__name__} does not inherit from the "
@@ -132,8 +124,8 @@ class BaseOptimizer(abc.ABC):
         ------
         TargetRegisterError
             If no target is registered under the name to be removed.
-        """
 
+        """
         current_targets = cls.get_registered_targets()
 
         if target_name.lower() in current_targets:
@@ -145,10 +137,7 @@ class BaseOptimizer(abc.ABC):
 
     @classmethod
     def _validate_schema(cls, schema: OptimizationStageSchema):
-        """Validates that a particular optimization schema can be used with this
-        optimizer.
-        """
-
+        """Validate that a particular optimization schema can be used with this optimizer."""
         if not isinstance(schema.optimizer, cls._schema_class()):
             raise OptimizerError(
                 f"The ``{cls.__name__}`` optimizer can only be used with "
@@ -175,9 +164,10 @@ class BaseOptimizer(abc.ABC):
         initial_force_field: ForceField,
         root_directory: str,
     ):
-        """The internal implementation of the main ``prepare`` method. The input
-        ``schema`` is assumed to have been validated before being passed to this
-        method.
+        """
+        Implement the main ``prepare`` method.
+
+        The input ``schema`` is assumed to have been validated before being passed to this method.
         """
         raise NotImplementedError()
 
@@ -188,9 +178,7 @@ class BaseOptimizer(abc.ABC):
         initial_force_field: ForceField,
         root_directory: str,
     ):
-        """Prepares the optimization by creating any required inputs and setting up
-        the required environment."""
-
+        """Prepare the optimization by creating any required inputs and setting up the required environment."""
         cls._validate_schema(schema)
         cls._prepare(schema, initial_force_field, root_directory)
 
@@ -200,9 +188,11 @@ class BaseOptimizer(abc.ABC):
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
     ) -> OptimizationStageResults:
-        """The internal implementation of the main ``optimize`` method. The input
-        ``schema`` is assumed to have been validated before being passed to this
-        method.
+        """
+        Implement the main ``optimize`` method.
+
+        The input ``schema`` is assumed to have been validated before being passed to this method.
+
         """
         raise NotImplementedError()
 
@@ -214,11 +204,12 @@ class BaseOptimizer(abc.ABC):
         root_directory: Optional[str] = None,
     ) -> OptimizationStageResults:
         """
-        This is the main function of the optimizer which is called when the optimizer is
-        put in a workflow.
+        Run this optimization.
 
-        It should loop over the targets and assert they are registered and then dispatch
-        compute and optimization.
+        The main function of the optimizer which is called when the optimizer is put in a workflow.
+
+        It should loop over the targets and assert they are registered and then dispatch compute and optimization.
+
         """
         if root_directory is not None:
             os.makedirs(root_directory, exist_ok=True)

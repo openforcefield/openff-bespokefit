@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional
+"""Models used in coordinator services."""
+from typing import Optional
 
 from pydantic import Field
 
@@ -12,10 +13,12 @@ from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class CoordinatorGETPageResponse(PaginatedCollection[Link]):
-    """"""
+    """The response of by a GET request."""
 
 
 class CoordinatorGETStageStatus(BaseModel):
+    """The status of a coordinator GET request."""
+
     type: str = Field(..., description="The type of stage.")
 
     status: Status = Field(..., description="The status of the stage.")
@@ -31,6 +34,7 @@ class CoordinatorGETStageStatus(BaseModel):
 
     @classmethod
     def from_stage(cls, stage: StageType):
+        """Generate this status from a stage."""
         stage_ids = stage.id if hasattr(stage, "id") else stage.ids
 
         if isinstance(stage_ids, str):
@@ -72,6 +76,8 @@ class CoordinatorGETStageStatus(BaseModel):
 
 
 class CoordinatorGETResponse(Link):
+    """The object model returned by a GET request."""
+
     smiles: str = Field(
         ...,
         description="The SMILES representation of the molecule that the bespoke "
@@ -95,6 +101,7 @@ class CoordinatorGETResponse(Link):
 
     @classmethod
     def from_task(cls, task: "CoordinatorTask"):
+        """Generate this CoordinatorGETResponse from a task."""
         settings = current_settings()
 
         stages = [
@@ -125,16 +132,18 @@ class CoordinatorGETResponse(Link):
 
 
 class CoordinatorPOSTBody(BaseModel):
+    """The body of a coordinator POST request."""
+
     input_schema: BespokeOptimizationSchema = Field(..., description="")
 
 
 class CoordinatorPOSTResponse(Link):
-    """"""
+    """The object model returned by a coordinator POST request."""
 
 
 class CoordinatorTask(BaseModel):
-    """An internal model that tracks a task (i.e. a bespoke optimization) that is being
-    executed by the executor.
+    """
+    An internal model that tracks a task (i.e. a bespoke optimization) that is being executed by the executor.
     """
 
     id: str = Field(..., description="The unique ID associated with this task.")
@@ -149,6 +158,7 @@ class CoordinatorTask(BaseModel):
 
     @property
     def status(self) -> Status:
+        """Return the status of this task."""
         if (
             self.running_stage is None
             and len(self.completed_stages) == 0

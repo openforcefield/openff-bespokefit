@@ -1,5 +1,6 @@
+"""Schema for tasks."""
 import abc
-from typing import Optional, Tuple, overload
+from typing import Literal, Optional, overload
 
 from openff.qcsubmit.procedures import GeometricProcedure
 from openff.toolkit.topology import Molecule
@@ -7,12 +8,13 @@ from pydantic import Field, conint
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
-from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class QCGenerationTask(BaseModel, abc.ABC):
+    """Base class for QC generation tasks."""
+
     type: Literal["base-task"]
 
     program: str = Field(..., description="The program to use to evaluate the model.")
@@ -20,6 +22,8 @@ class QCGenerationTask(BaseModel, abc.ABC):
 
 
 class HessianTaskSpec(QCGenerationTask):
+    """Specification for a hessian task."""
+
     type: Literal["hessian"] = "hessian"
 
     n_conformers: conint(gt=0) = Field(
@@ -36,6 +40,8 @@ class HessianTaskSpec(QCGenerationTask):
 
 
 class HessianTask(HessianTaskSpec):
+    """Schema for a hessian task."""
+
     smiles: str = Field(
         ...,
         description="A fully indexed SMILES representation of the molecule to compute "
@@ -44,10 +50,14 @@ class HessianTask(HessianTaskSpec):
 
 
 class OptimizationTaskSpec(HessianTaskSpec):
+    """Specification for an optimization task."""
+
     type: Literal["optimization"] = "optimization"
 
 
 class OptimizationTask(OptimizationTaskSpec):
+    """Schema for an optimization task."""
+
     smiles: str = Field(
         ...,
         description="A fully indexed SMILES representation of the molecule to optimize.",
@@ -55,6 +65,8 @@ class OptimizationTask(OptimizationTaskSpec):
 
 
 class Torsion1DTaskSpec(QCGenerationTask):
+    """Specification for a 1-D torsion task."""
+
     type: Literal["torsion1d"] = "torsion1d"
 
     grid_spacing: int = Field(15, description="The spacing between grid angles.")
@@ -76,6 +88,8 @@ class Torsion1DTaskSpec(QCGenerationTask):
 
 
 class Torsion1DTask(Torsion1DTaskSpec):
+    """Schema for a 1-D torsion task."""
+
     smiles: str = Field(
         ...,
         description="An indexed SMILES representation of the molecule to drive.",
@@ -105,7 +119,6 @@ def task_from_result(result):
     """
     Convert a result into a task to populate the cache for the result.
     """
-
     if isinstance(result, TorsionDriveResult):
         dihedral = result.keywords.dihedrals[0]
         off_mol = Molecule.from_qcschema(result.initial_molecule[0])

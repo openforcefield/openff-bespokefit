@@ -1,3 +1,4 @@
+"""The main executor."""
 import atexit
 import functools
 import importlib
@@ -8,7 +9,7 @@ import shutil
 import subprocess
 import time
 from tempfile import mkdtemp
-from typing import List, Optional, Type, TypeVar, Union
+from typing import Literal, Optional, TypeVar, Union
 
 import celery
 import requests
@@ -16,7 +17,6 @@ import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from pydantic import Field
 from rich.padding import Padding
-from typing import Literal
 
 from openff.bespokefit.executor.services import Settings, current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
@@ -69,8 +69,7 @@ class BespokeWorkerConfig(BaseModel):
 
 
 class BespokeExecutorStageOutput(BaseModel):
-    """A model that stores the output of a particular stage in the bespoke fitting
-    workflow e.g. QC data generation."""
+    """Store the output of a particular stage in the bespoke fitting workflow e.g. QC data generation."""
 
     type: str = Field(..., description="The type of stage.")
 
@@ -83,8 +82,7 @@ class BespokeExecutorStageOutput(BaseModel):
 
 
 class BespokeExecutorOutput(BaseModel):
-    """A model that stores the current output of running bespoke fitting workflow
-    including any partial or final results."""
+    """Store the current output of running bespoke fitting workflow including any partial or final results."""
 
     smiles: str = Field(
         ...,
@@ -105,7 +103,6 @@ class BespokeExecutorOutput(BaseModel):
     @property
     def bespoke_force_field(self) -> Optional[ForceField]:
         """The final bespoke force field if the bespoke fitting workflow is complete."""
-
         if self.results is None or self.results.refit_force_field is None:
             return None
 
@@ -116,6 +113,7 @@ class BespokeExecutorOutput(BaseModel):
 
     @property
     def status(self) -> Status:
+        """Return the status of this output."""
         pending_stages = [stage for stage in self.stages if stage.status == "waiting"]
 
         running_stages = [stage for stage in self.stages if stage.status == "running"]
@@ -149,8 +147,7 @@ class BespokeExecutorOutput(BaseModel):
 
     @property
     def error(self) -> Optional[str]:
-        """The error that caused the fitting to fail if any"""
-
+        """The error that caused the fitting to fail, if any."""
         if self.status != "errored":
             return None
 
@@ -161,9 +158,7 @@ class BespokeExecutorOutput(BaseModel):
 
     @classmethod
     def from_response(cls: type[_T], response: CoordinatorGETResponse) -> _T:
-        """Creates an instance of this object from the response from a bespoke
-        coordinator service."""
-
+        """Create an instance of this object from the response from a bespoke coordinator service."""
         return cls(
             smiles=response.smiles,
             stages=[
@@ -179,9 +174,7 @@ class BespokeExecutorOutput(BaseModel):
 
 
 class BespokeExecutor:
-    """The main class for generating a bespoke set of parameters for molecules based on
-    bespoke optimization schemas.
-    """
+    """The main class for generating a bespoke set of parameters for molecules based on bespoke optimization schemas."""
 
     def __init__(
         self,
@@ -195,22 +188,30 @@ class BespokeExecutor:
         launch_redis_if_unavailable: bool = True,
     ):
         """
+        Initialize this executor.
 
-        Args:
-            n_fragmenter_workers: The number of workers that should be launched to
-                handle the fragmentation of molecules prior to the generation of QC
-                data.
-            n_qc_compute_workers: The number of workers that should be launched to
-                handle the generation of any QC data.
-            n_optimizer_workers: The number of workers that should be launched to
-                handle the optimization of the bespoke parameters against any input QC
-                data.
-            directory: The direction to run in. If ``None``, the executor will run in
-                a temporary directory.
-            launch_redis_if_unavailable: Whether to launch a redis server if an already
-                running one cannot be found.
+        Parameters
+        ----------
+        n_fragmenter_workers: int
+            The number of workers that should be launched to handle the fragmentation of molecules prior to the
+            generation of QC data.
+        fragmenter_worker_config: BespokeWorkerConfig
+            The config for fragmenter workers
+        n_qc_compute_workers: int
+            The number of workers that should be launched to handle the generation of any QC data.
+        qc_compute_worker_config: BespokeWorkerConfig
+            The config for QC compute workers
+        n_optimizer_workers: int
+            The number of workers that should be launched to handle the optimization of the bespoke parameters against
+            any input QC data.
+        optimizer_worker_config: BespokeWorkerConfig
+            The config for optimization workers
+        directory: path-like
+            The direction to run in. If ``None``, the executor will run in a temporary directory.
+        launch_redis_if_unavailable: bool
+            Whether to launch a redis server if an already running one cannot be found.
+
         """
-
         self._n_fragmenter_workers = n_fragmenter_workers
         self._fragmenter_worker_config = fragmenter_worker_config
         self._n_qc_compute_workers = n_qc_compute_workers
@@ -254,8 +255,7 @@ class BespokeExecutor:
             self._redis_process = None
 
     def _launch_redis(self):
-        """Launches a redis server if an existing one cannot be found."""
-
+        """Launch a redis server if an existing one cannot be found."""
         settings = current_settings()
 
         if self._launch_redis_if_unavailable and not is_redis_available(
@@ -272,8 +272,7 @@ class BespokeExecutor:
             )
 
     def _launch_workers(self):
-        """Launches any service workers if requested."""
-
+        """Launch any service workers if requested."""
         with Settings(
             BEFLOW_FRAGMENTER_WORKER_N_CORES=self._fragmenter_worker_config.n_cores,
             BEFLOW_FRAGMENTER_WORKER_MAX_MEM=self._fragmenter_worker_config.max_memory,
@@ -306,13 +305,16 @@ class BespokeExecutor:
                     spawn_worker(worker_app, concurrency=n_workers),
                 )
 
-    def _start(self, asynchronous=False):
-        """Launch the executor, allowing it to receive and run bespoke optimizations.
-
-        Args:
-            asynchronous: Whether to run the executor asynchronously.
+    def _start(self, asynchronous: bool = False):
         """
+        Launch the executor, allowing it to receive and run bespoke optimizations.
 
+        Parameters
+        ----------
+        asynchronous: bool
+            Whether to run the executor asynchronously.
+
+        """
         if self._started:
             raise RuntimeError("This executor is already running.")
 
@@ -347,7 +349,6 @@ class BespokeExecutor:
 
     def _stop(self):
         """Stop the executor from running and clean ip any associated processes."""
-
         if not self._started:
             raise RuntimeError("The executor is not running.")
 
@@ -361,13 +362,18 @@ class BespokeExecutor:
 
     @staticmethod
     def submit(input_schema: BespokeOptimizationSchema) -> str:
-        """Submits a new bespoke fitting workflow to the executor.
+        """
+        Submit a new bespoke fitting workflow to the executor.
 
-        Args:
-            input_schema: The schema defining the optimization to perform.
+        Parameters
+        ----------
+        input_schema: BespokeOptimizaitonSchema
+            The schema defining the optimization to perform.
 
-        Returns:
+        Returns
+        -------
             The unique ID assigned to the optimization to perform.
+
         """
         request = requests.post(
             _coordinator_endpoint(),
@@ -379,12 +385,15 @@ class BespokeExecutor:
 
     @staticmethod
     def retrieve(optimization_id: str) -> BespokeExecutorOutput:
-        """Retrieve the current state of a running bespoke fitting workflow.
-
-        Args:
-            optimization_id: The unique ID associated with the running optimization.
         """
+        Retrieve the current state of a running bespoke fitting workflow.
 
+        Parameters
+        ----------
+        optimization_id: str
+            The unique ID associated with the running optimization.
+
+        """
         optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
 
         return BespokeExecutorOutput.from_response(
@@ -430,18 +439,23 @@ def wait_until_complete(
     console: Optional["rich.Console"] = None,
     frequency: Union[int, float] = 5,
 ) -> BespokeExecutorOutput:
-    """Wait for a specified optimization to complete and return the results.
-
-    Args:
-        optimization_id: The unique id of the optimization to wait for.
-        console: The console to print to.
-        frequency: The frequency (seconds) with which to poll the status of the
-            optimization.
-
-    Returns:
-        The output of running the optimization.
     """
+    Wait for a specified optimization to complete and return the results.
 
+    Parameters
+    ----------
+    optimization_id: str
+        The unique id of the optimization to wait for.
+    console:
+        The console to print to.
+    frequency: number
+        The frequency (seconds) with which to poll the status of the optimization.
+
+    Return
+    -----
+        The output of running the optimization.
+
+    """
     console = console if console is not None else rich.get_console()
 
     optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"

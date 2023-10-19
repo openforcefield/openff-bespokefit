@@ -1,4 +1,4 @@
-"""Optimizes force field parameters to fit some ground truth data"""
+"""Optimizes force field parameters to fit some ground truth data."""
 
 from openff.bespokefit.optimizers.base import (
     BaseOptimizer,

@@ -1,3 +1,4 @@
+"""BespokeFit CLI."""
 import click
 
 from openff.bespokefit.cli.cache import cache_cli
@@ -8,7 +9,7 @@ from openff.bespokefit.cli.prepare import prepare_cli
 
 @click.group()
 def cli():
-    """The root group for all CLI commands."""
+    """Root group for all CLI commands."""
 
 
 cli.add_command(executor_cli)

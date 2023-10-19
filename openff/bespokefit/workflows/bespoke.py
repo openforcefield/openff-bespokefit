@@ -1,12 +1,9 @@
-"""
-This is the main bespokefit workflow factory which is executed and builds the bespoke
-workflows.
-"""
+"""The main bespokefit workflow factory which is executed and builds the bespoke workflows."""
 import hashlib
 import logging
 import os
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.qcsubmit.common_structures import QCSpec
@@ -69,9 +66,7 @@ _DEFAULT_ROTATABLE_SMIRKS = "[!#1]~[!$(*#*)&!D1:1]-,=;!@[!$(*#*)&!D1:2]~[!#1]"
 
 
 class BespokeWorkflowFactory(ClassBase):
-    """The bespokefit workflow factory which is a template of the settings that will be
-    used to generate the specific fitting schema for each molecule.
-    """
+    """Factory which is a template of the settings that will be used to generate the specific fitting schema for each molecule."""
 
     initial_force_field: str = Field(
         "openff_unconstrained-2.0.0.offxml",
@@ -175,7 +170,6 @@ class BespokeWorkflowFactory(ClassBase):
         """
         Check that all required settings are declared before running.
         """
-
         # now check we have targets in each optimizer
         if len(self.target_templates) == 0:
             raise OptimizerError(
@@ -202,7 +196,7 @@ class BespokeWorkflowFactory(ClassBase):
 
     @property
     def target_smirks(self) -> list[SMIRKSType]:
-        """Returns a list of the target smirks types based on the selected hyper parameters."""
+        """Return a list of the target smirks types based on the selected hyper parameters."""
         return list(
             {
                 SMIRKSType(parameter.type)
@@ -219,8 +213,8 @@ class BespokeWorkflowFactory(ClassBase):
         file_name: str
             The name of the file the workflow should be exported to, the type is
             determined from the name.
-        """
 
+        """
         serialize(serializable=self.dict(), file_name=file_name)
 
     @classmethod
@@ -235,10 +229,7 @@ class BespokeWorkflowFactory(ClassBase):
         cls,
         molecules: Union[Molecule, list[Molecule], str],
     ) -> ComponentResult:
-        """
-        Create a deduplicated list of molecules based on the input type.
-        """
-
+        """Create a deduplicated list of molecules based on the input type."""
         input_file, molecule, input_directory = None, None, None
 
         if isinstance(molecules, str):
@@ -267,9 +258,8 @@ class BespokeWorkflowFactory(ClassBase):
         molecules: Union[Molecule, list[Molecule]],
         processors: Optional[int] = 1,
     ) -> list[BespokeOptimizationSchema]:
-        """This is the main function of the workflow which takes the general fitting
-        meta-template and generates a specific one for the set of molecules that are
-        passed.
+        """
+        Take the general fitting meta-template and generate a specific one for this set of molecules.
 
         Parameters
         ----------
@@ -280,8 +270,8 @@ class BespokeWorkflowFactory(ClassBase):
             The number of processors that should be used when building the workflow,
             this helps with fragmentation which can be quite slow for large numbers of
             molecules.
-        """
 
+        """
         # TODO: Expand to accept the QCSubmit results datasets directly to create the
         #       fitting schema and fill the tasks.
         # TODO: How do we support dihedral tagging?
@@ -308,10 +298,7 @@ class BespokeWorkflowFactory(ClassBase):
         molecule: Molecule,
         index: int = 0,
     ) -> Optional[BespokeOptimizationSchema]:
-        """Build an optimization schema from an input molecule this involves
-        fragmentation.
-        """
-
+        """Build an optimization schema from an input molecule this involves fragmentation."""
         # make sure all required variables have been declared
         self._pre_run_check()
 
@@ -332,8 +319,8 @@ class BespokeWorkflowFactory(ClassBase):
         If multiple targets are in the workflow the results will be applied to the
         correct target other targets can be updated after by calling update with
         parameters.
-        """
 
+        """
         # group the tasks if requested
         sorted_records = self._group_records(results.to_records(), combine)
 
@@ -357,10 +344,12 @@ class BespokeWorkflowFactory(ClassBase):
         records: list[tuple[QCResultRecord, Molecule]],
         combine,
     ) -> list[list[tuple[QCResultRecord, Molecule]]]:
-        """Group the result records into a list that can be processed into a fitting
-        schema, combining results collected for the same molecule when requested.
         """
+        Group the result records into a list.
 
+        The result can be processed into a fitting schema, combining results collected for the same molecule when requested.
+
+        """
         if not combine:
             return [[record] for record in records]
 
@@ -387,12 +376,13 @@ class BespokeWorkflowFactory(ClassBase):
         """
         Create an optimization task for a given list of results.
 
-        Notes:
+        Notes
+        -----
             * This method assumes a result records were generated for the same molecule.
             * The list allows multiple results to be combined from the same molecule
               which is mostly useful for torsion drives.
-        """
 
+        """
         assert (
             len({molecule.to_inchikey(fixed_hydrogens=True) for _, molecule in records})
             == 1
@@ -422,8 +412,7 @@ class BespokeWorkflowFactory(ClassBase):
         return opt_schema
 
     def _select_qc_spec(self, molecule: Molecule) -> QCSpec:
-        """Attempts to select a QC spec for a given molecule from the defaults list."""
-
+        """Attempt to select a QC spec for a given molecule from the defaults list."""
         if len(self.default_qc_specs) != 1:
             raise NotImplementedError(
                 "Currently only a single default QC spec must be specified.",
@@ -438,7 +427,6 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data: Optional[dict[str, LocalQCData]] = None,
     ) -> BespokeOptimizationSchema:
         """For a given molecule schema build an optimization schema."""
-
         force_field_editor = ForceFieldEditor(self.initial_force_field)
         ff_hash = hashlib.sha512(
             force_field_editor.force_field.to_string(

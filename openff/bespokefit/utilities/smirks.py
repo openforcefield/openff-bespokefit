@@ -1,5 +1,6 @@
+"""Utilities for dealing with SMIRKS."""
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import Literal, Optional, Union
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -9,7 +10,6 @@ from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
 from pydantic import Field
-from typing import Literal
 
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
@@ -29,12 +29,16 @@ def get_cached_torsion_parameters(
     """
     For a given molecule update the input parameter with cached values if an equivalent parameter can be found in the cached list.
 
-    Args:
-        molecule: The target molecule the parameter should be applied to
-        bespoke_parameter: Our bespoke parameter which contains the reference smirks pattern
-        cached_parameters: The list of cached parameters which can be reused
-    """
+    Parameters
+    ----------
+    molecule: Molecule
+        The target molecule the parameter should be applied to
+    bespoke_parameter: ProperTorsionType
+        Our bespoke parameter which contains the reference smirks pattern
+    cached_parameters: List[ProperTorsionType]
+        The list of cached parameters which can be reused
 
+    """
     # get matches for our target smirks
     target_matches = molecule.chemical_environment_matches(
         query=bespoke_parameter.smirks,
@@ -58,23 +62,17 @@ def get_cached_torsion_parameters(
 
 
 def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
-    """
-    Compare two smirks schema based on the types of smirks they cover.
-    """
+    """Compare two smirks schema based on the types of smirks they cover."""
     if smirks1 == smirks2:
         return True
 
     # define the node matching functions
     def atom_match(atom1, atom2):
-        """
-        A networkx matching function for atom smirks.
-        """
+        """Networkx matching function for atom smirks."""
         return atom1["index"] == atom2["index"]
 
     def bond_match(atom1, atom2):
-        """
-        A networkx matching function for bond smirks.
-        """
+        """Networkx matching function for bond smirks."""
         if atom1["index"] == atom2["index"]:
             return True
         elif atom1["index"] > 0 and atom2["index"] > 0:
@@ -86,10 +84,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
             return False
 
     def angle_match(atom1, atom2):
-        """
-        A networkx matching function for angle smirks.
-        """
-
+        """Networkx matching function for angle smirks."""
         if atom1["index"] == atom2["index"]:
             return True
         elif atom1["index"] > 0 and atom2["index"] > 0:
@@ -101,9 +96,7 @@ def compare_smirks_graphs(smirks1: str, smirks2: str) -> bool:
             return False
 
     def dihedral_match(atom1, atom2):
-        """
-        A networkx matching function for dihedral smirks.
-        """
+        """Networkx matching function for dihedral smirks."""
         if atom1["index"] == atom2["index"]:
             return True
         elif atom1["index"] > 0 and atom2["index"] > 0:
@@ -189,11 +182,15 @@ class SMIRKSettings(SchemaBase):
 
 class SMIRKSGenerator(SMIRKSettings):
     """
-    Generates a set of smirks that describe the requested force groups of the molecule,
-    these can be bespoke or simply extract the current values from the target forcefield.
+    Generates a set of smirks that describe the requested force groups of the molecule.
+
+    These can be bespoke or simply extract the current values from the target forcefield.
+
     """
 
     class Config(SMIRKSettings.Config):
+        """Pydantic Config."""
+
         arbitrary_types_allowed = True
 
     initial_force_field: Union[str, ForceFieldEditor] = Field(
@@ -217,10 +214,7 @@ class SMIRKSGenerator(SMIRKSettings):
         molecule: Molecule,
         central_bond: Optional[tuple[int, int]] = None,
     ):
-        """A convenience method for generating SMIRKS patterns that encompass an entire
-        molecules.
-        """
-
+        """Generate SMIRKS patterns that encompass an entire molecule."""
         molecule = copy.deepcopy(molecule)
         molecule.properties["atom_map"] = {i: i + 1 for i in range(molecule.n_atoms)}
 
@@ -238,21 +232,24 @@ class SMIRKSGenerator(SMIRKSettings):
         fragment: Molecule,
         fragment_map_indices: Optional[tuple[int, int]],
     ) -> list[ParameterType]:
-        """Generates a set of smirks patterns for the fragment corresponding to the
-        types set in the target smirks list.
+        """
+        Generate a set of smirks patterns for the fragment corresponding to the types set in the target smirks list.
 
-        Parameters:
-            parent: The parent molecule that was fragmented.
-            fragment: The fragment of the parent molecule. The map indices in the
-                fragment must match the map indices of the parent.
-            fragment_map_indices: The **map** indices of the atoms that the fragment was
-                generated around.
+        Parameters
+        ----------
+        parent: Molecule
+            The parent molecule that was fragmented.
+        fragment: Molecule
+            The fragment of the parent molecule. The map indices in the fragment must match the map indices of the parent.
+        fragment_map_indices: tuple[int, int]
+            The **map** indices of the atoms that the fragment was generated around.
 
-        Returns:
+        Returns
+        -------
             A dictionary of new bespoke smirks parameters for the molecule as well as
             an initial guess of their values.
-        """
 
+        """
         if not self.target_smirks:
             raise SMIRKSTypeError(
                 "No smirks targets were provided so no new patterns were made, set a "
@@ -320,10 +317,11 @@ class SMIRKSGenerator(SMIRKSettings):
         molecule_map_indices: Optional[tuple[int, int]] = None,
     ) -> list[ParameterType]:
         """
-        The main worker method for extracting current smirks patterns for the molecule,
-        this will only extract parameters for the requested groups.
-        """
+        Extract current smirks patterns for the molecule.
 
+        This will only extract parameters for the requested groups.
+
+        """
         requested_smirks = {}
         for smirks_type in self.target_smirks:
             for valence_term in self._get_valence_terms(
@@ -353,13 +351,12 @@ class SMIRKSGenerator(SMIRKSettings):
         fragment_map_indices: Optional[tuple[int, int]],
     ) -> list[ParameterType]:
         """
-        The main worker method for generating new bespoke smirks, this will check which
-        parameters are wanted and call each method.
+        Generate new bespoke smirks.
 
-        The new smirks will then have any dummy values set by the initial force field
-        values.
+        This will check which parameters are wanted and call each method.
+        The new smirks will then have any dummy values set by the initial force field values.
+
         """
-
         fragment_is_parent = parent.to_smiles(
             mapped=False,
             isomeric=False,
@@ -393,7 +390,6 @@ class SMIRKSGenerator(SMIRKSettings):
         smirks_type: SMIRKSType,
     ) -> list[SMIRNOFFParameter]:
         """For the molecule generate a unique set of bespoke smirks of a given type."""
-
         bespoke_smirks = []
 
         valence_terms = self._get_valence_terms(
@@ -464,13 +460,14 @@ class SMIRKSGenerator(SMIRKSettings):
         fragment: Molecule,
         fragment_valence_terms: list[tuple[int, ...]],
     ) -> list[tuple[int, ...]]:
-        """Generate a list of parent valence terms that match a set of fragment valence
-        terms.
-
-        Notes:
-            * Any terms which are missing in the parent are dropped.
         """
+        Generate a list of parent valence terms that match a set of fragment valence terms.
 
+        Notes
+        -----
+            * Any terms which are missing in the parent are dropped.
+
+        """
         fragment_atom_to_map_index = fragment.properties["atom_map"]
 
         parent_map_to_atom_index = {

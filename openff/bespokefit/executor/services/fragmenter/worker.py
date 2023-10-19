@@ -1,4 +1,5 @@
-from typing import List, Optional, Union
+"""Fragmentation worker."""
+from typing import Optional, Union
 
 from openff.fragmenter.fragment import (
     Fragment,
@@ -26,6 +27,7 @@ def fragment(
     fragmenter_json: str,
     target_bond_smarts: Optional[list[str]],
 ) -> str:
+    """Fragment based on this CMILES."""
     from openff.toolkit.topology import Molecule
 
     molecule: Molecule = Molecule.from_mapped_smiles(cmiles)

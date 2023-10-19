@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Callable, List
+"""Miscellaneous CLI utilities."""
+from typing import TYPE_CHECKING, Any, Callable
 
 import click
 from click.exceptions import Exit
@@ -8,6 +9,7 @@ if TYPE_CHECKING:
 
 
 def print_header(console: "rich.Console"):
+    """Print the header for all CLI commands."""
     console.line()
     console.rule("OpenFF Bespoke")
     console.line()
@@ -19,7 +21,6 @@ def create_command(
     func: Callable,
 ):
     """Programmatically apply click options to a function."""
-
     for option in reversed(click_options):
         func = option(func)
 
@@ -27,5 +28,6 @@ def create_command(
 
 
 def exit_with_messages(*messages: Any, console: "rich.Console", exit_code: int = 0):
+    """Exit with provided error messages."""
     console.print(*messages)
     raise Exit(code=exit_code)

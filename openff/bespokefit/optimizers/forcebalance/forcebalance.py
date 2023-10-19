@@ -1,8 +1,9 @@
+"""Classes for interacting with ForceBalance."""
 import importlib
 import logging
 import os
 import subprocess
-from typing import Any, Dict
+from typing import Any
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities.provenance import get_ambertools_version
@@ -31,10 +32,12 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
     @classmethod
     def name(cls) -> str:
+        """Return the name of this optimizer."""
         return "ForceBalance"
 
     @classmethod
     def description(cls) -> str:
+        """Describe ForceBalance."""
         return (
             "A systematic force field optimization tool: "
             "https://github.com/leeping/forcebalance"
@@ -69,6 +72,7 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
     @classmethod
     def is_available(cls) -> bool:
+        """Return whether or not this optimizer is available."""
         try:
             importlib.import_module("forcebalance")
             return True
@@ -86,11 +90,11 @@ class ForceBalanceOptimizer(BaseOptimizer):
         initial_force_field: ForceField,
         root_directory: str,
     ):
-        """The internal implementation of the main ``prepare`` method. The input
-        ``schema`` is assumed to have been validated before being passed to this
-        method.
         """
+        Implement the ``prepare`` method.
 
+        The input ``schema`` is assumed to have been validated before being passed to this method.
+        """
         _logger.info(f"making new fb folders in {root_directory}")
         ForceBalanceInputFactory.generate(root_directory, schema, initial_force_field)
 
@@ -117,7 +121,8 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
     @classmethod
     def _collect_results(cls, root_directory: str) -> OptimizationStageResults:
-        """Collect the results of a ForceBalance optimization.
+        """
+        Collect the results of a ForceBalance optimization.
 
         Check the exit state of the optimization before attempting to update the final
         smirks parameters.
@@ -130,8 +135,8 @@ class ForceBalanceOptimizer(BaseOptimizer):
         Returns
         -------
             The results of the optimization.
-        """
 
+        """
         results_dictionary = cls._read_output(root_directory)
 
         force_field_editor = ForceFieldEditor(results_dictionary["forcefield"])
@@ -151,8 +156,10 @@ class ForceBalanceOptimizer(BaseOptimizer):
 
     @classmethod
     def _read_output(cls, root_directory) -> dict[str, Any]:
-        """Read the output file of the ForceBalance job to determine the exit state of
-        the fitting and the name of the optimized force field.
+        """
+        Read the output file of the ForceBalance job.
+
+        Used to determine the exit state of the fitting and the name of the optimized force field.
 
         Parameters
         ----------
@@ -164,8 +171,8 @@ class ForceBalanceOptimizer(BaseOptimizer):
         Dict[str, str]
             A dictionary containing the exit status of the optimization and the file
             path to the optimized forcefield.
-        """
 
+        """
         result = {"error": None}
 
         try:

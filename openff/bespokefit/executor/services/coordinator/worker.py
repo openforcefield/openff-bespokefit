@@ -1,3 +1,4 @@
+"""Handle worker tasks."""
 import asyncio
 import logging
 import time
@@ -56,6 +57,7 @@ async def _process_task(task_id: int) -> bool:
 
 
 async def cycle():  # pragma: no cover
+    """Cycle this worker."""
     settings = current_settings()
     n_connection_errors = 0
 

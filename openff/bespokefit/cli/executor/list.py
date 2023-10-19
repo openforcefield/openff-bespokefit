@@ -1,4 +1,5 @@
-from typing import Tuple, get_args
+"""Host of `list` command in CLI."""
+from typing import get_args
 
 import click
 import click.exceptions
@@ -48,7 +49,6 @@ def _get_columns(console: "rich.Console", optimization_id: str) -> tuple[str, "S
 @click.command("list")
 def list_cli(status_filter: Status):
     """List the ids of any bespoke optimizations."""
-
     pretty.install()
 
     console = rich.get_console()

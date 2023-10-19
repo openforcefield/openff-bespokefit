@@ -1,3 +1,4 @@
+"""Utilities for parallel execution."""
 from multiprocessing import Pool
 from typing import Optional
 
@@ -11,6 +12,7 @@ def apply_async(
     verbose: bool = False,
     description: Optional[str] = None,
 ):
+    """Asychronously apply this function."""
     if n_processes is not None and n_processes < 2:
         return [
             func(*args)

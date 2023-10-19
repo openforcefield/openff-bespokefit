@@ -1,7 +1,5 @@
-"""
-Register new fragmentation methods with bespokefit
-"""
-from typing import Dict, List, Type, Union
+"""Register new fragmentation methods with bespokefit."""
+from typing import Union
 
 from openff.fragmenter.fragment import Fragmenter, PfizerFragmenter, WBOFragmenter
 
@@ -17,17 +15,19 @@ def register_fragmentation_engine(
     """
     Register a new valid fragment engine with bespokefit.
 
-    Parameters:
-        engine: The fragment engine class that should be registered.
-        replace: If the fragment engine should replace another registered with the same
-            name.
+    Parameters
+    ----------
+    engine: Fragmenter
+        The fragment engine class that should be registered.
+    replace: bool
+        If the fragment engine should replace another registered with the same name.
 
-    Raises:
-        FragmenterError
-            If the fragment engine is already registered or if the FragmentEngine object
-            is not compatible.
+    Raises
+    ------
+    FragmenterError
+        If the fragment engine is already registered or if the FragmentEngine object is not compatible.
+
     """
-
     if not issubclass(engine, Fragmenter):
         raise FragmenterError(
             f"The {engine} fragmentation engine could not be registered "
@@ -47,12 +47,15 @@ def register_fragmentation_engine(
 
 
 def deregister_fragmentation_engine(engine: Union[type[Fragmenter], str]) -> None:
-    """Remove a fragmentation engine from the list of valid options.
-
-    Parameters:
-        engine: The class or name of the engine that should be removed.
     """
+    Remove a fragmentation engine from the list of valid options.
 
+    Parameters
+    ----------
+    engine : str or class
+        The class or name of the engine that should be removed.
+
+    """
     scheme = engine.lower() if isinstance(engine, str) else engine.__name__.lower()
 
     existing_type = _fragmentation_engines.pop(scheme, None)
@@ -65,16 +68,19 @@ def deregister_fragmentation_engine(engine: Union[type[Fragmenter], str]) -> Non
 
 
 def get_fragmentation_engine(engine: str) -> "FragmentationEngine":
-    """Get the fragmentation engine class from the list of registered engines by
-    name.
-
-    Parameters:
-        engine: The name of the fragment engine that should be fetched
-
-    Returns:
-        The requested fragmentation engine matching the given fragment engine name.
     """
+    Get the fragmentation engine class from the list of registered engines by name.
 
+    Parameters
+    ----------
+    engine : str
+        The name of the fragment engine that should be fetched
+
+    Returns
+    -------
+        The requested fragmentation engine matching the given fragment engine name.
+
+    """
     fragmenter = _fragmentation_engines.get(engine.lower(), None)
 
     if fragmenter is None:
@@ -89,10 +95,11 @@ def list_fragmentation_engines() -> list[str]:
     """
     Get the list of registered fragmentation engines with bespokefit.
 
-    Returns:
+    Returns
+    -------
         A list of the fragmentation engine classes registered.
-    """
 
+    """
     return list(_fragmentation_engines.keys())
 
 

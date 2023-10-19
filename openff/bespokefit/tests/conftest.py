@@ -1,7 +1,6 @@
 import json
 import os
 import subprocess
-from typing import Tuple
 
 import pytest
 import redis

@@ -1,5 +1,6 @@
+"""The qc generation app."""
 import json
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
@@ -64,6 +65,7 @@ def get_qc_results(
     ids: Optional[list[str]] = Query(None),
     results: bool = True,
 ) -> QCGeneratorGETPageResponse:
+    """Get QC results."""
     if ids is None:
         raise NotImplementedError()
 
@@ -79,12 +81,14 @@ def get_qc_results(
 
 @router.get(__GET_ENDPOINT)
 def get_qc_result(qc_calc_id: str, results: bool = True) -> QCGeneratorGETResponse:
+    """Route a QC result to GET."""
     response = _retrieve_qc_result(qc_calc_id, results)
     return response
 
 
 @router.post("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
+    """Route the the QC result as an image to POST."""
     redis_connection = connect_to_default_redis()
     task_id = cached_compute_task(body.input_schema, redis_connection)
 
@@ -96,6 +100,7 @@ def post_qc_result(body: QCGeneratorPOSTBody) -> QCGeneratorPOSTResponse:
 
 @router.get(__GET_IMAGE_ENDPOINT)
 def get_qc_result_molecule_image(qc_calc_id: str):
+    """Route the QC result as an image to GET."""
     task_info = get_task_information(worker.celery_app, qc_calc_id)
 
     if task_info["status"] != "success":

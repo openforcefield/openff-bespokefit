@@ -1,6 +1,5 @@
 import os
 from collections import defaultdict
-from typing import List, Tuple
 
 import pytest
 from openff.fragmenter.utils import get_atom_index

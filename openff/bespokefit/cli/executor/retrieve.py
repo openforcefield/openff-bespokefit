@@ -1,3 +1,4 @@
+"""Host of `retrieve` command in CLI."""
 import click
 import click.exceptions
 import rich
@@ -32,7 +33,6 @@ from openff.bespokefit.executor.utilities import handle_common_errors
 )
 def retrieve_cli(optimization_id, output_file_path, force_field_path):
     """Retrieve the current output of a bespoke optimization."""
-
     pretty.install()
 
     console = rich.get_console()

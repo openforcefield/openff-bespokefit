@@ -1,5 +1,6 @@
+"""Functions for submissions."""
 import os.path
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 import click
 import click.exceptions
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 # The run command inherits these options so be sure to take that into account when
 # making changes here.
 def submit_options(allow_multiple_molecules: bool = False):
+    """Prepare options passed to ``submit``."""
     return [
         click.option(
             "--file",
@@ -323,7 +325,6 @@ def _submit_cli(
     save_submission: bool,
 ):
     """Submit a new bespoke optimization to a running executor."""
-
     pretty.install()
 
     console = rich.get_console()

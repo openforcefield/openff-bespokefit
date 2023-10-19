@@ -1,11 +1,12 @@
+"""Factories for generating ForceBalance inputs."""
 import abc
 import copy
 import json
 import logging
 import os
-from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generic, List, Tuple, TypeVar, Union
 from collections.abc import Sequence
+from pathlib import Path
+from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 import numpy as np
 from openff.qcsubmit.results import (
@@ -61,10 +62,10 @@ _TARGET_SECTION_TEMPLATES = {
 
 
 def _standardize_grid_id_str(grid_id: str) -> str:
-    """Ensures a grid id is of the form '[grid_id_1, ...]' rather than 'grid_id_1' as is
-    sometimes the case when using QCEngine.
     """
+    Ensure a grid id is of the form '[grid_id_1, ...]' rather than 'grid_id_1' as is sometimes the case when using QCEngine.
 
+    """
     grid_id = json.loads(grid_id)
     grid_id = [grid_id] if isinstance(grid_id, int) else grid_id
 
@@ -79,16 +80,20 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     def _section_extras_to_exclude(cls) -> list[str]:
-        """The list of extras which may be present in a target schemas ``.extras``
+        """
+        Contents of ``.extras`` to exclude.
+
+        The list of extras which may be present in a target schemas ``.extras``
         dictionary to exclude when generating the section to add to the ``optimize.in``
-        file."""
-        return []
+        file.
+        """
+        return list()
 
     @classmethod
     def _generate_targets_section(cls, target_template: T, target_names: list[str]):
-        """Creates the target sections which will need to be added to the main
-        ForceBalance 'options.in' file."""
-
+        """
+        Create the target sections which will need to be added to the main ForceBalance 'options.in' file.
+        """
         target_template = target_template.copy(deep=True)
         target_template.extras = {
             key: value
@@ -105,19 +110,24 @@ class _TargetFactory(Generic[T], abc.ABC):
         target: TargetSchema,
         qc_records: list[tuple[RecordBase, Molecule]],
     ) -> dict[str, list[tuple[RecordBase, Molecule]]]:
-        """A function which places the input QC records into per target batches.
+        """
+        Place the input QC records into per target batches.
 
         For most targets there will be a single record per target, however certain
         targets (e.g. OptGeo) can perform on batches to reduce the time taken to
         evaluate the target.
 
-        Args:
-            target: The target the inputs are being generated for.
-            qc_records: The QC records to batch
+        Parameters
+        ----------
+        target: TargetSchema
+            The target the inputs are being generated for.
+        qc_records: list[tuple[RecordBase, MOlecule]]
+            The QC records to batch
 
-        Returns:
-            A dictionary of the target name and a list of the records to include for that
-            target.
+        Returns
+        -------
+            A dictionary of the target name and a list of the records to include for that target.
+
         """
 
         def qc_record_id(qc_record):
@@ -133,17 +143,20 @@ class _TargetFactory(Generic[T], abc.ABC):
     @classmethod
     @abc.abstractmethod
     def _generate_target(cls, target: T, qc_records: list[tuple[RecordBase, Molecule]]):
-        """Create the required input files for a particular target.
+        """
+        Create the required input files for a particular target.
 
-        Notes:
+        Notes
+        -----
             * This function assumes that the files should be created in the current
               working directory.
+
         """
         raise NotImplementedError()
 
     @classmethod
     def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> list[tuple[R, Molecule]]:
-        """Converts a 'local' dataset of QCEngine outputs to a list of QC records."""
+        """Convert a 'local' dataset of QCEngine outputs to a list of QC records."""
         qc_records = []
 
         for i, qc_result in enumerate(qc_data.qc_records):
@@ -205,15 +218,18 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     def generate(cls, root_directory: Union[str, Path], target: T):
-        """Creates the input files for a target schema in a specified directory.
-
-        Args:
-            root_directory: The root directory to create the inputs in.
-            target: The target to create the inputs for. A single target schema may map
-                to several new ForceBalance targets, typically one per QC record
-                referenced by the schema.
         """
+        Create the input files for a target schema in a specified directory.
 
+        Parameters
+        ----------
+        root_directory: path-like
+            The root directory to create the inputs in.
+        target
+            The target to create the inputs for. A single target schema may map to several new ForceBalance targets,
+            typically one per QC record referenced by the schema.
+
+        """
         # The optimizer should have swapped out a bespoke QC data set
         # with an existing set?
         if isinstance(
@@ -253,6 +269,8 @@ class _TargetFactory(Generic[T], abc.ABC):
 
 
 class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
+    """Factory for generating abinitio targets."""
+
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "ab-initio"
@@ -346,6 +364,8 @@ class TorsionProfileTargetFactory(
     AbInitioTargetFactory,
     _TargetFactory[TorsionProfileTargetSchema],
 ):
+    """Factory for generating torsion profile targets."""
+
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "torsion"
@@ -389,6 +409,8 @@ class TorsionProfileTargetFactory(
 
 
 class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
+    """Factory for generating vibration frequency targets."""
+
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "vib-freq"
@@ -398,20 +420,24 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         cls,
         mass_weighted_hessian: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Computes the normal modes from a mass weighted hessian.
+        """
+        Compute the normal modes from a mass weighted hessian.
 
-        Notes:
+        Notes
+        -----
             This function was taken from the ``make_vib_freq_target.py`` script in the
             ``openforcefield-forcebalance`` repository at commit hash f689096.
 
-        Args:
-            mass_weighted_hessian: The mass weighted hessian to compute the normal
-                modes from.
+        Parameters
+        ----------
+        mass_weighted_hessian: array-like
+            The mass weighted hessian to compute the normal modes from.
 
-        Returns:
-            A tuple of the frequencies and the corresponding normal modes.
+        Returns
+        -------
+            Tuple of the frequencies and the corresponding normal modes.
+
         """
-
         # 1. diagonalize the hessian matrix
         eigen_values, eigen_vectors = np.linalg.eigh(mass_weighted_hessian)
 
@@ -449,18 +475,24 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         qc_molecule: "QCMolecule",
         off_molecule: OFFMolecule,
     ):
-        """Creates a file containing the vibrational frequency data.
+        """
+        Create a file containing the vibrational frequency data.
 
-        Notes:
+        Notes
+        -----
             This function was taken from the ``make_vib_freq_target.py`` script in the
             ``openforcefield-forcebalance`` repository at commit hash f689096.
 
-        Args:
-            qc_record: The QC record containing the target hessian data.
-            qc_molecule: The QC molecule associated with the QC record.
-            off_molecule: An OpenFF representation of the QC molecule.
-        """
+        Parameters
+        ----------
+        qc_record: ResultRecord or AtomicResult
+            The QC record containing the target hessian data.
+        qc_molecule: QCMolecule
+            The QC molecule associated with the QC record.
+        off_molecule: Molecule
+            An OpenFF representation of the QC molecule.
 
+        """
         qc_record_id = (
             qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
         )
@@ -546,6 +578,8 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
 
 class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
+    """Factory for generating geometry optimization targets."""
+
     @classmethod
     def _target_name_prefix(cls) -> str:
         return "opt-geo"
@@ -619,8 +653,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
 
 
 class ForceBalanceInputFactory:
-    """This is the main factory which will generate all of the required inputs for a
-    ForceBalance optimization."""
+    """Generate all of the required inputs for a ForceBalance optimization."""
 
     @classmethod
     def _generate_force_field_directory(
@@ -653,6 +686,7 @@ class ForceBalanceInputFactory:
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
     ):
+        """Create ForceBalance input files."""
         if not isinstance(schema.optimizer, ForceBalanceSchema):
             raise OptimizerError(
                 "Inputs can only be generated using this factory for optimizations "

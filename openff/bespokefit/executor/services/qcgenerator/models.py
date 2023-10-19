@@ -1,9 +1,9 @@
-from typing import Dict, Optional, Union
+"""Models used in qc generation."""
+from typing import Literal, Optional, Union
 
 from pydantic import Field
 from qcelemental.models import AtomicResult, FailedOperation, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
-from typing import Literal
 
 from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
@@ -38,10 +38,12 @@ class QCGeneratorGETResponse(Link):
 
 
 class QCGeneratorGETPageResponse(PaginatedCollection[QCGeneratorGETResponse]):
-    """"""
+    """GET response of a QC generator."""
 
 
 class QCGeneratorPOSTBody(BaseModel):
+    """Body of POST for a QC generator."""
+
     input_schema: Union[HessianTask, OptimizationTask, Torsion1DTask] = Field(
         ...,
         description="The schema that fully defines the QC data to generate.",

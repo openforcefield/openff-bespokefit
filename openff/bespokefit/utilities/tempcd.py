@@ -1,4 +1,4 @@
-""""""
+"""Temporarily change directories."""
 import os
 import shutil
 import tempfile
@@ -20,10 +20,11 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
 
     Parameters
     ----------
-    path
+    path: path-like
         The path to CD into. If ``None`` or not specified, a temporary directory
         will be created. If specified but the path does not exist, a temporary
         directory with that name will be created.
+
     """
     # Normalize path to a pathlib Path
     path: Optional[Path] = None if path is None else Path(path)

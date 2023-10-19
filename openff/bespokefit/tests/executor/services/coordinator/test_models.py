@@ -1,5 +1,5 @@
 import hashlib
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField

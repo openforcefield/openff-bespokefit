@@ -1,5 +1,6 @@
+"""Schema for SMIRNOFF parameters."""
 import abc
-from typing import Dict, Set, Type, Union
+from typing import Literal, Union
 
 from chemper.graphs.environment import ChemicalEnvironment
 from openff.toolkit.typing.engines.smirnoff import (
@@ -11,16 +12,12 @@ from openff.toolkit.typing.engines.smirnoff import (
     vdWHandler,
 )
 from pydantic import Field, PositiveFloat, validator
-from typing import Literal
 
 from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
 def validate_smirks(smirks: str, expected_tags: int) -> str:
-    """
-    Make sure the supplied smirks has the correct number of tagged atoms.
-    """
-
+    """Make sure the supplied smirks has the correct number of tagged atoms."""
     smirk = ChemicalEnvironment(smirks=smirks)
     tagged_atoms = len(smirk.get_indexed_atoms())
 
@@ -33,10 +30,7 @@ def validate_smirks(smirks: str, expected_tags: int) -> str:
 
 
 class BaseSMIRKSParameter(SchemaBase, abc.ABC):
-    """
-    This schema identifies new smirks patterns and the corresponding atoms they should
-    be applied to.
-    """
+    """Identify new smirks patterns and the corresponding atoms they should be applied to."""
 
     type: Literal["base"] = "base"
 
@@ -68,10 +62,10 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
     @classmethod
     @abc.abstractmethod
     def from_smirnoff(cls, parameter: ParameterType):
-        """Creates a version of this class from a SMIRNOFF parameter"""
+        """Create a version of this class from a SMIRNOFF parameter."""
 
     def __eq__(self, other):
-        return type(self) == type(other) and self.__hash__() == other.__hash__()
+        return type(self) is type(other) and self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
         assert not self.__eq__(other)
@@ -81,9 +75,7 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
 
 
 class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
-    """A data class to track how the target will effect the target parameters and the
-    prior values/ starting values.
-    """
+    """Track how the target will effect the target parameters and the prior values/ starting values."""
 
     type: Literal["base"] = "base"
 
@@ -92,11 +84,13 @@ class BaseSMIRKSHyperparameters(SchemaBase, abc.ABC):
     @classmethod
     @abc.abstractmethod
     def offxml_tag(cls) -> str:
-        """The OFFXML tag that wraps this parameter type."""
+        """Return the OFFXML tag that wraps this parameter type."""
         raise NotImplementedError()
 
 
 class VdWSMIRKS(BaseSMIRKSParameter):
+    """SMIRKS patterns for vdW interactions."""
+
     type: Literal["vdW"] = "vdW"
 
     attributes: set[Literal["epsilon", "sigma"]] = Field(
@@ -110,6 +104,7 @@ class VdWSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: vdWHandler.vdWType) -> "VdWSMIRKS":
+        """Create a version of this class from a SMIRNOFF parameter."""
         return cls(
             smirks=parameter.smirks,
             attributes={"epsilon", "sigma"},
@@ -118,6 +113,8 @@ class VdWSMIRKS(BaseSMIRKSParameter):
 
 
 class VdWHyperparameters(BaseSMIRKSHyperparameters):
+    """Hyperparameters for vdW terms."""
+
     type: Literal["vdW"] = "vdW"
 
     priors: dict[Literal["epsilon", "sigma"], PositiveFloat] = Field(
@@ -127,10 +124,13 @@ class VdWHyperparameters(BaseSMIRKSHyperparameters):
 
     @classmethod
     def offxml_tag(cls) -> str:
+        """Return the OFFXML tag that wraps this parameter type."""
         return "Atom"
 
 
 class BondSMIRKS(BaseSMIRKSParameter):
+    """SMIRKS patterns for harmonic bonds."""
+
     type: Literal["Bonds"] = "Bonds"
 
     attributes: set[Literal["k", "length"]] = Field(
@@ -144,6 +144,7 @@ class BondSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: BondHandler.BondType) -> "BondSMIRKS":
+        """Create a version of this class from a SMIRNOFF parameter."""
         return cls(
             smirks=parameter.smirks,
             attributes={"k", "length"},
@@ -152,6 +153,8 @@ class BondSMIRKS(BaseSMIRKSParameter):
 
 
 class BondHyperparameters(BaseSMIRKSHyperparameters):
+    """Hyperparameters for harmonic bonds."""
+
     type: Literal["Bonds"] = "Bonds"
 
     priors: dict[Literal["k", "length"], PositiveFloat] = Field(
@@ -161,10 +164,13 @@ class BondHyperparameters(BaseSMIRKSHyperparameters):
 
     @classmethod
     def offxml_tag(cls) -> str:
+        """Return the OFFXML tag that wraps this parameter type."""
         return "Bond"
 
 
 class AngleSMIRKS(BaseSMIRKSParameter):
+    """SMIRKS patterns for harmonic angles."""
+
     type: Literal["Angles"] = "Angles"
 
     attributes: set[Literal["k", "angle"]] = Field(
@@ -178,6 +184,7 @@ class AngleSMIRKS(BaseSMIRKSParameter):
 
     @classmethod
     def from_smirnoff(cls, parameter: AngleHandler.AngleType) -> "AngleSMIRKS":
+        """Create a version of this class from a SMIRNOFF parameter."""
         return cls(
             smirks=parameter.smirks,
             attributes={"k", "angle"},
@@ -186,6 +193,8 @@ class AngleSMIRKS(BaseSMIRKSParameter):
 
 
 class AngleHyperparameters(BaseSMIRKSHyperparameters):
+    """Hyperparameters for harmonic angles."""
+
     type: Literal["Angles"] = "Angles"
 
     priors: dict[Literal["k", "angle"], PositiveFloat] = Field(
@@ -195,6 +204,7 @@ class AngleHyperparameters(BaseSMIRKSHyperparameters):
 
     @classmethod
     def offxml_tag(cls) -> str:
+        """Return the OFFXML tag that wraps this parameter type."""
         return "Angle"
 
 
@@ -212,6 +222,7 @@ ProperTorsionAttribute = Literal[
 
 
 class ProperTorsionSMIRKS(BaseSMIRKSParameter):
+    """SMIRKS patterns for proper torsions."""
 
     type: Literal["ProperTorsions"] = "ProperTorsions"
 
@@ -227,7 +238,7 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
     def from_smirnoff(
         cls, parameter: ProperTorsionHandler.ProperTorsionType,
     ) -> "ProperTorsionSMIRKS":
-
+        """Create a version of this class from a SMIRNOFF parameter."""
         return cls(
             smirks=parameter.smirks,
             attributes={f"k{i + 1}" for i in range(len(parameter.k))},
@@ -237,6 +248,7 @@ class ProperTorsionSMIRKS(BaseSMIRKSParameter):
 
 
 class ProperTorsionHyperparameters(BaseSMIRKSHyperparameters):
+    """Hyperparameters for proper torsions."""
 
     type: Literal["ProperTorsions"] = "ProperTorsions"
 
@@ -246,6 +258,7 @@ class ProperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
     @classmethod
     def offxml_tag(cls) -> str:
+        """Return the OFFXML tag that wraps this parameter type."""
         return "Proper"
 
 
@@ -260,6 +273,8 @@ ImproperTorsionAttribute = Literal[
 
 
 class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
+    """SMIRKS patterns for improper torsions."""
+
     type: Literal["ImproperTorsions"] = "ImproperTorsions"
 
     attributes: set[Literal[ImproperTorsionAttribute]] = Field(
@@ -274,10 +289,12 @@ class ImproperTorsionSMIRKS(BaseSMIRKSParameter):
     def from_smirnoff(
         cls, parameter: ImproperTorsionHandler.ImproperTorsionType,
     ) -> "ImproperTorsionSMIRKS":
+        """Create a version of this class from a SMIRNOFF parameter."""
         raise NotImplementedError()
 
 
 class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
+    """Hyperparameters for improper torsions."""
 
     type: Literal["ImproperTorsions"] = "ImproperTorsions"
 
@@ -287,6 +304,7 @@ class ImproperTorsionHyperparameters(BaseSMIRKSHyperparameters):
 
     @classmethod
     def offxml_tag(cls) -> str:
+        """Return the OFFXML tag that wraps this parameter type."""
         return "Improper"
 
 
@@ -303,9 +321,7 @@ SMIRNOFFHyperparameters = Union[
 
 
 def get_smirnoff_parameter(parameter_type: str) -> type[SMIRNOFFParameter]:
-    """
-    A helper function to get the SMIRNOFFParameter class from the parameter type.
-    """
+    """Get the SMIRNOFFParameter class from the parameter type."""
     _parameters_by_type = {
         VdWSMIRKS.__fields__["type"].default: VdWSMIRKS,
         BondSMIRKS.__fields__["type"].default: BondSMIRKS,

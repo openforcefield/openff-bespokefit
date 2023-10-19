@@ -1,5 +1,6 @@
+"""Utilities for molecule depiction."""
 import functools
-from typing import Optional, Tuple
+from typing import Optional
 
 IMAGE_UNAVAILABLE_SVG = """
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="isolation:isolate" viewBox="0 0 200 200" width="200pt" height="200pt"><defs><clipPath id="_clipPath_eSdCSpw1sB1xWp7flmMoZ0WjTPwPpzQh"><rect width="200" height="200"/></clipPath></defs><g clip-path="url(#_clipPath_eSdCSpw1sB1xWp7flmMoZ0WjTPwPpzQh)"><g clip-path="url(#_clipPath_LvpdWbrYj1cREqoXz8Lwbk3ZilfC6tg9)"><text transform="matrix(1,0,0,1,44.039,91.211)" style="font-family:'Open Sans';font-weight:400;font-size:30px;font-style:normal;fill:#000000;stroke:none;">Preview</text><text transform="matrix(1,0,0,1,17.342,132.065)" style="font-family:'Open Sans';font-weight:400;font-size:30px;font-style:normal;fill:#000000;stroke:none;">Unavailable</text></g><defs><clipPath id="_clipPath_LvpdWbrYj1cREqoXz8Lwbk3ZilfC6tg9"><rect x="0" y="0" width="166" height="81.709" transform="matrix(1,0,0,1,17,59.146)"/></clipPath></defs></g></svg>
@@ -84,6 +85,7 @@ def _rd_smiles_to_image(smiles: str, highlight_atoms: tuple[int]) -> str:
 
 @functools.lru_cache(100000)
 def smiles_to_image(smiles: str, highlight_atoms: Optional[tuple[int]] = None):
+    """Return an image of this SMILES pattern."""
     highlight_atoms = tuple() if highlight_atoms is None else highlight_atoms
 
     try:
