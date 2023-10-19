@@ -10,7 +10,7 @@ repos:
   rev: v2.4.0
   hooks:
   - id: add-trailing-comma
-    args: ["--py36-plus"]
+    args: ["--py38-plus"]
 - repo: https://github.com/psf/black
   rev: 23.3.0
   hooks:
@@ -31,7 +31,6 @@ repos:
   hooks:
   - id: pyupgrade
     files: ^openff
-    exclude: openff/interchange/_version.py|setup.py
     args: ["--py39-plus"]
 - repo: https://github.com/pycqa/pydocstyle
   rev: 6.3.0
@@ -39,13 +38,7 @@ repos:
   - id: pydocstyle
     files: ^openff
     args: ["--config=setup.cfg"]
-- repo: https://github.com/econchick/interrogate
-  rev: 1.5.0
-  hooks:
-    - id: interrogate
-      args: ["openff/interchange/", "-e", "openff/interchange/_tests/"]
-      pass_filenames: false
-- repo: https://github.com/asottile/blacken-docs
+- repo: https://github.com/adamchainz/blacken-docs
   rev: 1.13.0
   hooks:
   - id: blacken-docs
