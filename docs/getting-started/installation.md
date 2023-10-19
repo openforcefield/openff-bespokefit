@@ -53,7 +53,7 @@ mamba install -c psi4 -c conda-forge -c defaults psi4
 [Psi4]: https://psicode.org/
 
 :::{warning}
-There is an incompatibility between the AmberTools and Psi4 conda packages on macOS, and it is not possible to create a working conda environment containing both.
+There are some incompatibilities between the AmberTools and Psi4 conda packages on macOS, and it may not be possible to create a working conda environment containing both.
 :::
 
 :::{note}
