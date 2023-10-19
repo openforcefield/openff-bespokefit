@@ -16,7 +16,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 
 def get_keywords() -> dict[str, str]:

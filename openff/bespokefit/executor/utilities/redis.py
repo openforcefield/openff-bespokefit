@@ -14,7 +14,8 @@ from openff.bespokefit.executor.services import current_settings
 
 __REDIS_VERSION: int = 1
 __CONNECTION_POOL: dict[
-    tuple[str, int, Optional[int], Optional[str], bool], redis.Redis
+    tuple[str, int, Optional[int], Optional[str], bool],
+    redis.Redis,
 ] = {}
 
 
@@ -51,10 +52,13 @@ def connect_to_default_redis(validate: bool = True) -> redis.Redis:
 
 
 def connect_to_redis(
-    host: str, port: int, db: int, validate: bool = True, password: Optional[str] = None
+    host: str,
+    port: int,
+    db: int,
+    validate: bool = True,
+    password: Optional[str] = None,
 ) -> redis.Redis:
-    """Connects to a redis server using the specified settings."""
-
+    """Connect to a redis server using the specified settings."""
     connection_key = (host, port, db, password, validate)
 
     if connection_key in __CONNECTION_POOL:
@@ -87,12 +91,11 @@ def connect_to_redis(
 
 
 def is_redis_available(
-    host: str, port: int = 6363, password: Optional[str] = None
+    host: str,
+    port: int = 6363,
+    password: Optional[str] = None,
 ) -> bool:
-    """Returns whether a server running on the local host on a particular port is
-    available.
-    """
-
+    """Return whether a server running on the local host on a particular port is available."""
     redis_client = redis.Redis(host=host, port=port, password=password)
 
     try:
@@ -135,7 +138,9 @@ def launch_redis(
         )
 
     if is_redis_available(
-        host="localhost", port=port, password=settings.BEFLOW_REDIS_PASSWORD
+        host="localhost",
+        port=port,
+        password=settings.BEFLOW_REDIS_PASSWORD,
     ):
         raise RuntimeError(f"There is already a server running at localhost:{port}")
 
@@ -168,7 +173,9 @@ def launch_redis(
 
     for i in range(0, 60):
         if is_redis_available(
-            host="localhost", port=port, password=settings.BEFLOW_REDIS_PASSWORD
+            host="localhost",
+            port=port,
+            password=settings.BEFLOW_REDIS_PASSWORD,
         ):
             timeout = False
             break

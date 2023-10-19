@@ -1,3 +1,4 @@
+"""Host of `launch-worker` CLI command."""
 import importlib
 
 import click
@@ -25,16 +26,17 @@ def worker_cli(worker_type: str):
     Used to connect workers to a remote bespokefit server.
 
     Note:
-
+    ----
         By default bespokefit will automatically use all cores and memory made available to the worker which should
         be declared in the job submission script. To change these defaults see the settings `BEFLOW_QC_COMPUTE_WORKER_N_CORES` &
         `BEFLOW_QC_COMPUTE_WORKER_MAX_MEM`.
 
-    Args:
+    Parameters
+    ----------
+    worker_type: str
+        The alias name of the worker type which should be started.
 
-        worker_type: The alias name of the worker type which should be started.
     """
-
     pretty.install()
 
     console = rich.get_console()
