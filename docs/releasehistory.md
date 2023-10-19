@@ -9,6 +9,10 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
+### Bug Fixes
+* [#286] - Update for behavior/API changes in ForceBalance 1.9.6 and OFF Tookit 0.14.4.
+
+
 <!-- ## Version / Date DD-MM-YYYY -->
 
 ## 0.2.2 / 08-05-2023

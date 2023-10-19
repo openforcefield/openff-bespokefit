@@ -57,7 +57,6 @@ def test_launch(runner, monkeypatch):
             "--no-launch-redis",
         ],
     )
-    print(output.output)
     assert output.exit_code == 0
 
 

@@ -58,6 +58,7 @@ from openff.bespokefit.schema.targets import (
     TorsionProfileTargetSchema,
     VibrationTargetSchema,
 )
+from openff.bespokefit.utilities import Settings, current_settings
 from openff.bespokefit.utilities.smirks import SMIRKSettings
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
@@ -86,12 +87,10 @@ def clear_force_balance_caches():
         OE_TOOLKIT_CACHE_molecule_conformers,
         RDK_TOOLKIT_CACHE_find_smarts_matches,
         RDK_TOOLKIT_CACHE_molecule_conformers,
-        TOOLKIT_CACHE_ChemicalEnvironment_validate,
     )
 
     OE_TOOLKIT_CACHE_find_smarts_matches.clear()
     RDK_TOOLKIT_CACHE_find_smarts_matches.clear()
-    TOOLKIT_CACHE_ChemicalEnvironment_validate.clear()
     OE_TOOLKIT_CACHE_assign_partial_charges.clear()
     AT_TOOLKIT_CACHE_assign_partial_charges.clear()
     OE_TOOLKIT_CACHE_molecule_conformers.clear()
@@ -443,9 +442,12 @@ def redis_session(tmpdir_factory):
         "It looks like a redis server is already running with the test "
         "settings. Exiting early in-case this is a production redis server."
     )
+    settings = current_settings()
 
     try:
-        connection = redis.Redis(port=5678, db=0)
+        connection = redis.Redis(
+            port=5678, db=0, password=settings.BEFLOW_REDIS_PASSWORD
+        )
 
         keys = connection.keys("*")
         assert len(keys) == 0
@@ -468,7 +470,8 @@ def redis_session(tmpdir_factory):
 
 @pytest.fixture(scope="session")
 def redis_connection(redis_session) -> redis.Redis:
-    return redis.Redis(port=5678, db=0)
+    settings = current_settings()
+    return redis.Redis(port=5678, db=0, password=settings.BEFLOW_REDIS_PASSWORD)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -477,3 +480,9 @@ def reset_redis(redis_connection, monkeypatch):
     redis_connection.set(
         "openff-bespokefit:redis-version", expected_redis_config_version()
     )
+
+
+@pytest.fixture(scope="session")
+def bespoke_settings() -> Settings:
+    settings = current_settings()
+    return settings
