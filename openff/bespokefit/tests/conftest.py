@@ -459,7 +459,9 @@ def redis_session(tmpdir_factory):
 
     try:
         connection = redis.Redis(
-            port=5678, db=0, password=settings.BEFLOW_REDIS_PASSWORD
+            port=5678,
+            db=0,
+            password=settings.BEFLOW_REDIS_PASSWORD,
         )
 
         keys = connection.keys("*")

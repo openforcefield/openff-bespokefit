@@ -36,11 +36,6 @@ def expected_redis_config_version() -> int:
 
 
 def connect_to_default_redis(validate: bool = True) -> redis.Redis:
-<<<<<<< HEAD
-=======
-    """Connects to a redis server using the settings defined by the
-    `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT`, `BEFLOW_REDIS_DB` and `BEFLOW_REDIS_PASSWORD` settings.
->>>>>>> upstream/main
     """
     Connect to a redis server using the settings defined by the `BEFLOW_REDIS_ADDRESS`, `BEFLOW_REDIS_PORT` and `BEFLOW_REDIS_PORT` settings.
     """
@@ -56,21 +51,11 @@ def connect_to_default_redis(validate: bool = True) -> redis.Redis:
 
 
 def connect_to_redis(
-<<<<<<< HEAD
-    host: str,
-    port: int,
-    db: int,
-    validate: bool = True,
-) -> redis.Redis:
-    """Connect to a redis server using the specified settings."""
-    connection_key = (host, port, db, validate)
-=======
     host: str, port: int, db: int, validate: bool = True, password: Optional[str] = None
 ) -> redis.Redis:
     """Connects to a redis server using the specified settings."""
 
     connection_key = (host, port, db, password, validate)
->>>>>>> upstream/main
 
     if connection_key in __CONNECTION_POOL:
         return __CONNECTION_POOL[connection_key]
@@ -101,11 +86,6 @@ def connect_to_redis(
     return connection
 
 
-<<<<<<< HEAD
-def is_redis_available(host: str, port: int = 6363) -> bool:
-    """Return whether a server running on the local host on a particular port is available."""
-    redis_client = redis.Redis(host=host, port=port)
-=======
 def is_redis_available(
     host: str, port: int = 6363, password: Optional[str] = None
 ) -> bool:
@@ -114,7 +94,6 @@ def is_redis_available(
     """
 
     redis_client = redis.Redis(host=host, port=port, password=password)
->>>>>>> upstream/main
 
     try:
         redis_client.get("null")
@@ -137,11 +116,8 @@ def launch_redis(
     persistent: bool = True,
     terminate_at_exit: bool = True,
 ) -> subprocess.Popen:
-<<<<<<< HEAD
     """Launch a redis server."""
-=======
     settings = current_settings()
->>>>>>> upstream/main
     redis_server_path = shutil.which("redis-server")
 
     if redis_server_path is None:

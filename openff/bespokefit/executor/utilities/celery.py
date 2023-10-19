@@ -75,7 +75,10 @@ def _spawn_worker(celery_app, concurrency: int = 1, **kwargs):
 
 
 def spawn_worker(
-    celery_app, concurrency: int = 1, asynchronous: bool = True, **kwargs,
+    celery_app,
+    concurrency: int = 1,
+    asynchronous: bool = True,
+    **kwargs,
 ) -> Optional[multiprocessing.Process]:
     """Spawn a worker."""
     if concurrency < 1:

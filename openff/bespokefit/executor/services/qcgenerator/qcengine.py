@@ -1,6 +1,6 @@
 """Generate QC data using QCEngine."""
+from multiprocessing import Pool, current_process, get_context
 from typing import Union
-from multiprocessing import current_process, get_context, Pool
 
 from qcelemental.models import FailedOperation
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveInput

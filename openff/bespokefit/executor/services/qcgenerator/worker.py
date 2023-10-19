@@ -165,7 +165,7 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
 
     if isinstance(return_value, TorsionDriveResult):
         _task_logger.info(
-            f"1D TorsionDrive successfully completed in {return_value.provenance.wall_time}"
+            f"1D TorsionDrive successfully completed in {return_value.provenance.wall_time}",
         )
         return_value = TorsionDriveResult(
             **return_value.dict(exclude={"optimization_history", "stdout", "stderr"}),
