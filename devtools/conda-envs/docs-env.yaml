@@ -21,7 +21,7 @@ dependencies:
   - openff-toolkit-base >=0.11.3
   - openff-forcefields
   - openff-interchange
-  - openff-qcsubmit
+  - openff-qcsubmit <0.50
   - openmm >=7.6.0
 
     # Optional
