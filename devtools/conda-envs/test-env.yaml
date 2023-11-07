@@ -26,7 +26,7 @@ dependencies:
   - openff-forcefields
   - openff-interchange
   - openff-units
-  - openff-qcsubmit <0.50
+  - openff-qcsubmit ==0.5
   - openmm >=7.6.0
 
     # Optional
