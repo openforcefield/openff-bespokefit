@@ -47,7 +47,7 @@ mamba install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-mamba install -c psi4 -c conda-forge -c defaults psi4
+mamba install -c conda-forge/label/libint_dev -c conda-forge psi4
 ```
 
 [Psi4]: https://psicode.org/
@@ -62,14 +62,15 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools
+mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge python=3.10 openff-bespokefit psi4 ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge-label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit psi4 openeye-toolkits
 ```
+
 :::
 
 #### XTB
@@ -126,6 +127,7 @@ Create a custom conda environment which contains the required dependencies and a
 mamba env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
 mamba activate openff-bespokefit
 ```
+
 Finally, install the package itself into the new environment:
 
 ```shell
