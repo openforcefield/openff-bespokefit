@@ -11,7 +11,7 @@ the two sections below ("Fragmentation Backends" and "Reference Data
 Generators")
 
 ```shell
-mamba install -c conda-forge openff-bespokefit
+mamba install -c conda-forge openff-bespokefit "qcportal <0.50"
 ```
 
 If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
@@ -62,13 +62,13 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge python=3.10 openff-bespokefit psi4 ambertools
+mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge python=3.10 openff-bespokefit "qcportal <0.50" psi4 ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge-label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit psi4 openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge-label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal <0.50" psi4 openeye-toolkits
 ```
 
 :::
@@ -131,5 +131,5 @@ mamba activate openff-bespokefit
 Finally, install the package itself into the new environment:
 
 ```shell
-python setup.py develop
+python -m pip install -e .
 ```
