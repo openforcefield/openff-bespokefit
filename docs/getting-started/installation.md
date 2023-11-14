@@ -17,8 +17,8 @@ mamba install -c conda-forge openff-bespokefit "qcportal <0.50"
 If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
 
 :::{warning}
-
 Some upstream dependencies may not be supported on Apple Silicon. To force `mamba` to use the use of the Rosetta emulation layer, use `CONDA_SUBDIR=osx-64`, which is described in more detail [here](https://docs.openforcefield.org/en/latest/install.html#openff-on-apple-silicon-and-arm).
+:::
 
 ### Fragmentation Backends
 
