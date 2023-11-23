@@ -1,7 +1,3 @@
-"""
-BespokeFit
-Creating bespoke parameters for individual molecules.
-"""
 import sys
 
 from setuptools import find_namespace_packages, setup
