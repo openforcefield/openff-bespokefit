@@ -10,6 +10,10 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   test:
 
@@ -47,7 +51,6 @@ jobs:
             python=${{ matrix.python-version }}
 
       - name: License OpenEye
-        shell: bash -l {0}
         if: ${{ matrix.openeye == true }}
         run: |
           echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
@@ -56,18 +59,15 @@ jobs:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Install Package
-        shell: bash -l {0}
         run: |
           python setup.py develop --no-deps
 
       - name: Conda Environment Information
-        shell: bash -l {0}
         run: |
           micromamba info
           micromamba list
 
       - name: Run Tests
-        shell: bash -l {0}
         run: |
           pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
 
@@ -80,7 +80,6 @@ jobs:
 
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
-        shell: bash -l {0}
         run: |
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \

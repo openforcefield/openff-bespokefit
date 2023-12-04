@@ -27,7 +27,6 @@ dependencies:
     # Optional
   - forcebalance
   - openff-fragmenter-base
-
   - openeye-toolkits
 
     ### Bespoke dependencies

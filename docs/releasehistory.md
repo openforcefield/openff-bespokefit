@@ -13,6 +13,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#321] - Documents how to download pre-computed QC data and add it to the local cache, which can avoid the need for local calculcations. by [@jthorton]
 * [#325] - Document issue where `xtb` doesn't respect the `--qc-compute-n-cores` argument and provide workaround. by [@mattwthompson]
 
+### Behavior changes
+* [#307] - OpenFF 2.2.0 RC1 ("Sage 2.2 RC1") is used as the initial force filed by default (if no other initial force field is specified). by [@mattwthompson]
+
 ### Bug fixes
 * [#320] - Fixes a formatting issue ([#319]) when printing SMILES to summary table. by [@j-wags]
 
@@ -141,7 +144,10 @@ The first major release of bespokefit intended for public use.
 [#272]: https://github.com/openforcefield/openff-bespokefit/pull/272
 [#277]: https://github.com/openforcefield/openff-bespokefit/pull/277
 [#279]: https://github.com/openforcefield/openff-bespokefit/pull/279
-
+[#286]: https://github.com/openforcefield/openff-bespokefit/pull/286
+[#307]: https://github.com/openforcefield/openff-bespokefit/pull/307
+[#320]: https://github.com/openforcefield/openff-bespokefit/pull/320
+[#321]: https://github.com/openforcefield/openff-bespokefit/pull/321
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
 [@mattwthompson]: https://github.com/mattwthompson
