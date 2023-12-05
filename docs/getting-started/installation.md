@@ -51,7 +51,7 @@ mamba install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-mamba install -c conda-forge/label/libint_dev -c conda-forge psi4
+mamba install -c conda-forge/label/libint_dev -c conda-forge -c psi4 psi4 dftd3
 ```
 
 [Psi4]: https://psicode.org/
@@ -72,7 +72,7 @@ mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge py
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge-label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal <0.50" psi4 openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal <0.50" psi4 openeye-toolkits
 ```
 
 :::
