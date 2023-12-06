@@ -51,7 +51,7 @@ mamba install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-mamba install -c conda-forge/label/libint_dev -c conda-forge -c psi4 psi4 dftd3
+mamba install -c conda-forge/label/libint_dev -c conda-forge psi4 dftd3-python
 ```
 
 [Psi4]: https://psicode.org/
@@ -66,13 +66,13 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge -c psi4 python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd3 ambertools
+mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge  python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd3-python ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge -c openeye -c psi4 python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd3 openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge/label/libint_dev -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd3-python openeye-toolkits
 ```
 
 :::
