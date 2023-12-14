@@ -70,3 +70,6 @@ dependencies:
 
   - importlib-metadata >=4
   - importlib_metadata >=4
+
+  - pip:
+    - git+https://github.com/openforcefield/openff-utilities.git@conda-executable-order
