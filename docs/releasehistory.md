@@ -9,9 +9,15 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
-### Bug Fixes
-* [#286] - Update for behavior/API changes in ForceBalance 1.9.6 and OFF Tookit 0.14.4.
+## 0.2.3 / 14-11-2023
 
+### Bug Fixes
+* [#286] - Update for behavior/API changes in ForceBalance 1.9.6 and OFF Tookit 0.14.4. by [@j-wags]
+
+### New Features
+* [#272] - Add CLI command to launch workers by [@jhorton]
+* [#277] - Allow optimizaitons to run in parallel with torsion drives by [@jhorton]
+* [#279] - Allow for re-trying failed QM single-point calculations by [@jhorton]
 
 <!-- ## Version / Date DD-MM-YYYY -->
 
@@ -125,6 +131,9 @@ The first major release of bespokefit intended for public use.
 [#239]: https://github.com/openforcefield/openff-bespokefit/pull/239
 [#243]: https://github.com/openforcefield/openff-bespokefit/pull/243
 [#260]: https://github.com/openforcefield/openff-bespokefit/pull/260
+[#272]: https://github.com/openforcefield/openff-bespokefit/pull/272
+[#277]: https://github.com/openforcefield/openff-bespokefit/pull/277
+[#279]: https://github.com/openforcefield/openff-bespokefit/pull/279
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi

@@ -16,7 +16,7 @@ The recommended way to install `openff-bespokefit` is via the `mamba` package ma
 dependencies, and a good starting environment is:
 
 ```shell
-mamba create -n bespokefit -y -c conda-forge mamba python=3.9
+mamba create -n bespokefit -y -c conda-forge mamba python=3.10
 mamba activate bespokefit 
 mamba install -y -c conda-forge openff-bespokefit xtb-python ambertools 
 ```
