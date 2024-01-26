@@ -14,10 +14,10 @@ import celery
 import requests
 import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import Field
 from rich.padding import Padding
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import Settings, current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
@@ -32,7 +32,6 @@ from openff.bespokefit.executor.utilities.redis import is_redis_available, launc
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.tempcd import temporary_cd
 
 _T = TypeVar("_T")

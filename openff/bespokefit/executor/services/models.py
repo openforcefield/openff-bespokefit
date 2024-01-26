@@ -1,10 +1,8 @@
 from typing import Generic, List, Optional, TypeVar
 
 import numpy as np
-from pydantic import Field
-from pydantic.generics import GenericModel
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field, GenericModel
 
 _T = TypeVar("_T")
 

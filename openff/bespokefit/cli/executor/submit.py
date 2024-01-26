@@ -6,7 +6,6 @@ import click.exceptions
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
-from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
@@ -23,6 +22,8 @@ if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+
+from openff.bespokefit._pydantic import ValidationError
 
 
 # The run command inherits these options so be sure to take that into account when

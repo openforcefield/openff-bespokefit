@@ -80,13 +80,15 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
     if force_field_path is not None:
         message = Padding(
             (
-                f"the bespoke fit {'failed' if results.error else 'is still running'} "
-                f"and so no force field will be saved"
-            )
-            if not results.bespoke_force_field
-            else (
-                f"the bespoke force field has been saved to "
-                f"[repr.filename]{force_field_path}[/repr.filename]"
+                (
+                    f"the bespoke fit {'failed' if results.error else 'is still running'} "
+                    f"and so no force field will be saved"
+                )
+                if not results.bespoke_force_field
+                else (
+                    f"the bespoke force field has been saved to "
+                    f"[repr.filename]{force_field_path}[/repr.filename]"
+                )
             ),
             (1, 0, 1, 0),
         )

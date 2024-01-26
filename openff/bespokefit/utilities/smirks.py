@@ -8,16 +8,15 @@ from openff.fragmenter.utils import get_atom_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
-from pydantic import Field
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import Field, SchemaBase
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
 from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -222,9 +221,11 @@ class SMIRKSGenerator(SMIRKSettings):
         return self.generate_smirks_from_fragment(
             molecule,
             molecule,
-            None
-            if central_bond is None
-            else (central_bond[0] + 1, central_bond[1] + 1),
+            (
+                None
+                if central_bond is None
+                else (central_bond[0] + 1, central_bond[1] + 1)
+            ),
         )
 
     def generate_smirks_from_fragment(
@@ -324,11 +325,13 @@ class SMIRKSGenerator(SMIRKSettings):
             for valence_term in self._get_valence_terms(
                 molecule=molecule,
                 smirks_type=smirks_type,
-                torsion_bond=None
-                if molecule_map_indices is None
-                else (
-                    get_atom_index(molecule, molecule_map_indices[0]),
-                    get_atom_index(molecule, molecule_map_indices[1]),
+                torsion_bond=(
+                    None
+                    if molecule_map_indices is None
+                    else (
+                        get_atom_index(molecule, molecule_map_indices[0]),
+                        get_atom_index(molecule, molecule_map_indices[1]),
+                    )
                 ),
             ):
                 requested_smirks.setdefault(smirks_type, []).append(valence_term)
@@ -391,11 +394,13 @@ class SMIRKSGenerator(SMIRKSettings):
         valence_terms = self._get_valence_terms(
             fragment,
             smirks_type,
-            None
-            if fragment_map_indices is None
-            else (
-                get_atom_index(fragment, fragment_map_indices[0]),
-                get_atom_index(fragment, fragment_map_indices[1]),
+            (
+                None
+                if fragment_map_indices is None
+                else (
+                    get_atom_index(fragment, fragment_map_indices[0]),
+                    get_atom_index(fragment, fragment_map_indices[1]),
+                )
             ),
         )
         valence_groups = [*group_valence_by_symmetry(fragment, valence_terms).values()]

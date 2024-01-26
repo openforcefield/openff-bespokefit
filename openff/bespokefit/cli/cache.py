@@ -13,12 +13,12 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from pydantic import ValidationError, parse_file_as
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import ValidationError, parse_file_as
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,
@@ -35,7 +35,7 @@ from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.tasks import task_from_result
 
 if TYPE_CHECKING:
-    from qcportal import FractalClient
+    import qcportal
 
 
 @click.group("cache")
@@ -232,16 +232,16 @@ def _connect_to_qcfractal(
     console: "rich.Console",
     qcf_address: str,
     qcf_config: Optional[str],
-) -> "FractalClient":
+) -> "qcportal.PortalClient":
     """Connected to the chosen qcfractal server."""
-    from qcportal import FractalClient
+    import qcportal
 
     with console.status("connecting to qcfractal"):
         try:
             if qcf_config is not None:
-                client = FractalClient.from_file(load_path=qcf_config)
+                client = qcportal.PortalClient.from_file(load_path=qcf_config)
             else:
-                client = FractalClient(address=qcf_address)
+                client = qcportal.PortalClient(address=qcf_address)
         except BaseException as e:
             exit_with_messages(
                 Padding(
@@ -261,7 +261,7 @@ def _results_from_client(
     console: "rich.Console",
     qcf_dataset_name: Optional[str],
     qcf_datatype: Literal["torsion", "optimization", "hessian"],
-    client: "FractalClient",
+    client: "qcportal.PortalClient",
     qcf_specification: str,
 ) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
     """Connect to qcfractal and create a qcsubmit results object."""

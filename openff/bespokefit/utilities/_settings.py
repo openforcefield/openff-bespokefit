@@ -2,10 +2,9 @@ import os
 from contextlib import contextmanager
 from typing import Optional, Union
 
-from pydantic import BaseSettings, Field
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, BaseSettings, Field
 
 
 class WorkerSettings(BaseModel):
@@ -77,36 +76,48 @@ class Settings(BaseSettings):
     def fragmenter_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
-            n_cores=None
-            if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM
+            ),
         )
 
     @property
     def qc_compute_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
-            n_cores=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM
+            ),
         )
 
     @property
     def optimizer_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_OPTIMIZER_WORKER,
-            n_cores=None
-            if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM
+            ),
         )
 
     @contextmanager
