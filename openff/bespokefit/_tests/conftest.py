@@ -249,7 +249,7 @@ def qc_optimization_qce_result(
             ),
         },
         input_specification=QCInputSpecification(
-            driver=qc_spec.driver,
+            driver=DriverEnum.gradient,  # qc_spec.driver,
             model=Model(method=qc_spec.method, basis=qc_spec.basis),
         ),
         initial_molecule=molecule.to_qcschema(),

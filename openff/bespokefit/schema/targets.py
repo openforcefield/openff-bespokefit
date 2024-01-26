@@ -132,8 +132,6 @@ def _validate_connectivity(
 
     elif hasattr(ref_data, "to_records"):
         for qc_record, fragment in ref_data.to_records():
-            # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
-            # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
             try:
                 final_molecules = {"opt": qc_record.final_molecule}
             except AttributeError:
