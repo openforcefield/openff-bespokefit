@@ -32,9 +32,9 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal >=0.15.6
-  - qcelemental >=0.25.1
-  - qcengine >=0.25
+  - qcportal =0.15.8
+  - qcelemental
+  - qcengine
   - chemper
   - geometric <1
   - torsiondrive
