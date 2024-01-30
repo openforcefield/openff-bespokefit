@@ -36,8 +36,8 @@ dependencies:
     ### Bespoke dependencies
 
   - qcportal >=0.50
-  - qcelemental >=0.25.1
-  - qcengine >=0.25
+  - qcelemental
+  - qcengine
   - chemper
   - geometric =1
   - torsiondrive
@@ -58,5 +58,10 @@ dependencies:
   - pytest-cov
   - pytest-asyncio
   - pytest-celery
+<<<<<<< HEAD
   - pytest-xdist
   - requests-mock
+=======
+  - requests-mock
+
+>>>>>>> upstream/main
