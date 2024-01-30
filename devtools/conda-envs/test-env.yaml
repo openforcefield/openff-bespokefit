@@ -54,7 +54,7 @@ dependencies:
 
     ### Testing
 
-  - pytest
+  - pytest =7
   - pytest-cov
   - pytest-asyncio
   - pytest-celery
