@@ -1,3 +1,4 @@
+import ast
 import abc
 import copy
 import json
@@ -61,15 +62,14 @@ _TARGET_SECTION_TEMPLATES = {
 }
 
 
-def _standardize_grid_id_str(grid_id: str) -> str:
-    """Ensures a grid id is of the form '[grid_id_1, ...]' rather than 'grid_id_1' as is
+def _standardize_grid_id_str(grid_id: str) -> tuple[Union[int, float]]:
+    """Ensures a grid id is of the form '(grid_id_1,)' rather than 'grid_id_1' as is
     sometimes the case when using QCEngine.
     """
-
-    grid_id = json.loads(grid_id)
+    grid_id = ast.literal_eval(grid_id)
     grid_id = [grid_id] if isinstance(grid_id, int) else grid_id
 
-    return json.dumps(grid_id)
+    return tuple(grid_id)
 
 
 class _TargetFactory(Generic[T], abc.ABC):
@@ -175,7 +175,8 @@ class _TargetFactory(Generic[T], abc.ABC):
 
                 def _grid_id_key(x):
                     if isinstance(x, str):
-                        x = json.loads(x)
+                        # unwrap a str like "(-165,)"
+                        x = ast.literal_eval(x)
 
                     if isinstance(x, Sequence):
                         x = int(x[0])
