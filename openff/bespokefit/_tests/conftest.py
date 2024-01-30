@@ -2,7 +2,7 @@ import json
 import os
 import subprocess
 from typing import Tuple
-
+from qcelemental.models.results import AtomicResultProperties
 import pytest
 import qcportal
 import redis
@@ -29,6 +29,7 @@ from qcelemental.models.procedures import (
 from qcelemental.models.procedures import TorsionDriveResult as QCTorsionDriveResult
 from qcportal.optimization import OptimizationRecord
 from qcportal.record_models import BaseRecord
+from qcportal.singlepoint import SinglepointRecord
 from qcportal.torsiondrive import TorsiondriveRecord
 
 from openff.bespokefit.executor.utilities.redis import (
@@ -115,7 +116,7 @@ def qc_torsion_drive_record() -> Tuple[TorsiondriveRecord, Molecule]:
 
 @pytest.fixture()
 def qc_torsion_drive_results(
-    qc_torsion_drive_record, monkeypatch
+    qc_torsion_drive_record: TorsiondriveRecord, monkeypatch
 ) -> TorsionDriveResultCollection:
     _, molecule = qc_torsion_drive_record
 
@@ -142,7 +143,7 @@ def qc_torsion_drive_results(
 
 @pytest.fixture()
 def qc_torsion_drive_qce_result(
-    qc_torsion_drive_record,
+    qc_torsion_drive_record: TorsiondriveRecord,
 ) -> Tuple[QCTorsionDriveResult, Molecule]:
     # This record seems to have its driver set to 'deferred' ?
     qc_record, molecule = qc_torsion_drive_record
@@ -271,7 +272,7 @@ def public_client():
 
 
 @pytest.fixture(scope="module")
-def qc_hessian_record(public_client) -> Tuple[BaseRecord, Molecule]:
+def qc_hessian_record(public_client) -> Tuple[SinglepointRecord, Molecule]:
     [record] = public_client.query_records(record_id=18854435)
     qc_molecule = record.molecule
 
@@ -293,7 +294,7 @@ def qc_hessian_record(public_client) -> Tuple[BaseRecord, Molecule]:
 
 @pytest.fixture()
 def qc_hessian_results(
-    qc_hessian_record: BaseRecord,
+    qc_hessian_record: tuple[SinglepointRecord, Molecule],
     monkeypatch,
 ) -> BasicResultCollection:
     _, molecule = qc_hessian_record
@@ -321,7 +322,7 @@ def qc_hessian_results(
 
 @pytest.fixture()
 def qc_hessian_qce_result(
-    qc_hessian_record,
+    qc_hessian_record: tuple[SinglepointRecord, Molecule],
 ) -> Tuple[AtomicResult, Molecule]:
     qc_record, molecule = qc_hessian_record
 
@@ -333,7 +334,23 @@ def qc_hessian_qce_result(
             ),
             **qc_record.extras,
         },
-        properties=qc_record.properties,
+        properties=AtomicResultProperties(  # missing quadrupole moment, many fields with spaces
+            calcinfo_nbasis=qc_record.properties['calcinfo_nbasis'],
+            calcinfo_nmo=qc_record.properties['calcinfo_nmo'],
+            calcinfo_nalpha=qc_record.properties['calcinfo_nalpha'],
+            calcinfo_nbeta=qc_record.properties['calcinfo_nbeta'],
+            calcinfo_natom=qc_record.properties['calcinfo_natom'],
+            nuclear_repulsion_energy=qc_record.properties['nuclear_repulsion_energy'],
+            return_energy=qc_record.properties['return_energy'],
+            scf_one_electron_energy=qc_record.properties['scf_one_electron_energy'],
+            scf_two_electron_energy=qc_record.properties['scf_two_electron_energy'],
+            scf_vv10_energy=qc_record.properties['dft vv10 energy'],  # ?
+            scf_xc_energy=qc_record.properties['scf_xc_energy'],
+            scf_dispersion_correction_energy=qc_record.properties['scf_dispersion_correction_energy'],
+            scf_dipole_moment=qc_record.properties['scf_dipole_moment'],
+            scf_total_energy=qc_record.properties['scf_total_energy'],
+            scf_iterations=qc_record.properties['scf_iterations'],
+        ),
         molecule=molecule.to_qcschema(),
         driver=qc_record.specification.driver,
         model=Model(
