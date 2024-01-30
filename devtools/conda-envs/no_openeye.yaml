@@ -56,10 +56,6 @@ dependencies:
   - pytest-cov
   - pytest-asyncio
   - pytest-celery
-<<<<<<< HEAD
   - pytest-xdist
   - requests-mock
-=======
-  - requests-mock
 
->>>>>>> upstream/main
