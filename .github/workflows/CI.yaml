@@ -76,7 +76,7 @@ jobs:
               --ignore=openff/bespokefit/_tests/cli/test_cache.py \
               --ignore=openff/bespokefit/_tests/optimizers/forcebalance/test_factories.py \
               --ignore=openff/bespokefit/_tests/executor/services/coordinator/ \
-              --ignore=openff/bespokefit/_tests/schema/test_targets.py::TestCheckConnectivity \
+              --ignore=openff/bespokefit/_tests/schema/test_targets.py \
               --ignore=openff/bespokefit/_tests/cli/executor/test_submit.py \
               --ignore=openff/bespokefit/_tests/cli/executor/test_retrieve.py \
               --ignore=openff/bespokefit/_tests/optimizers/forcebalance/test_forcebalance.py \
@@ -89,7 +89,7 @@ jobs:
               openff/bespokefit/_tests/cli/test_cache.py \
               openff/bespokefit/_tests/optimizers/forcebalance/test_factories.py \
               openff/bespokefit/_tests/executor/services/coordinator/ \
-              openff/bespokefit/_tests/schema/test_targets.py::TestCheckConnectivity \
+              openff/bespokefit/_tests/schema/test_targets.py \
               openff/bespokefit/_tests/cli/executor/test_submit.py \
               openff/bespokefit/_tests/cli/executor/test_retrieve.py \
               openff/bespokefit/_tests/optimizers/forcebalance/test_forcebalance.py \
