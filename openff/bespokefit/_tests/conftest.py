@@ -2,7 +2,7 @@ import json
 import os
 import subprocess
 from typing import Tuple
-from qcelemental.models.results import AtomicResultProperties
+
 import pytest
 import qcportal
 import redis
@@ -27,8 +27,8 @@ from qcelemental.models.procedures import (
     QCInputSpecification,
 )
 from qcelemental.models.procedures import TorsionDriveResult as QCTorsionDriveResult
+from qcelemental.models.results import AtomicResultProperties
 from qcportal.optimization import OptimizationRecord
-from qcportal.record_models import BaseRecord
 from qcportal.singlepoint import SinglepointRecord
 from qcportal.torsiondrive import TorsiondriveRecord
 
@@ -335,21 +335,23 @@ def qc_hessian_qce_result(
             **qc_record.extras,
         },
         properties=AtomicResultProperties(  # missing quadrupole moment, many fields with spaces
-            calcinfo_nbasis=qc_record.properties['calcinfo_nbasis'],
-            calcinfo_nmo=qc_record.properties['calcinfo_nmo'],
-            calcinfo_nalpha=qc_record.properties['calcinfo_nalpha'],
-            calcinfo_nbeta=qc_record.properties['calcinfo_nbeta'],
-            calcinfo_natom=qc_record.properties['calcinfo_natom'],
-            nuclear_repulsion_energy=qc_record.properties['nuclear_repulsion_energy'],
-            return_energy=qc_record.properties['return_energy'],
-            scf_one_electron_energy=qc_record.properties['scf_one_electron_energy'],
-            scf_two_electron_energy=qc_record.properties['scf_two_electron_energy'],
-            scf_vv10_energy=qc_record.properties['dft vv10 energy'],  # ?
-            scf_xc_energy=qc_record.properties['scf_xc_energy'],
-            scf_dispersion_correction_energy=qc_record.properties['scf_dispersion_correction_energy'],
-            scf_dipole_moment=qc_record.properties['scf_dipole_moment'],
-            scf_total_energy=qc_record.properties['scf_total_energy'],
-            scf_iterations=qc_record.properties['scf_iterations'],
+            calcinfo_nbasis=qc_record.properties["calcinfo_nbasis"],
+            calcinfo_nmo=qc_record.properties["calcinfo_nmo"],
+            calcinfo_nalpha=qc_record.properties["calcinfo_nalpha"],
+            calcinfo_nbeta=qc_record.properties["calcinfo_nbeta"],
+            calcinfo_natom=qc_record.properties["calcinfo_natom"],
+            nuclear_repulsion_energy=qc_record.properties["nuclear_repulsion_energy"],
+            return_energy=qc_record.properties["return_energy"],
+            scf_one_electron_energy=qc_record.properties["scf_one_electron_energy"],
+            scf_two_electron_energy=qc_record.properties["scf_two_electron_energy"],
+            scf_vv10_energy=qc_record.properties["dft vv10 energy"],  # ?
+            scf_xc_energy=qc_record.properties["scf_xc_energy"],
+            scf_dispersion_correction_energy=qc_record.properties[
+                "scf_dispersion_correction_energy"
+            ],
+            scf_dipole_moment=qc_record.properties["scf_dipole_moment"],
+            scf_total_energy=qc_record.properties["scf_total_energy"],
+            scf_iterations=qc_record.properties["scf_iterations"],
         ),
         molecule=molecule.to_qcschema(),
         driver=qc_record.specification.driver,
