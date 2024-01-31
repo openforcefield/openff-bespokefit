@@ -1,0 +1,3 @@
+from collections.abc import Generator
+
+def does_not_raise() -> Generator[None, None, None]: ...

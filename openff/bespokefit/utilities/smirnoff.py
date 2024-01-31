@@ -21,6 +21,7 @@ from openff.toolkit.utils.exceptions import ParameterLookupError
 
 if TYPE_CHECKING:
     from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
+    from openff.toolkit.typing.engines.smirnoff import ParameterHandler, ParameterList
 
 _PARAMETER_TYPE_TO_HANDLER = {
     vdWHandler.vdWType: "vdW",
@@ -76,10 +77,10 @@ class ForceFieldEditor:
             vdWHandler.vdWType: "n",
         }
 
-        parameters_by_handler = dict()
+        parameters_by_handler: dict[str, ParameterList]= dict()
 
         for parameter in parameters:
-            handler_type = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
+            handler_type: str = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
             parameters_by_handler.setdefault(handler_type, []).append(parameter)
 
         added_parameters = []

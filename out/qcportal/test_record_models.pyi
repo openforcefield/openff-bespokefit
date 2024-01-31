@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+from qcarchivetesting.testing_classes import QCATestingSnowflake as QCATestingSnowflake
+from qcportal.compression import decompress as decompress
+from qcportal.record_models import PriorityEnum as PriorityEnum, RecordStatusEnum as RecordStatusEnum
+from qcportal.utils import now_at_utc as now_at_utc
+from typing import List, Optional
+
+all_includes: Incomplete
+
+def test_baserecord_model_common(snowflake: QCATestingSnowflake, includes: Optional[List[str]]): ...
+def test_baserecord_model_error(snowflake: QCATestingSnowflake, includes: Optional[List[str]]): ...
+def test_baserecord_model_task(snowflake: QCATestingSnowflake, includes: Optional[List[str]]): ...
+def test_baserecord_model_service(snowflake: QCATestingSnowflake, includes: Optional[List[str]]): ...

@@ -1,0 +1,19 @@
+from _typeshed import Incomplete
+from pydantic import BaseModel
+
+__all__ = ['auto_gen_docs_on_demand', 'get_base_docs', 'AutoPydanticDocGenerator']
+
+class AutoDocError(ValueError): ...
+
+class AutoPydanticDocGenerator:
+    ALREADY_AUTODOCED_ATTR: str
+    AUTODOC_BASE_DOC_REFERENCE_ATTR: str
+    base_doc: Incomplete
+    target: Incomplete
+    allow_failure: Incomplete
+    def __init__(self, target: BaseModel, allow_failure: bool = True, always_apply: bool = False) -> None: ...
+    def __get__(self, *args): ...
+    def __del__(self) -> None: ...
+
+def auto_gen_docs_on_demand(target: BaseModel, allow_failure: bool = True, ignore_reapply: bool = True, force_reapply: bool = False): ...
+def get_base_docs(target: object): ...

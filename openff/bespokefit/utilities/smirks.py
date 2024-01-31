@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Sequence
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -320,7 +320,7 @@ class SMIRKSGenerator(SMIRKSettings):
         this will only extract parameters for the requested groups.
         """
 
-        requested_smirks = {}
+        requested_smirks: dict = {}
         for smirks_type in self.target_smirks:
             for valence_term in self._get_valence_terms(
                 molecule=molecule,
@@ -434,7 +434,7 @@ class SMIRKSGenerator(SMIRKSettings):
         molecule: Molecule,
         smirks_type: SMIRKSType,
         torsion_bond: Optional[Tuple[int, int]] = None,
-    ) -> List[Tuple[int, ...]]:
+    ) -> Sequence[Tuple[int, ...]]:
         if smirks_type == SMIRKSType.Vdw:
             return [(i,) for i in range(molecule.n_atoms)]
 

@@ -1,0 +1,3 @@
+from .models import InternalJobStatusEnum as InternalJobStatusEnum
+
+def test_internal_job_status_enum() -> None: ...

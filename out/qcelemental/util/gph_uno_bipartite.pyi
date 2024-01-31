@@ -1,0 +1,3 @@
+from _typeshed import Incomplete
+
+def uno(edges, match: Incomplete | None = None, verbose: int = 1): ...
