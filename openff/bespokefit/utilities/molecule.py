@@ -1,8 +1,8 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
-from openff.toolkit.topology.molecule import Bond
 from openff.toolkit import Molecule
+from openff.toolkit.topology.molecule import Bond
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 
