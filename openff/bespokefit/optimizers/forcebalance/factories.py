@@ -282,7 +282,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             grid_energies = qc_record.final_energies
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(_standardize_grid_id_str(key))): value
+                _standardize_grid_id_str(key): value
                 for key, value in qc_record.final_energies.items()
             }
         else:
@@ -327,7 +327,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         del fb_molecule.Data["comms"]
         fb_molecule.write("conf.pdb")
 
-        metadata = qc_record.specification.keywords.dict()
+        metadata = qc_record.optimization_spec.keywords
 
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
