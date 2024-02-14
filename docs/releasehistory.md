@@ -9,6 +9,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
+### Bug fixes
+* [#320] - Fixes a formatting issue ([#319]) when printing SMILES to summary table. by [@j-wags]
+
 ## 0.2.3 / 14-11-2023
 
 ### Bug Fixes
