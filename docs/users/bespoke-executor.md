@@ -112,7 +112,7 @@ corresponding environment variable [settings] are used instead.
 [settings]: openff.bespokefit.utilities.Settings
 
 (executor_qc_cache)=
-## The QC cache
+## The QC Cache
 Bespokefit makes extensive use of caching to speed up the parameterization process. 
 The generation of the training data is currently the slowest part of the workflow when running DFT calculations with 
 a high level of theory. To further speed up the process we provide an interface to seed the cache with results from 
@@ -128,7 +128,7 @@ openff-bespoke executor launch --directory bespoke
 While this is running from another terminal run the cache update using any of the available datasets
 
 ```shell
-openff-bespoke cache update --qcf-dataset "OpenFF-benchmark-ligand-fragments-v2.0" --qcf-address "https://api.qcarchive.molssi.org:443/"
+openff-bespoke cache update --no-launch-redis --qcf-dataset "OpenFF-benchmark-ligand-fragments-v2.0" --qcf-address "https://api.qcarchive.molssi.org:443/"
 ```
 
 [QCArchive]: https://qcarchive.molssi.org/
