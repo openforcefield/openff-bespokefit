@@ -101,6 +101,10 @@ openff-bespoke executor run --file                 "acetaminophen.sdf" \
                             --default-qc-spec xtb gfn2xtb none
 ```
 
+:::{note}
+For XTB (only), `--qc-compute-n-cores` is ignored because of miscommunications between QCEngine and XTB, but this can be worked around by setting the environment variable `OMP_NUM_THREADS`. See the FAQ for details.
+:::
+
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelizing fits.
 
 (production_fits_section)=
