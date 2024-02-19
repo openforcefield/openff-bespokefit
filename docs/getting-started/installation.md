@@ -66,13 +66,13 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd4-python ambertools
+mamba create -n bespokefit-env -c conda-forge python=3.10 openff-bespokefit "qcportal >=0.50" psi4 dftd4-python ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal <0.50" psi4 dftd4-python openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge -c openeye python=3.10 openff-bespokefit "qcportal >=0.50" psi4 dftd4-python openeye-toolkits
 ```
 
 :::
