@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional, Tuple, Union, Sequence
+from typing import List, Optional, Sequence, Tuple, Union
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
