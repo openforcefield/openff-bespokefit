@@ -327,7 +327,15 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         del fb_molecule.Data["comms"]
         fb_molecule.write("conf.pdb")
 
-        metadata = qc_record.optimization_spec.keywords
+        try:
+            # This is a QCPortal object ...
+            # qcportal.torsiondrive.record_models.TorsiondriveRecord
+            metadata: dict = qc_record.specification.optimization_specification.keywords
+        except AttributeError:
+            # unless it's actually a qcelemental object, specifically a
+            # qcelemental.models.procedures.TorsionDriveResult
+            metadata: dict = qc_record.optimization_spec.keywords
+
 
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
