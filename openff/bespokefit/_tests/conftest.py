@@ -342,6 +342,7 @@ def qc_hessian_qce_result(
             calcinfo_natom=qc_record.properties["calcinfo_natom"],
             nuclear_repulsion_energy=qc_record.properties["nuclear_repulsion_energy"],
             return_energy=qc_record.properties["return_energy"],
+            return_gradient=qc_record.properties["current gradient"],
             scf_one_electron_energy=qc_record.properties["scf_one_electron_energy"],
             scf_two_electron_energy=qc_record.properties["scf_two_electron_energy"],
             scf_vv10_energy=qc_record.properties["dft vv10 energy"],  # ?

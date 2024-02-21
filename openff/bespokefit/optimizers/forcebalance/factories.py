@@ -470,17 +470,26 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
         )
 
-        if (
-            qc_record.specification.driver.value != "hessian"
-            or qc_record.return_result is None
-        ):
+        try:
+            # qcportal.record_models.BaseRecord
+            driver = qc_record.specification.driver.value
+        except AttributeError:
+            # qcelemental.models.results.AtomicResult
+            driver = qc_record.driver.value
+
+        if driver != "hessian" or qc_record.return_result is None:
             raise QCRecordMissMatchError(
                 f"The QC record with id={qc_record_id} does not contain the gradient "
                 f"information required by a vibration fitting target."
             )
 
         # Check the magnitude of the gradient
-        gradient = qc_record.properties["current gradient"]
+        try:
+            # qcportal.record_models.BaseRecord
+            gradient = qc_record.properties["current gradient"]
+        except (AttributeError, TypeError):
+            # qcelemental.models.results.AtomicResult
+            gradient = qc_record.properties.return_gradient
 
         if np.abs(gradient).max() > 1e-3:
             _logger.warning(
