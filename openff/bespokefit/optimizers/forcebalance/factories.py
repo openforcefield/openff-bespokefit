@@ -336,7 +336,6 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
             # qcelemental.models.procedures.TorsionDriveResult
             metadata: dict = qc_record.optimization_spec.keywords
 
-
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
             for grid_id in grid_ids
