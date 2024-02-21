@@ -20,7 +20,7 @@ from openff.toolkit.typing.engines.smirnoff import (
 from openff.toolkit.utils.exceptions import ParameterLookupError
 
 if TYPE_CHECKING:
-    from openff.toolkit.typing.engines.smirnoff import ParameterHandler, ParameterList
+    from openff.toolkit.typing.engines.smirnoff import ParameterList
 
     from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
 
