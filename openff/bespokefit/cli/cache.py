@@ -239,9 +239,9 @@ def _connect_to_qcfractal(
     with console.status("connecting to qcfractal"):
         try:
             if qcf_config is not None:
-                client = qcportal.PortalClient.from_file(load_path=qcf_config)
+                client = qcportal.PortalClient.from_file(config_path=qcf_config)
             else:
-                client = qcportal.PortalClient(address=qcf_address)
+                client = qcportal.PortalClient(server_name=qcf_address)
         except BaseException as e:
             exit_with_messages(
                 Padding(
