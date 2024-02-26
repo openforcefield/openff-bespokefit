@@ -366,21 +366,27 @@ class TorsionProfileTargetFactory(
         # noinspection PyTypeChecker
         super(TorsionProfileTargetFactory, cls)._generate_target(target, qc_records)
 
-        qc_record, off_molecule = qc_records[0]
+        qc_record, _ = qc_records[0]
 
         if isinstance(qc_record, TorsiondriveRecord):
-            grid_energies = qc_record.final_energies
+            grid_energies: dict[
+                tuple[Union[int, float]],
+                float,
+            ] = qc_record.final_energies
+
+            metadata: dict = qc_record.specification.optimization_specification.keywords
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(_standardize_grid_id_str(key))): value
+                _standardize_grid_id_str(key): value
                 for key, value in qc_record.final_energies.items()
             }
+            metadata: dict = qc_record.optimization_spec.keywords
+
         else:
             raise NotImplementedError()
 
         grid_ids = sorted(grid_energies, key=lambda x: x[0])
 
-        metadata = qc_record.specification.keywords.dict()
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
             for grid_id in grid_ids
