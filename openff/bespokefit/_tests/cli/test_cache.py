@@ -126,11 +126,11 @@ def test_update_from_qcsubmit(redis_connection):
             redis_connection=redis_connection,
         )
 
-    # These strings are copy-pasted from a terminal output after dropping in here
-    # in a debugger
+    # The terminal output often contains colors that aren't always displayed the same;
+    # these patterns miss lots of fancy stuff from rich
     for line in [
-        "\x1b[?25l\r\x1b[2K\x1b[1m[\x1b[0m\x1b[32m✓\x1b[0m\x1b[1m]\x1b[0m local results built",
-        "\x1b[?25h\x1b[1m[\x1b[0m\x1b[32m✓\x1b[0m\x1b[1m]\x1b[0m \x1b[1;34m1\x1b[0m/\x1b[1;36m1\x1b[0m results cached",
+        " local results built",
+        " results cached",
     ]:
         assert line in capture.get()
 
