@@ -238,10 +238,12 @@ def _connect_to_qcfractal(
 
     with console.status("connecting to qcfractal"):
         try:
+            # there is a server_name argument, but ths config file probably
+            # includes the address
             if qcf_config is not None:
                 client = qcportal.PortalClient.from_file(config_path=qcf_config)
             else:
-                client = qcportal.PortalClient(server_name=qcf_address)
+                client = qcportal.PortalClient(address=qcf_address)
         except BaseException as e:
             exit_with_messages(
                 Padding(
