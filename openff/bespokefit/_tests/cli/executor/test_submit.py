@@ -37,6 +37,7 @@ def test_default_workflow_up_to_date():
 
     assert current_default_workflow == default_workflow_from_file
 
+    # the shipped default.json is generated with this block of code
     # with open(
     #     get_data_file_path(
     #         os.path.join("schemas", "default.json"), "openff.bespokefit"
