@@ -284,10 +284,8 @@ def qc_hessian_record(public_client) -> Tuple[SinglepointRecord, Molecule]:
             "[N:10][C:5](=[C:6]([O:12]2)[H:18])[H:17])[H:16])[H:14]"
         )
     }
+
     molecule = Molecule.from_qcschema(qc_molecule_dict)
-    molecule.add_conformer(
-        qc_molecule.geometry.reshape((molecule.n_atoms, 3)) * unit.bohr
-    )
 
     return record, molecule
 
