@@ -136,8 +136,8 @@ def _validate_connectivity(
                 final_molecules = {"opt": qc_record.final_molecule}
             except AttributeError:
                 final_molecules = {
-                    key: val[-1].final_molecule
-                    for key, val in qc_record.optimizations.items()
+                    key: val.final_molecule
+                    for key, val in qc_record.minimum_optimizations.items()
                 }
 
             for name, qcschema in final_molecules.items():
