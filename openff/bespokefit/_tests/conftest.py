@@ -285,6 +285,8 @@ def qc_hessian_record(public_client) -> Tuple[SinglepointRecord, Molecule]:
         )
     }
 
+    # toolkit 0.15.0+ adds a conformer if there is geometry in the qc molecule,
+    # previous versions of the toolkit didn't
     molecule = Molecule.from_qcschema(qc_molecule_dict)
 
     return record, molecule
