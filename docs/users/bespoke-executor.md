@@ -164,12 +164,13 @@ a result.
 [`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
 [`BespokeWorkerConfig`]: openff.bespokefit.executor.BespokeWorkerConfig
 
+(envvars)=
 ## Configuring from the environment
 
 Both the CLI and the Python API can be configured via environment variables.
 
 :::{eval-rst}
-.. autopydantic_settings:: openff.bespokefit.executor.services._settings.Settings
+.. autopydantic_settings:: openff.bespokefit.executor.services.Settings
     :settings-show-json: False
     :settings-show-config-member: False
     :settings-show-config-summary: False
@@ -179,6 +180,7 @@ Both the CLI and the Python API can be configured via environment variables.
     :exclude-members: fragmenter_settings,qc_compute_settings,optimizer_settings,apply_env
     :settings-signature-prefix: Environment Variables
     :field-signature-prefix: env
+    :noindex:
 
     The following environment variables may be used to configure the Bespoke Executor
 
