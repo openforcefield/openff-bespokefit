@@ -71,7 +71,14 @@ class Settings(BaseSettings):
     """
 
     BEFLOW_KEEP_TMP_FILES: bool = False
-    """Keep all temporary files."""
+    """
+    Keep all temporary files.
+
+    Temporary files are written to the scratch directory, which can be
+    configured with the ``--directory`` CLI argument. By default, a temporary
+    directory is chosen for scratch, so both this environment variable and that
+    CLI argument must be set to preserve temporary files.
+    """
 
     @property
     def fragmenter_settings(self) -> WorkerSettings:

@@ -182,7 +182,10 @@ Both the CLI and the Python API can be configured via environment variables.
     :field-signature-prefix: env
     :noindex:
 
-    The following environment variables may be used to configure the Bespoke Executor
+    The following environment variables may be used to configure the Bespoke Executor. Environment variables are typically set in the shell:
+
+    .. code-block:: shell-session
+
+        $ BEFLOW_KEEP_TMP_FILES=True openff-bespoke executor ...
 
 :::
-
