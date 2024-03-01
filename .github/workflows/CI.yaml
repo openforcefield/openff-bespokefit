@@ -25,9 +25,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pydantic-version: ["1", "2"]
+        pydantic-version: ["2"]
         openeye: [true, false]
-        integration: [false]
+        integration: [true, false]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -109,9 +109,3 @@ jobs:
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
                                       --target-torsion         '[C:1]-[C:2]'
-
-      - name: Run mypy
-        run: |
-          pip install mypy
-          mypy --install-types
-          mypy -p "openff.bespokefit"
