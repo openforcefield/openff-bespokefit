@@ -69,31 +69,9 @@ jobs:
           micromamba info
           micromamba list
 
-      - name: Run Passing Tests
-        run: |
-          python -m pytest -nauto openff/bespokefit/_tests \
-              --cov=openff --cov-config=setup.cfg openff/bespokefit/_tests --cov-report=xml \
-              --ignore=openff/bespokefit/_tests/cli/test_cache.py \
-              --ignore=openff/bespokefit/_tests/optimizers/forcebalance/test_factories.py \
-              --ignore=openff/bespokefit/_tests/executor/services/coordinator/ \
-              --ignore=openff/bespokefit/_tests/schema/test_targets.py \
-              --ignore=openff/bespokefit/_tests/cli/executor/test_submit.py \
-              --ignore=openff/bespokefit/_tests/cli/executor/test_retrieve.py \
-              --ignore=openff/bespokefit/_tests/optimizers/forcebalance/test_forcebalance.py \
-              --ignore=openff/bespokefit/_tests/executor/services/qcgenerator/test_app.py
-
-      - name: Run Failing Tests
+      - name: Run Tests
         continue-on-error: true
-        run: |
-          python -m pytest -nauto \
-              openff/bespokefit/_tests/cli/test_cache.py \
-              openff/bespokefit/_tests/optimizers/forcebalance/test_factories.py \
-              openff/bespokefit/_tests/executor/services/coordinator/ \
-              openff/bespokefit/_tests/schema/test_targets.py \
-              openff/bespokefit/_tests/cli/executor/test_submit.py \
-              openff/bespokefit/_tests/cli/executor/test_retrieve.py \
-              openff/bespokefit/_tests/optimizers/forcebalance/test_forcebalance.py \
-              openff/bespokefit/_tests/executor/services/qcgenerator/test_app.py
+        run: python -m pytest -n logical openff/bespokefit/_tests/
 
       - name: Codecov
         uses: codecov/codecov-action@v4
