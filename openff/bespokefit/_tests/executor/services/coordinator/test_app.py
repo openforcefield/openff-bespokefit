@@ -1,5 +1,5 @@
 import pytest
-from requests import HTTPError
+from httpx import HTTPStatusError
 
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETPageResponse,
@@ -90,7 +90,7 @@ def test_get_optimization(coordinator_client, bespoke_optimization_schema):
     assert results.id == "2"
     assert results.self == "/api/v1/tasks/2"
 
-    with pytest.raises(HTTPError, match="404"):
+    with pytest.raises(HTTPStatusError, match="404"):
         request = coordinator_client.get("/tasks/3")
         request.raise_for_status()
 
