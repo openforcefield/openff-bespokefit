@@ -1,7 +1,7 @@
 import os
 
 import requests_mock
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 
 from openff.bespokefit.cli.executor.run import run_cli
 from openff.bespokefit.executor.services import current_settings

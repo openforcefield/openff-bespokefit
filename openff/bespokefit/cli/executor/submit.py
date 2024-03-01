@@ -19,7 +19,7 @@ from openff.bespokefit.cli.utilities import (
 from openff.bespokefit.executor.utilities import handle_common_errors
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
@@ -199,7 +199,7 @@ def _submit(
     allow_multiple_molecules: bool,
     save_submission: bool,
 ) -> List[str]:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
 

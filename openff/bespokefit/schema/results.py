@@ -1,7 +1,7 @@
 import abc
 from typing import Any, Dict, List, Optional
 
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 from openff.units import unit
 from typing_extensions import Literal
 

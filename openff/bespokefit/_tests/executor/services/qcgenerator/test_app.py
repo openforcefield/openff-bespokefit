@@ -1,7 +1,7 @@
 import numpy
 import pytest
 from celery.result import AsyncResult
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from qcelemental.models import AtomicResult, AtomicResultProperties, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
 from qcelemental.models.procedures import (

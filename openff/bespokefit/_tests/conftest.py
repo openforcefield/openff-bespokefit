@@ -15,9 +15,7 @@ from openff.qcsubmit.results import (
     TorsionDriveResult,
     TorsionDriveResultCollection,
 )
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.units import unit
+from openff.toolkit import ForceField, Molecule
 from openff.utilities import get_data_file_path
 from qcelemental.models import AtomicResult, DriverEnum
 from qcelemental.models.common_models import Model, Provenance

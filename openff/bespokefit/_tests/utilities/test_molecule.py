@@ -2,7 +2,7 @@ import importlib
 import sys
 
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 
 from openff.bespokefit.utilities.molecule import (
     _oe_canonical_atom_order,

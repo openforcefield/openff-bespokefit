@@ -2,7 +2,7 @@ import hashlib
 from typing import TypeVar, Union
 
 import redis
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask

@@ -5,8 +5,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField, Molecule
 from openff.utilities import skip_if_missing, temporary_cd
 from qcelemental.models.procedures import TorsionDriveResult
 

@@ -5,7 +5,7 @@ import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
 from chemper.graphs.environment import ChemicalEnvironment
 from openff.fragmenter.utils import get_atom_index
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
 from typing_extensions import Literal

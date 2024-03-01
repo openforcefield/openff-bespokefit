@@ -26,7 +26,7 @@ from openff.bespokefit.schema.fitting import OptimizationStageSchema
 def prepare_cli(input_path, initial_force_field_path):
     """Prepare an optimizations' input files based on its schema."""
 
-    from openff.toolkit.typing.engines.smirnoff import ForceField
+    from openff.toolkit import ForceField
 
     _general_error_text = "the input path did not point to a valid optimization schema"
 

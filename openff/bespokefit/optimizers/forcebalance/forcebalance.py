@@ -4,7 +4,7 @@ import os
 import subprocess
 from typing import Any, Dict
 
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 from openff.utilities.provenance import get_ambertools_version
 
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory

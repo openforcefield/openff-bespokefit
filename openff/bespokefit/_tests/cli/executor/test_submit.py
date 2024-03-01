@@ -7,7 +7,7 @@ import pytest
 import requests
 import requests_mock
 import rich
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.utilities import get_data_file_path
 
 from openff.bespokefit._tests import does_not_raise

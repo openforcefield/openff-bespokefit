@@ -18,8 +18,7 @@ from openff.qcsubmit.results import (
 )
 from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField, Molecule
 from qcelemental.models.common_models import Model
 from qcportal.optimization import OptimizationRecord
 from qcportal.torsiondrive import TorsiondriveRecord

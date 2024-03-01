@@ -6,7 +6,7 @@ import copy
 import os
 
 import numpy as np
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
 from openff.utilities import get_data_file_path
 

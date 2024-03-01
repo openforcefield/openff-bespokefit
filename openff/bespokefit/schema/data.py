@@ -2,7 +2,7 @@ import json
 from typing import Generic, List, Tuple, TypeVar, overload
 
 import numpy as np
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from qcelemental.models import AtomicResult, DriverEnum
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import (

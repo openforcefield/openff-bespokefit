@@ -8,7 +8,7 @@ import subprocess
 
 import numpy as np
 import pytest
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer

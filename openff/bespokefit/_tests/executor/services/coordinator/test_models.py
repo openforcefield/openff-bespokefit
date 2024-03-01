@@ -2,7 +2,7 @@ import hashlib
 from typing import List, Optional
 
 import pytest
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,

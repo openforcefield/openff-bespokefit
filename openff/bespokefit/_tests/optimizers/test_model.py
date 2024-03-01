@@ -3,7 +3,7 @@ Unit test ability to add and remove new optimizers as well as the various optimi
 """
 
 import pytest
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.optimizers import BaseOptimizer, ForceBalanceOptimizer

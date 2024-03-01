@@ -8,7 +8,7 @@ import os
 from collections import defaultdict
 from typing import Dict, Optional, Type
 
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 
 from openff.bespokefit.exceptions import OptimizerError, TargetRegisterError
 from openff.bespokefit.schema.fitting import OptimizationStageSchema

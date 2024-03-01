@@ -1,7 +1,7 @@
 import os
 
 import requests_mock
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
 
 from openff.bespokefit.cli.combine import combine_cli
 from openff.bespokefit.executor.services import current_settings

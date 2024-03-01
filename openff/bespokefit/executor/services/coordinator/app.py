@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator import worker

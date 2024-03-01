@@ -14,9 +14,8 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.toolkit.topology import Molecule
-from openff.toolkit.topology import Molecule as OFFMolecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField
+from openff.toolkit import Molecule as OFFMolecule
 from openff.units import unit
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
@@ -102,8 +101,8 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     def _batch_qc_records(
-        cls, target: TargetSchema, qc_records: List[Tuple[BaseRecord, Molecule]]
-    ) -> Dict[str, List[Tuple[BaseRecord, Molecule]]]:
+        cls, target: TargetSchema, qc_records: List[Tuple[BaseRecord, OFFMolecule]]
+    ) -> Dict[str, List[Tuple[BaseRecord, OFFMolecule]]]:
         """A function which places the input QC records into per target batches.
 
         For most targets there will be a single record per target, however certain
@@ -131,7 +130,9 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _generate_target(cls, target: T, qc_records: List[Tuple[BaseRecord, Molecule]]):
+    def _generate_target(
+        cls, target: T, qc_records: List[Tuple[BaseRecord, OFFMolecule]]
+    ):
         """Create the required input files for a particular target.
 
         Notes:
@@ -141,7 +142,9 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
-    def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> List[Tuple[R, Molecule]]:
+    def _local_to_qc_records(
+        cls, qc_data: LocalQCData[R]
+    ) -> List[Tuple[R, OFFMolecule]]:
         """Converts a 'local' dataset of QCEngine outputs to a list of QC records."""
         qc_records = []
 
@@ -190,7 +193,7 @@ class _TargetFactory(Generic[T], abc.ABC):
             else:
                 raise NotImplementedError()
 
-            molecule: Molecule = Molecule.from_mapped_smiles(cmiles)
+            molecule: OFFMolecule = OFFMolecule.from_mapped_smiles(cmiles)
             molecule._conformers = [
                 np.array(geometry, float).reshape(-1, 3) * unit.bohr
                 for geometry in geometries
@@ -262,7 +265,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         cls,
         target: T,
         qc_records: List[
-            Tuple[Union[TorsiondriveRecord, TorsionDriveResult], Molecule]
+            Tuple[Union[TorsiondriveRecord, TorsionDriveResult], OFFMolecule]
         ],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
@@ -360,7 +363,7 @@ class TorsionProfileTargetFactory(
         cls,
         target: TorsionProfileTargetSchema,
         qc_records: List[
-            Tuple[Union[TorsiondriveRecord, TorsionDriveResult], Molecule]
+            Tuple[Union[TorsiondriveRecord, TorsionDriveResult], OFFMolecule]
         ],
     ):
         # noinspection PyTypeChecker
@@ -540,7 +543,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     def _generate_target(
         cls,
         target: VibrationTargetSchema,
-        qc_records: List[Tuple[Union[BaseRecord, "AtomicResult"], Molecule]],
+        qc_records: List[Tuple[Union[BaseRecord, "AtomicResult"], OFFMolecule]],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
 
@@ -599,7 +602,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         cls,
         target: OptGeoTargetSchema,
         qc_records: List[
-            Tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
+            Tuple[Union[OptimizationRecord, OptimizationResult], OFFMolecule]
         ],
     ):
         from forcebalance.molecule import Molecule as FBMolecule

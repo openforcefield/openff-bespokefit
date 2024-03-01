@@ -7,8 +7,7 @@ import os
 import pytest
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.qcsubmit.common_structures import QCSpec
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit import ForceField, Molecule
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit._pydantic import ValidationError
