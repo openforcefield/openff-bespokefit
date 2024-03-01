@@ -65,7 +65,7 @@ def test_get_optimizations(
 
     push_task_status(pop_task_status(TaskStatus.waiting), TaskStatus.complete)
 
-    status_url = "" if status is None else f"&status={status}"
+    status_url = "" if status is None else f"&status={status.value}"
 
     request = coordinator_client.get(f"/tasks?skip={skip}&limit={limit}{status_url}")
     request.raise_for_status()

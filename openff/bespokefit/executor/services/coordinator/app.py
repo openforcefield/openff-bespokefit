@@ -63,7 +63,7 @@ def get_optimizations(
     prev_index = max(0, skip - limit)
     next_index = min(n_total_tasks, skip + limit)
 
-    status_url = "" if status is None else f"&status={status}"
+    status_url = "" if status is None else f"&status={status.value}"
 
     return CoordinatorGETPageResponse(
         self=(
