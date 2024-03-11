@@ -119,7 +119,7 @@ alternative to atom types.
 
 ### Selecting initial values
 
-The initial values for the bespoke parameters are by default sourced from the "Rosemary" OpenFF 2.0.0 force field. This
+The initial values for the bespoke parameters are by default sourced from the "Sage" OpenFF 2.0.0 force field. This
 is done by applying the general force field to the molecule of interest, inspecting which parameters from the general
 force field were applied to the target features, and then copying the relevant values. For example, when selecting
 initial torsion parameters for biphenyl, BespokeFit would check which general torsion parameters were assigned to the
