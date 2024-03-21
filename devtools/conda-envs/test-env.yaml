@@ -62,4 +62,3 @@ dependencies:
   - pytest-asyncio
   - pytest-celery
   - requests-mock
-

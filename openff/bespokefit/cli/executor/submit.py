@@ -291,7 +291,7 @@ def _submit(
             # by rich, so use rich.markup.escape to avoid mangling the SMILES.
             # See https://github.com/openforcefield/openff-bespokefit/issues/319
             rich.markup.escape(
-                molecule.to_smiles(explicit_hydrogens=False, mapped=False)
+                molecule.to_smiles(explicit_hydrogens=False, mapped=False),
             ),
             molecule.name,
             molecule.properties.get("input_file", ""),
