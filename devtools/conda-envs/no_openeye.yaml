@@ -28,10 +28,6 @@ dependencies:
   - openff-qcsubmit <0.50
   - openmm >=7.6.0
 
-  # Shim
-  - importlib-metadata >=4
-  - importlib_metadata >=4
-
     # Optional
   - forcebalance >=1.9.6
   - openff-fragmenter-base
@@ -39,11 +35,11 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal >=0.15.6
-  - qcelemental >=0.25.1
-  - qcengine >=0.25
+  - qcportal =0.15.8
+  - qcelemental
+  - qcengine
   - chemper
-  - geometric >=1
+  - geometric =1
   - torsiondrive
   - pymbar
 
@@ -59,11 +55,8 @@ dependencies:
 
     ### Testing
 
-  - pytest
+  - pytest =7
   - pytest-cov
   - pytest-asyncio
   - pytest-celery
-  - codecov
   - requests-mock
-
-  - importlib-metadata >=4

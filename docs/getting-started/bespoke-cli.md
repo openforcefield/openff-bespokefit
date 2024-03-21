@@ -11,6 +11,8 @@ openff-bespoke --help
 openff-bespoke executor launch --help
 ```
 
+The executor can also be configured via [environment variables.](envvars)
+
 See the [quick start](quick_start_chapter) guide for examples of using the CLI.
 
 (cli_ref)=
