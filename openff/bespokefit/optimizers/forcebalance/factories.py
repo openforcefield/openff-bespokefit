@@ -377,14 +377,15 @@ class TorsionProfileTargetFactory(
                 float,
             ] = qc_record.final_energies
 
-            metadata: dict = qc_record.specification.keywords
+            metadata = qc_record.specification.optimization_specification.keywords
             metadata["dihedrals"] = qc_record.specification.keywords.dihedrals
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
                 _standardize_grid_id_str(key): value
                 for key, value in qc_record.final_energies.items()
             }
-            metadata: dict = qc_record.optimization_spec.keywords
+            metadata = qc_record.optimization_spec.keywords
+            metadata["dihedrals"] = qc_record.optimization_spec.keywords.dihedrals
 
         else:
             raise NotImplementedError()
