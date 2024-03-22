@@ -287,7 +287,12 @@ def _submit(
     for molecule, response_id in zip(all_molecules, response_ids):
         table.add_row(
             response_id,
-            molecule.to_smiles(explicit_hydrogens=False, mapped=False),
+            # Brackets around things like [nH] will sometimes be interpreted as formatting characters
+            # by rich, so use rich.markup.escape to avoid mangling the SMILES.
+            # See https://github.com/openforcefield/openff-bespokefit/issues/319
+            rich.markup.escape(
+                molecule.to_smiles(explicit_hydrogens=False, mapped=False)
+            ),
             molecule.name,
             molecule.properties.get("input_file", ""),
         )
