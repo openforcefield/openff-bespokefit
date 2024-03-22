@@ -22,7 +22,6 @@ dependencies:
   - ambertools >=22
   - openff-utilities
   - openff-toolkit-base =0.15
-  - openff-interchange >=0.3.18
   - openff-qcsubmit >=0.50
   - openmm >=7.6.0
 
@@ -33,7 +32,7 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal >=0.50
+  - qcportal
   - qcelemental
   - qcengine
   - chemper
