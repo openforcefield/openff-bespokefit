@@ -10,7 +10,7 @@ dependencies:
     ### Core dependencies.
 
   - numpy
-  - pydantic
+  - pydantic =1
   - pyyaml
   - tqdm
   - rich
@@ -19,6 +19,7 @@ dependencies:
   - rdkit
   - openff-utilities
   - openff-toolkit-base =0.15
+  - openff-interchange  # only needed because openff-toolkit-base
   - openff-forcefields
   - openff-qcsubmit >=0.50
   - openmm >=7.6.0

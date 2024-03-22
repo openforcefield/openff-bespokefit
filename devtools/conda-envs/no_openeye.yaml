@@ -22,6 +22,7 @@ dependencies:
   - ambertools >=22
   - openff-utilities
   - openff-toolkit-base =0.15
+  - openff-interchange  # only needed because openff-toolkit-base
   - openff-qcsubmit >=0.50
   - openmm >=7.6.0
 
