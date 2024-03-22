@@ -17,6 +17,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 ### Documentation Updates
 * [#321] - Documents how to download pre-computed QC data and add it to the local cache, which can avoid the need for local calculcations. by [@jthorton]
 * [#325] - Document issue where `xtb` doesn't respect the `--qc-compute-n-cores` argument and provide workaround. by [@mattwthompson]
+* [#330] - Corrects a reference to Rosemary, which is not released, in the theory section. by [@mattwthompson]
 
 ### Bug fixes
 * [#320] - Fixes a formatting issue ([#319]) when printing SMILES to summary table. by [@j-wags]
