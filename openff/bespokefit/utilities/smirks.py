@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -221,11 +221,9 @@ class SMIRKSGenerator(SMIRKSettings):
         return self.generate_smirks_from_fragment(
             molecule,
             molecule,
-            (
-                None
-                if central_bond is None
-                else (central_bond[0] + 1, central_bond[1] + 1)
-            ),
+            None
+            if central_bond is None
+            else (central_bond[0] + 1, central_bond[1] + 1),
         )
 
     def generate_smirks_from_fragment(
@@ -320,18 +318,16 @@ class SMIRKSGenerator(SMIRKSettings):
         this will only extract parameters for the requested groups.
         """
 
-        requested_smirks: dict = {}
+        requested_smirks = {}
         for smirks_type in self.target_smirks:
             for valence_term in self._get_valence_terms(
                 molecule=molecule,
                 smirks_type=smirks_type,
-                torsion_bond=(
-                    None
-                    if molecule_map_indices is None
-                    else (
-                        get_atom_index(molecule, molecule_map_indices[0]),
-                        get_atom_index(molecule, molecule_map_indices[1]),
-                    )
+                torsion_bond=None
+                if molecule_map_indices is None
+                else (
+                    get_atom_index(molecule, molecule_map_indices[0]),
+                    get_atom_index(molecule, molecule_map_indices[1]),
                 ),
             ):
                 requested_smirks.setdefault(smirks_type, []).append(valence_term)
@@ -394,13 +390,11 @@ class SMIRKSGenerator(SMIRKSettings):
         valence_terms = self._get_valence_terms(
             fragment,
             smirks_type,
-            (
-                None
-                if fragment_map_indices is None
-                else (
-                    get_atom_index(fragment, fragment_map_indices[0]),
-                    get_atom_index(fragment, fragment_map_indices[1]),
-                )
+            None
+            if fragment_map_indices is None
+            else (
+                get_atom_index(fragment, fragment_map_indices[0]),
+                get_atom_index(fragment, fragment_map_indices[1]),
             ),
         )
         valence_groups = [*group_valence_by_symmetry(fragment, valence_terms).values()]
@@ -434,7 +428,7 @@ class SMIRKSGenerator(SMIRKSettings):
         molecule: Molecule,
         smirks_type: SMIRKSType,
         torsion_bond: Optional[Tuple[int, int]] = None,
-    ) -> Sequence[Tuple[int, ...]]:
+    ) -> List[Tuple[int, ...]]:
         if smirks_type == SMIRKSType.Vdw:
             return [(i,) for i in range(molecule.n_atoms)]
 

@@ -4,9 +4,9 @@ from typing import List, Tuple
 
 import pytest
 from openff.fragmenter.utils import get_atom_index
+from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
     ForceField,
-    Molecule,
     ProperTorsionHandler,
     vdWHandler,
 )

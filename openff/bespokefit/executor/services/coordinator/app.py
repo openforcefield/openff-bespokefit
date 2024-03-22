@@ -73,27 +73,23 @@ def get_optimizations(
             f"&limit={limit}"
             f"{status_url}"
         ),
-        prev=(
-            None
-            if prev_index >= skip
-            else (
-                f"{__settings.BEFLOW_API_V1_STR}/"
-                f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
-                f"?skip={prev_index}"
-                f"&limit={limit}"
-                f"{status_url}"
-            )
+        prev=None
+        if prev_index >= skip
+        else (
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+            f"?skip={prev_index}"
+            f"&limit={limit}"
+            f"{status_url}"
         ),
-        next=(
-            None
-            if (next_index <= skip or next_index == n_total_tasks)
-            else (
-                f"{__settings.BEFLOW_API_V1_STR}/"
-                f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
-                f"?skip={next_index}"
-                f"&limit={limit}"
-                f"{status_url}"
-            )
+        next=None
+        if (next_index <= skip or next_index == n_total_tasks)
+        else (
+            f"{__settings.BEFLOW_API_V1_STR}/"
+            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+            f"?skip={next_index}"
+            f"&limit={limit}"
+            f"{status_url}"
         ),
         contents=contents,
     )

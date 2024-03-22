@@ -1,5 +1,4 @@
 """"""
-
 import os
 import shutil
 import tempfile
@@ -27,7 +26,7 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
         directory with that name will be created.
     """
     # Normalize path to a pathlib Path
-    path_: Optional[Path] = None if path is None else Path(path)
+    path: Optional[Path] = None if path is None else Path(path)
 
     # Decide whether to clean up based on bespokefit settings
     settings = current_settings()
@@ -36,11 +35,11 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
     )
 
     # If a path is not given, create a temporary directory
-    if path_ is None:
-        path_ = Path(tempfile.mkdtemp(dir="."))
+    if path is None:
+        path = Path(tempfile.mkdtemp(dir="."))
     # If a path is given but does not already exist, create it
-    elif not path_.exists():
-        path_.mkdir(parents=True)
+    elif not path.exists():
+        path.mkdir(parents=True)
     # If we didn't create the path, do NOT clean it up
     else:
         cleanup = False
@@ -48,11 +47,11 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
     old_directory = os.getcwd()
 
     try:
-        os.chdir(path_)
+        os.chdir(path)
         yield
 
     finally:
         os.chdir(old_directory)
         # If we created the directory, clean it up
         if cleanup:
-            shutil.rmtree(path_)
+            shutil.rmtree(path)

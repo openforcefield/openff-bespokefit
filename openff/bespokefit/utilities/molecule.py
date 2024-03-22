@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from openff.toolkit.topology import Molecule
 from openff.toolkit.topology.molecule import Bond
@@ -117,7 +117,7 @@ def canonical_order_atoms(molecule: Molecule):
 
 def get_torsion_indices(
     molecule: Molecule, central_bond: Optional[Tuple[int, int]] = None
-) -> Sequence[Tuple[int, int, int, int]]:
+) -> List[Tuple[int, int, int, int]]:
     """Returns the indices of all torsions in a molecule, optionally returning only
     those that involve a specified central bond.
 
@@ -134,9 +134,8 @@ def get_torsion_indices(
     torsions = []
 
     if central_bond is not None:
-        central_bond: Tuple[int, int]  # type: ignore[no-redef]
-        _central_bond: Bond = molecule.get_bond_between(*central_bond)
-        atom_b, atom_c = _central_bond.atom1, _central_bond.atom2
+        central_bond: Bond = molecule.get_bond_between(*central_bond)
+        atom_b, atom_c = central_bond.atom1, central_bond.atom2
 
         target_torsions = [
             (
@@ -161,7 +160,7 @@ def get_torsion_indices(
 
 
 def group_valence_by_symmetry(
-    molecule: Molecule, valence_terms: Sequence[Tuple[int, ...]]
+    molecule: Molecule, valence_terms: List[Tuple[int, ...]]
 ) -> Dict[Tuple[int, ...], List[Tuple[int, ...]]]:
     """Group the a set of valence terms by symmetry groups.
 

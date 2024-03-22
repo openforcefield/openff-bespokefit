@@ -6,7 +6,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 
 import numpy as np
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
     AngleHandler,
     BondHandler,
@@ -19,8 +19,6 @@ from openff.toolkit.typing.engines.smirnoff import (
 from openff.toolkit.utils.exceptions import ParameterLookupError
 
 if TYPE_CHECKING:
-    from openff.toolkit.typing.engines.smirnoff import ParameterList
-
     from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
 
 _PARAMETER_TYPE_TO_HANDLER = {
@@ -77,10 +75,10 @@ class ForceFieldEditor:
             vdWHandler.vdWType: "n",
         }
 
-        parameters_by_handler: dict[str, ParameterList] = dict()
+        parameters_by_handler = dict()
 
         for parameter in parameters:
-            handler_type: str = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
+            handler_type = _PARAMETER_TYPE_TO_HANDLER[parameter.__class__]
             parameters_by_handler.setdefault(handler_type, []).append(parameter)
 
         added_parameters = []

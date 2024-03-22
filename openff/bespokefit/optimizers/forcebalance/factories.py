@@ -369,13 +369,10 @@ class TorsionProfileTargetFactory(
         # noinspection PyTypeChecker
         super(TorsionProfileTargetFactory, cls)._generate_target(target, qc_records)
 
-        qc_record, _ = qc_records[0]
+        qc_record, off_molecule = qc_records[0]
 
         if isinstance(qc_record, TorsiondriveRecord):
-            grid_energies: dict[
-                tuple[Union[int, float]],
-                float,
-            ] = qc_record.final_energies
+            grid_energies = qc_record.final_energies
 
             metadata = qc_record.specification.optimization_specification.keywords
             metadata["dihedrals"] = qc_record.specification.keywords.dihedrals

@@ -459,11 +459,9 @@ class BespokeWorkflowFactory(ClassBase):
                 # lower to hit the cache more often
                 model=Model(
                     method=default_qc_spec.method.lower(),
-                    basis=(
-                        default_qc_spec.basis.lower()
-                        if default_qc_spec.basis is not None
-                        else default_qc_spec.basis
-                    ),
+                    basis=default_qc_spec.basis.lower()
+                    if default_qc_spec.basis is not None
+                    else default_qc_spec.basis,
                 ),
             )
             # only overwrite with general settings if not configured

@@ -1,7 +1,4 @@
-from typing import Union
-
 import pytest
-import qcelemental
 import qcportal
 from qcelemental.models.common_models import Model
 
@@ -144,14 +141,13 @@ class TestCheckConnectivity:
         # Get the first of the final molecules, and prepare an update function so
         # that changes are preserved across calls to get_final_molecule(s)()
 
-        def modify_molecule(molecule: qcelemental.models.molecule.Molecule):
+        def modify_molecule(molecule):
             pass
 
         if isinstance(record, qcportal.torsiondrive.TorsiondriveRecord):
-            final_records: dict[
-                tuple[Union[int, float]],
-                qcportal.optimization.OptimizationRecord,
-            ] = {key: val for key, val in record.minimum_optimizations_cache_.items()}
+            final_records = {
+                key: val for key, val in record.minimum_optimizations_cache_.items()
+            }
 
             for _record in final_records.values():
                 pos0 = _record.final_molecule.geometry[0]
