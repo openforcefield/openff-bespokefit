@@ -1,6 +1,0 @@
-from openff.fragmenter.fragment import BondTuple as BondTuple, FragmentationResult as FragmentationResult
-from openff.toolkit.topology import Molecule as Molecule
-from typing import Dict
-
-def depict_fragmentation_result(result: FragmentationResult, output_file: str): ...
-def depict_fragments(parent: Molecule, fragments: Dict[BondTuple, Molecule], output_file: str): ...

@@ -1,6 +1,0 @@
-from ..molutil import guess_connectivity as guess_connectivity
-from ..physical_constants import constants as constants
-from typing import Dict, Tuple, Union
-
-def to_string(molrec: Dict, dtype: str, units: str = None, *, atom_format: str = None, ghost_format: str = None, width: int = 17, prec: int = 12, return_data: bool = False) -> Union[str, Tuple[str, Dict]]: ...
-def formula_generator(elem): ...

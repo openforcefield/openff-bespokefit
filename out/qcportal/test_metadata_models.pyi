@@ -1,3 +1,0 @@
-from qcportal.metadata_models import InsertMetadata as InsertMetadata
-
-def test_insert_metadata_merge() -> None: ...
