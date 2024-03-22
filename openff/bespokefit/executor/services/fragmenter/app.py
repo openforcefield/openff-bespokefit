@@ -1,4 +1,5 @@
 """Framgentation app."""
+
 import json
 
 from fastapi import APIRouter

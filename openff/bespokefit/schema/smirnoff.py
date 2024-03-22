@@ -1,4 +1,5 @@
 """Schema for SMIRNOFF parameters."""
+
 import abc
 from typing import Literal, Union
 

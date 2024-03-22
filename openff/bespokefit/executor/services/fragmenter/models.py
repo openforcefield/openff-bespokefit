@@ -1,4 +1,5 @@
 """Mels for fragmenter steps."""
+
 from typing import Optional, Union
 
 from openff.fragmenter.fragment import (

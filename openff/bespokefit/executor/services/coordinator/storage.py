@@ -1,4 +1,5 @@
 """Storage for coordinators."""
+
 import pickle
 from enum import Enum
 from typing import Optional, Union

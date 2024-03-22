@@ -1,4 +1,5 @@
 """Factories for generating ForceBalance inputs."""
+
 import abc
 import copy
 import json

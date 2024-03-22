@@ -1,4 +1,5 @@
 """The optimizer service."""
+
 import json
 
 from fastapi import APIRouter

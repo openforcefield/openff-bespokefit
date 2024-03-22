@@ -1,4 +1,5 @@
 """Functions for submissions."""
+
 import os.path
 from typing import TYPE_CHECKING, Optional
 

@@ -1,4 +1,5 @@
 """The qc generation app."""
+
 import json
 from typing import Optional, Union
 

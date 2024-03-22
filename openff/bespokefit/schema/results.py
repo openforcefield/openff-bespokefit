@@ -1,4 +1,5 @@
 """Schema for results."""
+
 import abc
 from typing import Any, Literal, Optional
 

@@ -1,4 +1,5 @@
 """Register new fragmentation methods with bespokefit."""
+
 from typing import Union
 
 from openff.fragmenter.fragment import Fragmenter, PfizerFragmenter, WBOFragmenter

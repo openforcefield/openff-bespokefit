@@ -1,4 +1,5 @@
 """Host of `watch` command in CLI."""
+
 import click
 import click.exceptions
 import rich

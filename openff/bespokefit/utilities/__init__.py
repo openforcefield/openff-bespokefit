@@ -1,4 +1,5 @@
 """Tools, methods and types used throughout BespokeFit."""
+
 from openff.bespokefit.utilities._settings import Settings
 
 

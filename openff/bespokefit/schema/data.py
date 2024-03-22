@@ -1,4 +1,5 @@
 """Schema for data classes."""
+
 from typing import Generic, Literal, TypeVar, overload
 
 import numpy as np
@@ -111,24 +112,21 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     def from_remote_records(
         cls,
         qc_records: list[tuple[TorsionDriveRecord, Molecule]],
-    ) -> "LocalQCData[TorsionDriveResult]":
-        ...
+    ) -> "LocalQCData[TorsionDriveResult]": ...
 
     @classmethod
     @overload
     def from_remote_records(
         cls,
         qc_records: list[tuple[OptimizationRecord, Molecule]],
-    ) -> "LocalQCData[OptimizationResult]":
-        ...
+    ) -> "LocalQCData[OptimizationResult]": ...
 
     @classmethod
     @overload
     def from_remote_records(
         cls,
         qc_records: list[tuple[ResultRecord, Molecule]],
-    ) -> "LocalQCData[AtomicResult]":
-        ...
+    ) -> "LocalQCData[AtomicResult]": ...
 
     @classmethod
     def from_remote_records(cls, qc_records):

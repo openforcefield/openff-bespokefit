@@ -1,4 +1,5 @@
 """Utilities for coordinator service."""
+
 import hashlib
 from typing import Optional
 

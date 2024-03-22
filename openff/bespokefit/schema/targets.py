@@ -1,4 +1,5 @@
 """Schema for fitting targets."""
+
 import abc
 from typing import Any, Literal, Optional, TypeVar, Union
 

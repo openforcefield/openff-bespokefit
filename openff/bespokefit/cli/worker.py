@@ -1,4 +1,5 @@
 """Host of `launch-worker` CLI command."""
+
 import importlib
 
 import click

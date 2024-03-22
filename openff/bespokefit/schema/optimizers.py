@@ -1,4 +1,5 @@
 """Schema for optimizers."""
+
 import abc
 from typing import Literal, Union
 

@@ -1,4 +1,5 @@
 """Host of `run` command in CLI."""
+
 from typing import Optional
 
 import click
@@ -76,12 +77,12 @@ def _run_cli(
         with handle_common_errors(console) as error_state:
             response_id = _submit(
                 console=console,
-                input_file_path=[input_file_path]
-                if input_file_path is not None
-                else [],
-                molecule_smiles=[molecule_smiles]
-                if molecule_smiles is not None
-                else [],
+                input_file_path=(
+                    [input_file_path] if input_file_path is not None else []
+                ),
+                molecule_smiles=(
+                    [molecule_smiles] if molecule_smiles is not None else []
+                ),
                 force_field_path=force_field_path,
                 target_torsion_smirks=target_torsion_smirks,
                 default_qc_spec=default_qc_spec,

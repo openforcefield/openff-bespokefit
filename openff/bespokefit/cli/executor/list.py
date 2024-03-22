@@ -1,4 +1,5 @@
 """Host of `list` command in CLI."""
+
 from typing import get_args
 
 import click

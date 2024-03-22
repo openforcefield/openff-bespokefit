@@ -1,4 +1,5 @@
 """Templates for ForceBalance targets and options."""
+
 import abc
 import os
 from typing import Generic, TypeVar

@@ -1,4 +1,5 @@
 """QC generation caching."""
+
 import hashlib
 from typing import TypeVar, Union
 

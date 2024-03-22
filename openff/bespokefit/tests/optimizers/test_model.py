@@ -1,6 +1,7 @@
 """
 Unit test ability to add and remove new optimizers as well as the various optimizer classes.
 """
+
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
 

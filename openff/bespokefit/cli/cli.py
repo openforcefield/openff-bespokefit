@@ -1,4 +1,5 @@
 """BespokeFit CLI."""
+
 import click
 
 from openff.bespokefit.cli.cache import cache_cli

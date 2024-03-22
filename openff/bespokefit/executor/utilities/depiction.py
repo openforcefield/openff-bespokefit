@@ -1,4 +1,5 @@
 """Utilities for molecule depiction."""
+
 import functools
 from typing import Optional
 

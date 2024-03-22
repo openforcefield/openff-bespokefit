@@ -1,4 +1,5 @@
 """Host of `prepare` option in CLI."""
+
 import json
 
 import click

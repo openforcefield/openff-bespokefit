@@ -1,4 +1,5 @@
 """Utilities for mocking celery tasks."""
+
 from collections import namedtuple
 from types import ModuleType
 from typing import Any, Optional

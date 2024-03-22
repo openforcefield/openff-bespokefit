@@ -1,4 +1,5 @@
 """QC generation worker."""
+
 import logging
 from typing import Any
 

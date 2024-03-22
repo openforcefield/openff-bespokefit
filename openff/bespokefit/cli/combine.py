@@ -1,4 +1,5 @@
 """Host of `combine` option in CLI."""
+
 import copy
 from typing import Optional
 

@@ -1,4 +1,5 @@
 """Host of `cache` option in CLI."""
+
 import datetime
 import hashlib
 import json

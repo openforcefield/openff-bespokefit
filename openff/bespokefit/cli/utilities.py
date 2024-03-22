@@ -1,4 +1,5 @@
 """Miscellaneous CLI utilities."""
+
 from typing import TYPE_CHECKING, Any, Callable
 
 import click

@@ -1,4 +1,5 @@
 """Optimization worker."""
+
 from typing import Union
 
 from pydantic import parse_raw_as

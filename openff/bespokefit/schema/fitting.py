@@ -1,4 +1,5 @@
 """Schema for fititing steps."""
+
 import abc
 from typing import Literal, Optional
 

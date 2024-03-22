@@ -1,4 +1,5 @@
 """Utilities for parallel execution."""
+
 from multiprocessing import Pool
 from typing import Optional
 

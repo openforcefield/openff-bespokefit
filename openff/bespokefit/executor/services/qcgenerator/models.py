@@ -1,4 +1,5 @@
 """Models used in qc generation."""
+
 from typing import Literal, Optional, Union
 
 from pydantic import Field

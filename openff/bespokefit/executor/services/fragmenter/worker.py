@@ -1,4 +1,5 @@
 """Fragmentation worker."""
+
 from typing import Optional, Union
 
 from openff.fragmenter.fragment import (

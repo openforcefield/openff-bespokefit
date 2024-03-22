@@ -12,7 +12,7 @@ repos:
   hooks:
   - id: add-trailing-comma
 - repo: https://github.com/psf/black
-  rev: 23.12.1
+  rev: 24.3.0
   hooks:
   - id: black
     files: ^openff
@@ -27,7 +27,7 @@ repos:
   - id: flake8
     files: ^openff
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.15.0
+  rev: v3.15.1
   hooks:
   - id: pyupgrade
     files: ^openff

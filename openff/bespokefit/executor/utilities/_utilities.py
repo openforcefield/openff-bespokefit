@@ -1,4 +1,5 @@
 """Error handling in exeuctor."""
+
 from contextlib import contextmanager
 from typing import Optional
 

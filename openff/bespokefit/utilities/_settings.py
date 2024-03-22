@@ -90,12 +90,16 @@ class Settings(BaseSettings):
         """Return the settings of this fragmentation worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
-            n_cores=None
-            if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM
+            ),
         )
 
     @property
@@ -103,12 +107,16 @@ class Settings(BaseSettings):
         """Return the settings of this qc computer worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
-            n_cores=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM
+            ),
         )
 
     @property
@@ -116,12 +124,16 @@ class Settings(BaseSettings):
         """Return the settings of this optimizer worker."""
         return WorkerSettings(
             import_path=self.BEFLOW_OPTIMIZER_WORKER,
-            n_cores=None
-            if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM
+            ),
         )
 
     @contextmanager

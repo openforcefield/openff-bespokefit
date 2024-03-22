@@ -1,4 +1,5 @@
 """Utilities for interacting with redis."""
+
 import atexit
 import functools
 import os

@@ -1,4 +1,5 @@
 """Models used in executor services."""
+
 from typing import Generic, Optional, TypeVar
 
 import numpy as np
