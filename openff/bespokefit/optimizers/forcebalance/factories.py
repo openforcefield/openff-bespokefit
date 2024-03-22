@@ -385,7 +385,7 @@ class TorsionProfileTargetFactory(
                 for key, value in qc_record.final_energies.items()
             }
             metadata = qc_record.optimization_spec.keywords
-            metadata["dihedrals"] = qc_record.optimization_spec.keywords["dihedrals"]
+            metadata["dihedrals"] = qc_record.keywords.dihedrals
 
         else:
             raise NotImplementedError()
