@@ -70,7 +70,7 @@ jobs:
           micromamba list
 
       - name: Run Tests
-        run: python -m pytest -n logical openff/bespokefit/_tests/
+        run: python -m pytest openff/bespokefit/_tests/
 
       - name: Codecov
         uses: codecov/codecov-action@v4
