@@ -6,7 +6,7 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.toolkit import Molecule
+from openff.toolkit.topology import Molecule
 from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult

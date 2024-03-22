@@ -1,5 +1,4 @@
 """A set of common utilities and types useful for building pydantic models."""
-
 import numpy
 
 try:

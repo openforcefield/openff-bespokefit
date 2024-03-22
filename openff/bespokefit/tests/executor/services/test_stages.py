@@ -1,5 +1,5 @@
 import pytest
-from openff.toolkit import ForceField
+from openff.toolkit.typing.engines.smirnoff import ForceField
 
 from openff.bespokefit.executor.services.coordinator.stages import QCGenerationStage
 

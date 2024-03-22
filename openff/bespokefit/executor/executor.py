@@ -13,7 +13,7 @@ from typing import List, Optional, Type, TypeVar, Union
 import celery
 import requests
 import rich
-from openff.toolkit import ForceField
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from rich.padding import Padding
 from typing_extensions import Literal
 

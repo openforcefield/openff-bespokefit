@@ -14,8 +14,8 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.toolkit import ForceField
-from openff.toolkit import Molecule as OFFMolecule
+from openff.toolkit.topology import Molecule as OFFMolecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
@@ -481,10 +481,10 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         )
 
         try:
-            # qcportal.record_models.BaseRecord
+            # this is a qcportal.record_models.BaseRecord
             driver = qc_record.specification.driver.value
         except AttributeError:
-            # qcelemental.models.results.AtomicResult
+            # or a qcelemental.models.results.AtomicResult
             driver = qc_record.driver.value
 
         if driver != "hessian" or qc_record.return_result is None:

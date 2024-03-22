@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from openff.toolkit import ForceField, Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField, Molecule
 from openff.utilities import skip_if_missing, temporary_cd
 from qcelemental.models.procedures import TorsionDriveResult
 
@@ -145,8 +145,7 @@ def test_generate_torsion_target(result_fixture, request):
 
     with temporary_cd():
         TorsionProfileTargetFactory._generate_target(
-            target=TorsionProfileTargetSchema(),
-            qc_records=[qc_torsion_drive_record],
+            TorsionProfileTargetSchema(), qc_records=[qc_torsion_drive_record]
         )
 
         assert os.path.isfile("scan.xyz")

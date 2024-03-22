@@ -1,5 +1,5 @@
 import pytest
-from openff.toolkit import Molecule
+from openff.toolkit.topology import Molecule
 from qcelemental.models.common_models import DriverEnum, Model
 from qcelemental.models.procedures import (
     OptimizationSpecification,

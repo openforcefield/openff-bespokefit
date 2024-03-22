@@ -23,7 +23,7 @@ celery_app = configure_celery_app("optimizer", connect_to_default_redis(validate
 
 @celery_app.task(bind=True, acks_late=True)
 def optimize(self, optimization_input_json: str) -> str:
-    from openff.toolkit import ForceField
+    from openff.toolkit.typing.engines.smirnoff import ForceField
 
     settings = current_settings()
 

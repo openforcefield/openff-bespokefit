@@ -11,6 +11,7 @@ from rich.padding import Padding
 from rich.progress import track
 from rich.table import Table
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,
@@ -19,11 +20,9 @@ from openff.bespokefit.cli.utilities import (
 from openff.bespokefit.executor.utilities import handle_common_errors
 
 if TYPE_CHECKING:
-    from openff.toolkit import Molecule
+    from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-
-from openff.bespokefit._pydantic import ValidationError
 
 
 # The run command inherits these options so be sure to take that into account when
@@ -199,7 +198,7 @@ def _submit(
     allow_multiple_molecules: bool,
     save_submission: bool,
 ) -> List[str]:
-    from openff.toolkit import Molecule
+    from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
 

@@ -19,7 +19,7 @@ _STATUS_STRINGS = {
 
 
 def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "Status"]:
-    from openff.toolkit import Molecule
+    from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor
     from openff.bespokefit.executor.utilities import handle_common_errors

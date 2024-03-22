@@ -15,7 +15,7 @@ from openff.qcsubmit.results import (
     TorsionDriveResult,
     TorsionDriveResultCollection,
 )
-from openff.toolkit import ForceField, Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField, Molecule
 from openff.utilities import get_data_file_path
 from qcelemental.models import AtomicResult, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
@@ -157,7 +157,7 @@ def qc_torsion_drive_qce_result(
             ),
         },
         input_specification=QCInputSpecification(
-            driver=DriverEnum.gradient,  # qc_spec.driver,
+            driver=DriverEnum.gradient,
             model=Model(
                 method=qc_spec.method,
                 basis=qc_spec.basis,
@@ -248,7 +248,7 @@ def qc_optimization_qce_result(
             ),
         },
         input_specification=QCInputSpecification(
-            driver=DriverEnum.gradient,  # qc_spec.driver,
+            driver=DriverEnum.gradient,
             model=Model(method=qc_spec.method, basis=qc_spec.basis),
         ),
         initial_molecule=molecule.to_qcschema(),

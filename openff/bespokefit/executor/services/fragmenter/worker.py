@@ -23,7 +23,7 @@ celery_app = configure_celery_app(
 def fragment(
     cmiles: str, fragmenter_json: str, target_bond_smarts: Optional[List[str]]
 ) -> str:
-    from openff.toolkit import Molecule
+    from openff.toolkit.topology import Molecule
 
     molecule: Molecule = Molecule.from_mapped_smiles(cmiles)
 

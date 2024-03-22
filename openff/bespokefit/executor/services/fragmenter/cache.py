@@ -1,7 +1,7 @@
 import hashlib
 
 import redis
-from openff.toolkit import Molecule
+from openff.toolkit.topology import Molecule
 
 from openff.bespokefit.executor.services.fragmenter import worker
 from openff.bespokefit.executor.services.fragmenter.models import FragmenterPOSTBody

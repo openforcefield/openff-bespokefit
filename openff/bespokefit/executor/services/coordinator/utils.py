@@ -2,7 +2,7 @@ import hashlib
 from typing import Optional
 
 import redis
-from openff.toolkit import ForceField
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.toolkit.utils.exceptions import ParameterLookupError
 
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema

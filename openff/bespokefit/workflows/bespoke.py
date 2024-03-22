@@ -2,7 +2,6 @@
 This is the main bespokefit workflow factory which is executed and builds the bespoke
 workflows.
 """
-
 import hashlib
 import logging
 import os
@@ -18,7 +17,7 @@ from openff.qcsubmit.results import (
 )
 from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
-from openff.toolkit import ForceField, Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField, Molecule
 from qcelemental.models.common_models import Model
 from qcportal.optimization import OptimizationRecord
 from qcportal.torsiondrive import TorsiondriveRecord
