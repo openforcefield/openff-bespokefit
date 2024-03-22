@@ -2,7 +2,8 @@ import abc
 from typing import Dict, List, Optional
 
 from openff.fragmenter.fragment import WBOFragmenter
-from openff.toolkit.typing.engines.smirnoff import ForceField, Molecule
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from typing_extensions import Literal
 

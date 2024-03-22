@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Generic, List, Sequence, Tuple, TypeVar, Union
 
-import numpy
 import numpy as np
 from openff.qcsubmit.results import (
     BasicResultCollection,
@@ -509,7 +508,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         # Compute the mass-weighted hessian
         invert_sqrt_mass_array_repeat = 1.0 / np.sqrt(masses.repeat(3))
 
-        hessian = numpy.asarray(qc_record.return_result).reshape(
+        hessian = np.asarray(qc_record.return_result).reshape(
             (len(masses) * 3, len(masses) * 3)
         )
 

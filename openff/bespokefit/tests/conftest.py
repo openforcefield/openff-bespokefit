@@ -15,7 +15,8 @@ from openff.qcsubmit.results import (
     TorsionDriveResult,
     TorsionDriveResultCollection,
 )
-from openff.toolkit.typing.engines.smirnoff import ForceField, Molecule
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path
 from qcelemental.models import AtomicResult, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
@@ -114,7 +115,7 @@ def qc_torsion_drive_record() -> Tuple[TorsiondriveRecord, Molecule]:
 
 @pytest.fixture()
 def qc_torsion_drive_results(
-    qc_torsion_drive_record: TorsiondriveRecord, monkeypatch
+    qc_torsion_drive_record, monkeypatch
 ) -> TorsionDriveResultCollection:
     _, molecule = qc_torsion_drive_record
 
@@ -141,7 +142,7 @@ def qc_torsion_drive_results(
 
 @pytest.fixture()
 def qc_torsion_drive_qce_result(
-    qc_torsion_drive_record: TorsiondriveRecord,
+    qc_torsion_drive_record,
 ) -> Tuple[QCTorsionDriveResult, Molecule]:
     # This record seems to have its driver set to 'deferred' ?
     qc_record, molecule = qc_torsion_drive_record

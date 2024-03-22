@@ -146,7 +146,7 @@ def test_generate_torsion_target(result_fixture, request):
 
     with temporary_cd():
         TorsionProfileTargetFactory._generate_target(
-            TorsionProfileTargetSchema(), qc_records=[qc_torsion_drive_record]
+            TorsionProfileTargetSchema(), [qc_torsion_drive_record]
         )
 
         assert os.path.isfile("scan.xyz")

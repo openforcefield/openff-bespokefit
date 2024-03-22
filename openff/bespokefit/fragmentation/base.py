@@ -1,7 +1,6 @@
 """
 Register new fragmentation methods with bespokefit
 """
-
 from typing import Dict, List, Type, Union
 
 from openff.fragmenter.fragment import Fragmenter, PfizerFragmenter, WBOFragmenter

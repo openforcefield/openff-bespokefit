@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from openff.toolkit.topology import Molecule
-from openff.toolkit.topology.molecule import Bond
 from openff.toolkit.utils.exceptions import ToolkitUnavailableException
 
 
@@ -134,7 +133,7 @@ def get_torsion_indices(
     torsions = []
 
     if central_bond is not None:
-        central_bond: Bond = molecule.get_bond_between(*central_bond)
+        central_bond = molecule.get_bond_between(*central_bond)
         atom_b, atom_c = central_bond.atom1, central_bond.atom2
 
         target_torsions = [
