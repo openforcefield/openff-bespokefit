@@ -85,15 +85,18 @@ class Torsion1DTask(Torsion1DTaskSpec):
 
 
 @overload
-def task_from_result(result: AtomicResult) -> HessianTask: ...
+def task_from_result(result: AtomicResult) -> HessianTask:
+    ...
 
 
 @overload
-def task_from_result(result: OptimizationResult) -> OptimizationTask: ...
+def task_from_result(result: OptimizationResult) -> OptimizationTask:
+    ...
 
 
 @overload
-def task_from_result(result: TorsionDriveResult) -> Torsion1DTask: ...
+def task_from_result(result: TorsionDriveResult) -> Torsion1DTask:
+    ...
 
 
 def task_from_result(result):

@@ -104,19 +104,22 @@ class LocalQCData(GenericModel, Generic[QCDataType]):
     @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[TorsiondriveRecord, Molecule]]
-    ) -> "LocalQCData[TorsionDriveResult]": ...
+    ) -> "LocalQCData[TorsionDriveResult]":
+        ...
 
     @classmethod
     @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[OptimizationRecord, Molecule]]
-    ) -> "LocalQCData[OptimizationResult]": ...
+    ) -> "LocalQCData[OptimizationResult]":
+        ...
 
     @classmethod
     @overload
     def from_remote_records(
         cls, qc_records: List[Tuple[BaseRecord, Molecule]]
-    ) -> "LocalQCData[AtomicResult]": ...
+    ) -> "LocalQCData[AtomicResult]":
+        ...
 
     @classmethod
     def from_remote_records(cls, qc_records):

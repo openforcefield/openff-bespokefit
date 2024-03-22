@@ -10,7 +10,6 @@ import rich
 from openff.toolkit import Molecule
 from openff.utilities import get_data_file_path
 
-from openff.bespokefit._tests import does_not_raise
 from openff.bespokefit.cli.executor.submit import (
     _submit,
     _submit_cli,
@@ -22,6 +21,7 @@ from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorPOSTResponse,
 )
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.workflows import BespokeWorkflowFactory
 
 

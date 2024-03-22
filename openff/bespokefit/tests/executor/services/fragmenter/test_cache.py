@@ -1,11 +1,11 @@
 from openff.fragmenter.fragment import WBOFragmenter
 
-from openff.bespokefit._tests.executor.mocking.celery import mock_celery_task
 from openff.bespokefit.executor.services.fragmenter import worker
 from openff.bespokefit.executor.services.fragmenter.cache import (
     cached_fragmentation_task,
 )
 from openff.bespokefit.executor.services.fragmenter.models import FragmenterPOSTBody
+from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 def test_cached_fragmentation_task(fragmenter_client, redis_connection, monkeypatch):

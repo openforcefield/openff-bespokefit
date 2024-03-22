@@ -4,13 +4,13 @@ import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
-from openff.bespokefit._tests.executor import patch_settings
-from openff.bespokefit.executor.services.coordinator import app, worker
+from openff.bespokefit.executor.services.qcgenerator import app, worker
+from openff.bespokefit.tests.executor import patch_settings
 
 
 @pytest.fixture(scope="module")
-def coordinator_client() -> TestClient:
-    mock_app = FastAPI(title="coordinator")
+def qcgenerator_client() -> TestClient:
+    mock_app = FastAPI(title="qcgenerator")
     mock_app.include_router(app.router)
 
     return TestClient(mock_app)
