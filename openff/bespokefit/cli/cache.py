@@ -4,10 +4,11 @@ import datetime
 import hashlib
 import json
 import uuid
-from typing import TYPE_CHECKING, Literal, Union
+from typing import Literal, Union
 
 import click
 import click.exceptions
+import qcportal
 import redis
 import rich
 from click_option_group import optgroup
@@ -35,9 +36,6 @@ from openff.bespokefit.executor.utilities.redis import (
 )
 from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.tasks import task_from_result
-
-if TYPE_CHECKING:
-    import qcportal
 
 
 @click.group("cache")
@@ -238,7 +236,7 @@ def _connect_to_qcfractal(
     console: Console,
     qcf_address: str,
     qcf_config: str | None,
-) -> "qcportal.PortalClient":
+) -> qcportal.PortalClient:
     """Connect to the chosen qcfractal server."""
     import qcportal
 
@@ -269,7 +267,7 @@ def _results_from_client(
     console: Console,
     qcf_dataset_name: str | None,
     qcf_datatype: Literal["torsion", "optimization", "hessian"],
-    client: "qcportal.PortalClient",
+    client: qcportal.PortalClient,
     qcf_specification: str,
 ) -> TorsionDriveResultCollection | OptimizationResultCollection:
     """Connect to qcfractal and create a qcsubmit results object."""

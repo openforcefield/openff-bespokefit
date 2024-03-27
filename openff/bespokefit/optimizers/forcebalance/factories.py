@@ -10,7 +10,7 @@ import logging
 import os
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, TypeVar, Union
+from typing import Generic, TypeVar, Union
 
 import numpy as np
 from openff.qcsubmit.results import (
@@ -22,6 +22,7 @@ from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from qcelemental.models import AtomicResult
+from qcelemental.models import Molecule as QCMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcportal.optimization import OptimizationRecord
 from qcportal.record_models import BaseRecord
@@ -47,9 +48,6 @@ from openff.bespokefit.schema.targets import (
     VibrationTargetSchema,
 )
 from openff.bespokefit.utilities.tempcd import temporary_cd
-
-if TYPE_CHECKING:
-    from qcelemental.models import Molecule as QCMolecule
 
 _logger = logging.getLogger(__name__)
 
