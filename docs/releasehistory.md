@@ -9,7 +9,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
-## 0.3.0 / DD-MM-2024
+## 0.3.0 / 27-03-2024
 
 ### New Features
 * [#280] - Adds support for QCFractal 0.50 and newer [@mattwthompson] [@j-wags] [@ntBre]
