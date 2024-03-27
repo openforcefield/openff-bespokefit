@@ -1,10 +1,9 @@
 import abc
 from typing import Dict, Union
 
-from pydantic import Field, PositiveFloat, PositiveInt
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit._pydantic import Field, PositiveFloat, PositiveInt, SchemaBase
 
 
 class BaseOptimizerSchema(SchemaBase, abc.ABC):

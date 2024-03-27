@@ -7,9 +7,9 @@ from openff.fragmenter.fragment import (
     WBOFragmenter,
     get_atom_index,
 )
-from pydantic import parse_raw_as
 
 import openff.bespokefit
+from openff.bespokefit._pydantic import parse_raw_as
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.utilities.molecule import get_atom_symmetries

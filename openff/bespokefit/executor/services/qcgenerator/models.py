@@ -1,14 +1,13 @@
 from typing import Dict, Optional, Union
 
-from pydantic import Field
 from qcelemental.models import AtomicResult, FailedOperation, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
-from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class QCGeneratorGETResponse(Link):

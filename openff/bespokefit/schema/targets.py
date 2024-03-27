@@ -7,20 +7,19 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.toolkit.topology import Molecule
-from pydantic import Field, PositiveFloat, validator
 from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import Field, PositiveFloat, SchemaBase, validator
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
     OptimizationTaskSpec,
     Torsion1DTaskSpec,
 )
-from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
 def _check_connectivity(
@@ -133,12 +132,13 @@ def _validate_connectivity(
 
     elif hasattr(ref_data, "to_records"):
         for qc_record, fragment in ref_data.to_records():
-            # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
-            # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
             try:
-                final_molecules = qc_record.get_final_molecules()
+                final_molecules = {"opt": qc_record.final_molecule}
             except AttributeError:
-                final_molecules = {"opt": qc_record.get_final_molecule()}
+                final_molecules = {
+                    key: val.final_molecule
+                    for key, val in qc_record.minimum_optimizations.items()
+                }
 
             for name, qcschema in final_molecules.items():
                 _check_connectivity(qcschema, name, fragment)

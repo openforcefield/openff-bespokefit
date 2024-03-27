@@ -1,6 +1,6 @@
 import pytest
-from pydantic import ValidationError
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.schema.smirnoff import (
     AngleSMIRKS,
     BondSMIRKS,

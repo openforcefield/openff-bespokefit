@@ -3,16 +3,15 @@ from typing import Any, Dict, List, Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
-from pydantic import Field
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import Field, SchemaBase
 from openff.bespokefit.schema import Error, Status
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
 )
 from openff.bespokefit.schema.smirnoff import BaseSMIRKSParameter
-from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
 class OptimizationStageResults(SchemaBase, abc.ABC):

@@ -8,16 +8,15 @@ from openff.fragmenter.utils import get_atom_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
-from pydantic import Field
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import Field, SchemaBase
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
 from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
