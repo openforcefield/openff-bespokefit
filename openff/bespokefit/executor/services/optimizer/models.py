@@ -1,14 +1,10 @@
 """Models for optimizers."""
 
-from typing import Optional
-
-from pydantic import Field
-
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services.models import Link
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class OptimizerGETResponse(Link):
@@ -16,12 +12,12 @@ class OptimizerGETResponse(Link):
 
     status: Status = Field("waiting", description="The status of the optimization.")
 
-    result: Optional[BespokeOptimizationResults] = Field(
+    result: BespokeOptimizationResults | None = Field(
         ...,
         description="The result of the optimization if any was produced.",
     )
 
-    error: Optional[str] = Field(
+    error: str | None = Field(
         ...,
         description="The error raised while optimizing if any.",
     )

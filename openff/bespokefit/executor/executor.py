@@ -10,15 +10,16 @@ import shutil
 import subprocess
 import time
 from tempfile import mkdtemp
-from typing import Literal, Optional, TypeVar, Union
+from typing import Literal, TypeVar
 
 import celery
 import requests
 import rich
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import Field
+from rich.console import Console
 from rich.padding import Padding
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import Settings, current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
     CoordinatorGETResponse,
@@ -33,7 +34,6 @@ from openff.bespokefit.executor.utilities.redis import is_redis_available, launc
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.tempcd import temporary_cd
 
 _T = TypeVar("_T")
@@ -56,12 +56,12 @@ def _coordinator_endpoint():
 class BespokeWorkerConfig(BaseModel):
     """Configuration options for a bespoke executor worker."""
 
-    n_cores: Union[int, Literal["auto"]] = Field(
+    n_cores: int | Literal["auto"] = Field(
         1,
         description="The maximum number of cores to reserve for this worker to "
         "parallelize tasks, such as QC chemical calculations, across.",
     )
-    max_memory: Union[float, Literal["auto"]] = Field(
+    max_memory: float | Literal["auto"] = Field(
         "auto",
         description="A guideline for the total maximum memory in GB **per core** that "
         "is available for this worker. This number may be ignored depending on the "
@@ -76,7 +76,7 @@ class BespokeExecutorStageOutput(BaseModel):
 
     status: Status = Field(..., description="The status of the stage.")
 
-    error: Optional[str] = Field(
+    error: str | None = Field(
         ...,
         description="The error, if any, raised by the stage.",
     )
@@ -95,14 +95,14 @@ class BespokeExecutorOutput(BaseModel):
         ...,
         description="The outputs from each stage in the bespoke fitting process.",
     )
-    results: Optional[BespokeOptimizationResults] = Field(
+    results: BespokeOptimizationResults | None = Field(
         None,
         description="The final result of the bespoke optimization if the full workflow "
         "is finished, or ``None`` otherwise.",
     )
 
     @property
-    def bespoke_force_field(self) -> Optional[ForceField]:
+    def bespoke_force_field(self) -> ForceField | None:
         """The final bespoke force field if the bespoke fitting workflow is complete."""
         if self.results is None or self.results.refit_force_field is None:
             return None
@@ -147,7 +147,7 @@ class BespokeExecutorOutput(BaseModel):
         raise NotImplementedError()
 
     @property
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         """The error that caused the fitting to fail, if any."""
         if self.status != "errored":
             return None
@@ -185,7 +185,7 @@ class BespokeExecutor:
         qc_compute_worker_config: BespokeWorkerConfig = BespokeWorkerConfig(),
         n_optimizer_workers: int = 1,
         optimizer_worker_config: BespokeWorkerConfig = BespokeWorkerConfig(),
-        directory: Optional[str] = "bespoke-executor",
+        directory: str | None = "bespoke-executor",
         launch_redis_if_unavailable: bool = True,
     ):
         """
@@ -230,8 +230,8 @@ class BespokeExecutor:
 
         self._started = False
 
-        self._gateway_process: Optional[multiprocessing.Process] = None
-        self._redis_process: Optional[subprocess.Popen] = None
+        self._gateway_process: multiprocessing.Process | None = None
+        self._redis_process: subprocess.Popen | None = None
 
         self._worker_processes: list[multiprocessing.Process] = []
 
@@ -420,7 +420,7 @@ def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
 def _wait_for_stage(
     optimization_href: str,
     stage_type: str,
-    frequency: Union[int, float] = 5,
+    frequency: int | float = 5,
 ) -> CoordinatorGETStageStatus:
     while True:
         response = _query_coordinator(optimization_href)
@@ -437,8 +437,8 @@ def _wait_for_stage(
 
 def wait_until_complete(
     optimization_id: str,
-    console: Optional["rich.Console"] = None,
-    frequency: Union[int, float] = 5,
+    console: Console | None = None,
+    frequency: int | float = 5,
 ) -> BespokeExecutorOutput:
     """
     Wait for a specified optimization to complete and return the results.

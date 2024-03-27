@@ -4,7 +4,6 @@ Tools for dealing with SMIRNOFF force field manipulation.
 
 import copy
 from enum import Enum
-from typing import TYPE_CHECKING, Union
 
 import numpy as np
 from openff.toolkit import Molecule
@@ -19,8 +18,7 @@ from openff.toolkit.typing.engines.smirnoff import (
 )
 from openff.toolkit.utils.exceptions import ParameterLookupError
 
-if TYPE_CHECKING:
-    from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
+from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter
 
 _PARAMETER_TYPE_TO_HANDLER = {
     vdWHandler.vdWType: "vdW",
@@ -44,7 +42,7 @@ class SMIRKSType(str, Enum):
 class ForceFieldEditor:
     """Edit force fields."""
 
-    def __init__(self, force_field: Union[str, ForceField]):
+    def __init__(self, force_field: str | ForceField):
         """
         Initialize this force field editor.
 
@@ -165,7 +163,7 @@ class ForceFieldEditor:
     def get_initial_parameters(
         self,
         molecule: Molecule,
-        smirks: list["SMIRNOFFParameter"],
+        smirks: list[SMIRNOFFParameter],
     ) -> list[ParameterType]:
         """
         Find the initial parameters assigned to the atoms in the given smirks patterns.

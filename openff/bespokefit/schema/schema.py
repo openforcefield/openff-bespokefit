@@ -1,10 +1,8 @@
 """Schemas."""
 
-from typing import Literal, Optional
+from typing import Literal
 
-from pydantic import Field
-
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field
 
 Status = Literal["waiting", "running", "errored", "success"]
 
@@ -15,7 +13,7 @@ class Error(BaseModel):
     type: str = Field(..., description="The type of exception that was raised.")
     message: str = Field(..., description="The message associated with the exception.")
 
-    traceback: Optional[str] = Field(
+    traceback: str | None = Field(
         None,
         description="The traceback associated with the exception",
     )

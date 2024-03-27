@@ -1,14 +1,14 @@
 """Schema for fititing steps."""
 
 import abc
-from typing import Literal, Optional
+from typing import Literal
 
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
-from pydantic import Field, conlist
 
+from openff.bespokefit._pydantic import Field, SchemaBase, conlist
 from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.schema.optimizers import OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
@@ -17,7 +17,6 @@ from openff.bespokefit.schema.smirnoff import (
     SMIRNOFFParameter,
 )
 from openff.bespokefit.schema.targets import TargetSchema
-from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 
 
@@ -67,7 +66,7 @@ class BaseOptimizationSchema(SchemaBase, abc.ABC):
 
     type: Literal["base"] = "base"
 
-    id: Optional[str] = Field(
+    id: str | None = Field(
         None,
         description="The unique id given to this optimization.",
     )
@@ -128,13 +127,13 @@ class BespokeOptimizationSchema(BaseOptimizationSchema):
         "no bespokefit modifications. Used for internal hashing",
     )
 
-    fragmentation_engine: Optional[FragmentationEngine] = Field(
+    fragmentation_engine: FragmentationEngine | None = Field(
         WBOFragmenter(),
         description="The fragmentation engine that should be used to fragment the "
         "molecule. If no engine is provided the molecules will not be fragmented.",
     )
 
-    target_torsion_smirks: Optional[list[str]] = Field(
+    target_torsion_smirks: list[str] | None = Field(
         ...,
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "

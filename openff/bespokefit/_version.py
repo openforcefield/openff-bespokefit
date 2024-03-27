@@ -16,7 +16,8 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 
 def get_keywords() -> dict[str, str]:
@@ -81,11 +82,11 @@ def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
 def run_command(
     commands: list[str],
     args: list[str],
-    cwd: Optional[str] = None,
+    cwd: str | None = None,
     verbose: bool = False,
     hide_stderr: bool = False,
-    env: Optional[dict[str, str]] = None,
-) -> tuple[Optional[str], Optional[int]]:
+    env: dict[str, str] | None = None,
+) -> tuple[str | None, int | None]:
     """Call the given command(s)."""
     assert isinstance(commands, list)
     process = None
@@ -473,7 +474,7 @@ def render_pep440_branch(pieces: dict[str, Any]) -> str:
     return rendered
 
 
-def pep440_split_post(ver: str) -> tuple[str, Optional[int]]:
+def pep440_split_post(ver: str) -> tuple[str, int | None]:
     """Split pep440 version string at the post-release segment.
 
     Returns the release segments before the post-release and the

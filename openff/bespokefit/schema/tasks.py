@@ -1,16 +1,15 @@
 """Schema for tasks."""
 
 import abc
-from typing import Literal, Optional, overload
+from typing import Literal, overload
 
 from openff.qcsubmit.procedures import GeometricProcedure
 from openff.toolkit.topology import Molecule
-from pydantic import Field, conint
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field, conint
 
 
 class QCGenerationTask(BaseModel, abc.ABC):
@@ -71,7 +70,7 @@ class Torsion1DTaskSpec(QCGenerationTask):
     type: Literal["torsion1d"] = "torsion1d"
 
     grid_spacing: int = Field(15, description="The spacing between grid angles.")
-    scan_range: Optional[tuple[int, int]] = Field(
+    scan_range: tuple[int, int] | None = Field(
         None,
         description="The range of grid angles to scan.",
     )

@@ -2,8 +2,6 @@
 Here we register all optimizers with bespokefit.
 """
 
-from typing import Union
-
 from openff.bespokefit.exceptions import OptimizerError
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceOptimizer
 from openff.bespokefit.optimizers.model import BaseOptimizer
@@ -47,7 +45,7 @@ def register_optimizer(optimizer: type[BaseOptimizer], replace: bool = False) ->
 
 
 def deregister_optimizer(
-    optimizer: Union[BaseOptimizer, type[BaseOptimizer], str],
+    optimizer: BaseOptimizer | type[BaseOptimizer] | str,
 ) -> None:
     """
     Remove an optimizer from the list of valid optimizers.

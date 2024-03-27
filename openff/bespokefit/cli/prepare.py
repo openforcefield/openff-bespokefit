@@ -4,8 +4,8 @@ import json
 
 import click
 from click import ClickException
-from pydantic import ValidationError
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.optimizers import get_optimizer
 from openff.bespokefit.schema.fitting import OptimizationStageSchema
 

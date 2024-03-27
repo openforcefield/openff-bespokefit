@@ -1,7 +1,8 @@
 import pytest
-from pydantic import ValidationError
+import qcportal
 from qcelemental.models.common_models import Model
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.targets import (
     AbInitioTargetSchema,
@@ -53,7 +54,7 @@ class TestCheckConnectivity:
             + TargetSchema.__name__
             + r"\n"
             + r"reference_data\n"
-            + r"  Target record (opt|\[-165\]): Reference data "
+            + r"  Target record .*: Reference data "
             + r"does not match target\.\n"
             + r"Expected mapped SMILES: "
             # This regex for the mapped SMILES is probably extremely fragile;
@@ -136,31 +137,31 @@ class TestCheckConnectivity:
         ref_data_qcfractal,
         expected_err,
     ):
+        # record is a qcportal.torsiondrive.TorsionDriveRecord
         [(record, _)] = ref_data_qcfractal.to_records()
 
         # Get the first of the final molecules, and prepare an update function so
         # that changes are preserved across calls to get_final_molecule(s)()
-        try:
-            final_molecules = record.get_final_molecules()
-            key, first_final_mol = next(iter(record.cache["final_molecules"].items()))
 
-            def update_record(updated_mol):
-                final_molecules.update({key: updated_mol})
-                record.__dict__["get_final_molecules"] = lambda: final_molecules
+        def modify_molecule(molecule):
+            pass
 
-        except AttributeError:
-            first_final_mol = record.get_final_molecule()
+        if isinstance(record, qcportal.torsiondrive.TorsiondriveRecord):
+            final_records = {
+                key: val for key, val in record.minimum_optimizations_cache_.items()
+            }
 
-            def update_record(updated_mol):
-                record.__dict__["get_final_molecule"] = lambda: updated_mol
+            for _record in final_records.values():
+                pos0 = _record.final_molecule.geometry[0]
+                pos1 = _record.final_molecule.geometry[1]
+                _record.final_molecule.geometry[0] = pos1
+                _record.final_molecule.geometry[1] = pos0
 
-        # Swap the first two atoms' coordinates to break their connectivity
-        geom = first_final_mol.geometry.copy()
-        geom[0], geom[1] = geom[1], geom[0]
-        updated_mol = first_final_mol.copy(update={"geometry": geom})
-
-        # Update the record with the new geometry
-        update_record(updated_mol)
+        else:
+            pos0 = record.final_molecule.geometry[0]
+            pos1 = record.final_molecule.geometry[1]
+            record.final_molecule.geometry[0] = pos1
+            record.final_molecule.geometry[1] = pos0
 
         # Create the target schema, which should fail to validate
         with pytest.raises(ValidationError, match=expected_err):

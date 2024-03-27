@@ -2,7 +2,6 @@
 
 import pickle
 from enum import Enum
-from typing import Optional, Union
 
 from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 from openff.bespokefit.executor.services.coordinator.stages import (
@@ -29,11 +28,11 @@ _QUEUE_NAMES = {
 }
 
 
-def _task_id_to_key(task_id: Union[str, int]) -> str:
+def _task_id_to_key(task_id: str | int) -> str:
     return f"coordinator:task:{task_id}"
 
 
-def get_task(task_id: Union[str, int]) -> CoordinatorTask:
+def get_task(task_id: str | int) -> CoordinatorTask:
     """Get a task by id."""
     connection = connect_to_default_redis()
 
@@ -47,8 +46,8 @@ def get_task(task_id: Union[str, int]) -> CoordinatorTask:
 
 def get_task_ids(
     skip: int = 0,
-    limit: Optional[int] = None,
-    status: Optional[Union[TaskStatus, set[TaskStatus]]] = None,
+    limit: int | None = None,
+    status: TaskStatus | set[TaskStatus] | None = None,
 ) -> list[int]:
     """Get the ids of this task."""
     connection = connect_to_default_redis()
@@ -73,9 +72,9 @@ def get_task_ids(
 
 def create_task(
     input_schema: BespokeOptimizationSchema,
-    stages: Optional[
-        list[Union[FragmentationStage, QCGenerationStage, OptimizationStage]]
-    ] = None,
+    stages: None | (
+        list[FragmentationStage | QCGenerationStage | OptimizationStage]
+    ) = None,
 ) -> int:
     """Create a task."""
     connection = connect_to_default_redis()
@@ -103,7 +102,7 @@ def create_task(
     return task_id
 
 
-def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
+def get_n_tasks(status: TaskStatus | None = None) -> int:
     """Get the number of tasks from this status."""
     connection = connect_to_default_redis()
 
@@ -114,7 +113,7 @@ def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
     )
 
 
-def peek_task_status(status: TaskStatus) -> Optional[int]:
+def peek_task_status(status: TaskStatus) -> int | None:
     """Peek at the status of this task."""
     connection = connect_to_default_redis()
 
@@ -122,7 +121,7 @@ def peek_task_status(status: TaskStatus) -> Optional[int]:
     return None if len(task_id) == 0 else int(task_id[0])
 
 
-def pop_task_status(status: TaskStatus) -> Optional[int]:
+def pop_task_status(status: TaskStatus) -> int | None:
     """Pop the status of this task."""
     assert status != TaskStatus.complete, "complete tasks cannot be modified"
 

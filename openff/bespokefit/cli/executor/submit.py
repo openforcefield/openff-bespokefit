@@ -1,30 +1,27 @@
 """Functions for submissions."""
 
 import os.path
-from typing import TYPE_CHECKING, Optional
 
 import click
 import click.exceptions
 import rich
 from click_option_group import optgroup
+from openff.toolkit.topology import Molecule
 from openff.utilities import get_data_file_path
-from pydantic import ValidationError
 from rich import pretty
+from rich.console import Console
 from rich.padding import Padding
 from rich.progress import track
 from rich.table import Table
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,
     print_header,
 )
 from openff.bespokefit.executor.utilities import handle_common_errors
-
-if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
-
-    from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 
 # The run command inherits these options so be sure to take that into account when
@@ -95,13 +92,13 @@ def submit_options(allow_multiple_molecules: bool = False):
 
 
 def _to_input_schema(
-    console: "rich.Console",
-    molecule: "Molecule",
-    force_field_path: Optional[str],
+    console: Console,
+    molecule: Molecule,
+    force_field_path: str | None,
     target_torsion_smirks: tuple[str],
-    default_qc_spec: Optional[tuple[str, str, str]],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
+    default_qc_spec: tuple[str, str, str] | None,
+    workflow_name: str | None,
+    workflow_file_name: str | None,
 ) -> "BespokeOptimizationSchema":
     from openff.qcsubmit.common_structures import QCSpec, QCSpecificationError
 
@@ -190,14 +187,14 @@ def _to_input_schema(
 
 
 def _submit(
-    console: "rich.Console",
-    input_file_path: Optional[list[str]],
-    molecule_smiles: Optional[list[str]],
-    force_field_path: Optional[str],
+    console: Console,
+    input_file_path: list[str] | None,
+    molecule_smiles: list[str] | None,
+    force_field_path: str | None,
     target_torsion_smirks: tuple[str],
-    default_qc_spec: Optional[tuple[str, str, str]],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
+    default_qc_spec: tuple[str, str, str] | None,
+    workflow_name: str | None,
+    workflow_file_name: str | None,
     allow_multiple_molecules: bool,
     save_submission: bool,
 ) -> list[str]:
@@ -321,13 +318,13 @@ def _submit(
 
 
 def _submit_cli(
-    input_file_path: Optional[list[str]],
-    molecule_smiles: Optional[list[str]],
-    force_field_path: Optional[list[str]],
+    input_file_path: list[str] | None,
+    molecule_smiles: list[str] | None,
+    force_field_path: list[str] | None,
     target_torsion_smirks: tuple[str],
-    default_qc_spec: Optional[tuple[str, str, str]],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
+    default_qc_spec: tuple[str, str, str] | None,
+    workflow_name: str | None,
+    workflow_file_name: str | None,
     save_submission: bool,
 ):
     """Submit a new bespoke optimization to a running executor."""

@@ -2,7 +2,6 @@ name: bespokefit-no-openeye
 
 channels:
   - conda-forge
-  - nodefaults
 
 dependencies:
 
@@ -22,10 +21,9 @@ dependencies:
   - rdkit >=22
   - ambertools >=22
   - openff-utilities
-  - openff-toolkit-base >=0.11
-  - openff-forcefields
-  - openff-interchange
-  - openff-qcsubmit <0.50
+  - openff-toolkit-base =0.15
+  - openff-interchange  # only needed because openff-toolkit-base
+  - openff-qcsubmit >=0.50
   - openmm >=7.6.0
 
     # Optional
@@ -35,7 +33,7 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal =0.15.8
+  - qcportal
   - qcelemental
   - qcengine
   - chemper
@@ -46,8 +44,7 @@ dependencies:
     # Executor
   - uvicorn
   - fastapi
-  - starlette =0.20 # https://github.com/openforcefield/openff-bespokefit/pull/203#issuecomment-1315936000
-  - anyio <4
+  - starlette
   - celery
   - httpx
   - redis-server

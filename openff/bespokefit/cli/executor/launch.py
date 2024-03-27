@@ -1,12 +1,12 @@
 """Host of `launch` command in CLI."""
 
 import time
-from typing import Optional
 
 import click
 import rich
 from click_option_group import optgroup
 from rich import pretty
+from rich.console import Console
 from rich.padding import Padding
 
 from openff.bespokefit.cli.utilities import (
@@ -19,11 +19,11 @@ from openff.bespokefit.cli.utilities import (
 # The run command inherits these options so be sure to take that into account when
 # making changes here.
 def launch_options(
-    directory: Optional[str] = "bespoke-executor",
-    n_fragmenter_workers: Optional[int] = 1,
-    n_qc_compute_workers: Optional[int] = 1,
-    n_optimizer_workers: Optional[int] = 1,
-    launch_redis_if_unavailable: Optional[bool] = True,
+    directory: str | None = "bespoke-executor",
+    n_fragmenter_workers: int | None = 1,
+    n_qc_compute_workers: int | None = 1,
+    n_optimizer_workers: int | None = 1,
+    launch_redis_if_unavailable: bool | None = True,
 ):
     """Options which can be passed to the launch command."""
     return [
@@ -99,7 +99,7 @@ def launch_options(
     ]
 
 
-def validate_redis_connection(console: "rich.Console", allow_existing: bool = True):
+def validate_redis_connection(console: Console, allow_existing: bool = True):
     """Check whether a redis server is already running and if so, that it is compatible with BespokeFit."""
     from openff.bespokefit.executor.services import current_settings
     from openff.bespokefit.executor.utilities.redis import (
@@ -150,8 +150,8 @@ def _launch_cli(
     directory: str,
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
-    qc_compute_n_cores: Optional[int],
-    qc_compute_max_mem: Optional[float],
+    qc_compute_n_cores: int | None,
+    qc_compute_max_mem: float | None,
     n_optimizer_workers: int,
     launch_redis_if_unavailable: bool,
 ):

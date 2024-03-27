@@ -7,7 +7,7 @@ import shlex
 import shutil
 import subprocess
 import time
-from typing import IO, Optional, Union
+from typing import IO
 
 import redis
 
@@ -15,7 +15,7 @@ from openff.bespokefit.executor.services import current_settings
 
 __REDIS_VERSION: int = 1
 __CONNECTION_POOL: dict[
-    tuple[str, int, Optional[int], Optional[str], bool],
+    tuple[str, int, int | None, str | None, bool],
     redis.Redis,
 ] = {}
 
@@ -57,7 +57,7 @@ def connect_to_redis(
     port: int,
     db: int,
     validate: bool = True,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> redis.Redis:
     """Connect to a redis server using the specified settings."""
     connection_key = (host, port, db, password, validate)
@@ -94,7 +94,7 @@ def connect_to_redis(
 def is_redis_available(
     host: str,
     port: int = 6363,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> bool:
     """Return whether a server running on the local host on a particular port is available."""
     redis_client = redis.Redis(host=host, port=port, password=password)
@@ -114,9 +114,9 @@ def _cleanup_redis(redis_process: subprocess.Popen):
 
 def launch_redis(
     port: int = 6363,
-    stderr_file: Optional[Union[IO, int]] = None,
-    stdout_file: Optional[Union[IO, int]] = None,
-    directory: Optional[str] = None,
+    stderr_file: IO | int | None = None,
+    stdout_file: IO | int | None = None,
+    directory: str | None = None,
     persistent: bool = True,
     terminate_at_exit: bool = True,
 ) -> subprocess.Popen:

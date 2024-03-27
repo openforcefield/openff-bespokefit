@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any
 
 from celery.result import AsyncResult
 
@@ -30,7 +30,7 @@ def mock_celery_task(
     return submitted_task_kwargs
 
 
-def mock_celery_result(status: str, result: Optional[str] = None) -> AsyncResult:
+def mock_celery_result(status: str, result: str | None = None) -> AsyncResult:
     """Mock the celery result."""
     result = AsyncResult("1")
     result._cache = {"status": status, "result": result}

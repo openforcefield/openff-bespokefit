@@ -47,7 +47,7 @@ def register_fragmentation_engine(
     _fragmentation_engines[scheme] = engine
 
 
-def deregister_fragmentation_engine(engine: Union[type[Fragmenter], str]) -> None:
+def deregister_fragmentation_engine(engine: type[Fragmenter] | str) -> None:
     """
     Remove a fragmentation engine from the list of valid options.
 

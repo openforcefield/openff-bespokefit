@@ -5,13 +5,12 @@ import shutil
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, Union
 
 from openff.bespokefit.utilities import current_settings
 
 
 @contextmanager
-def temporary_cd(path: Optional[Union[str, Path]] = None):
+def temporary_cd(path: str | Path | None = None):
     """
     Context manager to move the current working directory to the path specified.
 
@@ -28,7 +27,7 @@ def temporary_cd(path: Optional[Union[str, Path]] = None):
 
     """
     # Normalize path to a pathlib Path
-    path: Optional[Path] = None if path is None else Path(path)
+    path: Path | None = None if path is None else Path(path)
 
     # Decide whether to clean up based on bespokefit settings
     settings = current_settings()

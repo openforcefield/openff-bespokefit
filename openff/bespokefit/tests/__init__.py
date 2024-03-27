@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 
+import qcportal  # noqa
+
 # A workaround for segfaults when using OE on GHA...
 try:
     from openeye import oechem

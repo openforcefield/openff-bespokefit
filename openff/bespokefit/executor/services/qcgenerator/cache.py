@@ -1,7 +1,7 @@
 """QC generation caching."""
 
 import hashlib
-from typing import TypeVar, Union
+from typing import TypeVar
 
 import redis
 from openff.toolkit.topology import Molecule
@@ -54,7 +54,7 @@ def _canonicalize_task(task: _T) -> _T:
 
 
 def cached_compute_task(
-    task: Union[HessianTask, OptimizationTask, Torsion1DTask],
+    task: HessianTask | OptimizationTask | Torsion1DTask,
     redis_connection: redis.Redis,
 ) -> str:
     """Check to see if a QC task has already been executed and, if not, send it to a worker."""

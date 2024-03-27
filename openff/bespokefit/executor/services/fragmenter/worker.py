@@ -1,6 +1,6 @@
 """Fragmentation worker."""
 
-from typing import Optional, Union
+from typing import Union
 
 from openff.fragmenter.fragment import (
     Fragment,
@@ -9,9 +9,9 @@ from openff.fragmenter.fragment import (
     WBOFragmenter,
     get_atom_index,
 )
-from pydantic import parse_raw_as
 
 import openff.bespokefit
+from openff.bespokefit._pydantic import parse_raw_as
 from openff.bespokefit.executor.utilities.celery import configure_celery_app
 from openff.bespokefit.executor.utilities.redis import connect_to_default_redis
 from openff.bespokefit.utilities.molecule import get_atom_symmetries
@@ -26,7 +26,7 @@ celery_app = configure_celery_app(
 def fragment(
     cmiles: str,
     fragmenter_json: str,
-    target_bond_smarts: Optional[list[str]],
+    target_bond_smarts: list[str] | None,
 ) -> str:
     """Fragment based on this CMILES."""
     from openff.toolkit.topology import Molecule

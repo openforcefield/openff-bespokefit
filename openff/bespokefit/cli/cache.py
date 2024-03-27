@@ -4,7 +4,7 @@ import datetime
 import hashlib
 import json
 import uuid
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Union
 
 import click
 import click.exceptions
@@ -15,11 +15,12 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from pydantic import ValidationError, parse_file_as
 from rich import pretty
+from rich.console import Console
 from rich.padding import Padding
 from rich.progress import track
 
+from openff.bespokefit._pydantic import ValidationError, parse_file_as
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,
@@ -36,7 +37,7 @@ from openff.bespokefit.schema.data import LocalQCData
 from openff.bespokefit.schema.tasks import task_from_result
 
 if TYPE_CHECKING:
-    from qcportal import FractalClient
+    import qcportal
 
 
 @click.group("cache")
@@ -47,7 +48,7 @@ def cache_cli():
 
 
 def update_from_qcsubmit_options(
-    launch_redis_if_unavailable: Optional[bool] = True,
+    launch_redis_if_unavailable: bool | None = True,
 ):
     """Update the redis cache from QCSubmit options."""
     return [
@@ -120,11 +121,11 @@ def update_from_qcsubmit_options(
 
 
 def _update(
-    input_file_path: Optional[str],
-    qcf_dataset_name: Optional[str],
+    input_file_path: str | None,
+    qcf_dataset_name: str | None,
     qcf_datatype: Literal["torsion", "optimization", "hessian"],
     qcf_address: str,
-    qcf_config: Optional[str],
+    qcf_config: str | None,
     qcf_specification: str,
     launch_redis_if_unavailable: bool,
 ):
@@ -202,9 +203,9 @@ def _update(
 
 
 def _results_from_file(
-    console: "rich.Console",
+    console: Console,
     input_file_path: str,
-) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
+) -> TorsionDriveResultCollection | OptimizationResultCollection:
     """
     Try and build a qcsubmit results object from a local file.
     """
@@ -234,19 +235,21 @@ def _results_from_file(
 
 
 def _connect_to_qcfractal(
-    console: "rich.Console",
+    console: Console,
     qcf_address: str,
-    qcf_config: Optional[str],
-) -> "FractalClient":
+    qcf_config: str | None,
+) -> "qcportal.PortalClient":
     """Connect to the chosen qcfractal server."""
-    from qcportal import FractalClient
+    import qcportal
 
     with console.status("connecting to qcfractal"):
         try:
+            # there is a server_name argument, but ths config file probably
+            # includes the address
             if qcf_config is not None:
-                client = FractalClient.from_file(load_path=qcf_config)
+                client = qcportal.PortalClient.from_file(config_path=qcf_config)
             else:
-                client = FractalClient(address=qcf_address)
+                client = qcportal.PortalClient(address=qcf_address)
         except BaseException as e:
             exit_with_messages(
                 Padding(
@@ -263,12 +266,12 @@ def _connect_to_qcfractal(
 
 
 def _results_from_client(
-    console: "rich.Console",
-    qcf_dataset_name: Optional[str],
+    console: Console,
+    qcf_dataset_name: str | None,
     qcf_datatype: Literal["torsion", "optimization", "hessian"],
-    client: "FractalClient",
+    client: "qcportal.PortalClient",
     qcf_specification: str,
-) -> Union[TorsionDriveResultCollection, OptimizationResultCollection]:
+) -> TorsionDriveResultCollection | OptimizationResultCollection:
     """Connect to qcfractal and create a qcsubmit results object."""
     with console.status(f"downloading dataset [cyan]{qcf_dataset_name}[/cyan]"):
         if qcf_datatype == "torsion":
@@ -292,8 +295,8 @@ def _results_from_client(
 
 
 def _update_from_qcsubmit_result(
-    console: "rich.Console",
-    qcsubmit_results: Union[TorsionDriveResultCollection, OptimizationResultCollection],
+    console: Console,
+    qcsubmit_results: TorsionDriveResultCollection | OptimizationResultCollection,
     redis_connection: redis.Redis,
 ):
     """Update the qcgeneration redis cache using qcsubmit results objects."""

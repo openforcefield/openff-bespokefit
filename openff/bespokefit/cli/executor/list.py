@@ -7,6 +7,7 @@ import click.exceptions
 import requests
 import rich
 from rich import pretty
+from rich.console import Console
 from rich.table import Table
 
 from openff.bespokefit.cli.utilities import print_header
@@ -20,7 +21,7 @@ _STATUS_STRINGS = {
 }
 
 
-def _get_columns(console: "rich.Console", optimization_id: str) -> tuple[str, "Status"]:
+def _get_columns(console: Console, optimization_id: str) -> tuple[str, Status]:
     from openff.toolkit.topology import Molecule
 
     from openff.bespokefit.executor import BespokeExecutor

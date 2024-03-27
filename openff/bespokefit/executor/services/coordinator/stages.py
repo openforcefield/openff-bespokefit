@@ -1,9 +1,11 @@
 """Classes for different stages in run."""
 
+from __future__ import annotations
+
 import abc
 import json
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal
 
 import httpx
 from openff.fragmenter.fragment import Fragment, FragmentationResult
@@ -15,11 +17,11 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
@@ -54,7 +56,6 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTask
-from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.smirks import (
     ForceFieldEditor,
     SMIRKSGenerator,
@@ -71,12 +72,12 @@ class _Stage(BaseModel, abc.ABC):
 
     status: Status = Field("waiting", description="The status of this stage.")
 
-    error: Optional[str] = Field(
+    error: str | None = Field(
         None,
         description="The error raised, if any, while running this stage.",
     )
 
-    async def enter(self, task: "CoordinatorTask"):
+    async def enter(self, task: CoordinatorTask):
         try:
             return await self._enter(task)
 
@@ -93,7 +94,7 @@ class _Stage(BaseModel, abc.ABC):
             self.error = json.dumps(f"{e.__class__.__name__}: {str(e)}")
 
     @abc.abstractmethod
-    async def _enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: CoordinatorTask):
         pass
 
     @abc.abstractmethod
@@ -106,11 +107,11 @@ class FragmentationStage(_Stage):
 
     type: Literal["fragmentation"] = "fragmentation"
 
-    id: Optional[str] = Field(None, description="")
+    id: str | None = Field(None, description="")
 
-    result: Optional[FragmentationResult] = Field(None, description="")
+    result: FragmentationResult | None = Field(None, description="")
 
-    async def _enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: CoordinatorTask):
         settings = current_settings()
 
         async with httpx.AsyncClient() as client:
@@ -186,11 +187,11 @@ class QCGenerationStage(_Stage):
 
     type: Literal["qc-generation"] = "qc-generation"
 
-    ids: Optional[dict[int, list[str]]] = Field(None, description="")
+    ids: dict[int, list[str]] | None = Field(None, description="")
 
-    results: Optional[
-        dict[str, Union[AtomicResult, OptimizationResult, TorsionDriveResult]]
-    ] = Field(None, description="")
+    results: None | (
+        dict[str, AtomicResult | OptimizationResult | TorsionDriveResult]
+    ) = Field(None, description="")
 
     @staticmethod
     def _generate_torsion_parameters(
@@ -276,7 +277,7 @@ class QCGenerationStage(_Stage):
     @staticmethod
     async def _generate_parameters(
         input_schema: BespokeOptimizationSchema,
-        fragmentation_result: Optional[FragmentationResult],
+        fragmentation_result: FragmentationResult | None,
     ) -> list[Fragment]:
         """
         Generate a list of parameters which are to be optimised.
@@ -345,7 +346,7 @@ class QCGenerationStage(_Stage):
 
         return fragment_jobs
 
-    async def _enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: CoordinatorTask):
         settings = current_settings()
 
         fragment_stage = next(
@@ -486,12 +487,12 @@ class OptimizationStage(_Stage):
 
     type: Literal["optimization"] = "optimization"
 
-    id: Optional[str] = Field(
+    id: str | None = Field(
         None,
         description="The id of the optimization associated with this stage.",
     )
 
-    result: Optional[BespokeOptimizationResults] = Field(
+    result: BespokeOptimizationResults | None = Field(
         None,
         description="The result of the optimization.",
     )
@@ -534,7 +535,7 @@ class OptimizationStage(_Stage):
                 f"issue tracker.",
             )
 
-    async def _enter(self, task: "CoordinatorTask"):
+    async def _enter(self, task: CoordinatorTask):
         settings = current_settings()
 
         completed_stages = {stage.type: stage for stage in task.completed_stages}
@@ -605,4 +606,4 @@ class OptimizationStage(_Stage):
         self.status = get_response.status
 
 
-StageType = Union[FragmentationStage, QCGenerationStage, OptimizationStage]
+StageType = FragmentationStage | QCGenerationStage | OptimizationStage

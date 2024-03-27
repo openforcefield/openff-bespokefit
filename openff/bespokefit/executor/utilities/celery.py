@@ -2,7 +2,7 @@
 
 import json
 import multiprocessing
-from typing import Any, Optional
+from typing import Any
 
 from celery import Celery
 from celery.result import AsyncResult
@@ -21,8 +21,8 @@ class TaskInformation(TypedDict):
 
     status: Status
 
-    result: Optional[dict[str, Any]]
-    error: Optional[dict[str, Any]]
+    result: dict[str, Any] | None
+    error: dict[str, Any] | None
 
 
 def get_status(task_result: AsyncResult) -> Status:
@@ -80,7 +80,7 @@ def spawn_worker(
     concurrency: int = 1,
     asynchronous: bool = True,
     **kwargs,
-) -> Optional[multiprocessing.Process]:
+) -> multiprocessing.Process | None:
     """Spawn a worker."""
     if concurrency < 1:
         return

@@ -1,19 +1,20 @@
 """Schema for results."""
 
+from __future__ import annotations
+
 import abc
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
-from pydantic import Field
 
+from openff.bespokefit._pydantic import Field, SchemaBase
 from openff.bespokefit.schema import Error, Status
 from openff.bespokefit.schema.fitting import (
     BespokeOptimizationSchema,
     OptimizationSchema,
 )
 from openff.bespokefit.schema.smirnoff import BaseSMIRKSParameter
-from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
 class OptimizationStageResults(SchemaBase, abc.ABC):
@@ -26,12 +27,12 @@ class OptimizationStageResults(SchemaBase, abc.ABC):
 
     status: Status = Field("waiting", description="The status of the optimization.")
 
-    error: Optional[Error] = Field(
+    error: Error | None = Field(
         None,
         description="The error, if any, that was raised while running.",
     )
 
-    refit_force_field: Optional[str] = Field(
+    refit_force_field: str | None = Field(
         None,
         description="The XML contents of the refit force field.",
     )
@@ -48,7 +49,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
 
     type: Literal["base-results"] = "base-results"
 
-    input_schema: Optional[Any] = Field(
+    input_schema: Any | None = Field(
         None,
         description="The schema defining the input to the optimization.",
     )
@@ -61,7 +62,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     @property
     def initial_parameter_values(
         self,
-    ) -> Optional[dict[BaseSMIRKSParameter, dict[str, unit.Quantity]]]:
+    ) -> dict[BaseSMIRKSParameter, dict[str, unit.Quantity]] | None:
         """A list of the refit force field parameters."""
         return (
             None
@@ -70,7 +71,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
         )
 
     @property
-    def refit_force_field(self) -> Optional[str]:
+    def refit_force_field(self) -> str | None:
         """Return the final refit force field."""
         return (
             None if not self.status == "success" else self.stages[-1].refit_force_field
@@ -79,7 +80,7 @@ class BaseOptimizationResults(SchemaBase, abc.ABC):
     @property
     def refit_parameter_values(
         self,
-    ) -> Optional[dict[BaseSMIRKSParameter, dict[str, unit.Quantity]]]:
+    ) -> dict[BaseSMIRKSParameter, dict[str, unit.Quantity]] | None:
         """A list of the refit force field parameters."""
         if self.input_schema is None or not self.status == "success":
             return None
@@ -124,7 +125,7 @@ class OptimizationResults(BaseOptimizationResults):
 
     type: Literal["general"] = "general"
 
-    input_schema: Optional[OptimizationSchema] = Field(
+    input_schema: OptimizationSchema | None = Field(
         None,
         description="The schema defining the input to the optimization.",
     )
@@ -135,7 +136,7 @@ class BespokeOptimizationResults(BaseOptimizationResults):
 
     type: Literal["bespoke"] = "bespoke"
 
-    input_schema: Optional[BespokeOptimizationSchema] = Field(
+    input_schema: BespokeOptimizationSchema | None = Field(
         None,
         description="The schema defining the input to the optimization.",
     )

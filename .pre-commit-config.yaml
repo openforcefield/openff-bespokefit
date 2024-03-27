@@ -27,11 +27,11 @@ repos:
   - id: flake8
     files: ^openff
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.15.1
+  rev: v3.15.2
   hooks:
   - id: pyupgrade
     files: ^openff
-    args: ["--py39-plus"]
+    args: ["--py310-plus"]
 - repo: https://github.com/pycqa/pydocstyle
   rev: 6.3.0
   hooks:

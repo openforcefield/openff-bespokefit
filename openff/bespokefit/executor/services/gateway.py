@@ -4,7 +4,6 @@ import importlib
 import os
 import time
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from typing import Optional
 
 import requests
 import uvicorn
@@ -66,7 +65,7 @@ app.include_router(api_router)
 
 
 @contextmanager
-def _output_redirect(log_file: Optional[str] = None):
+def _output_redirect(log_file: str | None = None):
     if log_file is None:
         yield
         return
@@ -77,7 +76,7 @@ def _output_redirect(log_file: Optional[str] = None):
                 yield
 
 
-def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
+def launch(directory: str | None = None, log_file: str | None = None):
     """Launch this gateway."""
     if directory is not None and len(directory) > 0:
         os.makedirs(directory, exist_ok=True)

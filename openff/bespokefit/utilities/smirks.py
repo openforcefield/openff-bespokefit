@@ -1,7 +1,7 @@
 """Utilities for dealing with SMIRKS."""
 
 import copy
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import networkx as nx
 from chemper.graphs.cluster_graph import ClusterGraph
@@ -10,15 +10,14 @@ from openff.fragmenter.utils import get_atom_index
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ParameterType, ProperTorsionHandler
 from openff.units import unit
-from pydantic import Field
 
+from openff.bespokefit._pydantic import Field, SchemaBase
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import SMIRNOFFParameter, get_smirnoff_parameter
 from openff.bespokefit.utilities.molecule import (
     get_torsion_indices,
     group_valence_by_symmetry,
 )
-from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor, SMIRKSType
 
 
@@ -26,7 +25,7 @@ def get_cached_torsion_parameters(
     molecule: Molecule,
     bespoke_parameter: ProperTorsionHandler.ProperTorsionType,
     cached_parameters: list[ProperTorsionHandler.ProperTorsionType],
-) -> Optional[ProperTorsionHandler.ProperTorsionType]:
+) -> ProperTorsionHandler.ProperTorsionType | None:
     """
     For a given molecule update the input parameter with cached values if an equivalent parameter can be found in the cached list.
 
@@ -194,7 +193,7 @@ class SMIRKSGenerator(SMIRKSettings):
 
         arbitrary_types_allowed = True
 
-    initial_force_field: Union[str, ForceFieldEditor] = Field(
+    initial_force_field: str | ForceFieldEditor = Field(
         "openff_unconstrained-1.3.0.offxml",
         description="The base forcefield the smirks should be generated from.",
     )
@@ -204,7 +203,7 @@ class SMIRKSGenerator(SMIRKSettings):
         description="The list of parameters the new smirks patterns should be made for.",
     )
 
-    smirks_layers: Union[Literal["all"], int] = Field(
+    smirks_layers: Literal["all"] | int = Field(
         "all",
         description="The number of layers that should be included into the generated "
         "patterns.",
@@ -213,7 +212,7 @@ class SMIRKSGenerator(SMIRKSettings):
     def generate_smirks_from_molecule(
         self,
         molecule: Molecule,
-        central_bond: Optional[tuple[int, int]] = None,
+        central_bond: tuple[int, int] | None = None,
     ):
         """Generate SMIRKS patterns that encompass an entire molecule."""
         molecule = copy.deepcopy(molecule)
@@ -233,7 +232,7 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[tuple[int, int]],
+        fragment_map_indices: tuple[int, int] | None,
     ) -> list[ParameterType]:
         """
         Generate a set of smirks patterns for the fragment corresponding to the types set in the target smirks list.
@@ -317,7 +316,7 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         force_field_editor: ForceFieldEditor,
         molecule: Molecule,
-        molecule_map_indices: Optional[tuple[int, int]] = None,
+        molecule_map_indices: tuple[int, int] | None = None,
     ) -> list[ParameterType]:
         """
         Extract current smirks patterns for the molecule.
@@ -353,7 +352,7 @@ class SMIRKSGenerator(SMIRKSettings):
         force_field_editor: ForceFieldEditor,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[tuple[int, int]],
+        fragment_map_indices: tuple[int, int] | None,
     ) -> list[ParameterType]:
         """
         Generate new bespoke smirks.
@@ -390,7 +389,7 @@ class SMIRKSGenerator(SMIRKSettings):
         self,
         parent: Molecule,
         fragment: Molecule,
-        fragment_map_indices: Optional[tuple[int, int]],
+        fragment_map_indices: tuple[int, int] | None,
         fragment_is_parent: bool,
         smirks_type: SMIRKSType,
     ) -> list[SMIRNOFFParameter]:
@@ -442,7 +441,7 @@ class SMIRKSGenerator(SMIRKSettings):
     def _get_valence_terms(
         molecule: Molecule,
         smirks_type: SMIRKSType,
-        torsion_bond: Optional[tuple[int, int]] = None,
+        torsion_bond: tuple[int, int] | None = None,
     ) -> list[tuple[int, ...]]:
         if smirks_type == SMIRKSType.Vdw:
             return [(i,) for i in range(molecule.n_atoms)]

@@ -1,6 +1,9 @@
 """Factories for generating ForceBalance inputs."""
 
+from __future__ import annotations
+
 import abc
+import ast
 import copy
 import json
 import logging
@@ -15,14 +18,14 @@ from openff.qcsubmit.results import (
     OptimizationResultCollection,
     TorsionDriveResultCollection,
 )
-from openff.toolkit.topology import Molecule
 from openff.toolkit.topology import Molecule as OFFMolecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
 from qcelemental.models import AtomicResult
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
-from qcportal.models import TorsionDriveRecord
-from qcportal.models.records import OptimizationRecord, RecordBase, ResultRecord
+from qcportal.optimization import OptimizationRecord
+from qcportal.record_models import BaseRecord
+from qcportal.torsiondrive import TorsiondriveRecord
 
 from openff.bespokefit.exceptions import OptimizerError, QCRecordMissMatchError
 from openff.bespokefit.optimizers.forcebalance.templates import (
@@ -51,7 +54,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 R = TypeVar("R", bound=Union[AtomicResult, OptimizationResult, TorsionDriveResult])
-S = TypeVar("S", bound=RecordBase)
+S = TypeVar("S", bound=BaseRecord)
 T = TypeVar("T", bound=TargetSchema)
 
 _TARGET_SECTION_TEMPLATES = {
@@ -62,15 +65,17 @@ _TARGET_SECTION_TEMPLATES = {
 }
 
 
-def _standardize_grid_id_str(grid_id: str) -> str:
+def _standardize_grid_id_str(grid_id: str) -> tuple[int | float]:
     """
-    Ensure a grid id is of the form '[grid_id_1, ...]' rather than 'grid_id_1' as is sometimes the case when using QCEngine.
+    Standardize a `grid_id` string.
 
+    Ensures a grid id is of the form '(grid_id_1,)' rather than 'grid_id_1' as is
+    sometimes the case when using QCEngine.
     """
-    grid_id = json.loads(grid_id)
+    grid_id = ast.literal_eval(grid_id)
     grid_id = [grid_id] if isinstance(grid_id, int) else grid_id
 
-    return json.dumps(grid_id)
+    return tuple(grid_id)
 
 
 class _TargetFactory(Generic[T], abc.ABC):
@@ -109,10 +114,10 @@ class _TargetFactory(Generic[T], abc.ABC):
     def _batch_qc_records(
         cls,
         target: TargetSchema,
-        qc_records: list[tuple[RecordBase, Molecule]],
-    ) -> dict[str, list[tuple[RecordBase, Molecule]]]:
+        qc_records: list[tuple[BaseRecord, OFFMolecule]],
+    ) -> dict[str, list[tuple[BaseRecord, OFFMolecule]]]:
         """
-        Place the input QC records into per target batches.
+        Batch input QC records into per-target batches.
 
         For most targets there will be a single record per target, however certain
         targets (e.g. OptGeo) can perform on batches to reduce the time taken to
@@ -143,7 +148,11 @@ class _TargetFactory(Generic[T], abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _generate_target(cls, target: T, qc_records: list[tuple[RecordBase, Molecule]]):
+    def _generate_target(
+        cls,
+        target: T,
+        qc_records: list[tuple[BaseRecord, OFFMolecule]],
+    ):
         """
         Create the required input files for a particular target.
 
@@ -156,7 +165,10 @@ class _TargetFactory(Generic[T], abc.ABC):
         raise NotImplementedError()
 
     @classmethod
-    def _local_to_qc_records(cls, qc_data: LocalQCData[R]) -> list[tuple[R, Molecule]]:
+    def _local_to_qc_records(
+        cls,
+        qc_data: LocalQCData[R],
+    ) -> list[tuple[R, OFFMolecule]]:
         """Convert a 'local' dataset of QCEngine outputs to a list of QC records."""
         qc_records = []
 
@@ -190,7 +202,8 @@ class _TargetFactory(Generic[T], abc.ABC):
 
                 def _grid_id_key(x):
                     if isinstance(x, str):
-                        x = json.loads(x)
+                        # unwrap a str like "(-165,)"
+                        x = ast.literal_eval(x)
 
                     if isinstance(x, Sequence):
                         x = int(x[0])
@@ -204,7 +217,7 @@ class _TargetFactory(Generic[T], abc.ABC):
             else:
                 raise NotImplementedError()
 
-            molecule: Molecule = Molecule.from_mapped_smiles(cmiles)
+            molecule: OFFMolecule = OFFMolecule.from_mapped_smiles(cmiles)
             molecule._conformers = [
                 np.array(geometry, float).reshape(-1, 3) * unit.bohr
                 for geometry in geometries
@@ -218,7 +231,7 @@ class _TargetFactory(Generic[T], abc.ABC):
         return qc_records
 
     @classmethod
-    def generate(cls, root_directory: Union[str, Path], target: T):
+    def generate(cls, root_directory: str | Path, target: T):
         """
         Create the input files for a target schema in a specified directory.
 
@@ -280,9 +293,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
     def _generate_target(
         cls,
         target: T,
-        qc_records: list[
-            tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
-        ],
+        qc_records: list[tuple[TorsiondriveRecord | TorsionDriveResult, OFFMolecule]],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
 
@@ -297,18 +308,18 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         )
 
         # form a Molecule object from the first torsion grid data
-        if isinstance(qc_record, TorsionDriveRecord):
-            grid_energies = qc_record.get_final_energies()
+        if isinstance(qc_record, TorsiondriveRecord):
+            grid_energies = qc_record.final_energies
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(_standardize_grid_id_str(key))): value
+                _standardize_grid_id_str(key): value
                 for key, value in qc_record.final_energies.items()
             }
         else:
             raise NotImplementedError()
 
         grid_conformers = {
-            tuple(json.loads(grid_id)): conformer.m_as(unit.angstrom)
+            grid_id: conformer.m_as(unit.angstrom)
             for grid_id, conformer in zip(
                 off_molecule.properties["grid_ids"],
                 off_molecule.conformers,
@@ -347,7 +358,14 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         del fb_molecule.Data["comms"]
         fb_molecule.write("conf.pdb")
 
-        metadata = qc_record.keywords.dict()
+        try:
+            # This is a QCPortal object ...
+            # qcportal.torsiondrive.record_models.TorsiondriveRecord
+            metadata: dict = qc_record.specification.optimization_specification.keywords
+        except AttributeError:
+            # unless it's actually a qcelemental object, specifically a
+            # qcelemental.models.procedures.TorsionDriveResult
+            metadata: dict = qc_record.optimization_spec.keywords
 
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
@@ -375,28 +393,31 @@ class TorsionProfileTargetFactory(
     def _generate_target(
         cls,
         target: TorsionProfileTargetSchema,
-        qc_records: list[
-            tuple[Union[TorsionDriveRecord, TorsionDriveResult], Molecule]
-        ],
+        qc_records: list[tuple[TorsiondriveRecord | TorsionDriveResult, OFFMolecule]],
     ):
         # noinspection PyTypeChecker
         super()._generate_target(target, qc_records)
 
         qc_record, off_molecule = qc_records[0]
 
-        if isinstance(qc_record, TorsionDriveRecord):
-            grid_energies = qc_record.get_final_energies()
+        if isinstance(qc_record, TorsiondriveRecord):
+            grid_energies = qc_record.final_energies
+
+            metadata = qc_record.specification.optimization_specification.keywords
+            metadata["dihedrals"] = qc_record.specification.keywords.dihedrals
         elif isinstance(qc_record, TorsionDriveResult):
             grid_energies = {
-                tuple(json.loads(_standardize_grid_id_str(key))): value
+                _standardize_grid_id_str(key): value
                 for key, value in qc_record.final_energies.items()
             }
+            metadata = qc_record.optimization_spec.keywords
+            metadata["dihedrals"] = qc_record.keywords.dihedrals
+
         else:
             raise NotImplementedError()
 
         grid_ids = sorted(grid_energies, key=lambda x: x[0])
 
-        metadata = qc_record.keywords.dict()
         metadata["torsion_grid_ids"] = [
             grid_id if not isinstance(grid_id, str) else tuple(json.loads(grid_id))
             for grid_id in grid_ids
@@ -472,8 +493,8 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     @classmethod
     def _create_vdata_file(
         cls,
-        qc_record: Union[ResultRecord, "AtomicResult"],
-        qc_molecule: "QCMolecule",
+        qc_record: BaseRecord | AtomicResult,
+        qc_molecule: QCMolecule,
         off_molecule: OFFMolecule,
     ):
         """
@@ -498,14 +519,26 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
         )
 
-        if qc_record.driver.value != "hessian" or qc_record.return_result is None:
+        try:
+            # this is a qcportal.record_models.BaseRecord
+            driver = qc_record.specification.driver.value
+        except AttributeError:
+            # or a qcelemental.models.results.AtomicResult
+            driver = qc_record.driver.value
+
+        if driver != "hessian" or qc_record.return_result is None:
             raise QCRecordMissMatchError(
                 f"The QC record with id={qc_record_id} does not contain the gradient "
                 f"information required by a vibration fitting target.",
             )
 
         # Check the magnitude of the gradient
-        gradient = qc_record.extras["qcvars"]["CURRENT GRADIENT"]
+        try:
+            # qcportal.record_models.BaseRecord
+            gradient = qc_record.properties["current gradient"]
+        except (AttributeError, TypeError):
+            # qcelemental.models.results.AtomicResult
+            gradient = qc_record.properties.return_gradient
 
         if np.abs(gradient).max() > 1e-3:
             _logger.warning(
@@ -518,7 +551,9 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
         # Compute the mass-weighted hessian
         invert_sqrt_mass_array_repeat = 1.0 / np.sqrt(masses.repeat(3))
 
-        hessian = qc_record.return_result.reshape((len(masses) * 3, len(masses) * 3))
+        hessian = np.asarray(qc_record.return_result).reshape(
+            (len(masses) * 3, len(masses) * 3),
+        )
 
         mass_weighted_hessian = (
             hessian
@@ -549,7 +584,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
     def _generate_target(
         cls,
         target: VibrationTargetSchema,
-        qc_records: list[tuple[Union[ResultRecord, "AtomicResult"], Molecule]],
+        qc_records: list[tuple[BaseRecord | AtomicResult, OFFMolecule]],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
 
@@ -593,7 +628,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     def _batch_qc_records(
         cls,
         target: OptGeoTargetSchema,
-        qc_records: list[RecordBase],
+        qc_records: list[BaseRecord],
     ):
         batch_size = int(target.extras.get("batch_size", 50))
 
@@ -611,9 +646,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
     def _generate_target(
         cls,
         target: OptGeoTargetSchema,
-        qc_records: list[
-            tuple[Union[OptimizationRecord, OptimizationResult], Molecule]
-        ],
+        qc_records: list[tuple[OptimizationRecord | OptimizationResult, OFFMolecule]],
     ):
         from forcebalance.molecule import Molecule as FBMolecule
 
@@ -683,7 +716,7 @@ class ForceBalanceInputFactory:
     @classmethod
     def generate(
         cls,
-        root_directory: Union[str, Path],
+        root_directory: str | Path,
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
     ):

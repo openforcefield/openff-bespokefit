@@ -6,7 +6,6 @@ import abc
 import copy
 import os
 from collections import defaultdict
-from typing import Optional
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
 
@@ -201,7 +200,7 @@ class BaseOptimizer(abc.ABC):
         cls,
         schema: OptimizationStageSchema,
         initial_force_field: ForceField,
-        root_directory: Optional[str] = None,
+        root_directory: str | None = None,
     ) -> OptimizationStageResults:
         """
         Run this optimization.

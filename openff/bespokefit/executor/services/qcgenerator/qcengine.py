@@ -1,7 +1,6 @@
 """Generate QC data using QCEngine."""
 
 from multiprocessing import current_process, get_context
-from typing import Union
 
 from qcelemental.models import FailedOperation
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveInput
@@ -39,7 +38,7 @@ class TorsionDriveProcedureParallel(TorsionDriveProcedure):
         next_jobs: dict[str, list[list[float]]],
         input_model: TorsionDriveInput,
         config: TaskConfig,
-    ) -> dict[str, list[Union[FailedOperation, OptimizationResult]]]:
+    ) -> dict[str, list[FailedOperation | OptimizationResult]]:
         """Spawn parallel optimizations based on the number of next jobs and available workers."""
         settings = current_settings()
         program = input_model.optimization_spec.keywords["program"]

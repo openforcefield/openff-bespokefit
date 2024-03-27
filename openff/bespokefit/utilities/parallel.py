@@ -1,7 +1,6 @@
 """Utilities for parallel execution."""
 
 from multiprocessing import Pool
-from typing import Optional
 
 from tqdm import tqdm
 
@@ -9,9 +8,9 @@ from tqdm import tqdm
 def apply_async(
     func,
     iterable,
-    n_processes: Optional[int] = 1,
+    n_processes: int | None = 1,
     verbose: bool = False,
-    description: Optional[str] = None,
+    description: str | None = None,
 ):
     """Asychronously apply this function."""
     if n_processes is not None and n_processes < 2:

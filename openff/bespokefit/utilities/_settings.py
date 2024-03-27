@@ -1,10 +1,8 @@
 import os
 from contextlib import contextmanager
-from typing import Literal, Optional, Union
+from typing import Literal
 
-from pydantic import BaseSettings, Field
-
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, BaseSettings, Field
 
 
 class WorkerSettings(BaseModel):
@@ -12,11 +10,11 @@ class WorkerSettings(BaseModel):
 
     import_path: str = Field(..., description="The import path to the worker module.")
 
-    n_cores: Optional[int] = Field(
+    n_cores: int | None = Field(
         ...,
         description="The maximum number of cores available to the worker.",
     )
-    max_memory: Optional[float] = Field(
+    max_memory: float | None = Field(
         ...,
         description="The maximum memory [GB] available to the worker *per* core.",
     )
@@ -50,23 +48,23 @@ class Settings(BaseSettings):
         "openff.bespokefit.executor.services.fragmenter.app:router"
     )
     BEFLOW_FRAGMENTER_WORKER = "openff.bespokefit.executor.services.fragmenter.worker"
-    BEFLOW_FRAGMENTER_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
-    BEFLOW_FRAGMENTER_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
+    BEFLOW_FRAGMENTER_WORKER_N_CORES: int | Literal["auto"] = "auto"
+    BEFLOW_FRAGMENTER_WORKER_MAX_MEM: float | Literal["auto"] = "auto"
 
     BEFLOW_QC_COMPUTE_PREFIX = "qc-calcs"
     BEFLOW_QC_COMPUTE_ROUTER = (
         "openff.bespokefit.executor.services.qcgenerator.app:router"
     )
     BEFLOW_QC_COMPUTE_WORKER = "openff.bespokefit.executor.services.qcgenerator.worker"
-    BEFLOW_QC_COMPUTE_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
-    BEFLOW_QC_COMPUTE_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
-    BEFLOW_QC_COMPUTE_WORKER_N_TASKS: Union[int, Literal["auto"]] = "auto"
+    BEFLOW_QC_COMPUTE_WORKER_N_CORES: int | Literal["auto"] = "auto"
+    BEFLOW_QC_COMPUTE_WORKER_MAX_MEM: float | Literal["auto"] = "auto"
+    BEFLOW_QC_COMPUTE_WORKER_N_TASKS: int | Literal["auto"] = "auto"
 
     BEFLOW_OPTIMIZER_PREFIX = "optimizations"
     BEFLOW_OPTIMIZER_ROUTER = "openff.bespokefit.executor.services.optimizer.app:router"
     BEFLOW_OPTIMIZER_WORKER = "openff.bespokefit.executor.services.optimizer.worker"
-    BEFLOW_OPTIMIZER_WORKER_N_CORES: Union[int, Literal["auto"]] = "auto"
-    BEFLOW_OPTIMIZER_WORKER_MAX_MEM: Union[float, Literal["auto"]] = "auto"
+    BEFLOW_OPTIMIZER_WORKER_N_CORES: int | Literal["auto"] = "auto"
+    BEFLOW_OPTIMIZER_WORKER_MAX_MEM: float | Literal["auto"] = "auto"
     BEFLOW_OPTIMIZER_KEEP_FILES: bool = False
     """
     .. deprecated:: 0.2.1

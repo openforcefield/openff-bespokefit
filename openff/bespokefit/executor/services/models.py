@@ -1,12 +1,10 @@
 """Models used in executor services."""
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 import numpy as np
-from pydantic import Field
-from pydantic.generics import GenericModel
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field, GenericModel
 
 _T = TypeVar("_T")
 
@@ -17,7 +15,7 @@ class Error(BaseModel):
     type: str = Field(..., description="The type of exception that was raised.")
     message: str = Field(..., description="The message associated with the exception.")
 
-    traceback: Optional[str] = Field(
+    traceback: str | None = Field(
         None,
         description="The traceback associated with the exception",
     )
@@ -54,12 +52,12 @@ class PaginatedCollection(GenericModel, Generic[_T]):
 
     self: str = Field(..., description="The API endpoint associated with this object.")
 
-    prev: Optional[str] = Field(
+    prev: str | None = Field(
         None,
         description="The API endpoint to use to retrieve the previous items in the "
         "collection when paginating.",
     )
-    next: Optional[str] = Field(
+    next: str | None = Field(
         None,
         description="The API endpoint to use to retrieve the next items in the "
         "collection when paginating.",

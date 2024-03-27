@@ -1,10 +1,9 @@
 """Error handling in exeuctor."""
 
 from contextlib import contextmanager
-from typing import Optional
 
 import requests
-import rich
+from rich.console import Console
 from typing_extensions import TypedDict
 
 _FAILED_TO_CONNECT = (
@@ -16,11 +15,11 @@ _FAILED_TO_CONNECT = (
 class ErrorState(TypedDict):
     """Whether or not this state has errorred."""
 
-    has_errored: Optional[bool]
+    has_errored: bool | None
 
 
 @contextmanager
-def handle_common_errors(console: "rich.Console"):
+def handle_common_errors(console: Console):
     """
     Context manager that will capture common internal errors raised by a bespoke executor.
 
@@ -30,7 +29,7 @@ def handle_common_errors(console: "rich.Console"):
 
     Parameters
     ----------
-    console: rich.Console
+    console: rich.console.Console
         The rich console to print to.
 
     Returns

@@ -1,7 +1,6 @@
 """Host of `combine` option in CLI."""
 
 import copy
-from typing import Optional
 
 import click
 import rich
@@ -40,8 +39,8 @@ from openff.bespokefit.executor.utilities import handle_common_errors
 )
 def combine_cli(
     output_file: str,
-    force_field_files: Optional[list[str]],
-    task_ids: Optional[list[str]],
+    force_field_files: list[str] | None,
+    task_ids: list[str] | None,
 ):
     """
     Combine force fields from local files and task ids.

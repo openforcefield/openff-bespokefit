@@ -1,7 +1,7 @@
 """Schema for fitting targets."""
 
 import abc
-from typing import Any, Literal, Optional, TypeVar, Union
+from typing import Any, Literal, TypeVar, Union
 
 from openff.qcsubmit.results import (
     BasicResultCollection,
@@ -9,25 +9,24 @@ from openff.qcsubmit.results import (
     TorsionDriveResultCollection,
 )
 from openff.toolkit.topology import Molecule
-from pydantic import Field, PositiveFloat, validator
 from qcelemental.models import AtomicResult
 from qcelemental.models import Molecule as QCEMolecule
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from qcelemental.molutil import guess_connectivity
 
+from openff.bespokefit._pydantic import Field, PositiveFloat, SchemaBase, validator
 from openff.bespokefit.schema.data import BespokeQCData, LocalQCData
 from openff.bespokefit.schema.tasks import (
     HessianTaskSpec,
     OptimizationTaskSpec,
     Torsion1DTaskSpec,
 )
-from openff.bespokefit.utilities.pydantic import SchemaBase
 
 
 def _check_connectivity(
     qcschema: QCEMolecule,
     name: str,
-    fragment: Optional[Molecule] = None,
+    fragment: Molecule | None = None,
 ):
     """
     Raise an exception if the geometry of ``qcschema`` does not match ``fragment``.
@@ -132,12 +131,13 @@ def _validate_connectivity(
 
     elif hasattr(ref_data, "to_records"):
         for qc_record, fragment in ref_data.to_records():
-            # Some qc records (eg, TorsionDriveRecord) use .get_final_molecules() (plural),
-            # others (eg, OptimizationRecord) use .get_final_molecule() (singular)
             try:
-                final_molecules = qc_record.get_final_molecules()
+                final_molecules = {"opt": qc_record.final_molecule}
             except AttributeError:
-                final_molecules = {"opt": qc_record.get_final_molecule()}
+                final_molecules = {
+                    key: val.final_molecule
+                    for key, val in qc_record.minimum_optimizations.items()
+                }
 
             for name, qcschema in final_molecules.items():
                 _check_connectivity(qcschema, name, fragment)
@@ -154,11 +154,11 @@ class BaseTargetSchema(SchemaBase, abc.ABC):
         description="The amount to weight the target by.",
     )
 
-    reference_data: Optional[Union[Any, LocalQCData[Any], BespokeQCData[Any]]]
+    reference_data: Any | LocalQCData[Any] | BespokeQCData[Any] | None
 
-    calculation_specification: Optional[
-        Union[Torsion1DTaskSpec, HessianTaskSpec, OptimizationTaskSpec]
-    ]
+    calculation_specification: None | (
+        Torsion1DTaskSpec | HessianTaskSpec | OptimizationTaskSpec
+    )
 
     extras: dict[str, str] = Field(
         {},
@@ -181,13 +181,11 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
 
     type: Literal["TorsionProfile"] = "TorsionProfile"
 
-    reference_data: Optional[
-        Union[
-            LocalQCData[TorsionDriveResult],
-            BespokeQCData[Torsion1DTaskSpec],
-            TorsionDriveResultCollection,
-        ]
-    ] = Field(
+    reference_data: None | (
+        LocalQCData[TorsionDriveResult]
+        | BespokeQCData[Torsion1DTaskSpec]
+        | TorsionDriveResultCollection
+    ) = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
@@ -195,7 +193,7 @@ class TorsionProfileTargetSchema(BaseTargetSchema):
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
         _validate_connectivity,
     )
-    calculation_specification: Optional[Torsion1DTaskSpec] = Field(
+    calculation_specification: Torsion1DTaskSpec | None = Field(
         None,
         description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
     )
@@ -222,13 +220,11 @@ class AbInitioTargetSchema(BaseTargetSchema):
 
     type: Literal["AbInitio"] = "AbInitio"
 
-    reference_data: Optional[
-        Union[
-            LocalQCData[TorsionDriveResult],
-            BespokeQCData[Torsion1DTaskSpec],
-            TorsionDriveResultCollection,
-        ]
-    ] = Field(
+    reference_data: None | (
+        LocalQCData[TorsionDriveResult]
+        | BespokeQCData[Torsion1DTaskSpec]
+        | TorsionDriveResultCollection
+    ) = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
@@ -236,7 +232,7 @@ class AbInitioTargetSchema(BaseTargetSchema):
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
         _validate_connectivity,
     )
-    calculation_specification: Optional[Torsion1DTaskSpec] = Field(
+    calculation_specification: Torsion1DTaskSpec | None = Field(
         None,
         description="The specification for the reference torsion drive calculation, also acts as a provenance source.",
     )
@@ -265,23 +261,21 @@ class VibrationTargetSchema(BaseTargetSchema):
 
     type: Literal["Vibration"] = "Vibration"
 
-    reference_data: Optional[
-        Union[
-            LocalQCData[AtomicResult],
-            BespokeQCData[HessianTaskSpec],
-            BasicResultCollection,
-        ]
-    ] = Field(
+    reference_data: None | (
+        LocalQCData[AtomicResult]
+        | BespokeQCData[HessianTaskSpec]
+        | BasicResultCollection
+    ) = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
     )
-    calculation_specification: Optional[HessianTaskSpec] = Field(
+    calculation_specification: HessianTaskSpec | None = Field(
         None,
         description="The specification for the reference hessian calculation, also acts as a provenance source.",
     )
 
-    mode_reassignment: Optional[Literal["permute", "overlap"]] = Field(
+    mode_reassignment: Literal["permute", "overlap"] | None = Field(
         None,
         description="The (optional) method by which to re-assign normal modes.",
     )
@@ -297,13 +291,11 @@ class OptGeoTargetSchema(BaseTargetSchema):
 
     type: Literal["OptGeo"] = "OptGeo"
 
-    reference_data: Optional[
-        Union[
-            LocalQCData[OptimizationResult],
-            BespokeQCData[OptimizationTaskSpec],
-            OptimizationResultCollection,
-        ]
-    ] = Field(
+    reference_data: None | (
+        LocalQCData[OptimizationResult]
+        | BespokeQCData[OptimizationTaskSpec]
+        | OptimizationResultCollection
+    ) = Field(
         None,
         description="The reference QC data (either existing or to be generated on the "
         "fly) to fit against.",
@@ -311,7 +303,7 @@ class OptGeoTargetSchema(BaseTargetSchema):
     _reference_data_connectivity = validator("reference_data", allow_reuse=True)(
         _validate_connectivity,
     )
-    calculation_specification: Optional[OptimizationTaskSpec] = Field(
+    calculation_specification: OptimizationTaskSpec | None = Field(
         None,
         description="The specification for the reference optimisation calculation, also acts as a provenance source.",
     )

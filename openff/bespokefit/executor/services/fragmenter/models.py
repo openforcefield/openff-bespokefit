@@ -1,17 +1,14 @@
 """Mels for fragmenter steps."""
 
-from typing import Optional, Union
-
 from openff.fragmenter.fragment import (
     FragmentationResult,
     PfizerFragmenter,
     WBOFragmenter,
 )
-from pydantic import Field
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services.models import Link
 from openff.bespokefit.executor.utilities.typing import Status
-from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class FragmenterGETResponse(Link):
@@ -19,12 +16,12 @@ class FragmenterGETResponse(Link):
 
     status: Status = Field("waiting", description="The status of the fragmentation.")
 
-    result: Optional[FragmentationResult] = Field(
+    result: FragmentationResult | None = Field(
         ...,
         description="The result of the fragmentation if any was produced.",
     )
 
-    error: Optional[str] = Field(
+    error: str | None = Field(
         ...,
         description="The error raised while fragmenting if any.",
     )
@@ -43,12 +40,12 @@ class FragmenterPOSTBody(BaseModel):
         ...,
         description="The CMILES representation of the molecule to fragment.",
     )
-    fragmenter: Optional[Union[PfizerFragmenter, WBOFragmenter]] = Field(
+    fragmenter: PfizerFragmenter | WBOFragmenter | None = Field(
         ...,
         description="The fragmentation engine to use.",
     )
 
-    target_bond_smarts: Optional[list[str]] = Field(
+    target_bond_smarts: list[str] | None = Field(
         ...,
         description="A list of SMARTS patterns that should be used to identify the "
         "bonds within the parent molecule to grow fragments around. Each SMARTS pattern "

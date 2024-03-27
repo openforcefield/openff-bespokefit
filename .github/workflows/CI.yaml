@@ -10,10 +10,14 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   test:
 
-    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 👁️=${{ matrix.openeye }}, ∫=${{ matrix.integration }}
+    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 💢=${{ matrix.pydantic-version }}, 👁️=${{ matrix.openeye }}, ∫=${{ matrix.integration }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -21,6 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         python-version: ["3.10"]
+        pydantic-version: ["1"]
         openeye: [true, false]
         integration: [true]
 
@@ -37,6 +42,7 @@ jobs:
           environment-file: devtools/conda-envs/test-env.yaml
           create-args: >-
             python=${{ matrix.python-version }}
+            pydantic=${{ matrix.pydantic-version }}
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
@@ -45,9 +51,9 @@ jobs:
           environment-file: devtools/conda-envs/no_openeye.yaml
           create-args: >-
             python=${{ matrix.python-version }}
+            pydantic=${{ matrix.pydantic-version }}
 
       - name: License OpenEye
-        shell: bash -l {0}
         if: ${{ matrix.openeye == true }}
         run: |
           echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
@@ -56,20 +62,15 @@ jobs:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Install Package
-        shell: bash -l {0}
-        run: |
-          python setup.py develop --no-deps
+        run: python -m pip install -e .
 
       - name: Conda Environment Information
-        shell: bash -l {0}
         run: |
           micromamba info
           micromamba list
 
       - name: Run Tests
-        shell: bash -l {0}
-        run: |
-          pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests --cov-report=xml
+        run: python -m pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v4
@@ -80,7 +81,6 @@ jobs:
 
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
-        shell: bash -l {0}
         run: |
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \

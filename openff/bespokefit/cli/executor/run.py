@@ -1,7 +1,5 @@
 """Host of `run` command in CLI."""
 
-from typing import Optional
-
 import click
 import click.exceptions
 import rich
@@ -17,20 +15,20 @@ from openff.bespokefit.cli.utilities import create_command, print_header
 
 
 def _run_cli(
-    input_file_path: Optional[str],
-    molecule_smiles: Optional[str],
+    input_file_path: str | None,
+    molecule_smiles: str | None,
     output_file_path: str,
-    output_force_field_path: Optional[str],
-    force_field_path: Optional[str],
+    output_force_field_path: str | None,
+    force_field_path: str | None,
     target_torsion_smirks: tuple[str],
-    default_qc_spec: Optional[tuple[str, str, str]],
-    workflow_name: Optional[str],
-    workflow_file_name: Optional[str],
-    directory: Optional[str],
+    default_qc_spec: tuple[str, str, str] | None,
+    workflow_name: str | None,
+    workflow_file_name: str | None,
+    directory: str | None,
     n_fragmenter_workers: int,
     n_qc_compute_workers: int,
-    qc_compute_n_cores: Optional[int],
-    qc_compute_max_mem: Optional[float],
+    qc_compute_n_cores: int | None,
+    qc_compute_max_mem: float | None,
     n_optimizer_workers: int,
     launch_redis_if_unavailable: bool,
 ):

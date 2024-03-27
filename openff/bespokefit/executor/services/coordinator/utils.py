@@ -1,7 +1,6 @@
 """Utilities for coordinator service."""
 
 import hashlib
-from typing import Optional
 
 import redis
 from openff.toolkit.typing.engines.smirnoff import ForceField
@@ -30,7 +29,7 @@ def _hash_fitting_schema(fitting_schema: BespokeOptimizationSchema) -> str:
 def get_cached_parameters(
     fitting_schema: BespokeOptimizationSchema,
     redis_connection: redis.Redis,
-) -> Optional[ForceField]:
+) -> ForceField | None:
     """
     For the given fitting schema create a hash and check for a cached force field which contains a set of fit torsion parameters.
     """

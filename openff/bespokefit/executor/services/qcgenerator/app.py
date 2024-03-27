@@ -1,14 +1,16 @@
 """The qc generation app."""
 
+from __future__ import annotations
+
 import json
-from typing import Optional, Union
+from typing import Union
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
-from pydantic import parse_obj_as
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 
+from openff.bespokefit._pydantic import parse_obj_as
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task
@@ -63,7 +65,7 @@ def _retrieve_qc_result(qc_calc_id: str, results: bool) -> QCGeneratorGETRespons
 
 @router.get("/" + __settings.BEFLOW_QC_COMPUTE_PREFIX)
 def get_qc_results(
-    ids: Optional[list[str]] = Query(None),
+    ids: list[str] | None = Query(None),
     results: bool = True,
 ) -> QCGeneratorGETPageResponse:
     """Get QC results."""

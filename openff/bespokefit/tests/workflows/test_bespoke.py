@@ -10,8 +10,8 @@ from openff.qcsubmit.common_structures import QCSpec
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
-from pydantic import ValidationError
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.exceptions import (
     MissingTorsionTargetSMARTS,
     OptimizerError,

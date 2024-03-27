@@ -1,5 +1,4 @@
 import hashlib
-from typing import Optional
 
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
@@ -26,7 +25,7 @@ from openff.bespokefit.schema.results import BespokeOptimizationResults
 
 def mock_task(
     pending_stages: list[StageType],
-    running_stage: Optional[StageType],
+    running_stage: StageType | None,
     completed_stages: list[StageType],
 ) -> CoordinatorTask:
     force_field = ForceField("openff_unconstrained-1.0.0.offxml")

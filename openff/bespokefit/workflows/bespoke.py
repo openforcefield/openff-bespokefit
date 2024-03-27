@@ -4,7 +4,7 @@ import hashlib
 import logging
 import os
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Union
 
 from openff.fragmenter.fragment import WBOFragmenter
 from openff.qcsubmit.common_structures import QCSpec
@@ -17,10 +17,11 @@ from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import Field, validator
 from qcelemental.models.common_models import Model
-from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
+from qcportal.optimization import OptimizationRecord
+from qcportal.torsiondrive import TorsiondriveRecord
 
+from openff.bespokefit._pydantic import ClassBase, Field, validator
 from openff.bespokefit.exceptions import (
     MissingTorsionTargetSMARTS,
     OptimizerError,
@@ -50,11 +51,10 @@ from openff.bespokefit.schema.tasks import (
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities import parallel
-from openff.bespokefit.utilities.pydantic import ClassBase
 from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
-QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
+QCResultRecord = Union[OptimizationRecord, TorsiondriveRecord]
 QCResultCollection = Union[
     TorsionDriveResultCollection,
     OptimizationResultCollection,
@@ -75,7 +75,7 @@ class BespokeWorkflowFactory(ClassBase):
         "point for optimization. The force field must be installed with conda/mamba.",
     )
 
-    optimizer: Union[str, OptimizerSchema] = Field(
+    optimizer: str | OptimizerSchema = Field(
         ForceBalanceSchema(penalty_type="L1"),
         description="The optimizer that should be used with the targets already set.",
     )
@@ -96,7 +96,7 @@ class BespokeWorkflowFactory(ClassBase):
         "optimisation such as through the inclusion of harmonic priors.",
     )
 
-    target_torsion_smirks: Optional[list[str]] = Field(
+    target_torsion_smirks: list[str] | None = Field(
         [_DEFAULT_ROTATABLE_SMIRKS],
         description="A list of SMARTS patterns that should be used to identify the "
         "**bonds** within the target molecule to generate bespoke torsions around. Each "
@@ -112,7 +112,7 @@ class BespokeWorkflowFactory(ClassBase):
         description="The settings that should be used when generating SMIRKS patterns for this optimization stage.",
     )
 
-    fragmentation_engine: Optional[FragmentationEngine] = Field(
+    fragmentation_engine: FragmentationEngine | None = Field(
         WBOFragmenter(),
         description="The Fragment engine that should be used to fragment the molecule, "
         "note that if None is provided the molecules will not be fragmented. By default "
@@ -135,7 +135,7 @@ class BespokeWorkflowFactory(ClassBase):
         return force_field
 
     @validator("optimizer")
-    def _check_optimizer(cls, optimizer: Union[str, OptimizerSchema]):
+    def _check_optimizer(cls, optimizer: str | OptimizerSchema):
         """
         Set the optimizer settings to be used.
 
@@ -161,8 +161,8 @@ class BespokeWorkflowFactory(ClassBase):
     @validator("target_torsion_smirks")
     def _check_target_torsion_smirks(
         cls,
-        values: Optional[list[str]],
-    ) -> Optional[list[str]]:
+        values: list[str] | None,
+    ) -> list[str] | None:
         if values:
             return [validate_smirks(value, 2) for value in values]
         return values
@@ -228,7 +228,7 @@ class BespokeWorkflowFactory(ClassBase):
     @classmethod
     def _deduplicated_list(
         cls,
-        molecules: Union[Molecule, list[Molecule], str],
+        molecules: Molecule | list[Molecule] | str,
     ) -> ComponentResult:
         """Create a deduplicated list of molecules based on the input type."""
         input_file, molecule, input_directory = None, None, None
@@ -256,8 +256,8 @@ class BespokeWorkflowFactory(ClassBase):
 
     def optimization_schemas_from_molecules(
         self,
-        molecules: Union[Molecule, list[Molecule]],
-        processors: Optional[int] = 1,
+        molecules: Molecule | list[Molecule],
+        processors: int | None = 1,
     ) -> list[BespokeOptimizationSchema]:
         """
         Take the general fitting meta-template and generate a specific one for this set of molecules.
@@ -298,7 +298,7 @@ class BespokeWorkflowFactory(ClassBase):
         self,
         molecule: Molecule,
         index: int = 0,
-    ) -> Optional[BespokeOptimizationSchema]:
+    ) -> BespokeOptimizationSchema | None:
         """Build an optimization schema from an input molecule this involves fragmentation."""
         # make sure all required variables have been declared
         self._pre_run_check()
@@ -309,7 +309,7 @@ class BespokeWorkflowFactory(ClassBase):
         self,
         results: QCResultCollection,
         combine: bool = False,
-        processors: Optional[int] = 1,
+        processors: int | None = 1,
     ) -> list[BespokeOptimizationSchema]:
         """
         Create a set of optimization schemas (one per molecule) from some results.
@@ -397,7 +397,7 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data = {}
 
         for record_type, records_of_type in records_by_type.items():
-            record_type_label = {TorsionDriveRecord: "torsion1d"}[record_type]
+            record_type_label = {TorsiondriveRecord: "torsion1d"}[record_type]
 
             local_qc_data[record_type_label] = LocalQCData.from_remote_records(
                 records_of_type,
@@ -425,7 +425,7 @@ class BespokeWorkflowFactory(ClassBase):
         self,
         molecule: Molecule,
         index: int,
-        local_qc_data: Optional[dict[str, LocalQCData]] = None,
+        local_qc_data: dict[str, LocalQCData] | None = None,
     ) -> BespokeOptimizationSchema:
         """For a given molecule schema build an optimization schema."""
         force_field_editor = ForceFieldEditor(self.initial_force_field)

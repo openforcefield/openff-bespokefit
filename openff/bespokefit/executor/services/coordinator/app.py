@@ -5,7 +5,6 @@ import logging
 import os
 import signal
 import urllib.parse
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -32,7 +31,7 @@ from openff.bespokefit.executor.utilities.depiction import smiles_to_image
 router = APIRouter()
 
 _logger = logging.getLogger(__name__)
-_worker_task: Optional[asyncio.Future] = None
+_worker_task: asyncio.Future | None = None
 
 __settings = current_settings()
 
@@ -45,7 +44,7 @@ __GET_TASK_IMAGE_ENDPOINT = (
 def get_optimizations(
     skip: int = 0,
     limit: int = 1000,
-    status: Optional[TaskStatus] = None,
+    status: TaskStatus | None = None,
 ) -> CoordinatorGETPageResponse:
     """Retrieve all bespoke optimizations that have been submitted to this server."""
     task_ids = get_task_ids(skip, limit, status=(None if status is None else {status}))
@@ -66,7 +65,7 @@ def get_optimizations(
     prev_index = max(0, skip - limit)
     next_index = min(n_total_tasks, skip + limit)
 
-    status_url = "" if status is None else f"&status={status}"
+    status_url = "" if status is None else f"&status={status.value}"
 
     return CoordinatorGETPageResponse(
         self=(
