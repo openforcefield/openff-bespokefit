@@ -6,12 +6,12 @@ import click.exceptions
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
-from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
 from rich.table import Table
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,

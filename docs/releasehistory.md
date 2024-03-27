@@ -9,6 +9,11 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
+## 0.3.0 / DD-MM-2024
+
+### New Features
+* [#280] - Adds support for QCFractal 0.50 and newer [@mattwthompson] [@j-wags] [@ntBre]
+
 ### Documentation Updates
 * [#321] - Documents how to download pre-computed QC data and add it to the local cache, which can avoid the need for local calculcations. by [@jthorton]
 * [#325] - Document issue where `xtb` doesn't respect the `--qc-compute-n-cores` argument and provide workaround. by [@mattwthompson]
@@ -150,3 +155,4 @@ The first major release of bespokefit intended for public use.
 [@jthorton]: https://github.com/jthorton
 [@SimonBoothroyd]: https://github.com/SimonBoothroyd
 [@xperrylinn]: https://github.com/xperrylinn
+[@ntBre]: https://github.com/ntBre

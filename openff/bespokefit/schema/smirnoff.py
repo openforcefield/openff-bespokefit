@@ -10,10 +10,9 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit._pydantic import Field, PositiveFloat, SchemaBase, validator
 
 
 def validate_smirks(smirks: str, expected_tags: int) -> str:

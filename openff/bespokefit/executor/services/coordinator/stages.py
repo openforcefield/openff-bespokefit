@@ -13,12 +13,12 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
@@ -53,7 +53,6 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTask
-from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.smirks import (
     ForceFieldEditor,
     SMIRKSGenerator,

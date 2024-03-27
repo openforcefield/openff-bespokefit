@@ -3,10 +3,10 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter, Query
 from fastapi.responses import Response
-from pydantic import parse_obj_as
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 
+from openff.bespokefit._pydantic import parse_obj_as
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.cache import cached_compute_task

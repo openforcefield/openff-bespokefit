@@ -2,10 +2,9 @@ import os
 from contextlib import contextmanager
 from typing import Optional, Union
 
-from pydantic import BaseSettings, Field
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, BaseSettings, Field
 
 
 class WorkerSettings(BaseModel):

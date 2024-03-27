@@ -3,13 +3,12 @@ from typing import Optional, Tuple, overload
 
 from openff.qcsubmit.procedures import GeometricProcedure
 from openff.toolkit.topology import Molecule
-from pydantic import Field, conint
 from qcelemental.models import AtomicResult
 from qcelemental.models.common_models import Model
 from qcelemental.models.procedures import OptimizationResult, TorsionDriveResult
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field, conint
 
 
 class QCGenerationTask(BaseModel, abc.ABC):
