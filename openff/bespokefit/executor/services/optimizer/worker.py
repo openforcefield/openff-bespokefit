@@ -1,8 +1,8 @@
 from typing import Union
 
-from pydantic import parse_raw_as
 from qcelemental.util import serialize
 
+from openff.bespokefit._pydantic import parse_raw_as
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import cache_parameters
 from openff.bespokefit.executor.utilities.celery import configure_celery_app

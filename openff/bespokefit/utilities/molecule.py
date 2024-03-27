@@ -69,8 +69,20 @@ def canonical_order_atoms(molecule: Molecule):
     """
 
     try:
+        # Try to order with openeye ...
         atom_order = _oe_canonical_atom_order(molecule)
+    except ValueError as error:
+        # ... if OEChem is installed but does not appear to be licensed, the
+        # toolkit will raise a ValueError. Here, use the RDKit code path
+        if str(error).startswith(
+            'No registered toolkits can provide the capability "to_openeye'
+        ):
+            atom_order = _rd_canonical_atom_order(molecule)
+        else:
+            # in this case, something else went wrong, so just re-raise
+            raise error
     except (ImportError, ModuleNotFoundError):
+        # if OEChem is simply not installed, we'll fall back to RDKit
         atom_order = _rd_canonical_atom_order(molecule)
 
     n_heavy_atoms = sum(1 for atom in molecule.atoms if atom.atomic_number != 1)

@@ -4,6 +4,7 @@ import subprocess
 from typing import Tuple
 
 import pytest
+import qcportal
 import redis
 from openff.fragmenter.fragment import Fragment, FragmentationResult
 from openff.qcsubmit.results import (
@@ -16,9 +17,8 @@ from openff.qcsubmit.results import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.units import unit
 from openff.utilities import get_data_file_path
-from qcelemental.models import AtomicResult
+from qcelemental.models import AtomicResult, DriverEnum
 from qcelemental.models.common_models import Model, Provenance
 from qcelemental.models.procedures import OptimizationResult as QCOptimizationResult
 from qcelemental.models.procedures import (
@@ -26,13 +26,10 @@ from qcelemental.models.procedures import (
     QCInputSpecification,
 )
 from qcelemental.models.procedures import TorsionDriveResult as QCTorsionDriveResult
-from qcportal import FractalClient
-from qcportal.models import (
-    ObjectId,
-    OptimizationRecord,
-    ResultRecord,
-    TorsionDriveRecord,
-)
+from qcelemental.models.results import AtomicResultProperties
+from qcportal.optimization import OptimizationRecord
+from qcportal.singlepoint import SinglepointRecord
+from qcportal.torsiondrive import TorsiondriveRecord
 
 from openff.bespokefit.executor.utilities.redis import (
     expected_redis_config_version,
@@ -98,12 +95,12 @@ def clear_force_balance_caches():
 
 
 @pytest.fixture(scope="module")
-def qc_torsion_drive_record() -> Tuple[TorsionDriveRecord, Molecule]:
+def qc_torsion_drive_record() -> Tuple[TorsiondriveRecord, Molecule]:
     [(record, molecule)] = TorsionDriveResultCollection(
         entries={
             "api.qcarchive.molssi.org:443": [
                 TorsionDriveResult(
-                    record_id=ObjectId("21272387"),
+                    record_id=21272387,
                     cmiles="[H:13][c:1]1[c:3]([c:7]([c:11]([c:8]([c:4]1[H:16])[H:20])"
                     "[c:12]2[c:9]([c:5]([c:2]([c:6]([c:10]2[H:22])[H:18])[H:14])"
                     "[H:17])[H:21])[H:19])[H:15]",
@@ -126,7 +123,7 @@ def qc_torsion_drive_results(
         entries={
             "http://localhost:442": [
                 TorsionDriveResult(
-                    record_id=ObjectId("1"),
+                    record_id=1,
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
                 )
@@ -149,8 +146,10 @@ def qc_torsion_drive_qce_result(
 ) -> Tuple[QCTorsionDriveResult, Molecule]:
     qc_record, molecule = qc_torsion_drive_record
 
+    qc_spec = qc_record.specification.optimization_specification.qc_specification
+
     qc_result = QCTorsionDriveResult(
-        keywords=qc_record.keywords.dict(),
+        keywords=qc_record.specification.keywords.dict(),
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -158,20 +157,22 @@ def qc_torsion_drive_qce_result(
             ),
         },
         input_specification=QCInputSpecification(
-            driver=qc_record.qc_spec.driver,
-            model=Model(method=qc_record.qc_spec.method, basis=qc_record.qc_spec.basis),
+            driver=DriverEnum.gradient,
+            model=Model(
+                method=qc_spec.method,
+                basis=qc_spec.basis,
+            ),
         ),
         initial_molecule=[molecule.to_qcschema()],
         optimization_spec=OptimizationSpecification(
-            procedure=qc_record.optimization_spec.program,
-            keywords=qc_record.optimization_spec.keywords,
+            procedure=qc_record.specification.optimization_specification.program,
+            keywords=qc_record.specification.optimization_specification.keywords,
         ),
         final_energies={
-            json.dumps(key): value
-            for key, value in qc_record.get_final_energies().items()
+            json.dumps(key): value for key, value in qc_record.final_energies.items()
         },
         final_molecules={
-            grid_id: molecule.to_qcschema(conformer=i)
+            str(grid_id): molecule.to_qcschema(conformer=i)
             for grid_id, i in zip(
                 molecule.properties["grid_ids"], range(len(molecule.conformers))
             )
@@ -190,7 +191,7 @@ def qc_optimization_record() -> Tuple[OptimizationRecord, Molecule]:
         entries={
             "api.qcarchive.molssi.org:443": [
                 OptimizationResult(
-                    record_id=ObjectId("18433218"),
+                    record_id=18433218,
                     cmiles="[H:13][c:1]1[c:3]([c:7]([c:11]([c:8]([c:4]1[H:16])[H:20])"
                     "[c:12]2[c:9]([c:5]([c:2]([c:6]([c:10]2[H:22])[H:18])[H:14])"
                     "[H:17])[H:21])[H:19])[H:15]",
@@ -213,7 +214,7 @@ def qc_optimization_results(
         entries={
             "http://localhost:442": [
                 OptimizationResult(
-                    record_id=ObjectId("1"),
+                    record_id=1,
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
                 )
@@ -236,8 +237,10 @@ def qc_optimization_qce_result(
 ) -> Tuple[QCOptimizationResult, Molecule]:
     qc_record, molecule = qc_optimization_record
 
+    qc_spec = qc_record.specification.qc_specification
+
     qc_result = QCOptimizationResult(
-        keywords=qc_record.keywords,
+        keywords=qc_record.specification.keywords,
         extras={
             "id": qc_record.id,
             "canonical_isomeric_explicit_hydrogen_mapped_smiles": molecule.to_smiles(
@@ -245,8 +248,8 @@ def qc_optimization_qce_result(
             ),
         },
         input_specification=QCInputSpecification(
-            driver=qc_record.qc_spec.driver,
-            model=Model(method=qc_record.qc_spec.method, basis=qc_record.qc_spec.basis),
+            driver=DriverEnum.gradient,
+            model=Model(method=qc_spec.method, basis=qc_spec.basis),
         ),
         initial_molecule=molecule.to_qcschema(),
         energies=qc_record.energies,
@@ -260,11 +263,16 @@ def qc_optimization_qce_result(
 
 
 @pytest.fixture(scope="module")
-def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
-    qc_client = FractalClient()
+def public_client():
+    """Setup a new connection to the public qcarchive client."""
 
-    [record] = qc_client.query_procedures(id="18854435")
-    [qc_molecule] = qc_client.query_molecules(id="12121726")
+    return qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
+
+
+@pytest.fixture(scope="module")
+def qc_hessian_record(public_client) -> Tuple[SinglepointRecord, Molecule]:
+    [record] = public_client.query_records(record_id=18854435)
+    qc_molecule = record.molecule
 
     qc_molecule_dict = qc_molecule.dict(encoding="json")
 
@@ -274,17 +282,18 @@ def qc_hessian_record() -> Tuple[ResultRecord, Molecule]:
             "[N:10][C:5](=[C:6]([O:12]2)[H:18])[H:17])[H:16])[H:14]"
         )
     }
+
+    # toolkit 0.15.0+ adds a conformer if there is geometry in the qc molecule,
+    # previous versions of the toolkit didn't
     molecule = Molecule.from_qcschema(qc_molecule_dict)
-    molecule.add_conformer(
-        qc_molecule.geometry.reshape((molecule.n_atoms, 3)) * unit.bohr
-    )
 
     return record, molecule
 
 
 @pytest.fixture()
 def qc_hessian_results(
-    qc_hessian_record: ResultRecord, monkeypatch
+    qc_hessian_record: tuple[SinglepointRecord, Molecule],
+    monkeypatch,
 ) -> BasicResultCollection:
     _, molecule = qc_hessian_record
 
@@ -292,7 +301,7 @@ def qc_hessian_results(
         entries={
             "http://localhost:442": [
                 BasicResult(
-                    record_id=ObjectId("1"),
+                    record_id=1,
                     cmiles=molecule.to_smiles(mapped=True),
                     inchi_key=molecule.to_inchikey(),
                 )
@@ -311,7 +320,7 @@ def qc_hessian_results(
 
 @pytest.fixture()
 def qc_hessian_qce_result(
-    qc_hessian_record,
+    qc_hessian_record: tuple[SinglepointRecord, Molecule],
 ) -> Tuple[AtomicResult, Molecule]:
     qc_record, molecule = qc_hessian_record
 
@@ -323,10 +332,35 @@ def qc_hessian_qce_result(
             ),
             **qc_record.extras,
         },
-        properties=qc_record.properties,
+        properties=AtomicResultProperties(
+            # missing quadrupole moment, see
+            # https://github.com/openforcefield/openff-qcsubmit/pull/195/files#diff-38e27222b4aa42cac9e280107a45496a7f27ddf6d648c7dcf330ef5622f8499aR885
+            # for breadcrumbs if needed
+            calcinfo_nbasis=qc_record.properties["calcinfo_nbasis"],
+            calcinfo_nmo=qc_record.properties["calcinfo_nmo"],
+            calcinfo_nalpha=qc_record.properties["calcinfo_nalpha"],
+            calcinfo_nbeta=qc_record.properties["calcinfo_nbeta"],
+            calcinfo_natom=qc_record.properties["calcinfo_natom"],
+            nuclear_repulsion_energy=qc_record.properties["nuclear_repulsion_energy"],
+            return_energy=qc_record.properties["return_energy"],
+            return_gradient=qc_record.properties["current gradient"],
+            scf_one_electron_energy=qc_record.properties["scf_one_electron_energy"],
+            scf_two_electron_energy=qc_record.properties["scf_two_electron_energy"],
+            scf_vv10_energy=qc_record.properties["dft vv10 energy"],  # ?
+            scf_xc_energy=qc_record.properties["scf_xc_energy"],
+            scf_dispersion_correction_energy=qc_record.properties[
+                "scf_dispersion_correction_energy"
+            ],
+            scf_dipole_moment=qc_record.properties["scf_dipole_moment"],
+            scf_total_energy=qc_record.properties["scf_total_energy"],
+            scf_iterations=qc_record.properties["scf_iterations"],
+        ),
         molecule=molecule.to_qcschema(),
-        driver=qc_record.driver,
-        model=Model(method=qc_record.method, basis=qc_record.basis),
+        driver=qc_record.specification.driver,
+        model=Model(
+            method=qc_record.specification.method,
+            basis=qc_record.specification.basis,
+        ),
         return_result=qc_record.return_result,
         provenance=Provenance(creator="fixture"),
         success=True,

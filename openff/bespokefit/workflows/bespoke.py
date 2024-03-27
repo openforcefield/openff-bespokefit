@@ -19,10 +19,11 @@ from openff.qcsubmit.serializers import deserialize, serialize
 from openff.qcsubmit.workflow_components import ComponentResult
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from pydantic import Field, validator
 from qcelemental.models.common_models import Model
-from qcportal.models import OptimizationRecord, ResultRecord, TorsionDriveRecord
+from qcportal.optimization import OptimizationRecord
+from qcportal.torsiondrive import TorsiondriveRecord
 
+from openff.bespokefit._pydantic import ClassBase, Field, validator
 from openff.bespokefit.exceptions import (
     MissingTorsionTargetSMARTS,
     OptimizerError,
@@ -52,11 +53,10 @@ from openff.bespokefit.schema.tasks import (
     Torsion1DTaskSpec,
 )
 from openff.bespokefit.utilities import parallel
-from openff.bespokefit.utilities.pydantic import ClassBase
 from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 from openff.bespokefit.utilities.smirnoff import ForceFieldEditor
 
-QCResultRecord = Union[ResultRecord, OptimizationRecord, TorsionDriveRecord]
+QCResultRecord = Union[OptimizationRecord, TorsiondriveRecord]
 QCResultCollection = Union[
     TorsionDriveResultCollection,
     OptimizationResultCollection,
@@ -397,7 +397,7 @@ class BespokeWorkflowFactory(ClassBase):
         local_qc_data = {}
 
         for record_type, records_of_type in records_by_type.items():
-            record_type_label = {TorsionDriveRecord: "torsion1d"}[record_type]
+            record_type_label = {TorsiondriveRecord: "torsion1d"}[record_type]
 
             local_qc_data[record_type_label] = LocalQCData.from_remote_records(
                 records_of_type

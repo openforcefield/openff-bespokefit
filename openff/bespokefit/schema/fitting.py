@@ -5,9 +5,9 @@ from openff.fragmenter.fragment import WBOFragmenter
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.units import unit
-from pydantic import Field, conlist
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import Field, SchemaBase, conlist
 from openff.bespokefit.fragmentation import FragmentationEngine
 from openff.bespokefit.schema.optimizers import OptimizerSchema
 from openff.bespokefit.schema.smirnoff import (
@@ -16,7 +16,6 @@ from openff.bespokefit.schema.smirnoff import (
     SMIRNOFFParameter,
 )
 from openff.bespokefit.schema.targets import TargetSchema
-from openff.bespokefit.utilities.pydantic import SchemaBase
 from openff.bespokefit.utilities.smirks import SMIRKSettings, SMIRKSType
 
 
