@@ -70,7 +70,7 @@ jobs:
           micromamba list
 
       - name: Run Tests
-        run: python -m pytest openff/bespokefit/tests/
+        run: python -m pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/tests/ --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v4

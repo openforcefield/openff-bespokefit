@@ -144,7 +144,6 @@ def qc_torsion_drive_results(
 def qc_torsion_drive_qce_result(
     qc_torsion_drive_record,
 ) -> Tuple[QCTorsionDriveResult, Molecule]:
-    # This record seems to have its driver set to 'deferred' ?
     qc_record, molecule = qc_torsion_drive_record
 
     qc_spec = qc_record.specification.optimization_specification.qc_specification
@@ -333,7 +332,10 @@ def qc_hessian_qce_result(
             ),
             **qc_record.extras,
         },
-        properties=AtomicResultProperties(  # missing quadrupole moment, many fields with spaces
+        properties=AtomicResultProperties( 
+         # missing quadrupole moment, see 
+         # https://github.com/openforcefield/openff-qcsubmit/pull/195/files#diff-38e27222b4aa42cac9e280107a45496a7f27ddf6d648c7dcf330ef5622f8499aR885 
+         # for breadcrumbs if needed
             calcinfo_nbasis=qc_record.properties["calcinfo_nbasis"],
             calcinfo_nmo=qc_record.properties["calcinfo_nmo"],
             calcinfo_nalpha=qc_record.properties["calcinfo_nalpha"],
