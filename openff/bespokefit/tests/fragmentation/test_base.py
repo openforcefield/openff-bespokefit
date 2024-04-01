@@ -1,4 +1,5 @@
 """Test the fragmentation engine registration system."""
+
 import abc
 
 import pytest
