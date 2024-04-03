@@ -7,7 +7,7 @@ repos:
   - id: check-yaml
   - id: debug-statements
 - repo: https://github.com/psf/black
-  rev: 23.12.1
+  rev: 24.3.0
   hooks:
   - id: black
     files: ^openff
@@ -17,7 +17,7 @@ repos:
   - id: isort
     files: ^openff
 - repo: https://github.com/PyCQA/flake8
-  rev: 6.1.0
+  rev: 7.0.0
   hooks:
   - id: flake8
     files: ^openff

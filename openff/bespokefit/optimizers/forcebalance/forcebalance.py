@@ -138,10 +138,12 @@ class ForceBalanceOptimizer(BaseOptimizer):
             provenance=cls.provenance(),
             status=results_dictionary["status"],
             error=results_dictionary["error"],
-            refit_force_field=None
-            if results_dictionary["error"] is not None
-            else force_field_editor.force_field.to_string(
-                discard_cosmetic_attributes=True
+            refit_force_field=(
+                None
+                if results_dictionary["error"] is not None
+                else force_field_editor.force_field.to_string(
+                    discard_cosmetic_attributes=True
+                )
             ),
         )
 
