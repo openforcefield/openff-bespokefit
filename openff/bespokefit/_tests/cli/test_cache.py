@@ -6,13 +6,13 @@ import rich
 from openff.qcsubmit.results import TorsionDriveResultCollection
 from openff.utilities import get_data_file_path
 
+from openff.bespokefit._tests import does_not_raise
 from openff.bespokefit.cli.cache import (
     _connect_to_qcfractal,
     _results_from_file,
     _update_from_qcsubmit_result,
     update_cli,
 )
-from openff.bespokefit.tests import does_not_raise
 
 
 @pytest.mark.parametrize(

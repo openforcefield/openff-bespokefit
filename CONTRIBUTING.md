@@ -20,7 +20,7 @@ pip install -e .
 With this environment, tests can be run locally with [PyTest]:
 
 ```shell
-pytest openff/bespokefit/tests
+pytest openff/bespokefit/_tests
 ```
 
 And documentation can be built with [Sphinx] and viewed in a web browser:

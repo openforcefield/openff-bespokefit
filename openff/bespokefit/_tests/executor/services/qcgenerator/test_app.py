@@ -11,6 +11,7 @@ from qcelemental.models.procedures import (
     TorsionDriveResult,
 )
 
+from openff.bespokefit._tests.executor.mocking.celery import mock_celery_task
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.app import _retrieve_qc_result
 from openff.bespokefit.executor.services.qcgenerator.cache import _canonicalize_task
@@ -22,7 +23,6 @@ from openff.bespokefit.executor.services.qcgenerator.models import (
 )
 from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
-from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 @pytest.fixture()
