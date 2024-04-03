@@ -5,7 +5,7 @@ from __future__ import annotations
 import abc
 import json
 from collections import defaultdict
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import httpx
 from openff.fragmenter.fragment import Fragment, FragmentationResult
@@ -23,7 +23,6 @@ from qcengine.procedures.torsiondrive import TorsionDriveResult
 
 from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import current_settings
-from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterGETResponse,
@@ -63,6 +62,9 @@ from openff.bespokefit.utilities.smirks import (
     SMIRKSType,
     get_cached_torsion_parameters,
 )
+
+if TYPE_CHECKING:
+    from openff.bespokefit.executor.services.coordinator.models import CoordinatorTask
 
 
 class _Stage(BaseModel, abc.ABC):
