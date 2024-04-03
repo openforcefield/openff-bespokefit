@@ -1,6 +1,7 @@
 """
 Test for the bespoke-fit workflow generator.
 """
+
 import os
 
 import pytest
