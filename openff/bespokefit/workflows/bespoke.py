@@ -1,4 +1,4 @@
-"""The main bespokefit workflow factory which is executed and builds the bespoke workflows."""
+"""Main bespokefit workflow factory which builds the bespokeworkflows."""
 
 import hashlib
 import logging
