@@ -12,6 +12,7 @@ from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.bespokefit._pydantic import ValidationError
+from openff.bespokefit._tests import does_not_raise
 from openff.bespokefit.exceptions import (
     MissingTorsionTargetSMARTS,
     OptimizerError,
@@ -25,7 +26,6 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import AbInitioTargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTaskSpec
-from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.workflows.bespoke import (
     _DEFAULT_ROTATABLE_SMIRKS,
     BespokeWorkflowFactory,

@@ -5,10 +5,10 @@ import click.exceptions
 import pytest
 import rich
 
+from openff.bespokefit._tests.executor import patch_settings
 from openff.bespokefit.cli.executor.launch import launch_cli, validate_redis_connection
 from openff.bespokefit.executor import BespokeExecutor
 from openff.bespokefit.executor.utilities.redis import RedisNotConfiguredError
-from openff.bespokefit.tests.executor import patch_settings
 
 
 @pytest.fixture(scope="module", autouse=True)

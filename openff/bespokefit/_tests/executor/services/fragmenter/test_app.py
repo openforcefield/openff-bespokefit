@@ -1,6 +1,7 @@
 from celery.result import AsyncResult
 from openff.fragmenter.fragment import Fragment, FragmentationResult, PfizerFragmenter
 
+from openff.bespokefit._tests.executor.mocking.celery import mock_celery_task
 from openff.bespokefit.executor.services.fragmenter import worker
 from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterGETResponse,
@@ -8,7 +9,6 @@ from openff.bespokefit.executor.services.fragmenter.models import (
     FragmenterPOSTResponse,
 )
 from openff.bespokefit.executor.utilities.depiction import IMAGE_UNAVAILABLE_SVG
-from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 def _mock_fragment(monkeypatch, status: str = "SUCCESS") -> FragmentationResult:

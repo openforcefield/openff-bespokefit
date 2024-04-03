@@ -89,4 +89,4 @@ jobs:
 
         echo "Starting tests:"
         PYTEST_ARGS=" -r fE --tb=short"
-        pytest $PYTEST_ARGS ../openff/bespokefit/tests/
+        pytest $PYTEST_ARGS ../openff/bespokefit/_tests/
