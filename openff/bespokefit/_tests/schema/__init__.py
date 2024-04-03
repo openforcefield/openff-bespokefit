@@ -1,3 +1,1 @@
-"""
-Empty init file in case you choose a package besides PyTest such as Nose which may look for such a file
-"""
+"""Empty init file to make this look like a Python package."""

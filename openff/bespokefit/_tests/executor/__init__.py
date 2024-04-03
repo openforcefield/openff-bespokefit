@@ -14,6 +14,7 @@ else:
 
 @contextmanager
 def patch_settings(redis_connection: redis.Redis):
+    """Patch redis settings for the duration of the context manager."""
     with Settings(
         BEFLOW_REDIS_ADDRESS=redis_connection.connection_pool.connection_kwargs["host"],
         BEFLOW_REDIS_PORT=redis_connection.connection_pool.connection_kwargs["port"],

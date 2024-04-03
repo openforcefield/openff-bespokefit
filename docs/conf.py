@@ -84,7 +84,7 @@ autosummary_context = {
     "exclude_modules": [
         "openff.bespokefit.cli",
         "openff.bespokefit._tests",
-    ]
+    ],
 }
 autodoc_default_options = {
     "member-order": "bysource",
