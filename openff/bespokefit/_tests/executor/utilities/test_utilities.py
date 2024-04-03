@@ -3,9 +3,9 @@ import requests
 import rich
 from rich import pretty
 
+from openff.bespokefit._tests import does_not_raise
 from openff.bespokefit.executor.utilities import handle_common_errors
 from openff.bespokefit.executor.utilities._utilities import ErrorState
-from openff.bespokefit.tests import does_not_raise
 
 
 def _raise(exception):

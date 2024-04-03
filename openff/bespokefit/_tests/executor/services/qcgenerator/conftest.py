@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
+from openff.bespokefit._tests.executor import patch_settings
 from openff.bespokefit.executor.services.qcgenerator import app, worker
-from openff.bespokefit.tests.executor import patch_settings
 
 
 @pytest.fixture(scope="module")

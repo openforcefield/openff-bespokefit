@@ -2,13 +2,13 @@ import pytest
 from openff.utilities import skip_if_missing
 from qcelemental.models.common_models import Model
 
+from openff.bespokefit._tests.executor.mocking.celery import mock_celery_task
 from openff.bespokefit.executor.services.qcgenerator import worker
 from openff.bespokefit.executor.services.qcgenerator.cache import (
     _canonicalize_task,
     cached_compute_task,
 )
 from openff.bespokefit.schema.tasks import HessianTask, OptimizationTask, Torsion1DTask
-from openff.bespokefit.tests.executor.mocking.celery import mock_celery_task
 
 
 @skip_if_missing("openeye.oechem")

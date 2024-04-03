@@ -13,9 +13,9 @@ from openff.toolkit.typing.engines.smirnoff import (
 from openff.units import unit
 from openff.utilities import get_data_file_path
 
+from openff.bespokefit._tests import does_not_raise
 from openff.bespokefit.exceptions import SMIRKSTypeError
 from openff.bespokefit.schema.smirnoff import validate_smirks
-from openff.bespokefit.tests import does_not_raise
 from openff.bespokefit.utilities.smirks import (
     SMIRKSGenerator,
     compare_smirks_graphs,
