@@ -58,12 +58,14 @@ class CoordinatorGETStageStatus(BaseModel):
             type=stage.type,
             status=stage.status,
             error=stage.error,
-            results=None
-            if stage_ids is None
-            else [
-                Link(id=stage_id, self=f"{endpoints[stage.type]}{stage_id}")
-                for stage_id in stage_ids
-            ],
+            results=(
+                None
+                if stage_ids is None
+                else [
+                    Link(id=stage_id, self=f"{endpoints[stage.type]}{stage_id}")
+                    for stage_id in stage_ids
+                ]
+            ),
         )
 
 

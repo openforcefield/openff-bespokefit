@@ -9,10 +9,11 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
-## 0.3.0 / DD-MM-2024
+## 0.3.0 / 27-03-2024
 
 ### New Features
 * [#280] - Adds support for QCFractal 0.50 and newer [@mattwthompson] [@j-wags] [@ntBre]
+* [#334] - Makes test pseudo-private [@mattwthompson]
 
 ### Documentation Updates
 * [#321] - Documents how to download pre-computed QC data and add it to the local cache, which can avoid the need for local calculcations. by [@jthorton]
@@ -147,6 +148,13 @@ The first major release of bespokefit intended for public use.
 [#272]: https://github.com/openforcefield/openff-bespokefit/pull/272
 [#277]: https://github.com/openforcefield/openff-bespokefit/pull/277
 [#279]: https://github.com/openforcefield/openff-bespokefit/pull/279
+[#280]: https://github.com/openforcefield/openff-bespokefit/pull/280
+[#286]: https://github.com/openforcefield/openff-bespokefit/pull/286
+[#320]: https://github.com/openforcefield/openff-bespokefit/pull/320
+[#321]: https://github.com/openforcefield/openff-bespokefit/pull/321
+[#325]: https://github.com/openforcefield/openff-bespokefit/pull/325
+[#330]: https://github.com/openforcefield/openff-bespokefit/pull/330
+[#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
