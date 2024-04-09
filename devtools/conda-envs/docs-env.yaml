@@ -32,7 +32,7 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal
+  - qcportal ==0.53
   - qcelemental
   - qcengine
   - chemper
