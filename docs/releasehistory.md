@@ -9,6 +9,10 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
+## Current development
+
+* [#338] - Updates a test for QCFractal/QCPortal 0.54. [@mattwthompson]
+
 ## 0.3.0 / 27-03-2024
 
 ### New Features
@@ -155,6 +159,7 @@ The first major release of bespokefit intended for public use.
 [#325]: https://github.com/openforcefield/openff-bespokefit/pull/325
 [#330]: https://github.com/openforcefield/openff-bespokefit/pull/330
 [#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
+[#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
