@@ -145,11 +145,8 @@ class TestCheckConnectivity:
             pass
 
         if isinstance(record, qcportal.torsiondrive.TorsiondriveRecord):
-            final_records = {
-                key: val for key, val in record.minimum_optimizations_cache_.items()
-            }
 
-            for _record in final_records.values():
+            for _record in record.minimum_optimizations.values():
                 pos0 = _record.final_molecule.geometry[0]
                 pos1 = _record.final_molecule.geometry[1]
                 _record.final_molecule.geometry[0] = pos1
