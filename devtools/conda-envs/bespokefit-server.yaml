@@ -1,0 +1,46 @@
+name: bespokefit-server
+
+channels:
+  - openeye
+  - conda-forge
+
+dependencies:
+
+    # Base depends
+  - python
+  - pip
+
+    ### Core dependencies.
+
+  - numpy
+  - pydantic
+  - pyyaml
+  - tqdm
+  - rich
+  - click
+  - click-option-group
+  - rdkit
+  - openff-utilities
+  - openff-toolkit-base =0.15
+  - openff-interchange  # only needed because openff-toolkit-base
+  - openff-units
+  - openff-qcsubmit >=0.50
+
+    # Optional
+  - openff-fragmenter-base
+  - openeye-toolkits
+
+    ### Bespoke dependencies
+
+  - qcportal ==0.53
+  - qcelemental
+  - chemper
+
+    # Executor
+  - uvicorn
+  - fastapi
+  - starlette
+  - celery
+  - httpx
+  - redis-server
+  - redis-py

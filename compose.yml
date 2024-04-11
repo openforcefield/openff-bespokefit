@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  falcbot:
+    command: openff-bespoke executor launch --launch-redis --n-optimizer-workers 0 --n-qc-compute-workers 0 --n-fragmenter-workers 0 --directory bespoke-executor
+    build: .
+    container_name: "bepokefit-server"
+    ports:
+      - 80:8000
+    volumes:
+      - type: bind
+        source: $HOME/.OpenEye/
+        target: /home/mambauser/.OpenEye/
+    env_file:
+      - .env
