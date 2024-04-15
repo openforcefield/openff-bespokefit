@@ -6,7 +6,7 @@ from typing import Optional
 
 import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from starlette.middleware.cors import CORSMiddleware
 
 from openff.bespokefit.executor.services import current_settings
@@ -30,6 +30,14 @@ def __load_router(path: str) -> APIRouter:
 __settings = current_settings()
 
 
+def check_token(request: Request) -> bool:
+    """A simple authentication check."""
+    token = request.headers["BespokeFit-token"]
+    if token != __settings.BEFLOW_API_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return True
+
+
 app = FastAPI(
     title="openff-bespoke",
     openapi_url=f"{__settings.BEFLOW_API_V1_STR}/openapi.json",
@@ -43,7 +51,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-api_router = APIRouter(prefix=__settings.BEFLOW_API_V1_STR)
+api_router = APIRouter(
+    prefix=__settings.BEFLOW_API_V1_STR, dependencies=[Depends(check_token)]
+)
 api_router.get("")(lambda: {})
 
 api_router.include_router(__load_router(__settings.BEFLOW_COORDINATOR_ROUTER))
@@ -92,7 +102,8 @@ def wait_for_gateway(n_retries: int = 40):
     for _ in range(n_retries):
         try:
             ping = requests.get(
-                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}"
+                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}",
+                headers={"BespokeFit": __settings.BEFLOW_API_TOKEN},
             )
             ping.raise_for_status()
 

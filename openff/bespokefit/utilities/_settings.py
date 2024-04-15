@@ -20,6 +20,7 @@ class WorkerSettings(BaseModel):
 
 class Settings(BaseSettings):
     BEFLOW_API_V1_STR: str = "/api/v1"
+    BEFLOW_API_TOKEN: str = ""
 
     BEFLOW_GATEWAY_PORT: int = 8000
     BEFLOW_GATEWAY_LOG_LEVEL: str = "error"
