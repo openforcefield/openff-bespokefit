@@ -13,7 +13,7 @@ dependencies:
     ### Core dependencies.
 
   - numpy
-  - pydantic
+  - pydantic >=1.10.8,<2.0.0a0
   - pyyaml
   - tqdm
   - rich
@@ -22,9 +22,9 @@ dependencies:
   - rdkit
   - openff-utilities
   - openff-toolkit-base =0.15
-  - openff-interchange  # only needed because openff-toolkit-base
   - openff-units
-  - openff-qcsubmit >=0.50
+  - openff-qcsubmit
+  - versioneer
 
     # Optional
   - openff-fragmenter-base
@@ -32,10 +32,9 @@ dependencies:
 
     ### Bespoke dependencies
 
-  - qcportal ==0.53
   - qcelemental
   - chemper
-
+  - qcengine
     # Executor
   - uvicorn
   - fastapi
