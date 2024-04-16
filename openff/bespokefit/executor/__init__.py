@@ -1,17 +1,16 @@
 """Tools for executing workflows"""
 
-from openff.bespokefit.executor.executor import (
-    BespokeExecutor,
+from openff.bespokefit.executor.client import (
     BespokeExecutorOutput,
     BespokeExecutorStageOutput,
-    BespokeWorkerConfig,
-    wait_until_complete,
+    BespokeFitClient,
 )
+from openff.bespokefit.executor.executor import BespokeExecutor, BespokeWorkerConfig
 
 __all__ = [
     "BespokeExecutor",
     "BespokeExecutorOutput",
     "BespokeExecutorStageOutput",
     "BespokeWorkerConfig",
-    "wait_until_complete",
+    "BespokeFitClient",
 ]

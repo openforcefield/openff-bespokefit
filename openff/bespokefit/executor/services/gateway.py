@@ -103,7 +103,7 @@ def wait_for_gateway(n_retries: int = 40):
         try:
             ping = requests.get(
                 f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}",
-                headers={"BespokeFit": __settings.BEFLOW_API_TOKEN},
+                headers={"BespokeFit-token": __settings.BEFLOW_API_TOKEN},
             )
             ping.raise_for_status()
 

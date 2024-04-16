@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     BEFLOW_API_TOKEN: str = ""
 
     BEFLOW_GATEWAY_PORT: int = 8000
+    BEFLOW_GATEWAY_ADDRESS: str = "127.0.0.1"
     BEFLOW_GATEWAY_LOG_LEVEL: str = "error"
 
     BEFLOW_REDIS_ADDRESS: str = "localhost"

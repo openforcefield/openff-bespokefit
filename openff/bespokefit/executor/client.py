@@ -135,7 +135,6 @@ class BespokeFitClient:
 
     def __init__(
         self,
-        api_address: str,
         settings: Settings,
         retries: int = 3,
         backoff_factor: float = 0.5,
@@ -145,7 +144,10 @@ class BespokeFitClient:
         retry = Retry(connect=retries, backoff_factor=backoff_factor)
         adapter = HTTPAdapter(max_retries=retry)
         self._session.mount("http://", adapter)
-        self.executor_url = f"http://{api_address}:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}/"
+        self.address = (
+            f"http://{settings.BEFLOW_GATEWAY_ADDRESS}:{settings.BEFLOW_GATEWAY_PORT}"
+        )
+        self.executor_url = f"{self.address}{settings.BEFLOW_API_V1_STR}/"
         self.coordinator_url = (
             f"{self.executor_url}{settings.BEFLOW_COORDINATOR_PREFIX}"
         )

@@ -10,7 +10,6 @@ from openff.bespokefit.executor import (
     BespokeExecutor,
     BespokeExecutorOutput,
     BespokeExecutorStageOutput,
-    wait_until_complete,
 )
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
@@ -411,9 +410,9 @@ def test_wait_for_stage(status):
     assert response.results is None
 
 
-def test_wait_until_complete():
-    with mock_get_response("success") as mock_response:
-        response = wait_until_complete(mock_response.id, frequency=0.1)
-
-    assert isinstance(response, BespokeExecutorOutput)
-    assert response.stages[0].status == "success"
+# def test_wait_until_complete():
+#     with mock_get_response("success") as mock_response:
+#         response = wait_until_complete(mock_response.id, frequency=0.1)
+#
+#     assert isinstance(response, BespokeExecutorOutput)
+#     assert response.stages[0].status == "success"
