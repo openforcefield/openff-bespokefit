@@ -1,6 +1,7 @@
 """
 Here we register all optimizers with bespokefit.
 """
+
 from typing import Dict, List, Type, Union
 
 from openff.bespokefit.exceptions import OptimizerError
