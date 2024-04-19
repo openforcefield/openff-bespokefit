@@ -74,7 +74,7 @@ class BespokeWorkflowFactory(ClassBase):
     """
 
     initial_force_field: str = Field(
-        "openff_unconstrained-2.2.0-rc1.offxml",
+        "openff_unconstrained-2.2.0.offxml",
         description="The name of the unconstrained force field to use as a starting "
         "point for optimization. The force field must be installed with conda/mamba.",
     )
