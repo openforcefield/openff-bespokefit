@@ -110,7 +110,7 @@ def test_to_input_schema(force_field_path):
     # Default to Sage 2.2 if no force field is provided,
     # but 2019 if Parsley is provided
     assert (
-        "2024-03-06" if force_field_path is None else "2019-10-10"
+        "2024-04-18" if force_field_path is None else "2019-10-10"
     ) in input_schema.initial_force_field
 
 
