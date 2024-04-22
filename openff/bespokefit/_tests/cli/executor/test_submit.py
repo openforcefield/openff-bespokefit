@@ -79,7 +79,7 @@ def test_to_input_schema_mutual_exclusive_args(
             input_schema = _to_input_schema(
                 console,
                 Molecule.from_smiles("CC"),
-                force_field_path="openff-2.0.0.offxml",
+                force_field_path="openff-2.2.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
                 workflow_name=workflow_name,
@@ -107,8 +107,10 @@ def test_to_input_schema(force_field_path):
     assert isinstance(input_schema, BespokeOptimizationSchema)
     assert input_schema.id == "bespoke_task_0"
 
+    # Default to Sage 2.2 if no force field is provided,
+    # but 2019 if Parsley is provided
     assert (
-        "2021-08-16" if force_field_path is None else "2019-10-10"
+        "2024-04-18" if force_field_path is None else "2019-10-10"
     ) in input_schema.initial_force_field
 
 
@@ -206,7 +208,7 @@ def test_submit_multi_molecule(tmpdir):
                 console,
                 input_file_path=[],
                 molecule_smiles=["[Cu+2].[O-]S(=O)(=O)[O-]"],
-                force_field_path="openff-2.0.0.offxml",
+                force_field_path="openff-2.2.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
                 workflow_name="debug",
@@ -231,7 +233,7 @@ def test_submit_invalid_schema(tmpdir):
                 input_file_path,
             ],
             molecule_smiles=[],
-            force_field_path="openff-2.0.0.offxml",
+            force_field_path="openff-2.2.0.offxml",
             target_torsion_smirks=tuple(),
             default_qc_spec=None,
             workflow_name=None,
@@ -276,7 +278,7 @@ def test_submit(tmpdir, file, smiles):
                 rich.get_console(),
                 input_file_path=file,
                 molecule_smiles=smiles,
-                force_field_path="openff-2.0.0.offxml",
+                force_field_path="openff-2.2.0.offxml",
                 target_torsion_smirks=tuple(),
                 default_qc_spec=None,
                 workflow_name="debug",

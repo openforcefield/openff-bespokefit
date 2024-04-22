@@ -28,7 +28,7 @@ def test_combine_local_and_tasks(tmpdir, runner, bespoke_optimization_results):
     """
 
     # make some local files to work with
-    for ff_name in ["openff-1.0.0.offxml", "openff-2.0.0.offxml"]:
+    for ff_name in ["openff-1.0.0.offxml", "openff-2.2.0.offxml"]:
         ForceField(ff_name).to_file(ff_name)
 
     settings = current_settings()
@@ -59,7 +59,7 @@ def test_combine_local_and_tasks(tmpdir, runner, bespoke_optimization_results):
                 "--output",
                 "my_ff.offxml",
                 "--ff",
-                "openff-2.0.0.offxml",
+                "openff-2.2.0.offxml",
                 "--ff",
                 "openff-1.0.0.offxml",
                 "--id",

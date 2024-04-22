@@ -42,7 +42,7 @@ async def test_process_task(redis_connection, monkeypatch):
     create_task(
         input_schema=BespokeOptimizationSchema(
             smiles="CC",
-            initial_force_field="openff-2.0.0.offxml",
+            initial_force_field="openff-2.2.0.offxml",
             initial_force_field_hash="test_hash",
             target_torsion_smirks=[],
             stages=[
