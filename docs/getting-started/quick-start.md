@@ -77,7 +77,7 @@ Sometimes bespoke commands will raise `RuntimeError: The gateway could not be re
 by rerunning the command a few times. 
 :::
 
-Here we have specified that we wish to start the fit from the general OpenFF 2.0.0 (Sage) force field, augmenting
+Here we have specified that we wish to start the fit from the general OpenFF 2.2.0 (Sage) force field, augmenting
 it with bespoke parameters generated according to the 
 [default built-in workflow using GFN2-xTB reference data](workflow_chapter). 
 
@@ -197,7 +197,7 @@ from openff.qcsubmit.common_structures import QCSpec
 factory = BespokeWorkflowFactory(
     # Define the starting force field that will be augmented with bespoke 
     # parameters.
-    initial_force_field="openff-2.0.0.offxml",
+    initial_force_field="openff-2.2.0.offxml",
     # Change the level of theory that the reference QC data is generated at
     default_qc_specs=[
         QCSpec(
@@ -216,7 +216,7 @@ Similar to the previous steps, here we override the default
 ["default" QC specification](default_qc_method) to use GFN2-xTB. If we had Psi4
 installed, we could remove the `default_qc_specs` argument and the factory would instead use our mainline
 [fitting QC method](default_qc_method). 
-The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.0.0 force field 
+The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.2.0 force field
 with bespoke torsion parameters for all non-terminal *rotatable* bonds in the molecule that have been trained 
 to quantum chemical torsion scan data generated for said molecule.
 
@@ -287,7 +287,7 @@ from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
 factory = BespokeWorkflowFactory(
     # Define the starting force field that will be augmented with bespoke 
     # parameters.
-    initial_force_field="openff-2.0.0.offxml",
+    initial_force_field="openff-2.2.0.offxml",
     # Select the underlying optimization engine.
     optimizer=ForceBalanceSchema(
         max_iterations=50, penalty_type="L1"

@@ -1,5 +1,5 @@
 {
-  "initial_force_field": "openff-2.0.0.offxml",
+  "initial_force_field": "openff-2.2.0.offxml",
   "optimizer": {
     "type": "ForceBalance",
     "max_iterations": 1,

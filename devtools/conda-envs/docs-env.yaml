@@ -20,14 +20,13 @@ dependencies:
   - openff-utilities
   - openff-toolkit-base =0.15
   - openff-interchange  # only needed because openff-toolkit-base
-  - openff-forcefields
+  - openff-forcefields >=2024.04.0
   - openff-qcsubmit >=0.50
   - openmm >=7.6.0
 
     # Optional
   - forcebalance
   - openff-fragmenter-base
-
   - openeye-toolkits
 
     ### Bespoke dependencies

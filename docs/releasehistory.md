@@ -24,6 +24,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * [#325] - Document issue where `xtb` doesn't respect the `--qc-compute-n-cores` argument and provide workaround. by [@mattwthompson]
 * [#330] - Corrects a reference to Rosemary, which is not released, in the theory section. by [@mattwthompson]
 
+### Behavior changes
+* [#307] - OpenFF 2.2.0 RC1 ("Sage 2.2 RC1") is used as the initial force filed by default (if no other initial force field is specified). by [@mattwthompson]
+
 ### Bug fixes
 * [#320] - Fixes a formatting issue ([#319]) when printing SMILES to summary table. by [@j-wags]
 
@@ -154,6 +157,7 @@ The first major release of bespokefit intended for public use.
 [#279]: https://github.com/openforcefield/openff-bespokefit/pull/279
 [#280]: https://github.com/openforcefield/openff-bespokefit/pull/280
 [#286]: https://github.com/openforcefield/openff-bespokefit/pull/286
+[#307]: https://github.com/openforcefield/openff-bespokefit/pull/307
 [#320]: https://github.com/openforcefield/openff-bespokefit/pull/320
 [#321]: https://github.com/openforcefield/openff-bespokefit/pull/321
 [#325]: https://github.com/openforcefield/openff-bespokefit/pull/325

@@ -25,7 +25,7 @@ def test_optimize(monkeypatch, redis_connection):
     input_schema = BespokeOptimizationSchema(
         id="test",
         smiles="CC",
-        initial_force_field="openff-2.0.0.offxml",
+        initial_force_field="openff-2.2.0.offxml",
         initial_force_field_hash="test_hash",
         target_torsion_smirks=[],
         stages=[
@@ -50,7 +50,7 @@ def test_optimize(monkeypatch, redis_connection):
             OptimizationStageResults(
                 provenance={},
                 status="success",
-                refit_force_field=ForceField("openff-2.0.0.offxml").to_string(),
+                refit_force_field=ForceField("openff-2.2.0.offxml").to_string(),
             )
         ],
     )
