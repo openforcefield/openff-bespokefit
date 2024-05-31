@@ -33,7 +33,8 @@ __settings = current_settings()
 def check_token(request: Request) -> bool:
     """A simple authentication check."""
     token = request.headers["BespokeFit-token"]
-    if token != __settings.BEFLOW_API_TOKEN:
+    # load the current key from the env and check
+    if token != current_settings().BEFLOW_API_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return True
 
@@ -98,12 +99,13 @@ def launch(directory: Optional[str] = None, log_file: Optional[str] = None):
 
 def wait_for_gateway(n_retries: int = 40):
     timeout = True
-
+    # load the settings again to check the API token
+    settings = current_settings()
     for _ in range(n_retries):
         try:
             ping = requests.get(
-                f"http://127.0.0.1:{__settings.BEFLOW_GATEWAY_PORT}{__settings.BEFLOW_API_V1_STR}",
-                headers={"BespokeFit-token": __settings.BEFLOW_API_TOKEN},
+                f"http://127.0.0.1:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}",
+                headers={"BespokeFit-token": settings.BEFLOW_API_TOKEN},
             )
             ping.raise_for_status()
 

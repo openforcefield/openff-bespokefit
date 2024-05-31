@@ -1,29 +1,30 @@
 import os
 
 import pytest
-from fastapi import HTTPException
+from requests import HTTPError
 
 from openff.bespokefit.executor import BespokeExecutor, BespokeFitClient
 from openff.bespokefit.utilities._settings import Settings
 
 
 def test_authentication(tmpdir):
-    settings = Settings()
-    print(settings)
+    """Simple authentication test"""
+    # set the API key before starting the server
+    settings = Settings(BEFLOW_API_TOKEN="secure-key")
     with settings.apply_env():
         executor = BespokeExecutor(
             n_fragmenter_workers=0,
             n_qc_compute_workers=0,
             n_optimizer_workers=0,
             directory=os.path.join(tmpdir, "mock-exe-dir"),
-            launch_redis_if_unavailable=False,
+            launch_redis_if_unavailable=True,
         )
         with executor:
             client = BespokeFitClient(settings=settings)
-            # make sure we can access the server
+            # make sure we can access the server using the correct key
             _ = client.list_optimizations()
             # now change the token and try again
             settings.BEFLOW_API_TOKEN = "wrong-token"
             client = BespokeFitClient(settings=settings)
-            with pytest.raises(HTTPException):
+            with pytest.raises(HTTPError):
                 _ = client.list_optimizations()
