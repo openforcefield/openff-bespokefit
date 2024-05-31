@@ -185,6 +185,13 @@ See the [results chapter](bespoke_results_chapter) for more details on retrievin
 For users who prefer Python or who are looking for more control over how the fit will be performed, BespokeFit exposes a
 full Python API.
 
+:::{note}
+These quickstart instructions are for running in a jupyter notebook. If you'd instead like to run this as standard python 
+script from the command line, put all this code inside a `def main():` block, and conclude the script with 
+`if __name__ == "__main__": main()`. 
+:::
+
+
 At the heart of the fitting pipeline is the [`BespokeWorkflowFactory`]. The [`BespokeWorkflowFactory`] encodes all of
 the settings that will feed into and control the bespoke fitting pipeline for *any* input molecule. The workflow
 factory transforms a particular molecule into a [workflow](workflow_chapter), which fully describes how bespoke
