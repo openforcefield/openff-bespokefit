@@ -140,7 +140,7 @@ class BespokeFitClient:
         backoff_factor: float = 0.5,
     ):
         self._session = requests.Session()
-        self._session.headers.update({"BespokeFit-token": settings.BEFLOW_API_TOKEN})
+        self._session.headers.update({"bespokefit-token": settings.BEFLOW_API_TOKEN})
         retry = Retry(connect=retries, backoff_factor=backoff_factor)
         adapter = HTTPAdapter(max_retries=retry)
         self._session.mount("http://", adapter)
