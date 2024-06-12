@@ -176,8 +176,7 @@ class BespokeFitClient:
         coordinator_request = self._session.get(optimization_href)
         coordinator_request.raise_for_status()
 
-        response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
-        return response
+        return CoordinatorGETResponse.parse_raw(coordinator_request.text)
 
     def get_optimization(self, optimization_id: str) -> BespokeExecutorOutput:
         """Retrieve the current state of a running bespoke fitting workflow.
@@ -280,7 +279,8 @@ class BespokeFitClient:
         import time
 
         while True:
-            response = self.get_optimization(optimization_id=optimization_id)
+            query = f"{self.coordinator_url}/{optimization_id}"
+            response = self._query_coordinator(optimization_href=query)
 
             stage = {stage.type: stage for stage in response.stages}[stage_type]
 
