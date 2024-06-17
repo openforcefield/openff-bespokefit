@@ -28,3 +28,5 @@ def test_authentication(tmpdir):
             client = BespokeFitClient(settings=settings)
             with pytest.raises(HTTPError):
                 _ = client.list_optimizations()
+            # make sure to shut down the executor
+            executor._cleanup_processes()
