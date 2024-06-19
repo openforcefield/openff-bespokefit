@@ -163,28 +163,31 @@ be allowed to use the full set of CPUs available on the machine (`n_cores="auto"
 The executor itself is a context manager and will not 'start' until the context is entered:
 
 ```python
-from openff.bespokefit.executor import wait_until_complete
+from openff.bespokefit.executor.client import BespokeFitClient, Settings
+
+client = BespokeFitClient(settings=Settings())
 
 with executor:
-    task_id = BespokeExecutor.submit(workflow)
-    output = wait_until_complete(task_id)
+    task_id = client.submit_optimization(input_schema=workflow)
+    output = client.wait_until_complete(optimization_id=task_id)
 ```
 
 When an executor 'starts' it will spin up all the required child processes, including each worker and a [Redis]
 instance (unless Redis is disabled).
 
-Within the executor context bespoke fits can be submitted using the [`submit()`] method. As soon as the context manager
-exists the executor instance is closed, terminating any running jobs. To ensure the submission is allowed to finish,
-use the [`wait_until_complete()`] helper function. This function will block progress in the script until it can return
-a result.
+Within the executor context bespoke fits can be submitted using the [`BespokeFitClient`] via the  [`submit_optimization()`] method. 
+As soon as the context manager exists the executor instance is closed, terminating any running jobs. 
+To ensure the submission is allowed to finish, use the [`wait_until_complete()`] helper function of the client. 
+This function will block progress in the script until it can return a result.
 
 [Celery]: https://docs.celeryproject.org/en/stable/index.html
 [Redis]: https://redis.io/
 
-[`submit()`]: openff.bespokefit.executor.BespokeExecutor.submit
-[`wait_until_complete()`]: openff.bespokefit.executor.wait_until_complete
+[`submit_optimization()`]: openff.bespokefit.executor.client.BespokeFitClient.submit_optimization
+[`wait_until_complete()`]: openff.bespokefit.executor.client.BespokeFitClient.wait_until_complete
 [`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
 [`BespokeWorkerConfig`]: openff.bespokefit.executor.BespokeWorkerConfig
+[`BespokeFitClient`]: openff.bespokefit.executor.client.BespokeFitClient
 
 (envvars)=
 ## Configuring from the environment

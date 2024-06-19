@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 from tempfile import mkdtemp
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TYPE_CHECKING
 
 import celery
 from typing_extensions import Literal
@@ -19,6 +19,11 @@ from openff.bespokefit.executor.services.gateway import wait_for_gateway
 from openff.bespokefit.executor.utilities.celery import spawn_worker
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
 from openff.bespokefit.utilities.tempcd import temporary_cd
+
+if TYPE_CHECKING:
+    from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
+    from openff.bespokefit.executor.client import BespokeExecutorOutput
+    import rich
 
 _logger = logging.getLogger(__name__)
 
@@ -222,3 +227,59 @@ class BespokeExecutor:
 
     def __exit__(self, *args):
         self._stop()
+
+    @staticmethod
+    def submit(input_schema: "BespokeOptimizationSchema") -> str:
+        """Submits a new bespoke fitting workflow to the executor.
+
+        Args:
+            input_schema: The schema defining the optimization to perform.
+
+        Returns:
+            The unique ID assigned to the optimization to perform.
+        """
+        from openff.bespokefit.executor.client import BespokeFitClient
+        from openff.bespokefit.executor.services import current_settings
+
+        client = BespokeFitClient(settings=current_settings())
+
+        return client.submit_optimization(input_schema=input_schema)
+
+    @staticmethod
+    def retrieve(optimization_id: str) -> "BespokeExecutorOutput":
+        """Retrieve the current state of a running bespoke fitting workflow.
+
+        Args:
+            optimization_id: The unique ID associated with the running optimization.
+        """
+
+        from openff.bespokefit.executor.client import BespokeFitClient
+        from openff.bespokefit.executor.services import current_settings
+
+        client = BespokeFitClient(settings=current_settings())
+
+        return client.get_optimization(optimization_id=optimization_id)
+
+
+def wait_until_complete(
+    optimization_id: str,
+    console: Optional["rich.Console"] = None,
+    frequency: Union[int, float] = 5,
+) -> "BespokeExecutorOutput":
+    """Wait for a specified optimization to complete and return the results.
+
+    Args:
+        optimization_id: The unique id of the optimization to wait for.
+        console: The console to print to.
+        frequency: The frequency (seconds) with which to poll the status of the
+            optimization.
+
+    Returns:
+        The output of running the optimization.
+    """
+    from openff.bespokefit.executor.client import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
+
+    client = BespokeFitClient(settings=current_settings())
+
+    return client.wait_until_complete(optimization_id=optimization_id, console=console, frequency=frequency)
