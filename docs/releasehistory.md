@@ -11,6 +11,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 ## Current development
 
+* [#351] - Adds a `BespokeFitClient` to interface with the executor and support for connecting to executors on a non-local machine [@jthorton]
 * [#338] - Updates a test for QCFractal/QCPortal 0.54. [@mattwthompson]
 
 ## 0.3.0 / 27-03-2024
@@ -160,6 +161,7 @@ The first major release of bespokefit intended for public use.
 [#330]: https://github.com/openforcefield/openff-bespokefit/pull/330
 [#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
 [#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
+[#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
