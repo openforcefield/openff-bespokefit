@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 from tempfile import mkdtemp
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import celery
 from typing_extensions import Literal
@@ -21,9 +21,10 @@ from openff.bespokefit.executor.utilities.redis import is_redis_available, launc
 from openff.bespokefit.utilities.tempcd import temporary_cd
 
 if TYPE_CHECKING:
-    from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-    from openff.bespokefit.executor.client import BespokeExecutorOutput
     import rich
+
+    from openff.bespokefit.executor.client import BespokeExecutorOutput
+    from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 _logger = logging.getLogger(__name__)
 
@@ -282,4 +283,6 @@ def wait_until_complete(
 
     client = BespokeFitClient(settings=current_settings())
 
-    return client.wait_until_complete(optimization_id=optimization_id, console=console, frequency=frequency)
+    return client.wait_until_complete(
+        optimization_id=optimization_id, console=console, frequency=frequency
+    )
