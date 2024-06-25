@@ -5,7 +5,11 @@ from openff.bespokefit.executor.client import (
     BespokeExecutorStageOutput,
     BespokeFitClient,
 )
-from openff.bespokefit.executor.executor import BespokeExecutor, BespokeWorkerConfig
+from openff.bespokefit.executor.executor import (
+    BespokeExecutor,
+    BespokeWorkerConfig,
+    wait_until_complete,
+)
 
 __all__ = [
     "BespokeExecutor",
@@ -13,4 +17,5 @@ __all__ = [
     "BespokeExecutorStageOutput",
     "BespokeWorkerConfig",
     "BespokeFitClient",
+    "wait_until_complete",
 ]
