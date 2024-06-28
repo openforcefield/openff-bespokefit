@@ -153,8 +153,11 @@ def test_update_from_qcsubmit(redis_connection):
     assert redis_connection.hget("qcgenerator:types", task_id) == b"torsion1d"
 
 
-def test_cache_cli_fractal(runner, tmpdir):
+def test_cache_cli_fractal(runner, tmpdir, redis_session, monkeypatch):
     """Test running the cache update cli."""
+
+    # point the CLI to the same redis testing DB
+    monkeypatch.setenv("BEFLOW_REDIS_PORT", 5678)
 
     output = runner.invoke(
         update_cli,
@@ -163,6 +166,7 @@ def test_cache_cli_fractal(runner, tmpdir):
             "OpenFF Gen 2 Torsion Set 6 supplemental 2",
             "--qcf-datatype",
             "torsion",
+            "--no-launch-redis",
         ],
     )
     assert output.exit_code == 0, print(output.output)

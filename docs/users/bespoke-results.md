@@ -17,8 +17,12 @@ A force field file will only be saved if the fit has successfully finished.
 Or using the Python API:
 
 ```python
-from openff.bespokefit.executor import BespokeExecutor
-output = BespokeExecutor.retrieve(optimization_id="1")
+from openff.bespokefit.executor.client import BespokeFitClient, Settings
+
+settings = Settings()
+client = BespokeFitClient(settings=settings)
+
+output = client.get_optimization(optimization_id="1")
 ```
 
 In both cases the output will be stored in a [`BespokeExecutorOutput`] class. When using the command 
