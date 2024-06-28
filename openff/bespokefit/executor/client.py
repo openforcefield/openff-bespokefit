@@ -143,9 +143,9 @@ class BespokeFitClient:
         self._session.headers.update({"bespokefit-token": settings.BEFLOW_API_TOKEN})
         retry = Retry(connect=retries, backoff_factor=backoff_factor)
         adapter = HTTPAdapter(max_retries=retry)
-        self._session.mount("http://", adapter)
+        self._session.mount("http", adapter)
         self.address = (
-            f"http://{settings.BEFLOW_GATEWAY_ADDRESS}:{settings.BEFLOW_GATEWAY_PORT}"
+            f"{settings.BEFLOW_GATEWAY_ADDRESS}:{settings.BEFLOW_GATEWAY_PORT}"
         )
         self.executor_url = f"{self.address}{settings.BEFLOW_API_V1_STR}/"
         self.coordinator_url = (
