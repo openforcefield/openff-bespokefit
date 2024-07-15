@@ -32,7 +32,7 @@ dependencies:
   - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
-  - openeye-toolkits =2024.1.0
+  - openeye-toolkits !=2024.1.1
 
     ### Bespoke dependencies
 
