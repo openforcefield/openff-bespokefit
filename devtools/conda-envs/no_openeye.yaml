@@ -18,7 +18,7 @@ dependencies:
   - rich
   - click
   - click-option-group
-  - rdkit !=2024.03.4
+  - rdkit >=22
   - ambertools >=22
   - openff-utilities
   - openff-toolkit-base =0.15

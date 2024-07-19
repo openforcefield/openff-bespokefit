@@ -19,7 +19,7 @@ dependencies:
   - rich
   - click
   - click-option-group
-  - rdkit !=2024.03.4
+  - rdkit
   - openff-utilities
   - openff-toolkit-base =0.15
   - openff-interchange  # only needed because openff-toolkit-base
