@@ -69,10 +69,13 @@ def combine_cli(
         )
 
     if task_ids:
-        from openff.bespokefit.executor import BespokeExecutor
+        from openff.bespokefit.executor import BespokeFitClient
+        from openff.bespokefit.executor.services import current_settings
+
+        client = BespokeFitClient(settings=current_settings())
 
         with handle_common_errors(console) as error_state:
-            results = [BespokeExecutor.retrieve(task_id) for task_id in task_ids]
+            results = [client.get_optimization(task_id) for task_id in task_ids]
         if error_state["has_errored"]:
             raise click.exceptions.Exit(code=2)
 

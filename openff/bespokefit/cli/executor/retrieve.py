@@ -1,11 +1,4 @@
 import click
-import click.exceptions
-import rich
-from rich import pretty
-from rich.padding import Padding
-
-from openff.bespokefit.cli.utilities import print_header
-from openff.bespokefit.executor.utilities import handle_common_errors
 
 
 @click.command("retrieve")
@@ -32,6 +25,13 @@ from openff.bespokefit.executor.utilities import handle_common_errors
 )
 def retrieve_cli(optimization_id, output_file_path, force_field_path):
     """Retrieve the current output of a bespoke optimization."""
+    import click.exceptions
+    import rich
+    from rich import pretty
+    from rich.padding import Padding
+
+    from openff.bespokefit.cli.utilities import print_header
+    from openff.bespokefit.executor.utilities import handle_common_errors
 
     pretty.install()
 
@@ -44,10 +44,14 @@ def retrieve_cli(optimization_id, output_file_path, force_field_path):
             "specified."
         )
 
-    from openff.bespokefit.executor import BespokeExecutor
+    from openff.bespokefit.executor import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
+
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     with handle_common_errors(console) as error_state:
-        results = BespokeExecutor.retrieve(optimization_id)
+        results = client.get_optimization(optimization_id=optimization_id)
     if error_state["has_errored"]:
         raise click.exceptions.Exit(code=2)
 
