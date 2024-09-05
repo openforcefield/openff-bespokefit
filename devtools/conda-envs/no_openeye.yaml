@@ -2,6 +2,7 @@ name: bespokefit-no-openeye
 
 channels:
   - conda-forge
+  - conda-forge/label/openff-interchange_rc
 
 dependencies:
 
