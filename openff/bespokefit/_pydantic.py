@@ -2,9 +2,8 @@
 
 import numpy
 
-try:
-    from pydantic.v1 import BaseModel as PydanticBaseModel
-    from pydantic.v1 import (
+from pydantic.v1 import BaseModel as PydanticBaseModel
+from pydantic.v1 import (
         BaseSettings,
         Extra,
         Field,
@@ -17,25 +16,8 @@ try:
         parse_obj_as,
         parse_raw_as,
         validator,
-    )
-    from pydantic.v1.generics import GenericModel
-except ImportError:
-    from pydantic import BaseModel as PydanticBaseModel
-    from pydantic import (  # noqa
-        BaseSettings,
-        Extra,
-        Field,
-        PositiveFloat,
-        PositiveInt,
-        ValidationError,
-        conint,
-        conlist,
-        parse_file_as,
-        parse_obj_as,
-        parse_raw_as,
-        validator,
-    )
-    from pydantic.generics import GenericModel  # noqa
+)
+from pydantic.v1.generics import GenericModel
 
 
 class BaseModel(PydanticBaseModel):
