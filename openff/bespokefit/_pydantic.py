@@ -1,21 +1,20 @@
 """A set of common utilities and types useful for building pydantic models."""
 
 import numpy
-
 from pydantic.v1 import BaseModel as PydanticBaseModel
 from pydantic.v1 import (
-        BaseSettings,
-        Extra,
-        Field,
-        PositiveFloat,
-        PositiveInt,
-        ValidationError,
-        conint,
-        conlist,
-        parse_file_as,
-        parse_obj_as,
-        parse_raw_as,
-        validator,
+    BaseSettings,
+    Extra,
+    Field,
+    PositiveFloat,
+    PositiveInt,
+    ValidationError,
+    conint,
+    conlist,
+    parse_file_as,
+    parse_obj_as,
+    parse_raw_as,
+    validator,
 )
 from pydantic.v1.generics import GenericModel
 
