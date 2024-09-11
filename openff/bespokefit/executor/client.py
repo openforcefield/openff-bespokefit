@@ -139,6 +139,13 @@ class BespokeFitClient:
         retries: int = 3,
         backoff_factor: float = 0.5,
     ):
+        # If we are using a token with https warn the user
+        if settings.BEFLOW_API_TOKEN and "https" not in settings.BEFLOW_GATEWAY_ADDRESS:
+            import warnings
+
+            warnings.warn(
+                "Using an API token without an https connection is insecure, consider using https for encrypted comunication."
+            )
         self._session = requests.Session()
         self._session.headers.update({"bespokefit-token": settings.BEFLOW_API_TOKEN})
         retry = Retry(connect=retries, backoff_factor=backoff_factor)

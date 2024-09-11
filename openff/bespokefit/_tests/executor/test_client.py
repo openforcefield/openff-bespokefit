@@ -7,6 +7,14 @@ from openff.bespokefit.executor import BespokeExecutor, BespokeFitClient
 from openff.bespokefit.utilities._settings import Settings
 
 
+def test_token_warning():
+    settings = Settings(BEFLOW_API_TOKEN="test")
+    with pytest.warns(
+        match="Using an API token without an https connection is insecure, consider using https for encrypted comunication."
+    ):
+        _ = BespokeFitClient(settings=settings)
+
+
 def test_authentication(tmpdir):
     """Simple authentication test"""
     # set the API key before starting the server
