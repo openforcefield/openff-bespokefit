@@ -6,49 +6,27 @@ import multiprocessing
 import os
 import shutil
 import subprocess
-import time
 from tempfile import mkdtemp
-from typing import List, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import celery
-import requests
-import rich
-from openff.toolkit.typing.engines.smirnoff import ForceField
-from rich.padding import Padding
 from typing_extensions import Literal
 
 from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import Settings, current_settings
-from openff.bespokefit.executor.services.coordinator.models import (
-    CoordinatorGETResponse,
-    CoordinatorGETStageStatus,
-    CoordinatorPOSTBody,
-    CoordinatorPOSTResponse,
-)
 from openff.bespokefit.executor.services.gateway import launch as launch_gateway
 from openff.bespokefit.executor.services.gateway import wait_for_gateway
 from openff.bespokefit.executor.utilities.celery import spawn_worker
 from openff.bespokefit.executor.utilities.redis import is_redis_available, launch_redis
-from openff.bespokefit.executor.utilities.typing import Status
-from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
-from openff.bespokefit.schema.results import BespokeOptimizationResults
 from openff.bespokefit.utilities.tempcd import temporary_cd
 
-_T = TypeVar("_T")
+if TYPE_CHECKING:
+    import rich
+
+    from openff.bespokefit.executor.client import BespokeExecutorOutput
+    from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 
 _logger = logging.getLogger(__name__)
-
-
-def _base_endpoint():
-    settings = current_settings()
-    return (
-        f"http://127.0.0.1:{settings.BEFLOW_GATEWAY_PORT}{settings.BEFLOW_API_V1_STR}/"
-    )
-
-
-def _coordinator_endpoint():
-    settings = current_settings()
-    return f"{_base_endpoint()}{settings.BEFLOW_COORDINATOR_PREFIX}"
 
 
 class BespokeWorkerConfig(BaseModel):
@@ -65,111 +43,6 @@ class BespokeWorkerConfig(BaseModel):
         "is available for this worker. This number may be ignored depending on the "
         "task type.",
     )
-
-
-class BespokeExecutorStageOutput(BaseModel):
-    """A model that stores the output of a particular stage in the bespoke fitting
-    workflow e.g. QC data generation."""
-
-    type: str = Field(..., description="The type of stage.")
-
-    status: Status = Field(..., description="The status of the stage.")
-
-    error: Optional[str] = Field(
-        ..., description="The error, if any, raised by the stage."
-    )
-
-
-class BespokeExecutorOutput(BaseModel):
-    """A model that stores the current output of running bespoke fitting workflow
-    including any partial or final results."""
-
-    smiles: str = Field(
-        ...,
-        description="The SMILES representation of the molecule that the bespoke "
-        "parameters are being generated for.",
-    )
-
-    stages: List[BespokeExecutorStageOutput] = Field(
-        ..., description="The outputs from each stage in the bespoke fitting process."
-    )
-    results: Optional[BespokeOptimizationResults] = Field(
-        None,
-        description="The final result of the bespoke optimization if the full workflow "
-        "is finished, or ``None`` otherwise.",
-    )
-
-    @property
-    def bespoke_force_field(self) -> Optional[ForceField]:
-        """The final bespoke force field if the bespoke fitting workflow is complete."""
-
-        if self.results is None or self.results.refit_force_field is None:
-            return None
-
-        return ForceField(
-            self.results.refit_force_field, allow_cosmetic_attributes=True
-        )
-
-    @property
-    def status(self) -> Status:
-        pending_stages = [stage for stage in self.stages if stage.status == "waiting"]
-
-        running_stages = [stage for stage in self.stages if stage.status == "running"]
-        assert len(running_stages) < 2
-
-        running_stage = None if len(running_stages) == 0 else running_stages[0]
-
-        complete_stages = [
-            stage
-            for stage in self.stages
-            if stage not in pending_stages and stage not in running_stages
-        ]
-
-        if (
-            running_stage is None
-            and len(complete_stages) == 0
-            and len(pending_stages) > 0
-        ):
-            return "waiting"
-
-        if any(stage.status == "errored" for stage in complete_stages):
-            return "errored"
-
-        if running_stage is not None or len(pending_stages) > 0:
-            return "running"
-
-        if all(stage.status == "success" for stage in complete_stages):
-            return "success"
-
-        raise NotImplementedError()
-
-    @property
-    def error(self) -> Optional[str]:
-        """The error that caused the fitting to fail if any"""
-
-        if self.status != "errored":
-            return None
-
-        message = next(
-            iter(stage.error for stage in self.stages if stage.status == "errored")
-        )
-        return "unknown error" if message is None else message
-
-    @classmethod
-    def from_response(cls: Type[_T], response: CoordinatorGETResponse) -> _T:
-        """Creates an instance of this object from the response from a bespoke
-        coordinator service."""
-
-        return cls(
-            smiles=response.smiles,
-            stages=[
-                BespokeExecutorStageOutput(
-                    type=stage.type, status=stage.status, error=stage.error
-                )
-                for stage in response.stages
-            ],
-            results=response.results,
-        )
 
 
 class BespokeExecutor:
@@ -349,8 +222,15 @@ class BespokeExecutor:
         if self._remove_directory:
             shutil.rmtree(self._directory, ignore_errors=True)
 
+    def __enter__(self):
+        self._start(asynchronous=True)
+        return self
+
+    def __exit__(self, *args):
+        self._stop()
+
     @staticmethod
-    def submit(input_schema: BespokeOptimizationSchema) -> str:
+    def submit(input_schema: "BespokeOptimizationSchema") -> str:
         """Submits a new bespoke fitting workflow to the executor.
 
         Args:
@@ -359,65 +239,34 @@ class BespokeExecutor:
         Returns:
             The unique ID assigned to the optimization to perform.
         """
-        request = requests.post(
-            _coordinator_endpoint(),
-            data=CoordinatorPOSTBody(input_schema=input_schema).json(),
-        )
-        request.raise_for_status()
+        from openff.bespokefit.executor.client import BespokeFitClient
+        from openff.bespokefit.executor.services import current_settings
 
-        return CoordinatorPOSTResponse.parse_raw(request.text).id
+        client = BespokeFitClient(settings=current_settings())
+
+        return client.submit_optimization(input_schema=input_schema)
 
     @staticmethod
-    def retrieve(optimization_id: str) -> BespokeExecutorOutput:
+    def retrieve(optimization_id: str) -> "BespokeExecutorOutput":
         """Retrieve the current state of a running bespoke fitting workflow.
 
         Args:
             optimization_id: The unique ID associated with the running optimization.
         """
 
-        optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
+        from openff.bespokefit.executor.client import BespokeFitClient
+        from openff.bespokefit.executor.services import current_settings
 
-        return BespokeExecutorOutput.from_response(
-            _query_coordinator(optimization_href)
-        )
+        client = BespokeFitClient(settings=current_settings())
 
-    def __enter__(self):
-        self._start(asynchronous=True)
-        return self
-
-    def __exit__(self, *args):
-        self._stop()
-
-
-def _query_coordinator(optimization_href: str) -> CoordinatorGETResponse:
-    coordinator_request = requests.get(optimization_href)
-    coordinator_request.raise_for_status()
-
-    response = CoordinatorGETResponse.parse_raw(coordinator_request.text)
-    return response
-
-
-def _wait_for_stage(
-    optimization_href: str, stage_type: str, frequency: Union[int, float] = 5
-) -> CoordinatorGETStageStatus:
-    while True:
-        response = _query_coordinator(optimization_href)
-
-        stage = {stage.type: stage for stage in response.stages}[stage_type]
-
-        if stage.status in ["errored", "success"]:
-            break
-
-        time.sleep(frequency)
-
-    return stage
+        return client.get_optimization(optimization_id=optimization_id)
 
 
 def wait_until_complete(
     optimization_id: str,
     console: Optional["rich.Console"] = None,
     frequency: Union[int, float] = 5,
-) -> BespokeExecutorOutput:
+) -> "BespokeExecutorOutput":
     """Wait for a specified optimization to complete and return the results.
 
     Args:
@@ -429,34 +278,11 @@ def wait_until_complete(
     Returns:
         The output of running the optimization.
     """
+    from openff.bespokefit.executor.client import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
 
-    console = console if console is not None else rich.get_console()
+    client = BespokeFitClient(settings=current_settings())
 
-    optimization_href = f"{_coordinator_endpoint()}/{optimization_id}"
-
-    initial_response = _query_coordinator(optimization_href)
-    stage_types = [stage.type for stage in initial_response.stages]
-
-    stage_messages = {
-        "fragmentation": "fragmenting the molecule",
-        "qc-generation": "generating bespoke QC data",
-        "optimization": "optimizing the parameters",
-    }
-
-    for stage_type in stage_messages:
-        if stage_type not in stage_types:
-            continue
-
-        with console.status(stage_messages[stage_type]):
-            stage = _wait_for_stage(optimization_href, stage_type, frequency)
-
-        if stage.status == "errored":
-            console.print(f"[[red]x[/red]] {stage_type} failed")
-            console.print(Padding(stage.error, (1, 0, 0, 1)))
-
-            break
-
-        console.print(f"[[green]✓[/green]] {stage_type} successful")
-
-    final_response = _query_coordinator(optimization_href)
-    return BespokeExecutorOutput.from_response(final_response)
+    return client.wait_until_complete(
+        optimization_id=optimization_id, console=console, frequency=frequency
+    )

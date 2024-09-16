@@ -51,6 +51,7 @@ def configure_celery_app(
     celery_app.conf.task_default_queue = app_name
     celery_app.conf.broker_transport_options = {"visibility_timeout": 1000000}
     celery_app.conf.result_expires = None
+    celery_app.conf.task_reject_on_worker_lost = True
 
     return celery_app
 

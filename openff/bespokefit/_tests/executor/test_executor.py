@@ -10,7 +10,7 @@ from openff.bespokefit.executor import (
     BespokeExecutor,
     BespokeExecutorOutput,
     BespokeExecutorStageOutput,
-    wait_until_complete,
+    BespokeFitClient,
 )
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.models import (
@@ -278,7 +278,7 @@ class TestBespokeExecutor:
 
     def test_submit(self, bespoke_optimization_schema):
         settings = current_settings()
-
+        client = BespokeFitClient(settings=settings)
         expected = CoordinatorPOSTResponse(id="mock-id", self="")
 
         with requests_mock.Mocker() as m:
@@ -292,12 +292,13 @@ class TestBespokeExecutor:
                 text=expected.json(),
             )
 
-            result_id = BespokeExecutor.submit(bespoke_optimization_schema)
+            result_id = client.submit_optimization(bespoke_optimization_schema)
             assert result_id == expected.id
 
     def test_retrieve(self, bespoke_optimization_schema):
         with mock_get_response():
-            output = BespokeExecutor.retrieve("mock-id")
+            client = BespokeFitClient(settings=current_settings())
+            output = client.get_optimization("mock-id")
             assert output.status == "running"
 
     def test_enter_exit(self, tmpdir):
@@ -326,7 +327,6 @@ class TestBespokeExecutor:
 
 
 def test_query_coordinator():
-    from openff.bespokefit.executor.executor import _query_coordinator
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
@@ -344,6 +344,7 @@ def test_query_coordinator():
         return mock_response.json(by_alias=True)
 
     settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     mock_href = (
         f"http://127.0.0.1:"
@@ -355,14 +356,13 @@ def test_query_coordinator():
 
     with requests_mock.Mocker() as m:
         m.get(mock_href, text=mock_callback)
-        response = _query_coordinator(mock_href)
+        response = client._query_coordinator(mock_href)
 
     assert response.json() == mock_response.json()
 
 
 @pytest.mark.parametrize("status", ["success", "errored"])
 def test_wait_for_stage(status):
-    from openff.bespokefit.executor.executor import _wait_for_stage
 
     mock_response = CoordinatorGETResponse(
         id="mock-id",
@@ -389,6 +389,7 @@ def test_wait_for_stage(status):
         return response_json
 
     settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     mock_href = (
         f"http://127.0.0.1:"
@@ -401,7 +402,9 @@ def test_wait_for_stage(status):
     with requests_mock.Mocker() as m:
         m.get(mock_href, text=mock_callback)
 
-        response = _wait_for_stage(mock_href, "fragmentation", frequency=0.01)
+        response = client._wait_for_stage(
+            mock_response.id, "fragmentation", frequency=0.01
+        )
 
     assert response is not None
     assert n_requests == 2
@@ -412,8 +415,10 @@ def test_wait_for_stage(status):
 
 
 def test_wait_until_complete():
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
     with mock_get_response("success") as mock_response:
-        response = wait_until_complete(mock_response.id, frequency=0.1)
+        response = client.wait_until_complete(mock_response.id, frequency=0.1)
 
     assert isinstance(response, BespokeExecutorOutput)
     assert response.stages[0].status == "success"
