@@ -9,9 +9,14 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 <!-- ## Since last release -->
 
-## Current development
+## 0.4.0 / 19-09-2024
+
+### New Features
 
 * [#351] - Adds a `BespokeFitClient` to interface with the executor and support for connecting to executors on a non-local machine [@jthorton]
+
+### Tests updated
+
 * [#338] - Updates a test for QCFractal/QCPortal 0.54. [@mattwthompson]
 
 ## 0.3.0 / 27-03-2024
