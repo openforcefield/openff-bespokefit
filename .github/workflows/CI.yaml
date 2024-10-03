@@ -44,6 +44,10 @@ jobs:
           create-args: >-
             python=${{ matrix.python-version }}
             pydantic=${{ matrix.pydantic-version }}
+          # default - will pull down 2.0 which we don't want!
+          # micromamba-version: latest
+          # pin to latest 1.x release
+          micromamba-version: "1.5.10-0"
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
@@ -54,6 +58,10 @@ jobs:
           create-args: >-
             python=${{ matrix.python-version }}
             pydantic=${{ matrix.pydantic-version }}
+          # default - will pull down 2.0 which we don't want!
+          # micromamba-version: latest
+          # pin to latest 1.x release
+          micromamba-version: "1.5.10-0"
 
       - name: License OpenEye
         if: ${{ matrix.openeye == true }}
