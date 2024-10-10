@@ -11,7 +11,7 @@ the two sections below ("Fragmentation Backends" and "Reference Data
 Generators")
 
 ```shell
-mamba install -c conda-forge openff-bespokefit "qcportal <0.50"
+mamba install -c conda-forge openff-bespokefit
 ```
 
 If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
