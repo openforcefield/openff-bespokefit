@@ -71,7 +71,11 @@ def _standardize_grid_id_str(grid_id: str) -> tuple[Union[int, float]]:
 
 
 def _get_qc_record_id(qc_record):
-    return qc_record.extras["id"] if qc_record.extras and "id" in qc_record.extras else qc_record.id
+    return (
+        qc_record.extras["id"]
+        if qc_record.extras and "id" in qc_record.extras
+        else qc_record.id
+    )
 
 
 class _TargetFactory(Generic[T], abc.ABC):
