@@ -8,6 +8,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
+## Current Development
+### Bug fixes
+* [#370] - Check that the `extras` field on QCArchive records is not `None` before accessing it to avoid crashes [@ntBre]
 
 ## 0.4.0 / 19-09-2024
 
@@ -171,6 +174,7 @@ The first major release of bespokefit intended for public use.
 [#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
 [#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
 [#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
+[#370]: https://github.com/openforcefield/openff-bespokefit/pull/370
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
