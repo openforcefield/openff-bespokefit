@@ -70,6 +70,14 @@ def _standardize_grid_id_str(grid_id: str) -> tuple[Union[int, float]]:
     return tuple(grid_id)
 
 
+def _get_qc_record_id(qc_record):
+    return (
+        qc_record.extras["id"]
+        if qc_record.extras and "id" in qc_record.extras
+        else qc_record.id
+    )
+
+
 class _TargetFactory(Generic[T], abc.ABC):
     @classmethod
     @abc.abstractmethod
@@ -117,11 +125,8 @@ class _TargetFactory(Generic[T], abc.ABC):
             target.
         """
 
-        def qc_record_id(qc_record):
-            return qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
-
         return {
-            f"{cls._target_name_prefix()}-{qc_record_id(qc_record)}": [
+            f"{cls._target_name_prefix()}-{_get_qc_record_id(qc_record)}": [
                 (qc_record, molecule)
             ]
             for qc_record, molecule in qc_records
@@ -275,9 +280,7 @@ class AbInitioTargetFactory(_TargetFactory[AbInitioTargetSchema]):
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
 
-        qc_record_id = (
-            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
-        )
+        qc_record_id = _get_qc_record_id(qc_record)
 
         # form a Molecule object from the first torsion grid data
         if isinstance(qc_record, TorsiondriveRecord):
@@ -472,9 +475,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
             off_molecule: An OpenFF representation of the QC molecule.
         """
 
-        qc_record_id = (
-            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
-        )
+        qc_record_id = _get_qc_record_id(qc_record)
 
         try:
             # this is a qcportal.record_models.BaseRecord
@@ -547,9 +548,7 @@ class VibrationTargetFactory(_TargetFactory[VibrationTargetSchema]):
 
         assert len(qc_records) == 1
         qc_record, off_molecule = qc_records[0]
-        qc_record_id = (
-            qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
-        )
+        qc_record_id = _get_qc_record_id(qc_record)
 
         fb_molecule = FBMolecule()
         fb_molecule.Data = {
@@ -608,9 +607,7 @@ class OptGeoTargetFactory(_TargetFactory[OptGeoTargetSchema]):
         record_names = []
 
         for i, (qc_record, off_molecule) in enumerate(qc_records):
-            qc_record_id = (
-                qc_record.extras["id"] if "id" in qc_record.extras else qc_record.id
-            )
+            qc_record_id = _get_qc_record_id(qc_record)
 
             record_name = f"{qc_record_id}-{i}"
             record_names.append(record_name)
