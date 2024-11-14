@@ -82,4 +82,4 @@ jobs:
 
       - name: Go back to pull request HEAD
         # setup-micromamba needs the environment file to exist, which it might not on the most recent tag
-        run: git checkout HEAD^
+        run: git switch -
