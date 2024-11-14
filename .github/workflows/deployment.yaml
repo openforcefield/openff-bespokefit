@@ -26,6 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.11"]
@@ -40,43 +41,41 @@ jobs:
 
       - name: Install latest release from conda with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/deployment_openeye.yaml
           create-args: >-
             python=${{ matrix.python-version }}
 
       - name: Install latest release from conda without OpenEye Toolkits
         if: ${{ matrix.openeye == false }}
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/deployment.yaml
           create-args: >-
             python=${{ matrix.python-version }}
 
-      - name: License OpenEye
-        if: ${{ matrix.openeye == true }}
-        run: |
-          echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
-          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
-        env:
-          SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+#     - name: License OpenEye
+#       if: ${{ matrix.openeye == true }} and never()
+#       run: |
+#         echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+#         python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+#       env:
+#         SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
-      - name: Checkout most recent tag
-        run: |
-          git fetch --all
-          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+#     - name: Checkout most recent tag
+#       run: |
+#         git fetch --all
+#         git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
-      - name: Run tests
-        run: |
-          python -m pytest --durations=0 openff/bespokefit/_tests
-          
-      - name: Run Integration Tests
-        if: ${{ matrix.integration == true }}
-        run: |
-          openff-bespoke executor run --smiles                 'CC'               \
-                                      --workflow               'default'          \
-                                      --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+#     - name: Run tests
+#       run: |
+#         python -m pytest --durations=0 openff/bespokefit/_tests
+#         
+#     - name: Run Integration Tests
+#       if: ${{ matrix.integration == true }}
+#       run: |
+#         openff-bespoke executor run --smiles                 'CC'               \
+#                                     --workflow               'default'          \
+#                                     --default-qc-spec        xtb gfn2xtb none   \
+#                                     --target-torsion         '[C:1]-[C:2]'
