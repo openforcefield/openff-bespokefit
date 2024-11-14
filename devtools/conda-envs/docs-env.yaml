@@ -18,8 +18,7 @@ dependencies:
   - click-option-group
   - rdkit =2024.03.5
   - openff-utilities
-  - openff-toolkit-base =0.15
-  - openff-interchange  # only needed because openff-toolkit-base
+  - openff-toolkit =0.15
   - openff-forcefields >=2024.04.0
   - openff-qcsubmit >=0.50
   - openmm >=7.6.0
