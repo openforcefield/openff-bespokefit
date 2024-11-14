@@ -12,7 +12,7 @@ on:
       - released
       - prereleased
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "15 0 * * *"
   workflow_dispatch:
 
 defaults:
@@ -26,10 +26,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9"]
+        python-version: ["3.11"]
         openeye: [true, false]
         integration: [true]
 
@@ -41,22 +40,21 @@ jobs:
 
       - name: Install latest release from conda with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: devtools/conda-envs/deployment_openeye.yaml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
 
       - name: Install latest release from conda without OpenEye Toolkits
         if: ${{ matrix.openeye == false }}
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: devtools/conda-envs/deployment.yaml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
 
       - name: License OpenEye
-        shell: bash -l {0}
         if: ${{ matrix.openeye == true }}
         run: |
           echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
@@ -82,10 +80,10 @@ jobs:
 
           cd -
 
-      - name: Checkout 0.2.1
+      - name: Checkout most recent tag
         run: |
           git fetch --all
-          git checkout 0.2.1
+          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
       - name: Run tests
         run: |
