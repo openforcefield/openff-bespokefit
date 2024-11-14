@@ -111,6 +111,28 @@ corresponding environment variable [settings] are used instead.
 [QCEngine]: http://docs.qcarchive.molssi.org/projects/QCEngine/en/stable/
 [settings]: openff.bespokefit.utilities.Settings
 
+(executor_qc_cache)=
+## The QC Cache
+Bespokefit makes extensive use of caching to speed up the parameterization process. 
+The generation of the training data is currently the slowest part of the workflow when running DFT calculations with 
+a high level of theory. To further speed up the process we provide an interface to seed the cache with results from 
+[QCArchive] which contains hundreds of torsiondrives. The `cache` command allows you to select a dataset and translate 
+it into local copies of the records which means your molecule data is not shared with QCArchive as the look up is done locally.
+
+First you should start a Bespoke [executor](executor_using_cli) and specify the location of the working directory which will store the cache
+
+```shell
+openff-bespoke executor launch --directory bespoke
+```
+
+While this is running from another terminal run the cache update using any of the available datasets
+
+```shell
+openff-bespoke cache update --no-launch-redis --qcf-dataset "OpenFF-benchmark-ligand-fragments-v2.0" --qcf-address "https://api.qcarchive.molssi.org:443/"
+```
+
+[QCArchive]: https://qcarchive.molssi.org/
+
 (executor_using_api)=
 ## Using the API
 
@@ -141,35 +163,39 @@ be allowed to use the full set of CPUs available on the machine (`n_cores="auto"
 The executor itself is a context manager and will not 'start' until the context is entered:
 
 ```python
-from openff.bespokefit.executor import wait_until_complete
+from openff.bespokefit.executor.client import BespokeFitClient, Settings
+
+client = BespokeFitClient(settings=Settings())
 
 with executor:
-    task_id = BespokeExecutor.submit(workflow)
-    output = wait_until_complete(task_id)
+    task_id = client.submit_optimization(input_schema=workflow)
+    output = client.wait_until_complete(optimization_id=task_id)
 ```
 
 When an executor 'starts' it will spin up all the required child processes, including each worker and a [Redis]
 instance (unless Redis is disabled).
 
-Within the executor context bespoke fits can be submitted using the [`submit()`] method. As soon as the context manager
-exists the executor instance is closed, terminating any running jobs. To ensure the submission is allowed to finish,
-use the [`wait_until_complete()`] helper function. This function will block progress in the script until it can return
-a result.
+Within the executor context bespoke fits can be submitted using the [`BespokeFitClient`] via the  [`submit_optimization()`] method. 
+As soon as the context manager exists the executor instance is closed, terminating any running jobs. 
+To ensure the submission is allowed to finish, use the [`wait_until_complete()`] helper function of the client. 
+This function will block progress in the script until it can return a result.
 
 [Celery]: https://docs.celeryproject.org/en/stable/index.html
 [Redis]: https://redis.io/
 
-[`submit()`]: openff.bespokefit.executor.BespokeExecutor.submit
-[`wait_until_complete()`]: openff.bespokefit.executor.wait_until_complete
+[`submit_optimization()`]: openff.bespokefit.executor.client.BespokeFitClient.submit_optimization
+[`wait_until_complete()`]: openff.bespokefit.executor.client.BespokeFitClient.wait_until_complete
 [`BespokeExecutor`]: openff.bespokefit.executor.BespokeExecutor
 [`BespokeWorkerConfig`]: openff.bespokefit.executor.BespokeWorkerConfig
+[`BespokeFitClient`]: openff.bespokefit.executor.client.BespokeFitClient
 
+(envvars)=
 ## Configuring from the environment
 
 Both the CLI and the Python API can be configured via environment variables.
 
 :::{eval-rst}
-.. autopydantic_settings:: openff.bespokefit.executor.services._settings.Settings
+.. autopydantic_settings:: openff.bespokefit.executor.services.Settings
     :settings-show-json: False
     :settings-show-config-member: False
     :settings-show-config-summary: False
@@ -179,8 +205,12 @@ Both the CLI and the Python API can be configured via environment variables.
     :exclude-members: fragmenter_settings,qc_compute_settings,optimizer_settings,apply_env
     :settings-signature-prefix: Environment Variables
     :field-signature-prefix: env
+    :noindex:
 
-    The following environment variables may be used to configure the Bespoke Executor
+    The following environment variables may be used to configure the Bespoke Executor. Environment variables are typically set in the shell:
+
+    .. code-block:: shell-session
+
+        $ BEFLOW_KEEP_TMP_FILES=True openff-bespoke executor ...
 
 :::
-

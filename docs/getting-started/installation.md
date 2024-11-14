@@ -16,6 +16,10 @@ mamba install -c conda-forge openff-bespokefit
 
 If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
 
+:::{warning}
+Some upstream dependencies may not be supported on Apple Silicon. To force `mamba` to use the use of the Rosetta emulation layer, use `CONDA_SUBDIR=osx-64`, which is described in more detail [here](https://docs.openforcefield.org/en/latest/install.html#openff-on-apple-silicon-and-arm).
+:::
+
 ### Fragmentation Backends
 
 #### AmberTools Antechamber
@@ -47,14 +51,13 @@ mamba install -c openeye openeye-toolkits
 recommended to be installed unless you intend to train against data generated using a surrogate such as ANI:
 
 ```shell
-mamba install -c psi4 -c conda-forge -c defaults psi4
+mamba install -c conda-forge psi4 dftd3-python
 ```
 
 [Psi4]: https://psicode.org/
 
 :::{warning}
-There is an incompatibility between the AmberTools and Psi4 conda packages on Mac, and it is not possible to
-create a working conda environment containing both. 
+There are some incompatibilities between the AmberTools and Psi4 conda packages on macOS, and it may not be possible to create a working conda environment containing both.
 :::
 
 :::{note}
@@ -63,14 +66,15 @@ compiled dependencies found in multiple channels. An alternative is to install e
 initially creating the environment using, with AmberTools:
 
 ```shell
-mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults python=3.9 openff-bespokefit psi4 ambertools
+mamba create -n bespokefit-env -c conda-forge openff-bespokefit psi4 dftd3-python ambertools
 ```
 
 or with OpenEye Toolkits:
 
 ```shell
-mamba create -n bespokefit-env -c psi4 -c conda-forge -c defaults -c openeye python=3.9 openff-bespokefit psi4 openeye-toolkits
+mamba create -n bespokefit-env -c conda-forge -c openeye openff-bespokefit psi4 dftd3-python openeye-toolkits
 ```
+
 :::
 
 #### XTB
@@ -127,8 +131,9 @@ Create a custom conda environment which contains the required dependencies and a
 mamba env create --name openff-bespokefit --file devtools/conda-envs/test-env.yaml
 mamba activate openff-bespokefit
 ```
+
 Finally, install the package itself into the new environment:
 
 ```shell
-python setup.py develop
+python -m pip install -e .
 ```

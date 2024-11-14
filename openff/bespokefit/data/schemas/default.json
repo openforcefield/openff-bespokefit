@@ -1,5 +1,5 @@
 {
-  "initial_force_field": "openff_unconstrained-2.0.0.offxml",
+  "initial_force_field": "openff_unconstrained-2.2.0.offxml",
   "optimizer": {
     "type": "ForceBalance",
     "max_iterations": 10,
@@ -97,7 +97,7 @@
         "wiberg_lowdin_indices",
         "mayer_indices"
       ],
-      "keywords": null
+      "keywords": {}
     }
   ]
 }

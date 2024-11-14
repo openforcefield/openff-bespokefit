@@ -83,7 +83,7 @@ autosummary_context = {
     # Modules to exclude from API docs
     "exclude_modules": [
         "openff.bespokefit.cli",
-        "openff.bespokefit.tests",
+        "openff.bespokefit._tests",
     ]
 }
 autodoc_default_options = {

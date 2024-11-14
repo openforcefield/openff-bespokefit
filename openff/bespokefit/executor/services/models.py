@@ -1,10 +1,8 @@
 from typing import Generic, List, Optional, TypeVar
 
 import numpy as np
-from pydantic import Field
-from pydantic.generics import GenericModel
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, Field, GenericModel
 
 _T = TypeVar("_T")
 
@@ -30,7 +28,7 @@ class Link(BaseModel):
 
     def __eq__(self, other):
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.id.__eq__(other.id)
             and self.self.__eq__(other.self)
         )

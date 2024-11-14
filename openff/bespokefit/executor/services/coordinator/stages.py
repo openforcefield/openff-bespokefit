@@ -13,12 +13,12 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import Field
 from qcelemental.models import AtomicResult, OptimizationResult
 from qcelemental.util import serialize
 from qcengine.procedures.torsiondrive import TorsionDriveResult
 from typing_extensions import Literal
 
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.utils import get_cached_parameters
 from openff.bespokefit.executor.services.fragmenter.models import (
@@ -53,7 +53,6 @@ from openff.bespokefit.schema.smirnoff import (
 )
 from openff.bespokefit.schema.targets import TargetSchema
 from openff.bespokefit.schema.tasks import Torsion1DTask
-from openff.bespokefit.utilities.pydantic import BaseModel
 from openff.bespokefit.utilities.smirks import (
     ForceFieldEditor,
     SMIRKSGenerator,
@@ -120,6 +119,7 @@ class FragmentationStage(_Stage):
                     fragmenter=task.input_schema.fragmentation_engine,
                     target_bond_smarts=task.input_schema.target_torsion_smirks,
                 ).json(),
+                headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
             )
 
             if raw_response.status_code != 200:
@@ -145,7 +145,8 @@ class FragmentationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_FRAGMENTER_PREFIX}/{self.id}"
+                f"{settings.BEFLOW_FRAGMENTER_PREFIX}/{self.id}",
+                headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
             )
 
             if raw_response.status_code != 200:
@@ -394,6 +395,7 @@ class QCGenerationStage(_Stage):
                         f"{settings.BEFLOW_API_V1_STR}/"
                         f"{settings.BEFLOW_QC_COMPUTE_PREFIX}",
                         data=QCGeneratorPOSTBody(input_schema=qc_task).json(),
+                        headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
                     )
 
                     if raw_response.status_code != 200:
@@ -430,7 +432,8 @@ class QCGenerationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}?ids={id_query}"
+                f"{settings.BEFLOW_QC_COMPUTE_PREFIX}?ids={id_query}",
+                headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
             )
             contents = raw_response.text
 
@@ -547,6 +550,7 @@ class OptimizationStage(_Stage):
                 data=serialize(
                     OptimizerPOSTBody(input_schema=input_schema), encoding="json"
                 ),
+                headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
             )
 
             if raw_response.status_code != 200:
@@ -569,7 +573,8 @@ class OptimizationStage(_Stage):
                 f"http://127.0.0.1:"
                 f"{settings.BEFLOW_GATEWAY_PORT}"
                 f"{settings.BEFLOW_API_V1_STR}/"
-                f"{settings.BEFLOW_OPTIMIZER_PREFIX}/{self.id}"
+                f"{settings.BEFLOW_OPTIMIZER_PREFIX}/{self.id}",
+                headers={"bespokefit-token": settings.BEFLOW_API_TOKEN},
             )
             contents = raw_response.text
 

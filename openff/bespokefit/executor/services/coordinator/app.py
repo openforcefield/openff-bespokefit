@@ -63,7 +63,7 @@ def get_optimizations(
     prev_index = max(0, skip - limit)
     next_index = min(n_total_tasks, skip + limit)
 
-    status_url = "" if status is None else f"&status={status}"
+    status_url = "" if status is None else f"&status={status.value}"
 
     return CoordinatorGETPageResponse(
         self=(
@@ -73,23 +73,27 @@ def get_optimizations(
             f"&limit={limit}"
             f"{status_url}"
         ),
-        prev=None
-        if prev_index >= skip
-        else (
-            f"{__settings.BEFLOW_API_V1_STR}/"
-            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
-            f"?skip={prev_index}"
-            f"&limit={limit}"
-            f"{status_url}"
+        prev=(
+            None
+            if prev_index >= skip
+            else (
+                f"{__settings.BEFLOW_API_V1_STR}/"
+                f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+                f"?skip={prev_index}"
+                f"&limit={limit}"
+                f"{status_url}"
+            )
         ),
-        next=None
-        if (next_index <= skip or next_index == n_total_tasks)
-        else (
-            f"{__settings.BEFLOW_API_V1_STR}/"
-            f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
-            f"?skip={next_index}"
-            f"&limit={limit}"
-            f"{status_url}"
+        next=(
+            None
+            if (next_index <= skip or next_index == n_total_tasks)
+            else (
+                f"{__settings.BEFLOW_API_V1_STR}/"
+                f"{__settings.BEFLOW_COORDINATOR_PREFIX}"
+                f"?skip={next_index}"
+                f"&limit={limit}"
+                f"{status_url}"
+            )
         ),
         contents=contents,
     )

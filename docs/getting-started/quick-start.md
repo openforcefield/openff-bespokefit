@@ -12,12 +12,12 @@ field parameters trained to accurately capture the important features and phenom
 It produces bespoke torsion parameters that have been trained to capture as closely as possible the torsion profiles of
 the rotatable bonds in the target molecule, which collectively have a large impact on conformational preferences.
 
-The recommended way to install `openff-bespokefit` is via the `conda` package manager. There are several optional
+The recommended way to install `openff-bespokefit` is via the `mamba` package manager. There are several optional
 dependencies, and a good starting environment is:
 
 ```shell
-conda create -n bespokefit -y -c conda-forge mamba python=3.9
-conda activate bespokefit 
+mamba create -n bespokefit -y -c conda-forge mamba python=3.10
+mamba activate bespokefit 
 mamba install -y -c conda-forge openff-bespokefit xtb-python ambertools 
 ```
 
@@ -77,7 +77,7 @@ Sometimes bespoke commands will raise `RuntimeError: The gateway could not be re
 by rerunning the command a few times. 
 :::
 
-Here we have specified that we wish to start the fit from the general OpenFF 2.0.0 (Sage) force field, augmenting
+Here we have specified that we wish to start the fit from the general OpenFF 2.2.0 (Sage) force field, augmenting
 it with bespoke parameters generated according to the 
 [default built-in workflow using GFN2-xTB reference data](workflow_chapter). 
 
@@ -100,6 +100,10 @@ openff-bespoke executor run --file                 "acetaminophen.sdf" \
                             --qc-compute-n-cores   1                   \
                             --default-qc-spec xtb gfn2xtb none
 ```
+
+:::{note}
+For XTB (only), `--qc-compute-n-cores` is ignored because of miscommunications between QCEngine and XTB, but this can be worked around by setting the environment variable `OMP_NUM_THREADS`. See the FAQ for details.
+:::
 
 See the chapter on the [bespoke executor](executor_chapter) for more information about parallelizing fits.
 
@@ -181,6 +185,13 @@ See the [results chapter](bespoke_results_chapter) for more details on retrievin
 For users who prefer Python or who are looking for more control over how the fit will be performed, BespokeFit exposes a
 full Python API.
 
+:::{note}
+These quickstart instructions are for running in a jupyter notebook. If you'd instead like to run this as standard python 
+script from the command line, put all this code inside a `def main():` block, and conclude the script with 
+`if __name__ == "__main__": main()`. 
+:::
+
+
 At the heart of the fitting pipeline is the [`BespokeWorkflowFactory`]. The [`BespokeWorkflowFactory`] encodes all of
 the settings that will feed into and control the bespoke fitting pipeline for *any* input molecule. The workflow
 factory transforms a particular molecule into a [workflow](workflow_chapter), which fully describes how bespoke
@@ -193,7 +204,7 @@ from openff.qcsubmit.common_structures import QCSpec
 factory = BespokeWorkflowFactory(
     # Define the starting force field that will be augmented with bespoke 
     # parameters.
-    initial_force_field="openff-2.0.0.offxml",
+    initial_force_field="openff-2.2.0.offxml",
     # Change the level of theory that the reference QC data is generated at
     default_qc_specs=[
         QCSpec(
@@ -212,7 +223,7 @@ Similar to the previous steps, here we override the default
 ["default" QC specification](default_qc_method) to use GFN2-xTB. If we had Psi4
 installed, we could remove the `default_qc_specs` argument and the factory would instead use our mainline
 [fitting QC method](default_qc_method). 
-The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.0.0 force field 
+The default factory will produce [workflows](workflow_chapter) that augment the OpenFF 2.2.0 force field
 with bespoke torsion parameters for all non-terminal *rotatable* bonds in the molecule that have been trained 
 to quantum chemical torsion scan data generated for said molecule.
 
@@ -241,7 +252,12 @@ a charge model, then re-fit the torsion and valence parameters using the new cha
 Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 
 ```python
-from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig, wait_until_complete
+from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig
+from openff.bespokefit.executor.client import BespokeFitClient, Settings
+
+# create a client to interface with the executor
+settings = Settings()
+client = BespokeFitClient(settings=settings)
 
 with BespokeExecutor(
     n_fragmenter_workers = 1,
@@ -250,9 +266,9 @@ with BespokeExecutor(
     qc_compute_worker_config=BespokeWorkerConfig(n_cores=1)
 ) as executor:
     # Submit our workflow to the executor
-    task_id = executor.submit(input_schema=workflow_schema)
+    task_id = client.submit_optimization(input_schema=workflow_schema)
     # Wait until the executor is done
-    output = wait_until_complete(task_id)
+    output = client.wait_until_complete(task_id)
 
 if output.status == "success":
     # Save the resulting force field to an OFFXML file
@@ -283,7 +299,7 @@ from openff.bespokefit.schema.targets import TorsionProfileTargetSchema
 factory = BespokeWorkflowFactory(
     # Define the starting force field that will be augmented with bespoke 
     # parameters.
-    initial_force_field="openff-2.0.0.offxml",
+    initial_force_field="openff-2.2.0.offxml",
     # Select the underlying optimization engine.
     optimizer=ForceBalanceSchema(
         max_iterations=50, penalty_type="L1"

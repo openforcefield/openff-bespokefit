@@ -13,14 +13,14 @@ git clone https://github.com/openforcefield/openff-bespokefit.git
 cd openff-bespokefit
 mamba env create --file devtools/conda-envs/test-env.yaml --name bespokefit-dev
 mamba env update --file devtools/conda-envs/docs-env.yaml --name bespokefit-dev
-conda activate bespokefit-dev
+mamba activate bespokefit-dev
 pip install -e .
 ```
 
 With this environment, tests can be run locally with [PyTest]:
 
 ```shell
-pytest openff/bespokefit/tests
+pytest openff/bespokefit/_tests
 ```
 
 And documentation can be built with [Sphinx] and viewed in a web browser:

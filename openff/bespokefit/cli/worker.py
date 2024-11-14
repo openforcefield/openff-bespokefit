@@ -1,12 +1,4 @@
-import importlib
-
 import click
-import rich
-from rich import pretty
-
-from openff.bespokefit.cli.utilities import print_header
-from openff.bespokefit.executor.services import current_settings
-from openff.bespokefit.executor.utilities.celery import spawn_worker
 
 worker_types = ["fragmenter", "qc-compute", "optimizer"]
 
@@ -34,6 +26,14 @@ def worker_cli(worker_type: str):
 
         worker_type: The alias name of the worker type which should be started.
     """
+    import importlib
+
+    import rich
+    from rich import pretty
+
+    from openff.bespokefit.cli.utilities import print_header
+    from openff.bespokefit.executor.services import current_settings
+    from openff.bespokefit.executor.utilities.celery import spawn_worker
 
     pretty.install()
 
@@ -45,10 +45,13 @@ def worker_cli(worker_type: str):
 
     settings = current_settings()
 
+    worker_kwargs = {}
+
     if worker_type == "fragmenter":
         worker_settings = settings.fragmenter_settings
     elif worker_type == "qc-compute":
         worker_settings = settings.qc_compute_settings
+        worker_kwargs["pool"] = "solo"
     else:
         worker_settings = settings.optimizer_settings
 
@@ -59,4 +62,4 @@ def worker_cli(worker_type: str):
     worker_status.stop()
     console.print(f"[[green]✓[/green]] bespoke {worker_type} worker launched")
 
-    spawn_worker(worker_app, concurrency=1, asynchronous=False)
+    spawn_worker(worker_app, concurrency=1, asynchronous=False, **worker_kwargs)

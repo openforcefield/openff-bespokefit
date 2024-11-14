@@ -8,6 +8,46 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
+## Current Development
+### Bug fixes
+* [#370] - Check that the `extras` field on QCArchive records is not `None` before accessing it to avoid crashes [@ntBre]
+
+## 0.4.0 / 19-09-2024
+
+### New Features
+
+* [#351] - Adds a `BespokeFitClient` to interface with the executor and support for connecting to executors on a non-local machine [@jthorton]
+
+### Tests updated
+
+* [#338] - Updates a test for QCFractal/QCPortal 0.54. [@mattwthompson]
+
+## 0.3.0 / 27-03-2024
+
+### New Features
+* [#280] - Adds support for QCFractal 0.50 and newer [@mattwthompson] [@j-wags] [@ntBre]
+* [#334] - Makes test pseudo-private [@mattwthompson]
+
+### Documentation Updates
+* [#321] - Documents how to download pre-computed QC data and add it to the local cache, which can avoid the need for local calculcations. by [@jthorton]
+* [#325] - Document issue where `xtb` doesn't respect the `--qc-compute-n-cores` argument and provide workaround. by [@mattwthompson]
+* [#330] - Corrects a reference to Rosemary, which is not released, in the theory section. by [@mattwthompson]
+
+### Behavior changes
+* [#307] - OpenFF 2.2.0 RC1 ("Sage 2.2 RC1") is used as the initial force filed by default (if no other initial force field is specified). by [@mattwthompson]
+
+### Bug fixes
+* [#320] - Fixes a formatting issue ([#319]) when printing SMILES to summary table. by [@j-wags]
+
+## 0.2.3 / 14-11-2023
+
+### Bug Fixes
+* [#286] - Update for behavior/API changes in ForceBalance 1.9.6 and OFF Tookit 0.14.4. by [@j-wags]
+
+### New Features
+* [#272] - Add CLI command to launch workers by [@jhorton]
+* [#277] - Allow optimizaitons to run in parallel with torsion drives by [@jhorton]
+* [#279] - Allow for re-trying failed QM single-point calculations by [@jhorton]
 
 <!-- ## Version / Date DD-MM-YYYY -->
 
@@ -121,6 +161,20 @@ The first major release of bespokefit intended for public use.
 [#239]: https://github.com/openforcefield/openff-bespokefit/pull/239
 [#243]: https://github.com/openforcefield/openff-bespokefit/pull/243
 [#260]: https://github.com/openforcefield/openff-bespokefit/pull/260
+[#272]: https://github.com/openforcefield/openff-bespokefit/pull/272
+[#277]: https://github.com/openforcefield/openff-bespokefit/pull/277
+[#279]: https://github.com/openforcefield/openff-bespokefit/pull/279
+[#280]: https://github.com/openforcefield/openff-bespokefit/pull/280
+[#286]: https://github.com/openforcefield/openff-bespokefit/pull/286
+[#307]: https://github.com/openforcefield/openff-bespokefit/pull/307
+[#320]: https://github.com/openforcefield/openff-bespokefit/pull/320
+[#321]: https://github.com/openforcefield/openff-bespokefit/pull/321
+[#325]: https://github.com/openforcefield/openff-bespokefit/pull/325
+[#330]: https://github.com/openforcefield/openff-bespokefit/pull/330
+[#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
+[#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
+[#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
+[#370]: https://github.com/openforcefield/openff-bespokefit/pull/370
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
@@ -129,3 +183,4 @@ The first major release of bespokefit intended for public use.
 [@jthorton]: https://github.com/jthorton
 [@SimonBoothroyd]: https://github.com/SimonBoothroyd
 [@xperrylinn]: https://github.com/xperrylinn
+[@ntBre]: https://github.com/ntBre

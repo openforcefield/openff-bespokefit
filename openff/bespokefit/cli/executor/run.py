@@ -46,15 +46,18 @@ def _run_cli(
 
     from openff.bespokefit.executor import (
         BespokeExecutor,
+        BespokeFitClient,
         BespokeWorkerConfig,
-        wait_until_complete,
     )
+    from openff.bespokefit.executor.services import current_settings
     from openff.bespokefit.executor.utilities import handle_common_errors
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
 
     validate_redis_connection(console, allow_existing=False)
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     with BespokeExecutor(
         directory=directory,
@@ -74,12 +77,12 @@ def _run_cli(
         with handle_common_errors(console) as error_state:
             response_id = _submit(
                 console=console,
-                input_file_path=[input_file_path]
-                if input_file_path is not None
-                else [],
-                molecule_smiles=[molecule_smiles]
-                if molecule_smiles is not None
-                else [],
+                input_file_path=(
+                    [input_file_path] if input_file_path is not None else []
+                ),
+                molecule_smiles=(
+                    [molecule_smiles] if molecule_smiles is not None else []
+                ),
                 force_field_path=force_field_path,
                 target_torsion_smirks=target_torsion_smirks,
                 default_qc_spec=default_qc_spec,
@@ -91,7 +94,9 @@ def _run_cli(
 
             console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
-            results = wait_until_complete(response_id[0])
+            results = client.wait_until_complete(
+                optimization_id=response_id[0], console=console
+            )
 
             console.print(
                 Padding(

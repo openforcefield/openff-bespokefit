@@ -2,39 +2,38 @@ name: readthedocs-environment
 channels:
   - openeye
   - conda-forge
-  - nodefaults
+
 dependencies:
-  - python>=3.7
+  - python
   - pip
 
     ### Core dependencies.
 
   - numpy
-  - pydantic
+  - pydantic =1
   - pyyaml
   - tqdm
   - rich
   - click
   - click-option-group
-  - rdkit
+  - rdkit =2024.03.5
   - openff-utilities
-  - openff-toolkit-base >=0.11.3
-  - openff-forcefields
-  - openff-interchange
-  - openff-qcsubmit
+  - openff-toolkit-base =0.15
+  - openff-interchange  # only needed because openff-toolkit-base
+  - openff-forcefields >=2024.04.0
+  - openff-qcsubmit >=0.50
   - openmm >=7.6.0
 
     # Optional
   - forcebalance
   - openff-fragmenter-base
-
   - openeye-toolkits
 
     ### Bespoke dependencies
 
-  - qcportal >=0.15.6
-  - qcelemental >=0.25.1
-  - qcengine >=0.25
+  - qcportal ==0.53
+  - qcelemental
+  - qcengine
   - chemper
   - geometric <1
   - torsiondrive

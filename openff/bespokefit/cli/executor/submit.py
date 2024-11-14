@@ -6,12 +6,12 @@ import click.exceptions
 import rich
 from click_option_group import optgroup
 from openff.utilities import get_data_file_path
-from pydantic import ValidationError
 from rich import pretty
 from rich.padding import Padding
 from rich.progress import track
 from rich.table import Table
 
+from openff.bespokefit._pydantic import ValidationError
 from openff.bespokefit.cli.utilities import (
     create_command,
     exit_with_messages,
@@ -200,7 +200,11 @@ def _submit(
 ) -> List[str]:
     from openff.toolkit.topology import Molecule
 
-    from openff.bespokefit.executor import BespokeExecutor
+    from openff.bespokefit.executor import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
+
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     console.print(Padding("1. preparing the bespoke workflow", (0, 0, 1, 0)))
 
@@ -273,7 +277,7 @@ def _submit(
         transient=True,
         console=console,
     ):
-        response_ids.append(BespokeExecutor.submit(input_schema))
+        response_ids.append(client.submit_optimization(input_schema=input_schema))
 
     console.print("[[green]✓[/green]] the following workflows were submitted")
     table = Table()
@@ -285,7 +289,12 @@ def _submit(
     for molecule, response_id in zip(all_molecules, response_ids):
         table.add_row(
             response_id,
-            molecule.to_smiles(explicit_hydrogens=False, mapped=False),
+            # Brackets around things like [nH] will sometimes be interpreted as formatting characters
+            # by rich, so use rich.markup.escape to avoid mangling the SMILES.
+            # See https://github.com/openforcefield/openff-bespokefit/issues/319
+            rich.markup.escape(
+                molecule.to_smiles(explicit_hydrogens=False, mapped=False)
+            ),
             molecule.name,
             molecule.properties.get("input_file", ""),
         )

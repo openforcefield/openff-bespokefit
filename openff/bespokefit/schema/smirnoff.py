@@ -10,10 +10,9 @@ from openff.toolkit.typing.engines.smirnoff import (
     ProperTorsionHandler,
     vdWHandler,
 )
-from pydantic import Field, PositiveFloat, validator
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import SchemaBase
+from openff.bespokefit._pydantic import Field, PositiveFloat, SchemaBase, validator
 
 
 def validate_smirks(smirks: str, expected_tags: int) -> str:
@@ -70,7 +69,7 @@ class BaseSMIRKSParameter(SchemaBase, abc.ABC):
         """Creates a version of this class from a SMIRNOFF parameter"""
 
     def __eq__(self, other):
-        return type(self) == type(other) and self.__hash__() == other.__hash__()
+        return type(self) is type(other) and self.__hash__() == other.__hash__()
 
     def __ne__(self, other):
         assert not self.__eq__(other)

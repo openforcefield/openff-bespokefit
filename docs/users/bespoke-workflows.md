@@ -12,9 +12,9 @@ bespoke fit (represented by the [`BespokeOptimizationSchema`] object), and are u
 
 ## The default workflow
 
-The default workflow is suitable for augmenting a general [SMIRNOFF] force field (currently the[OpenFF 2.0.0] force
+The default workflow is suitable for augmenting a general [SMIRNOFF] force field (currently the [OpenFF 2.2.0] force
 field) with a new bespoke torsion term for each non-terminal rotatable bond in the input molecule, trained to reproduce
-a bespoke one-dimensional quantum chemical torsion scan performed around that bond. 
+a bespoke one-dimensional quantum chemical torsion scan performed around that bond.
 
 [SMIRNOFF]: https://openforcefield.github.io/standards/standards/smirnoff/
 
@@ -127,7 +127,7 @@ Parameter generation also needs an initial force field to use as a starting poin
 should be the filename of a force field in [offxml format]:
 
 ```python
-factory.initial_force_field = "openff-2.0.0.offxml"
+factory.initial_force_field = "openff-2.2.0.offxml"
 ```
 
 [`smirk_settings`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.smirk_settings
@@ -167,7 +167,7 @@ factory.parameter_hyperparameters = [ProperTorsionHyperparameters()]
 [`Fragmenter`]: openff.fragmenter.fragment.Fragmenter
 [ForceBalance]: https://github.com/leeping/forcebalance
 [`ForceBalanceSchema`]: openff.bespokefit.schema.optimizers.ForceBalanceSchema
-[OpenFF 2.0.0]: https://openforcefield.org/force-fields/force-fields/#sage
+[OpenFF 2.2.0]: https://openforcefield.org/force-fields/force-fields/#sage
 [`BaseOptimizerSchema`]: openff.bespokefit.schema.optimizers.BaseOptimizerSchema
 [offxml format]: https://openforcefield.github.io/standards/standards/smirnoff/
 [`optimizer`]: openff.bespokefit.workflows.bespoke.BespokeWorkflowFactory.optimizer

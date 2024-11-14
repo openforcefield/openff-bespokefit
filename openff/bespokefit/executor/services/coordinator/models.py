@@ -1,14 +1,12 @@
 from typing import Dict, List, Optional
 
-from pydantic import Field
-
+from openff.bespokefit._pydantic import BaseModel, Field
 from openff.bespokefit.executor.services import current_settings
 from openff.bespokefit.executor.services.coordinator.stages import StageType
 from openff.bespokefit.executor.services.models import Link, PaginatedCollection
 from openff.bespokefit.executor.utilities.typing import Status
 from openff.bespokefit.schema.fitting import BespokeOptimizationSchema
 from openff.bespokefit.schema.results import BespokeOptimizationResults
-from openff.bespokefit.utilities.pydantic import BaseModel
 
 
 class CoordinatorGETPageResponse(PaginatedCollection[Link]):
@@ -60,12 +58,14 @@ class CoordinatorGETStageStatus(BaseModel):
             type=stage.type,
             status=stage.status,
             error=stage.error,
-            results=None
-            if stage_ids is None
-            else [
-                Link(id=stage_id, self=f"{endpoints[stage.type]}{stage_id}")
-                for stage_id in stage_ids
-            ],
+            results=(
+                None
+                if stage_ids is None
+                else [
+                    Link(id=stage_id, self=f"{endpoints[stage.type]}{stage_id}")
+                    for stage_id in stage_ids
+                ]
+            ),
         )
 
 

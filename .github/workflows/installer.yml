@@ -25,7 +25,7 @@ jobs:
       PYVER: ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install conda environment
       uses: mamba-org/setup-micromamba@v1
@@ -56,7 +56,7 @@ jobs:
         python run.py
 
     - name: Upload installer as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.os }}_py${{ matrix.python-version }}_xtb.sh
         path: toolkit-installer-constructor/build/openff-bespokefit*/openff-*.sh
@@ -89,5 +89,5 @@ jobs:
 
         echo "Starting tests:"
         PYTEST_ARGS=" -r fE --tb=short"
-        pytest $PYTEST_ARGS ../openff/bespokefit/tests/
+        pytest $PYTEST_ARGS ../openff/bespokefit/_tests/
 

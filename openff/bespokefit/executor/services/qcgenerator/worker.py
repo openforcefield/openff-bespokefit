@@ -48,7 +48,7 @@ def _task_config() -> Dict[str, Any]:
         )
     )
 
-    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3))
+    return dict(ncores=n_cores, nnodes=1, memory=round(max_memory, 3), retries=3)
 
 
 def _select_atom(atoms: List[Atom]) -> int:
@@ -147,11 +147,18 @@ def compute_torsion_drive(task_json: str) -> TorsionDriveResult:
         ),
     )
 
+    # run all torsiondrives through our custom procedure which handles parallel optimisations
     return_value = qcengine.compute_procedure(
-        input_schema, "torsiondrive", raise_error=True, local_options=_task_config()
+        input_schema,
+        "TorsionDriveParallel",
+        raise_error=True,
+        task_config=_task_config(),
     )
 
     if isinstance(return_value, TorsionDriveResult):
+        _task_logger.info(
+            f"1D TorsionDrive successfully completed in {return_value.provenance.wall_time}"
+        )
         return_value = TorsionDriveResult(
             **return_value.dict(exclude={"optimization_history", "stdout", "stderr"}),
             optimization_history={},
@@ -204,7 +211,7 @@ def compute_optimization(
             input_schema,
             task.optimization_spec.program,
             raise_error=True,
-            local_options=_task_config(),
+            task_config=_task_config(),
         )
 
         if isinstance(return_value, OptimizationResult):

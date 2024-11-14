@@ -2,10 +2,9 @@ import os
 from contextlib import contextmanager
 from typing import Optional, Union
 
-from pydantic import BaseSettings, Field
 from typing_extensions import Literal
 
-from openff.bespokefit.utilities.pydantic import BaseModel
+from openff.bespokefit._pydantic import BaseModel, BaseSettings, Field
 
 
 class WorkerSettings(BaseModel):
@@ -21,8 +20,10 @@ class WorkerSettings(BaseModel):
 
 class Settings(BaseSettings):
     BEFLOW_API_V1_STR: str = "/api/v1"
+    BEFLOW_API_TOKEN: str = ""
 
     BEFLOW_GATEWAY_PORT: int = 8000
+    BEFLOW_GATEWAY_ADDRESS: str = "http://127.0.0.1"
     BEFLOW_GATEWAY_LOG_LEVEL: str = "error"
 
     BEFLOW_REDIS_ADDRESS: str = "localhost"
@@ -65,48 +66,67 @@ class Settings(BaseSettings):
     BEFLOW_OPTIMIZER_KEEP_FILES: bool = False
     """
     .. deprecated:: 0.2.1
-        use BEFLOW_KEEP_TMP_FILES instead
+        use ``BEFLOW_KEEP_TMP_FILES`` instead
 
     Keep the optimizer's temporary files.
     """
 
     BEFLOW_KEEP_TMP_FILES: bool = False
-    """Keep all temporary files."""
+    """
+    Keep all temporary files.
+
+    Temporary files are written to the scratch directory, which can be
+    configured with the ``--directory`` CLI argument. By default, a temporary
+    directory is chosen for scratch, so both this environment variable and that
+    CLI argument must be set to preserve temporary files.
+    """
 
     @property
     def fragmenter_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_FRAGMENTER_WORKER,
-            n_cores=None
-            if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_FRAGMENTER_WORKER_MAX_MEM
+            ),
         )
 
     @property
     def qc_compute_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_QC_COMPUTE_WORKER,
-            n_cores=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_N_CORES == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_QC_COMPUTE_WORKER_MAX_MEM
+            ),
         )
 
     @property
     def optimizer_settings(self) -> WorkerSettings:
         return WorkerSettings(
             import_path=self.BEFLOW_OPTIMIZER_WORKER,
-            n_cores=None
-            if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_N_CORES,
-            max_memory=None
-            if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
-            else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM,
+            n_cores=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_N_CORES == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_N_CORES
+            ),
+            max_memory=(
+                None
+                if self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM == "auto"
+                else self.BEFLOW_OPTIMIZER_WORKER_MAX_MEM
+            ),
         )
 
     @contextmanager
