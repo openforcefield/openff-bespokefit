@@ -87,7 +87,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest --durations=0 openff/bespokefit/tests
+          python -m pytest --durations=0 openff/bespokefit/_tests
           
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
