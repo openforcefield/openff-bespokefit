@@ -64,7 +64,11 @@ jobs:
 #         SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Checkout most recent tag
+        id: vars
+        # run: echo "docker_tag=$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}" >> $GITHUB_OUTPUT
         run: |
+          echo "PULL_REQUEST_HEAD=$(git log -1 --format=%H)" >> $GITHUB_OUTPUT
+
           git fetch --all
           git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
@@ -82,4 +86,4 @@ jobs:
 
       - name: Go back to pull request HEAD
         # setup-micromamba needs the environment file to exist, which it might not on the most recent tag
-        run: git switch -
+        run: git checkout ${{ steps.vars.outputs.PULL_REQUEST_HEAD }}
