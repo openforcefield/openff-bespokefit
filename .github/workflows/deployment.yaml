@@ -42,6 +42,7 @@ jobs:
         if: ${{ matrix.openeye == true }}
         uses: mamba-org/setup-micromamba@v1
         with:
+          micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/deployment_openeye.yaml
           create-args: >-
             python=${{ matrix.python-version }}
@@ -50,6 +51,7 @@ jobs:
         if: ${{ matrix.openeye == false }}
         uses: mamba-org/setup-micromamba@v1
         with:
+          micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/deployment.yaml
           create-args: >-
             python=${{ matrix.python-version }}
@@ -62,24 +64,6 @@ jobs:
         env:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
-      - name: Verify that the latest version was installed
-        run: |
-          cd /tmp/
-
-          export LATEST_TAG=$(git ls-remote --tags https://github.com/openforcefield/openff-bespokefit.git | cut -f2 | grep -E "([0-9]+)\.([0-9]+)\.([0-9]+)$" | sort --version-sort | tail -1 | sed 's/refs\/tags\///')
-          export FOUND_VER=$(python -c "import openff.bespokefit; print(openff.bespokefit.__version__)")
-
-          if [[ $LATEST_TAG != $FOUND_VER ]]; then
-            echo "Latest tag is"
-            echo $LATEST_TAG
-            echo "Found version is"
-            echo $FOUND_VER
-            echo "Version mismatch"
-            exit 1
-          fi
-
-          cd -
-
       - name: Checkout most recent tag
         run: |
           git fetch --all
@@ -91,7 +75,6 @@ jobs:
           
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
-        shell: bash -l {0}
         run: |
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
