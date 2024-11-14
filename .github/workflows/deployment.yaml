@@ -63,10 +63,10 @@ jobs:
 #       env:
 #         SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
-#     - name: Checkout most recent tag
-#       run: |
-#         git fetch --all
-#         git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+      - name: Checkout most recent tag
+        run: |
+          git fetch --all
+          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
 #     - name: Run tests
 #       run: |
