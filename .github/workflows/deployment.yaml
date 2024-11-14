@@ -1,18 +1,12 @@
 name: Deployment tests
 
 on:
-  push:
-    branches:
-      - "main"
-  pull_request:
-    branches:
-      - "main"
   release:
     types:
       - released
       - prereleased
   schedule:
-    - cron: "15 0 * * *"
+    - cron: "10 */12 * * *"
   workflow_dispatch:
 
 defaults:
