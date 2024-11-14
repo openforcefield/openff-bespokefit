@@ -36,11 +36,11 @@ jobs:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install latest release from conda with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/deployment_openeye.yaml
           create-args: >-
@@ -48,7 +48,7 @@ jobs:
 
       - name: Install latest release from conda without OpenEye Toolkits
         if: ${{ matrix.openeye == false }}
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/deployment.yaml
           create-args: >-
