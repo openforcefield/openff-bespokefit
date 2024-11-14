@@ -55,34 +55,33 @@ jobs:
           create-args: >-
             python=${{ matrix.python-version }}
 
-#     - name: License OpenEye
-#       if: ${{ matrix.openeye == true }} and never()
-#       run: |
-#         echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
-#         python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
-#       env:
-#         SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+      - name: License OpenEye
+        if: ${{ matrix.openeye == true }} and never()
+        run: |
+          echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+        env:
+          SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
       - name: Checkout most recent tag
         id: vars
-        # run: echo "docker_tag=$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}" >> $GITHUB_OUTPUT
         run: |
           echo "PULL_REQUEST_HEAD=$(git log -1 --format=%H)" >> $GITHUB_OUTPUT
 
           git fetch --all
           git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
-#     - name: Run tests
-#       run: |
-#         python -m pytest --durations=0 openff/bespokefit/_tests
-#         
-#     - name: Run Integration Tests
-#       if: ${{ matrix.integration == true }}
-#       run: |
-#         openff-bespoke executor run --smiles                 'CC'               \
-#                                     --workflow               'default'          \
-#                                     --default-qc-spec        xtb gfn2xtb none   \
-#                                     --target-torsion         '[C:1]-[C:2]'
+      - name: Run tests
+        run: |
+          python -m pytest --durations=0 openff/bespokefit/_tests
+
+      - name: Run Integration Tests
+        if: ${{ matrix.integration == true }}
+        run: |
+          openff-bespoke executor run --smiles                 'CC'               \
+                                      --workflow               'default'          \
+                                      --default-qc-spec        xtb gfn2xtb none   \
+                                      --target-torsion         '[C:1]-[C:2]'
 
       - name: Go back to pull request HEAD
         # setup-micromamba needs the environment file to exist, which it might not on the most recent tag
