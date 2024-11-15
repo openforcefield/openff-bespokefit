@@ -17,10 +17,12 @@ def test_launch_worker(worker_type, runner, monkeypatch):
     in test_celery/test_spawn_worker
     """
 
-    def mock_spawn(*args, **kwargs):
-        return True
+    launched_workers = {}
 
-    monkeypatch.setattr(celery, "_spawn_worker", mock_spawn)
+    def mock_spawn_worker(app, concurrency, asynchronous, pool=None):
+        launched_workers[app.main] = concurrency
+
+    monkeypatch.setattr(celery, "spawn_worker", mock_spawn_worker)
 
     output = runner.invoke(worker_cli, args=["--worker-type", worker_type])
     assert output.exit_code == 0

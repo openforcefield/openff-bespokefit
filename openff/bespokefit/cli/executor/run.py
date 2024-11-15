@@ -46,15 +46,18 @@ def _run_cli(
 
     from openff.bespokefit.executor import (
         BespokeExecutor,
+        BespokeFitClient,
         BespokeWorkerConfig,
-        wait_until_complete,
     )
+    from openff.bespokefit.executor.services import current_settings
     from openff.bespokefit.executor.utilities import handle_common_errors
 
     executor_status = console.status("launching the bespoke executor")
     executor_status.start()
 
     validate_redis_connection(console, allow_existing=False)
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     with BespokeExecutor(
         directory=directory,
@@ -91,7 +94,9 @@ def _run_cli(
 
             console.print(Padding("3. running the fitting pipeline", (1, 0, 1, 0)))
 
-            results = wait_until_complete(response_id[0])
+            results = client.wait_until_complete(
+                optimization_id=response_id[0], console=console
+            )
 
             console.print(
                 Padding(

@@ -1,11 +1,6 @@
-from typing import Tuple, get_args
+from typing import get_args
 
 import click
-import click.exceptions
-import requests
-import rich
-from rich import pretty
-from rich.table import Table
 
 from openff.bespokefit.cli.utilities import print_header
 from openff.bespokefit.schema import Status
@@ -18,24 +13,6 @@ _STATUS_STRINGS = {
 }
 
 
-def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "Status"]:
-    from openff.toolkit.topology import Molecule
-
-    from openff.bespokefit.executor import BespokeExecutor
-    from openff.bespokefit.executor.utilities import handle_common_errors
-
-    with handle_common_errors(console) as error_state:
-        output = BespokeExecutor.retrieve(optimization_id)
-    if error_state["has_errored"]:
-        raise click.exceptions.Exit(code=2)
-
-    smiles = Molecule.from_smiles(output.smiles).to_smiles(
-        isomeric=True, explicit_hydrogens=False, mapped=False
-    )
-
-    return smiles, output.status
-
-
 @click.option(
     "--status",
     "status_filter",
@@ -46,51 +23,44 @@ def _get_columns(console: "rich.Console", optimization_id: str) -> Tuple[str, "S
 @click.command("list")
 def list_cli(status_filter: Status):
     """List the ids of any bespoke optimizations."""
+    import click.exceptions
+    import rich
+    from openff.toolkit import Molecule
+    from rich import pretty
+    from rich.table import Table
+
+    from openff.bespokefit.executor.client import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
+    from openff.bespokefit.executor.utilities import handle_common_errors
 
     pretty.install()
 
     console = rich.get_console()
     print_header(console)
 
-    from openff.bespokefit.executor.services import current_settings
-    from openff.bespokefit.executor.services.coordinator.models import (
-        CoordinatorGETPageResponse,
-    )
-    from openff.bespokefit.executor.utilities import handle_common_errors
-
     settings = current_settings()
 
-    # In the coordinator we keep both successful and errored tasks in the same 'complete'
-    # queue to avoid having to maintain and query to separate lists in redis, so here we
-    # need to condense these two states into one and then apply a second filter when
-    # iterating over the returned ids.
-    status_url = (
-        None
-        if status_filter is None
-        else status_filter.replace("success", "complete").replace("errored", "complete")
-    )
-    status_url = "" if status_url is None else f"?status={status_url}"
-
-    base_href = (
-        f"http://127.0.0.1:"
-        f"{settings.BEFLOW_GATEWAY_PORT}"
-        f"{settings.BEFLOW_API_V1_STR}/"
-        f"{settings.BEFLOW_COORDINATOR_PREFIX}"
-        f"{status_url}"
-    )
+    client = BespokeFitClient(settings=settings)
 
     with handle_common_errors(console) as error_state:
-        request = requests.get(base_href)
-        request.raise_for_status()
+        response = client.list_optimizations(status=status_filter)
 
     if error_state["has_errored"]:
         raise click.exceptions.Exit(code=2)
 
-    response = CoordinatorGETPageResponse.parse_raw(request.content)
     records = []
 
     for item in response.contents:
-        smiles, status = _get_columns(console, item.id)
+        with handle_common_errors(console) as error_state:
+            output = client.get_optimization(optimization_id=item.id)
+
+        if error_state["has_errored"]:
+            raise click.exceptions.Exit(code=2)
+
+        smiles = Molecule.from_smiles(output.smiles).to_smiles(
+            isomeric=True, explicit_hydrogens=False, mapped=False
+        )
+        status = output.status
 
         if status_filter is not None and status != status_filter:
             continue
@@ -114,7 +84,6 @@ def list_cli(status_filter: Status):
     table.add_column("STATUS", no_wrap=True)
 
     for record_id, smiles, status in records:
-        smiles, status = _get_columns(console, record_id)
 
         if status_filter is not None and status != status_filter:
             continue
@@ -123,5 +92,7 @@ def list_cli(status_filter: Status):
 
         table.add_row(record_id, smiles, status_string)
 
-    console.print("The following optimizations were found:")
+    console.print(
+        f"The following optimizations were found on Bespoke-Executor: {client.address}"
+    )
     console.print(table)

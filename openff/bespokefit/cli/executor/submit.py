@@ -200,7 +200,11 @@ def _submit(
 ) -> List[str]:
     from openff.toolkit.topology import Molecule
 
-    from openff.bespokefit.executor import BespokeExecutor
+    from openff.bespokefit.executor import BespokeFitClient
+    from openff.bespokefit.executor.services import current_settings
+
+    settings = current_settings()
+    client = BespokeFitClient(settings=settings)
 
     console.print(Padding("1. preparing the bespoke workflow", (0, 0, 1, 0)))
 
@@ -273,7 +277,7 @@ def _submit(
         transient=True,
         console=console,
     ):
-        response_ids.append(BespokeExecutor.submit(input_schema))
+        response_ids.append(client.submit_optimization(input_schema=input_schema))
 
     console.print("[[green]✓[/green]] the following workflows were submitted")
     table = Table()

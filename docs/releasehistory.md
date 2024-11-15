@@ -8,8 +8,17 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
+## Current Development
+### Bug fixes
+* [#370] - Check that the `extras` field on QCArchive records is not `None` before accessing it to avoid crashes [@ntBre]
 
-## Current development
+## 0.4.0 / 19-09-2024
+
+### New Features
+
+* [#351] - Adds a `BespokeFitClient` to interface with the executor and support for connecting to executors on a non-local machine [@jthorton]
+
+### Tests updated
 
 * [#338] - Updates a test for QCFractal/QCPortal 0.54. [@mattwthompson]
 
@@ -164,6 +173,8 @@ The first major release of bespokefit intended for public use.
 [#330]: https://github.com/openforcefield/openff-bespokefit/pull/330
 [#334]: https://github.com/openforcefield/openff-bespokefit/pull/334
 [#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
+[#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
+[#370]: https://github.com/openforcefield/openff-bespokefit/pull/370
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi

@@ -252,7 +252,12 @@ a charge model, then re-fit the torsion and valence parameters using the new cha
 Such a schema is fed into a [`BespokeExecutor`] that will run the full workflow:
 
 ```python
-from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig, wait_until_complete
+from openff.bespokefit.executor import BespokeExecutor, BespokeWorkerConfig
+from openff.bespokefit.executor.client import BespokeFitClient, Settings
+
+# create a client to interface with the executor
+settings = Settings()
+client = BespokeFitClient(settings=settings)
 
 with BespokeExecutor(
     n_fragmenter_workers = 1,
@@ -261,9 +266,9 @@ with BespokeExecutor(
     qc_compute_worker_config=BespokeWorkerConfig(n_cores=1)
 ) as executor:
     # Submit our workflow to the executor
-    task_id = executor.submit(input_schema=workflow_schema)
+    task_id = client.submit_optimization(input_schema=workflow_schema)
     # Wait until the executor is done
-    output = wait_until_complete(task_id)
+    output = client.wait_until_complete(task_id)
 
 if output.status == "success":
     # Save the resulting force field to an OFFXML file
