@@ -21,7 +21,7 @@ dependencies:
   - click-option-group
   - rdkit =2024.03.5
   - openff-utilities
-  - openff-toolkit-base >=0.15
+  - openff-toolkit >=0.15
   - openff-interchange  # only needed because openff-toolkit-base
   - openff-forcefields >=2024.04.0
   - openff-units
