@@ -4,12 +4,6 @@ on:
   schedule:
     - cron: "10 */12 * * *"
   workflow_dispatch:
-  push:
-    branches:
-      - "main"
-  pull_request:
-    branches:
-      - "main"
 defaults:
   run:
     shell: bash -l {0}
