@@ -4,7 +4,6 @@ channels:
   - openeye
 dependencies:
   - openff-bespokefit
-  - openff-toolkit =0.16
   - openeye-toolkits
   - xtb-python
   - pytest

@@ -3,7 +3,6 @@ channels:
   - conda-forge
 dependencies:
   - openff-bespokefit
-  - openff-toolkit =0.16
   - ambertools
   - xtb-python
   - pytest

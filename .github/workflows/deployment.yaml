@@ -1,10 +1,6 @@
 name: Deployment tests
 
 on:
-  release:
-    types:
-      - released
-      - prereleased
   schedule:
     - cron: "10 */12 * * *"
   workflow_dispatch:
