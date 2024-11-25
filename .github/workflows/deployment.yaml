@@ -1,0 +1,77 @@
+name: Deployment tests
+
+on:
+  schedule:
+    - cron: "10 */12 * * *"
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  test:
+
+    name: ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, 👁️=${{ matrix.openeye }}, ∫=${{ matrix.integration }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11"]
+        openeye: [true, false]
+        integration: [true]
+
+    env:
+      OE_LICENSE: ${{ github.workspace }}/oe_license.txt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install latest release from conda with OpenEye Toolkits
+        if: ${{ matrix.openeye == true }}
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: devtools/conda-envs/deployment_openeye.yaml
+          create-args: >-
+            python=${{ matrix.python-version }}
+
+      - name: Install latest release from conda without OpenEye Toolkits
+        if: ${{ matrix.openeye == false }}
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: devtools/conda-envs/deployment.yaml
+          create-args: >-
+            python=${{ matrix.python-version }}
+
+      - name: License OpenEye
+        if: ${{ matrix.openeye == true }}
+        run: |
+          echo "${SECRET_OE_LICENSE}" > ${OE_LICENSE}
+          python -c "from openeye import oechem; assert oechem.OEChemIsLicensed()"
+        env:
+          SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
+
+      - name: Checkout most recent tag
+        id: vars
+        run: |
+          echo "PULL_REQUEST_HEAD=$(git log -1 --format=%H)" >> $GITHUB_OUTPUT
+
+          git fetch --all
+          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+
+      - name: Run tests
+        run: |
+          python -m pytest --durations=0 openff/bespokefit/_tests
+
+      - name: Run Integration Tests
+        if: ${{ matrix.integration == true }}
+        run: |
+          openff-bespoke executor run --smiles                 'CC'               \
+                                      --workflow               'default'          \
+                                      --default-qc-spec        xtb gfn2xtb none   \
+                                      --target-torsion         '[C:1]-[C:2]'
+
+      - name: Go back to pull request HEAD
+        # setup-micromamba needs the environment file to exist, which it might not on the most recent tag
+        run: git checkout ${{ steps.vars.outputs.PULL_REQUEST_HEAD }}

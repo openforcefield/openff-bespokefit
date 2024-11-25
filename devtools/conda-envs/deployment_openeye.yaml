@@ -1,0 +1,13 @@
+name: latest-deployment-openeye
+channels:
+  - conda-forge
+  - openeye
+dependencies:
+  - openff-bespokefit
+  - openeye-toolkits
+  - xtb-python
+  - pytest
+  - pytest-cov
+  - pytest-asyncio
+  - pytest-celery
+  - requests-mock
