@@ -58,3 +58,5 @@ dependencies:
   - pytest-celery
   - requests-mock
 
+  - pip:
+    - git+https://github.com/openforcefield/openff-utilities.git@b4d1e26dd0bd31e17e7ede3229f4377408188976
