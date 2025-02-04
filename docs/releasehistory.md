@@ -8,7 +8,12 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
-## Current Development
+## Current development
+
+### Tests updated
+* [#207] - Adds deployment tests [@mattwthompson @jthorton @Yoshanuikabundi]
+
+## 0.4.1 / 07-11-2024
 ### Bug fixes
 * [#370] - Check that the `extras` field on QCArchive records is not `None` before accessing it to avoid crashes [@ntBre]
 

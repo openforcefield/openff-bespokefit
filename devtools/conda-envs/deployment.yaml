@@ -1,0 +1,12 @@
+name: latest-deployment
+channels:
+  - conda-forge
+dependencies:
+  - openff-bespokefit
+  - ambertools
+  - xtb-python
+  - pytest
+  - pytest-cov
+  - pytest-asyncio
+  - pytest-celery
+  - requests-mock
