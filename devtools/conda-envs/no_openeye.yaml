@@ -19,7 +19,7 @@ dependencies:
   - click
   - click-option-group
   - rdkit =2024.03.5
-  - ambertools[build!=cuda_None_nompi_py310ha112c55_105]
+  - ambertools =23.3
   - openff-utilities
   - openff-toolkit >=0.15
   - openff-forcefields >=2024.04.0
