@@ -181,7 +181,9 @@ def startup():
             _logger.exception(
                 "Exception raised by the main loop. This should never happen."
             )
-            print(error)
+
+            print(f"error is: {error}")
+
             os.kill(os.getpid(), signal.SIGINT)
 
     _worker_task.add_done_callback(_handle_task_result)

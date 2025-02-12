@@ -74,9 +74,11 @@ jobs:
           pip list
 
       - name: Run Tests
+        if: ${{ matrix.integration == false }}
         run: python -m pytest -v --cov=openff --cov-config=setup.cfg openff/bespokefit/_tests/ --cov-report=xml
 
       - name: Codecov
+        if: ${{ matrix.integration == false }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
