@@ -177,11 +177,11 @@ def startup():
         except asyncio.CancelledError:
             pass
 
-        except BaseException:
+        except BaseException as error:
             _logger.exception(
                 "Exception raised by the main loop. This should never happen."
             )
-
+            print(error)
             os.kill(os.getpid(), signal.SIGINT)
 
     _worker_task.add_done_callback(_handle_task_result)
