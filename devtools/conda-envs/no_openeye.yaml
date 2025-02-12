@@ -19,7 +19,6 @@ dependencies:
   - click
   - click-option-group
   - rdkit =2024.03.5
-  - ambertools >=22
   - ambertools[build!=cuda_None_nompi_py310ha112c55_105]
   - openff-utilities
   - openff-toolkit >=0.15
