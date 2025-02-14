@@ -12,14 +12,14 @@ dependencies:
     ### Core dependencies.
 
   - numpy
-  - pydantic =1
+  - pydantic
   - pyyaml
   - tqdm
   - rich
   - click
   - click-option-group
   - rdkit =2024.03.5
-  - ambertools =23.6=*104
+  - ambertools >=22
   - openff-utilities
   - openff-toolkit >=0.15
   - openff-forcefields >=2024.04.0
