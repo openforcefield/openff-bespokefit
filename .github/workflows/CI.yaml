@@ -98,4 +98,4 @@ jobs:
         if: ${{ always()}}
         run: |
           ls -lhrt integration_test_directory/
-          cat integration_test_directory/*
+          cat integration_test_directory/*.log
