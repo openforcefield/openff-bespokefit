@@ -31,7 +31,7 @@ jobs:
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
-      BEFLOW_OPTIMIZER_WORKER_N_CORES: 1
+      BEFLOW_GATEWAY_LOG_LEVEL: "debug"
 
     steps:
       - uses: actions/checkout@v4
@@ -94,4 +94,4 @@ jobs:
                                       --target-torsion         '[C:1]-[C:2]'
       - name: Print any log files
         if: ${{ always()}}
-        run: cat *log
+        run: cat *.log 2>/dev/null
