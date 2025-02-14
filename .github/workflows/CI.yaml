@@ -92,5 +92,5 @@ jobs:
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
                                       --target-torsion         '[C:1]-[C:2]'
-      - name: Print any log files:
+      - name: Print any log files
         run: cat *log
