@@ -30,7 +30,6 @@ jobs:
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
-      BEFLOW_GATEWAY_LOG_LEVEL: "debug"
       BEFLOW_OPTIMIZER_WORKER_MAX_MEM: 4
 
     steps:
@@ -85,7 +84,7 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
 
-      - name: Run Integration Tests
+      - name: Run Integration Tests and print logs
         if: ${{ matrix.integration == true }}
         run: |
           mkdir integration_test_directory
@@ -95,8 +94,5 @@ jobs:
                                       --target-torsion         '[C:1]-[C:2]'      \
                                       --directory              integration_test_directory
 
-      - name: Print any log files
-        if: ${{ always()}}
-        run: |
           ls -lhrt integration_test_directory/
           cat integration_test_directory/*.log
