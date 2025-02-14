@@ -91,8 +91,8 @@ jobs:
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
-                                      --directory integration_test_directory
+                                      --target-torsion         '[C:1]-[C:2]'      \
+                                      --directory              integration_test_directory
 
       - name: Print any log files
         if: ${{ always()}}
