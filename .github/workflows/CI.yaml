@@ -93,4 +93,5 @@ jobs:
                                       --default-qc-spec        xtb gfn2xtb none   \
                                       --target-torsion         '[C:1]-[C:2]'
       - name: Print any log files
+        if: ${{ always()}}
         run: cat *log
