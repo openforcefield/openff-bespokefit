@@ -13,6 +13,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 ### Tests updated
 * [#207] - Adds deployment tests [@mattwthompson @jthorton @Yoshanuikabundi]
 * [#380] - Updates integration test configuration to keep from running out of memory [@mattwthompson]
+* [#384] - Updates cache tests to expect values from openff-qcsubmit 0.55 [@j-wags]
 
 
 ## 0.4.1 / 07-11-2024
