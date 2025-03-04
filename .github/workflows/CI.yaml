@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
         pydantic-version: ["1"]
         openeye: [true, false]
         integration: [true]
@@ -32,6 +32,7 @@ jobs:
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
+      BEFLOW_OPTIMIZER_WORKER_MAX_MEM: 4
 
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +81,7 @@ jobs:
         run: |
           micromamba info
           micromamba list
+          pip list
 
       - name: Run Tests
         run: |
@@ -93,10 +95,15 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
 
-      - name: Run Integration Tests
+      - name: Run Integration Tests and print logs
         if: ${{ matrix.integration == true }}
         run: |
+          mkdir integration_test_directory
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+                                      --target-torsion         '[C:1]-[C:2]'      \
+                                      --directory              integration_test_directory
+
+          ls -lhrt integration_test_directory/
+          cat integration_test_directory/*.log
