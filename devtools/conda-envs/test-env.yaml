@@ -22,8 +22,7 @@ dependencies:
   - rdkit =2024.03.5
   - openff-utilities
   - openff-toolkit >=0.15
-  - openff-forcefields >=2024.04.0
-  - openff-units
+  - openff-units ~=0.3.0
   - openff-qcsubmit >=0.55
   - openmm >=7.6.0
 
