@@ -12,6 +12,9 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 ### Tests updated
 * [#207] - Adds deployment tests [@mattwthompson @jthorton @Yoshanuikabundi]
+* [#380] - Updates integration test configuration to keep from running out of memory [@mattwthompson]
+* [#384] - Updates cache tests to expect values from openff-qcsubmit 0.55 [@j-wags]
+
 
 ## 0.4.1 / 07-11-2024
 ### Bug fixes
@@ -160,6 +163,7 @@ The first major release of bespokefit intended for public use.
 [#193]: https://github.com/openforcefield/openff-bespokefit/pull/193
 [#198]: https://github.com/openforcefield/openff-bespokefit/pull/198
 [#199]: https://github.com/openforcefield/openff-bespokefit/pull/199
+[#207]: https://github.com/openforcefield/openff-bespokefit/pull/207
 [#212]: https://github.com/openforcefield/openff-bespokefit/pull/212
 [#226]: https://github.com/openforcefield/openff-bespokefit/pull/226
 [#235]: https://github.com/openforcefield/openff-bespokefit/pull/235
@@ -180,6 +184,7 @@ The first major release of bespokefit intended for public use.
 [#338]: https://github.com/openforcefield/openff-bespokefit/pull/338
 [#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
 [#370]: https://github.com/openforcefield/openff-bespokefit/pull/370
+[#380]: https://github.com/openforcefield/openff-bespokefit/pull/380
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
