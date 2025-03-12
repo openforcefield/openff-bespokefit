@@ -8,7 +8,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
-## Current development
+## 0.4.2 / 03-11-2025
 
 ### Tests updated
 * [#207] - Adds deployment tests [@mattwthompson @jthorton @Yoshanuikabundi]
@@ -185,6 +185,7 @@ The first major release of bespokefit intended for public use.
 [#351]: https://github.com/openforcefield/openff-bespokefit/pull/351
 [#370]: https://github.com/openforcefield/openff-bespokefit/pull/370
 [#380]: https://github.com/openforcefield/openff-bespokefit/pull/380
+[#384]: https://github.com/openforcefield/openff-bespokefit/pull/380
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
