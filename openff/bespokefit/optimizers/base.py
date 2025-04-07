@@ -47,7 +47,7 @@ def register_optimizer(optimizer: Type[BaseOptimizer], replace: bool = False) ->
 
 
 def deregister_optimizer(
-    optimizer: Union[BaseOptimizer, Type[BaseOptimizer], str]
+    optimizer: Union[BaseOptimizer, Type[BaseOptimizer], str],
 ) -> None:
     """
     Remove an optimizer from the list of valid optimizers.
