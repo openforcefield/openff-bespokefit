@@ -16,7 +16,7 @@ dependencies:
   - pyyaml
   - tqdm
   - rich
-  - click
+  - click <8.2
   - click-option-group
   - rdkit =2024.03.5
   - ambertools >=22
