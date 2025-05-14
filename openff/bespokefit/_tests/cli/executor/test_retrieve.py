@@ -46,7 +46,7 @@ def test_retrieve_one_output(runner):
     output = runner.invoke(retrieve_cli, args=["--id", "1"])
 
     assert output.exit_code == 2
-    assert "At least one of the " in output.stdout
+    assert "At least one of the " in output.stderr
 
 
 @pytest.mark.parametrize(
