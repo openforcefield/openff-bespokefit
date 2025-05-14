@@ -10,4 +10,3 @@ dependencies:
   - pytest-asyncio
   - pytest-celery
   - requests-mock
-  - click <8.2

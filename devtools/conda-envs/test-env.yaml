@@ -17,7 +17,7 @@ dependencies:
   - pyyaml
   - tqdm
   - rich
-  - click <8.2
+  - click
   - click-option-group
   - rdkit =2024.03.5
   - openff-utilities
