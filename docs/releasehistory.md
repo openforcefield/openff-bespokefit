@@ -11,7 +11,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 ## 0.4.3 / 05-15-2025
 
 ### Tests updated
-* [#398] - Update tests for new click behavior
+* [#398] - Update tests for a behavior change in `click` 8.2 in which the output of `--help` is sent to STDERR
 
 ## 0.4.2 / 03-11-2025
 
