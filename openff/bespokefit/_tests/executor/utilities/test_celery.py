@@ -80,12 +80,16 @@ def test_spawn_worker(spawn_function, celery_app, monkeypatch):
 
 
 def test_get_task_information_success(celery_app, celery_worker):
+    #chain = mock_task_success.s()
+    #task_result = chain()
     task_result = mock_task_success.delay()
-    task_result.get(timeout=10)
+    task_result.get(timeout=10, disable_sync_subtasks=False)
 
+    #task_info = get_task_information(celery_app, task_result)
     task_info = get_task_information(celery_app, task_result.id)
 
-    assert task_info["id"] == task_result.id
+    #assert task_info["id"] == task_result#.id
+    assert task_info["id"] == task_result
     assert task_info["status"] == "success"
     assert task_info["error"] is None
     assert task_info["result"] == {"key": "value"}
