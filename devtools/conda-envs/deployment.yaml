@@ -8,5 +8,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-asyncio
-  - pytest-celery
   - requests-mock
+variables:
+  # This should be unnecessary in the release after 0.4.3; see #407
+  PYTEST_PLUGINS: celery.contrib.pytest
