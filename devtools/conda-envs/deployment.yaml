@@ -8,5 +8,4 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-asyncio
-  - pytest-celery
   - requests-mock

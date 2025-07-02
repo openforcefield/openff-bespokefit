@@ -5,8 +5,7 @@ channels:
   - conda-forge
 
 dependencies:
-
-    # Base depends
+  # Base depends
   - python
   - pip
 
@@ -57,6 +56,4 @@ dependencies:
   - pytest =7
   - pytest-cov
   - pytest-asyncio
-  - pytest-celery
   - requests-mock
-
