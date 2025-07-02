@@ -59,7 +59,8 @@ from openff.bespokefit.utilities import Settings, current_settings
 from openff.bespokefit.utilities.smirks import SMIRKSettings
 from openff.bespokefit.workflows.bespoke import BespokeWorkflowFactory
 
-pytest_plugins = ("celery.contrib.pytest", )
+pytest_plugins = ("celery.contrib.pytest",)
+
 
 @pytest.fixture()
 def bace() -> Molecule:
