@@ -56,8 +56,8 @@ dependencies:
   - pytest-cov
   - pytest-asyncio
   - requests-mock
-  - pip: 
-    - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcfractal
-    - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcfractalcompute
-    - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcportal
-    - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcarchivetesting
+  #- pip: 
+  #  - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcfractal
+  #  - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcfractalcompute
+  #  - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcportal
+  #  - git+https://github.com/MolSSI/QCFractal.git@cache_serial#subdirectory=qcarchivetesting
