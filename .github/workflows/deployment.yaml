@@ -26,7 +26,7 @@ jobs:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install latest release from conda with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
