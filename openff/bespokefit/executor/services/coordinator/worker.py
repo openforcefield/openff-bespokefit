@@ -27,6 +27,8 @@ async def _process_task(task_id: int) -> bool:
 
     if task.running_stage is None:
         task.running_stage = task.pending_stages.pop(0)
+        # save the task stage update so we don't double enter it
+        save_task(task)
         await task.running_stage.enter(task)
 
     stage_status = task.running_stage.status
@@ -81,8 +83,19 @@ async def cycle():  # pragma: no cover
                 # tasks running
                 await asyncio.sleep(0.0)
 
+                # sometimes we can lose the task id if it was removed externally and get a NoneType which breaks the update
+                pop_task_id = pop_task_status(TaskStatus.running)
+                if pop_task_id != task_id:
+                    print(
+                        f"Task ids have changed externally, expected {task_id} but got {pop_task_id}, fixing",
+                        flush=True,
+                    )
+                    if pop_task_id is not None:
+                        # this task was not processed yet so put it back to running
+                        push_task_status(pop_task_id, TaskStatus.running)
+
                 push_task_status(
-                    pop_task_status(TaskStatus.running),
+                    task_id,
                     TaskStatus.running if not has_finished else TaskStatus.complete,
                 )
 
