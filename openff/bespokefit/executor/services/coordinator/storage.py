@@ -109,8 +109,8 @@ def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
 def peek_task_status(status: TaskStatus) -> Optional[int]:
     connection = connect_to_default_redis()
 
-    task_id = connection.lrange(_QUEUE_NAMES[status], 0, 0)
-    return None if len(task_id) == 0 else int(task_id[0])
+    task_id = connection.lindex(_QUEUE_NAMES[status], 0)
+    return None if task_id is None else int(task_id)
 
 
 def pop_task_status(status: TaskStatus) -> Optional[int]:
