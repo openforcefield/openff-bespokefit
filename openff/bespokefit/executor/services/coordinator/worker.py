@@ -79,9 +79,6 @@ async def cycle():  # pragma: no cover
                     break
 
                 has_finished = await _process_task(task_id)
-                # Needed to let other async threads run even if there are hundreds of
-                # tasks running
-                await asyncio.sleep(0.0)
 
                 # sometimes we can lose the task id if it was removed externally and get a NoneType which breaks the update
                 pop_task_id = pop_task_status(TaskStatus.running)
@@ -102,6 +99,9 @@ async def cycle():  # pragma: no cover
                 processed_task_ids.add(task_id)
 
                 task_id = peek_task_status(TaskStatus.running)
+                # Needed to let other async threads run even if there are hundreds of
+                # tasks running
+                await asyncio.sleep(0.0)
 
             n_running_tasks = get_n_tasks(TaskStatus.running)
             n_tasks_to_queue = min(
