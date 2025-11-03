@@ -9,10 +9,11 @@ from openff.bespokefit.executor.services.coordinator.storage import (
     TaskStatus,
     get_n_tasks,
     get_task,
-    peek_task_status,
     pop_task_status,
     push_task_status,
+    remove_task_status,
     save_task,
+    snapshot_task_status,
 )
 
 _logger = logging.getLogger(__name__)
@@ -67,42 +68,26 @@ async def cycle():  # pragma: no cover
         try:
             start_time = time.perf_counter()
 
-            # First update any running tasks, pushing them to the 'complete' queue if
-            # they have finished, so as to figure out how many new tasks can be moved
-            # from running to waiting.
-
-            task_id = peek_task_status(TaskStatus.running)
-            processed_task_ids = set()
-
-            while task_id is not None:
-                if task_id in processed_task_ids:
-                    break
-
+            # create a snapshot of the current running list of tasks to process
+            task_ids = snapshot_task_status(TaskStatus.running)
+            for task_id in task_ids:
+                # process each task in the running queue
                 has_finished = await _process_task(task_id)
-
-                # sometimes we can lose the task id if it was removed externally and get a NoneType which breaks the update
-                pop_task_id = pop_task_status(TaskStatus.running)
-                if pop_task_id != task_id:
-                    print(
-                        f"Task ids have changed externally, expected {task_id} but got {pop_task_id}, fixing",
-                        flush=True,
-                    )
-                    if pop_task_id is not None:
-                        # this task was not processed yet so put it back to running
-                        push_task_status(pop_task_id, TaskStatus.running)
-
-                push_task_status(
-                    task_id,
-                    TaskStatus.running if not has_finished else TaskStatus.complete,
-                )
-
-                processed_task_ids.add(task_id)
-
-                task_id = peek_task_status(TaskStatus.running)
-                # Needed to let other async threads run even if there are hundreds of
-                # tasks running
+                # let other async tasks run
                 await asyncio.sleep(0.0)
 
+                # Remove exactly one occurrence of this task_id from the running list.
+                # Using LREM prevents popping a different head while we were processing.
+                removed = remove_task_status(task_id, TaskStatus.running)
+                if removed:
+                    if has_finished:
+                        # push to the correct queue
+                        push_task_status(task_id, TaskStatus.complete)
+                    else:
+                        # this is still running so push it back
+                        push_task_status(task_id, TaskStatus.running)
+
+            # Queue up new tasks if we have capacity
             n_running_tasks = get_n_tasks(TaskStatus.running)
             n_tasks_to_queue = min(
                 settings.BEFLOW_COORDINATOR_MAX_RUNNING_TASKS - n_running_tasks,
