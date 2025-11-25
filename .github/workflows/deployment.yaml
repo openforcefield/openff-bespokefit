@@ -71,10 +71,15 @@ jobs:
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
         run: |
+          mkdir integration_test_directory
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
                                       --default-qc-spec        xtb gfn2xtb none   \
-                                      --target-torsion         '[C:1]-[C:2]'
+                                      --target-torsion         '[C:1]-[C:2]'      \
+                                      --directory              integration_test_directory
+
+          ls -lhrt integration_test_directory/
+          cat integration_test_directory/*.log
 
       - name: Go back to pull request HEAD
         # setup-micromamba needs the environment file to exist, which it might not on the most recent tag
