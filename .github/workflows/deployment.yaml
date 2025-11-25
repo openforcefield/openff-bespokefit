@@ -65,6 +65,7 @@ jobs:
 
       - name: Run tests
         run: |
+          pip install -e .
           python -m pytest --durations=0 openff/bespokefit/_tests
 
       - name: Run Integration Tests
