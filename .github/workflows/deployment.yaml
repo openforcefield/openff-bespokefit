@@ -52,16 +52,16 @@ jobs:
         env:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
 
-      - name: Checkout most recent tag
-        id: vars
-        run: |
-          echo "PULL_REQUEST_HEAD=$(git log -1 --format=%H)" >> $GITHUB_OUTPUT
+      #- name: Checkout most recent tag
+      #  id: vars
+      #  run: |
+      #    echo "PULL_REQUEST_HEAD=$(git log -1 --format=%H)" >> $GITHUB_OUTPUT
 
-          git fetch --all
-          # ask pretty please for it to actually fetch recent tags
-          # https://github.com/openforcefield/openff-bespokefit/issues/403
-          git fetch --prune --unshallow --tags
-          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+      #    git fetch --all
+      #    # ask pretty please for it to actually fetch recent tags
+      #    # https://github.com/openforcefield/openff-bespokefit/issues/403
+      #    git fetch --prune --unshallow --tags
+      #    git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
       - name: Run tests
         run: |
