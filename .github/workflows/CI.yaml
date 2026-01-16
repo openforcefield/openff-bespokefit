@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         python-version: ["3.11", "3.12"]
-        pydantic-version: ["1"]
+        pydantic-version: ["2"]
         openeye: [true, false]
         integration: [true]
 
