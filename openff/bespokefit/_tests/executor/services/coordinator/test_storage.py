@@ -136,7 +136,9 @@ def test_snapshot_task_status_multiple(redis_connection, bespoke_optimization_sc
     assert running_snapshot == [1, 2]
 
 
-def test_snapshot_task_status_independence(redis_connection, bespoke_optimization_schema):
+def test_snapshot_task_status_independence(
+    redis_connection, bespoke_optimization_schema
+):
     """Test that snapshot is independent of queue changes."""
     # Create 2 tasks
     for _ in range(2):
@@ -196,7 +198,9 @@ def test_remove_task_status_absent(redis_connection, bespoke_optimization_schema
     assert get_n_tasks(TaskStatus.waiting) == 1
 
 
-def test_remove_task_status_nonexistent_id(redis_connection, bespoke_optimization_schema):
+def test_remove_task_status_nonexistent_id(
+    redis_connection, bespoke_optimization_schema
+):
     """Test remove_task_status with task ID that doesn't exist anywhere."""
     # Create one task
     create_task(bespoke_optimization_schema)
@@ -253,8 +257,12 @@ def test_remove_task_status_middle(redis_connection, bespoke_optimization_schema
     assert snapshot == [1, 3]
 
 
-@pytest.mark.parametrize("status", [TaskStatus.waiting, TaskStatus.running, TaskStatus.complete])
-def test_remove_task_status_all_statuses(redis_connection, bespoke_optimization_schema, status):
+@pytest.mark.parametrize(
+    "status", [TaskStatus.waiting, TaskStatus.running, TaskStatus.complete]
+)
+def test_remove_task_status_all_statuses(
+    redis_connection, bespoke_optimization_schema, status
+):
     """Test remove_task_status works with all task statuses."""
     # Create task and move to target status
     task_id = create_task(bespoke_optimization_schema)
