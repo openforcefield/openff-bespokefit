@@ -6,6 +6,8 @@ channels:
 dependencies:
   - python
   - pip
+  # https://github.com/leeping/forcebalance/issues/307
+  - setuptools<82
 
     ### Core dependencies.
 
