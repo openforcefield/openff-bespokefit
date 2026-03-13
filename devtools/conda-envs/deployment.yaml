@@ -9,6 +9,8 @@ dependencies:
   - pytest-cov
   - pytest-asyncio
   - requests-mock
+  # REVERT BEFORE MERGE
+  - redis-py <7.2
 variables:
   # This should be unnecessary in the release after 0.4.3; see #407
   PYTEST_PLUGINS: celery.contrib.pytest
