@@ -46,7 +46,7 @@ dependencies:
   - celery
   - httpx
   - redis-server
-  - redis-py
+  - redis-py <7.2
 
     ### Documentation dependencies
 
