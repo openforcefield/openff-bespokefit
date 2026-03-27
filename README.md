@@ -24,6 +24,8 @@ In any publications using BespokeFit, please cite:
  
 A pre-print of this paper is freely available from [ChemRxiv](https://doi.org/10.26434/chemrxiv-2022-6h628).
 
+For further instructions on how to cite OpenFF tools or force fields, see our [website](https://openforcefield.org/science/how-to-cite/)
+
 ## License
 
 OpenFF BespokeFit is released under the [MIT license](LICENSE). 
