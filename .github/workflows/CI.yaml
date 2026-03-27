@@ -38,7 +38,7 @@ jobs:
 
       - name: Install with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/test-env.yaml
@@ -48,7 +48,7 @@ jobs:
 
       - name: Install with AmberTools
         if: ${{ matrix.openeye == false }}
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           micromamba-binary-path: ~/.local/bin/micromamba
           environment-file: devtools/conda-envs/no_openeye.yaml
