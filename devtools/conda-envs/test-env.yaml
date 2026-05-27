@@ -1,21 +1,20 @@
 name: bespokefit-test
 
 channels:
-  - openeye
   - conda-forge
 
 dependencies:
 
     # Base depends
-  - python
+  - python =3.13
   - pip
   # https://github.com/leeping/forcebalance/issues/307
   - setuptools<82
 
     ### Core dependencies.
 
-  - numpy
-  - pydantic
+  - numpy ==1
+  - pydantic =1
   - pyyaml
   - tqdm
   - rich
@@ -23,18 +22,18 @@ dependencies:
   - click-option-group
   - rdkit =2024.03.5
   - openff-utilities
-  - openff-toolkit >=0.16.5
-  - openff-interchange =0.3.29
+  - openff-toolkit ==0.16.5
+  - openff-interchange ==0.3.29
   - openff-forcefields >=2024.04.0
   - openff-units
   - openff-qcsubmit >=0.55
   - openmm >=7.6.0
 
     # Optional
-  - forcebalance >=1.9.6
+  - forcebalance ==1.9.6
   - openff-fragmenter-base
   - xtb-python
-  - openeye-toolkits
+  - openeye::openeye-toolkits
 
     ### Bespoke dependencies
 
