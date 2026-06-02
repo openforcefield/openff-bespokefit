@@ -13,8 +13,8 @@ dependencies:
 
     ### Core dependencies.
 
-  - numpy ==1
-  - pydantic =1
+  - numpy
+  - pydantic
   - pyyaml
   - tqdm
   - rich
