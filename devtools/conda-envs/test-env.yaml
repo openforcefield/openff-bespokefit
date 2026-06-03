@@ -6,7 +6,7 @@ channels:
 dependencies:
 
     # Base depends
-  - python =3.13
+  - python
   - pip
   # https://github.com/leeping/forcebalance/issues/307
   - setuptools<82
