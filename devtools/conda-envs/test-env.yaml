@@ -1,6 +1,7 @@
 name: bespokefit-test
 
 channels:
+  - openeye
   - conda-forge
 
 dependencies:
@@ -32,7 +33,7 @@ dependencies:
   - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
-  - openeye::openeye-toolkits
+  - openeye-toolkits
 
     ### Bespoke dependencies
 
