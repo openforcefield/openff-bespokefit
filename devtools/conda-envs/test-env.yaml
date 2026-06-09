@@ -29,7 +29,7 @@ dependencies:
   - openmm >=7.6.0
 
     # Optional
-  - forcebalance ==1.9.6
+  - forcebalance >=1.9.6
   - openff-fragmenter-base
   - xtb-python
   - openeye::openeye-toolkits
