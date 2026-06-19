@@ -34,7 +34,7 @@ jobs:
       BEFLOW_OPTIMIZER_WORKER_MAX_MEM: 4
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install with OpenEye Toolkits
         if: ${{ matrix.openeye == true }}
