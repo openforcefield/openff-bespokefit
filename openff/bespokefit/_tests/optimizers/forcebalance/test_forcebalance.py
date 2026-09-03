@@ -174,3 +174,18 @@ def test_forcebalance_optimize(
         )
 
     assert results.status == "success"
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [TypeError, ImportError],
+)
+def test_ambertools_provenance_fallback(mocker, exception):
+    mocker.patch(
+        "openff.utilities.provenance.get_ambertools_version",
+        side_effect=exception,
+    )
+
+    provenance = ForceBalanceOptimizer.provenance()
+
+    assert "ambertools" not in provenance
