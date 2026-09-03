@@ -177,13 +177,13 @@ def test_forcebalance_optimize(
 
 
 @pytest.mark.parametrize(
-    "exception",
+    "exception_class",
     [TypeError, ImportError],
 )
-def test_ambertools_provenance_fallback(mocker, exception):
+def test_ambertools_provenance_fallback(mocker, exception_class):
     mocker.patch(
         "openff.utilities.provenance.get_ambertools_version",
-        side_effect=exception,
+        side_effect=exception_class(),
     )
 
     provenance = ForceBalanceOptimizer.provenance()
