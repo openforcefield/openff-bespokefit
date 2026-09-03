@@ -14,7 +14,7 @@ dependencies:
     ### Core dependencies.
 
   - numpy
-  - pydantic
+  - pydantic =1
   - pyyaml
   - tqdm
   - rich
@@ -57,5 +57,6 @@ dependencies:
   - pytest =7
   - pytest-cov
   - pytest-asyncio
+  - pytest-mock
   - requests-mock
 

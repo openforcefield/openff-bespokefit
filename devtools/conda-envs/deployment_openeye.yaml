@@ -9,6 +9,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-asyncio
+  - pytest-mock
   - requests-mock
 variables:
   # This should be unnecessary in the release after 0.4.3; see #407
