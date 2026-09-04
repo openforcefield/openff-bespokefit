@@ -5,7 +5,6 @@ import subprocess
 from typing import Any, Dict
 
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.utilities.provenance import get_ambertools_version
 
 from openff.bespokefit.optimizers.forcebalance import ForceBalanceInputFactory
 from openff.bespokefit.optimizers.model import BaseOptimizer
@@ -60,7 +59,15 @@ class ForceBalanceOptimizer(BaseOptimizer):
         except ImportError:
             pass
 
-        ambertools_version = get_ambertools_version()
+        try:
+            from openff.utilities.provenance import get_ambertools_version
+
+            ambertools_version = get_ambertools_version()
+        except (
+            ImportError,  # any number of failures
+            TypeError,  # https://github.com/openforcefield/openff-utilities/issues/156
+        ):
+            ambertools_version = None
 
         if ambertools_version is not None:
             versions["ambertools"] = ambertools_version

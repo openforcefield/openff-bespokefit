@@ -9,7 +9,9 @@ import subprocess
 import numpy as np
 import pytest
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit.utils.toolkits import AmberToolsToolkitWrapper
 from openff.utilities import get_data_file_path, temporary_cd
+from packaging.version import Version
 
 from openff.bespokefit.optimizers import ForceBalanceOptimizer
 from openff.bespokefit.schema.fitting import BaseOptimizationSchema
@@ -174,3 +176,30 @@ def test_forcebalance_optimize(
         )
 
     assert results.status == "success"
+
+
+@pytest.mark.skipif(
+    not AmberToolsToolkitWrapper.is_available(), reason="AmberTools is not available"
+)
+def test_ambertools_provenance():
+    provenance = ForceBalanceOptimizer.provenance()
+
+    assert "ambertools" in provenance
+
+    # just make sure it can be parsed like a version number
+    Version(provenance["ambertools"])
+
+
+@pytest.mark.parametrize(
+    "exception_class",
+    [TypeError, ImportError],
+)
+def test_ambertools_provenance_fallback(mocker, exception_class):
+    mocker.patch(
+        "openff.utilities.provenance.get_ambertools_version",
+        side_effect=exception_class(),
+    )
+
+    provenance = ForceBalanceOptimizer.provenance()
+
+    assert "ambertools" not in provenance

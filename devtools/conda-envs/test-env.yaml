@@ -59,5 +59,6 @@ dependencies:
   - pytest =7
   - pytest-cov
   - pytest-asyncio
+  - pytest-mock
   - requests-mock
 
