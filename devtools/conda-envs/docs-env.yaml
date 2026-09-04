@@ -4,14 +4,14 @@ channels:
   - conda-forge
 
 dependencies:
-  - python
+  - python ==3.12.13
   - pip
   # https://github.com/leeping/forcebalance/issues/307
-  - setuptools<82
+  - setuptools=81.0.0
 
     ### Core dependencies.
 
-  - numpy
+  - numpy ==1.26.4
   - pydantic =1
   - pyyaml
   - tqdm
@@ -20,10 +20,11 @@ dependencies:
   - click-option-group
   - rdkit =2024.03.5
   - openff-utilities
-  - openff-toolkit >=0.15
-  - openff-forcefields >=2024.04.0
-  - openff-qcsubmit >=0.50
-  - openmm >=7.6.0
+  - openff-toolkit ==0.16.5
+  - openff-interchange ==0.3.29
+  - openff-forcefields ==2026.01.0
+  - openff-qcsubmit ==0.50.3
+  - openmm ==8.5.2
 
     # Optional
   - forcebalance
@@ -46,11 +47,11 @@ dependencies:
   - celery
   - httpx
   - redis-server
-  - redis-py <7.2
+  - redis-py =7.1.1
 
     ### Documentation dependencies
 
-  - sphinx >=4.4,<5
+  - sphinx =4.5.0
   - sphinx-notfound-page
   - sphinx-click
   - myst-parser
