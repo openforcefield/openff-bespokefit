@@ -68,7 +68,6 @@ class ForceBalanceOptimizer(BaseOptimizer):
             TypeError,  # https://github.com/openforcefield/openff-utilities/issues/156
         ):
             ambertools_version = None
-            # do we want this to be in the versions dict as None or just not present at all?
 
         if ambertools_version is not None:
             versions["ambertools"] = ambertools_version
