@@ -112,3 +112,7 @@ output.json
 
 # macOS
 .DS_Store
+
+# Pixi
+.pixi/
+pixi.lock

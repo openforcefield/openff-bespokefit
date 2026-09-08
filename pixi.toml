@@ -1,0 +1,68 @@
+[workspace]
+name = "openff-bespokefit"
+channels = ["openeye", "conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.docs.dependencies]
+python = "*"
+pip = "*"
+# https://github.com/leeping/forcebalance/issues/307
+setuptools = "<82"
+
+### Core dependencies.
+numpy = "*"
+pydantic = "1.*"
+pyyaml = "*"
+tqdm = "*"
+rich = "*"
+click = "*"
+click-option-group = "*"
+rdkit = "2024.03.5.*"
+openff-utilities = "*"
+openff-toolkit = ">=0.15"
+openff-forcefields = ">=2024.04.0"
+openff-qcsubmit = ">=0.50"
+openmm = ">=7.6.0"
+
+# Optional
+forcebalance = "*"
+openff-fragmenter-base = "*"
+openeye-toolkits = "*"
+
+### Bespoke dependencies
+qcportal = "==0.53"
+qcelemental = "<0.50"
+qcengine = "<0.50"
+chemper = "*"
+geometric = "<1"
+torsiondrive = "*"
+pymbar = "*"
+
+# Executor
+uvicorn = "*"
+fastapi = "*"
+celery = "*"
+httpx = "*"
+redis-server = "*"
+redis-py = "<7.2"
+
+### Documentation dependencies
+sphinx = ">=4.4,<5"
+sphinx-notfound-page = "*"
+sphinx-click = "*"
+myst-parser = "*"
+autodoc-pydantic = "*"
+sphinxcontrib-bibtex = "*"
+
+# These are added automatically by RTD, so we include them here
+# for a consistent environment.
+mock = "*"
+pillow = "*"
+
+[feature.docs.pypi-dependencies]
+# Documentation theme
+openff-sphinx-theme = { git = "https://github.com/openforcefield/openff-sphinx-theme.git", branch = "main" }
+openff-bespokefit = { path = ".", editable = true }
+
+[environments]
+docs = { features = ["docs"], solve-group = "docs" }
