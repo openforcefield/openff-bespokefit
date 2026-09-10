@@ -8,7 +8,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
-## 0.4.4 / 09-10-2026
+## Current Development
 
 ### Bug fixes 
 * [#440] - Don't error out if unable to determine ambertools version.
