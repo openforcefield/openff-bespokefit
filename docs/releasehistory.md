@@ -12,7 +12,6 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 
 ### Bug fixes 
 * [#440] - Don't error out if unable to determine ambertools version.
-* [#444] - Fix the executor hanging on macOS with `billiard` 4.3 or newer, which changed the default multiprocessing start method to `spawn`.
 
 ## 0.4.3 / 05-15-2025
 
