@@ -69,6 +69,7 @@ jobs:
 
       - name: Run Integration Tests
         if: ${{ matrix.integration == true }}
+        timeout-minutes: 30
         run: |
           openff-bespoke executor run --smiles                 'CC'               \
                                       --workflow               'default'          \
