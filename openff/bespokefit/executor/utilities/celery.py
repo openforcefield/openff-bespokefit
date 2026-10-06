@@ -1,6 +1,5 @@
 import json
 import multiprocessing
-import sys
 from typing import Any, Dict, List, Optional
 
 import billiard
@@ -59,12 +58,11 @@ def configure_celery_app(
 
 
 def _spawn_worker(celery_app, concurrency: int = 1, **kwargs):
-    if sys.platform == "darwin":
-        # billiard >=4.3 defaults to the 'spawn' start method on macOS, but its pool
-        # workers fail to start when the worker itself is running inside a spawned
-        # ``multiprocessing.Process`` (the parent's ``__main__`` is ``__mp_main__``,
-        # which cannot be re-imported), leaving tasks queued forever.
-        billiard.set_start_method("fork", force=True)
+    # billiard >=4.3 defaults to the 'spawn' start method on macOS, but its pool
+    # workers fail to start when the worker itself is running inside a spawned
+    # ``multiprocessing.Process`` (the parent's ``__main__`` is ``__mp_main__``,
+    # which cannot be re-imported), leaving tasks queued forever.
+    billiard.set_start_method("fork", force=True)
 
     worker = celery_app.Worker(
         concurrency=concurrency,
