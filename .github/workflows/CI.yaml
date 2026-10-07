@@ -85,6 +85,7 @@ jobs:
 
       - name: Run Integration Tests and print logs
         if: ${{ matrix.integration == true }}
+        timeout-minutes: 30
         run: |
           mkdir integration_test_directory
           openff-bespoke executor run --smiles                 'CC'               \
