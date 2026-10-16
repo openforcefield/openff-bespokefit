@@ -8,7 +8,7 @@ Releases follow the ``major.minor.micro`` scheme recommended by
 * `micro` increments represent bugfix releases or improvements in documentation
 
 <!-- ## Since last release -->
-## Current Development
+## 0.4.4 / 10-16-2026
 
 ### Bug fixes 
 * [#440] - Don't error out if unable to determine ambertools version.
@@ -199,6 +199,7 @@ The first major release of bespokefit intended for public use.
 [#384]: https://github.com/openforcefield/openff-bespokefit/pull/380
 [#398]: https://github.com/openforcefield/openff-bespokefit/pull/398
 [#440]: https://github.com/openforcefield/openff-bespokefit/pull/440
+[#444]: https://github.com/openforcefield/openff-bespokefit/pull/444
 
 
 [@Yoshanuikabundi]: https://github.com/Yoshanuikabundi
