@@ -109,8 +109,8 @@ def get_n_tasks(status: Optional[TaskStatus] = None) -> int:
 def peek_task_status(status: TaskStatus) -> Optional[int]:
     connection = connect_to_default_redis()
 
-    task_id = connection.lrange(_QUEUE_NAMES[status], 0, 0)
-    return None if len(task_id) == 0 else int(task_id[0])
+    task_id = connection.lindex(_QUEUE_NAMES[status], 0)
+    return None if task_id is None else int(task_id)
 
 
 def pop_task_status(status: TaskStatus) -> Optional[int]:
@@ -130,3 +130,15 @@ def push_task_status(task_id: int, status: TaskStatus):
 def save_task(task: CoordinatorTask):
     connection = connect_to_default_redis()
     connection.set(_task_id_to_key(int(task.id)), pickle.dumps(task.dict()))
+
+
+def snapshot_task_status(status: TaskStatus) -> List[int]:
+    connection = connect_to_default_redis()
+    task_ids = connection.lrange(_QUEUE_NAMES[status], 0, -1)
+    return [int(task_id) for task_id in task_ids]
+
+
+def remove_task_status(task_id: int, status: TaskStatus) -> int:
+    connection = connect_to_default_redis()
+    count = connection.lrem(_QUEUE_NAMES[status], 0, str(task_id))
+    return count
